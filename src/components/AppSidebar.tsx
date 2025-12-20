@@ -1,16 +1,24 @@
-import { Home, Bell, Settings, Shield, Menu, X } from "lucide-react";
+import { Home, Bell, Settings, Shield, Menu, X, Users, LogOut } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
 
 const navItems = [
   { title: "בית", url: "/", icon: Home },
+  { title: "המשפחה שלי", url: "/family", icon: Users },
   { title: "התראות", url: "/alerts", icon: Bell },
   { title: "הגדרות", url: "/settings", icon: Settings },
 ];
 
 export function AppSidebar() {
   const [isOpen, setIsOpen] = useState(true);
+  const { signOut } = useAuth();
+
+  const handleLogout = async () => {
+    await signOut();
+  };
 
   return (
     <>
@@ -45,8 +53,8 @@ export function AppSidebar() {
               <Shield className="w-8 h-8 text-primary" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-foreground text-glow">מרכז בקרה</h1>
-              <p className="text-xs text-muted-foreground">הורית</p>
+              <h1 className="text-lg font-bold text-foreground text-glow">Kippy</h1>
+              <p className="text-xs text-muted-foreground">מרכז בטיחות</p>
             </div>
           </div>
         </div>
@@ -69,6 +77,18 @@ export function AppSidebar() {
             ))}
           </ul>
         </nav>
+
+        {/* Logout Button */}
+        <div className="p-4">
+          <Button
+            variant="ghost"
+            className="w-full justify-start gap-3 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+            onClick={handleLogout}
+          >
+            <LogOut className="w-5 h-5" />
+            <span>התנתק</span>
+          </Button>
+        </div>
 
         {/* Footer */}
         <div className="p-4 border-t border-sidebar-border">

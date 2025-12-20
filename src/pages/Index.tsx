@@ -2,15 +2,34 @@ import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { DeviceCard } from "@/components/DeviceCard";
 import { AlertCard } from "@/components/AlertCard";
-import { supabase, Device, Alert } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 import { Shield, Smartphone, Bell, AlertTriangle, RefreshCw } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+
+interface Device {
+  device_id: string;
+  child_id: string | null;
+  battery_level: number | null;
+  last_seen: string | null;
+  latitude: number | null;
+  longitude: number | null;
+}
+
+interface Alert {
+  id: number;
+  sender: string | null;
+  content: string | null;
+  risk_score: number | null;
+  created_at: string;
+}
 
 const Index = () => {
   const [devices, setDevices] = useState<Device[]>([]);
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
 
   const fetchData = async () => {
     try {
@@ -44,7 +63,7 @@ const Index = () => {
     }
   };
 
-  const deleteAlert = async (id: string) => {
+  const deleteAlert = async (id: number) => {
     try {
       const { error } = await supabase
         .from('alerts')
@@ -71,7 +90,7 @@ const Index = () => {
     fetchData();
   }, []);
 
-  const highRiskCount = alerts.filter(a => a.risk_score > 80).length;
+  const highRiskCount = alerts.filter(a => (a.risk_score ?? 0) > 80).length;
 
   return (
     <DashboardLayout>
@@ -136,9 +155,6 @@ const Index = () => {
         <div className="mb-6 p-4 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive">
           <p className="font-medium">שגיאה בטעינת נתונים</p>
           <p className="text-sm opacity-80">{error}</p>
-          <p className="text-xs mt-2 opacity-60">
-            וודא שהגדרת משתני סביבה: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY
-          </p>
         </div>
       )}
 
@@ -160,7 +176,7 @@ const Index = () => {
           ) : devices.length > 0 ? (
             <div className="space-y-4">
               {devices.map((device) => (
-                <DeviceCard key={device.id} device={device} />
+                <DeviceCard key={device.device_id} device={device} />
               ))}
             </div>
           ) : (
