@@ -42,37 +42,37 @@ export type Database = {
         Row: {
           city: string | null
           created_at: string
-          date_of_birth: string | null
-          gender: string | null
+          date_of_birth: string
+          gender: string
           id: string
           name: string
           pairing_code: string | null
           parent_id: string
-          phone_number: string | null
+          phone_number: string
           school: string | null
         }
         Insert: {
           city?: string | null
           created_at?: string
-          date_of_birth?: string | null
-          gender?: string | null
+          date_of_birth: string
+          gender: string
           id?: string
           name: string
           pairing_code?: string | null
           parent_id: string
-          phone_number?: string | null
+          phone_number: string
           school?: string | null
         }
         Update: {
           city?: string | null
           created_at?: string
-          date_of_birth?: string | null
-          gender?: string | null
+          date_of_birth?: string
+          gender?: string
           id?: string
           name?: string
           pairing_code?: string | null
           parent_id?: string
-          phone_number?: string | null
+          phone_number?: string
           school?: string | null
         }
         Relationships: [

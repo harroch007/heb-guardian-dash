@@ -1,9 +1,17 @@
 import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { AlertCard } from "@/components/AlertCard";
-import { supabase, Alert } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 import { Bell, Filter, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+
+interface Alert {
+  id: number;
+  sender: string | null;
+  content: string | null;
+  risk_score: number | null;
+  created_at: string;
+}
 
 const AlertsPage = () => {
   const [alerts, setAlerts] = useState<Alert[]>([]);
@@ -31,7 +39,7 @@ const AlertsPage = () => {
     }
   };
 
-  const deleteAlert = async (id: string) => {
+  const deleteAlert = async (id: number) => {
     try {
       const { error } = await supabase
         .from('alerts')
@@ -61,7 +69,7 @@ const AlertsPage = () => {
       const { error } = await supabase
         .from('alerts')
         .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+        .neq('id', 0);
 
       if (error) throw error;
 
@@ -84,8 +92,9 @@ const AlertsPage = () => {
   }, []);
 
   const filteredAlerts = alerts.filter(alert => {
-    if (filter === 'high') return alert.risk_score > 80;
-    if (filter === 'medium') return alert.risk_score <= 80;
+    const score = alert.risk_score ?? 0;
+    if (filter === 'high') return score > 80;
+    if (filter === 'medium') return score <= 80;
     return true;
   });
 

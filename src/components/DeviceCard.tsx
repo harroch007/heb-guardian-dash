@@ -1,6 +1,14 @@
 import { Battery, MapPin, Clock, Wifi, WifiOff } from "lucide-react";
-import { Device } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
+
+interface Device {
+  device_id: string;
+  child_id: string | null;
+  battery_level: number | null;
+  last_seen: string | null;
+  latitude: number | null;
+  longitude: number | null;
+}
 
 interface DeviceCardProps {
   device: Device;
@@ -8,7 +16,15 @@ interface DeviceCardProps {
 
 export function DeviceCard({ device }: DeviceCardProps) {
   const batteryLevel = device.battery_level ?? 0;
-  const isOnline = device.status === 'online';
+  
+  // Check if device was seen in the last 5 minutes
+  const isOnline = (() => {
+    if (!device.last_seen) return false;
+    const lastSeen = new Date(device.last_seen);
+    const now = new Date();
+    const diffMs = now.getTime() - lastSeen.getTime();
+    return diffMs < 5 * 60 * 1000; // 5 minutes
+  })();
   
   const getBatteryColor = (level: number) => {
     if (level > 60) return "text-success";
@@ -16,7 +32,7 @@ export function DeviceCard({ device }: DeviceCardProps) {
     return "text-destructive";
   };
 
-  const formatLastSeen = (timestamp?: string) => {
+  const formatLastSeen = (timestamp?: string | null) => {
     if (!timestamp) return "לא ידוע";
     const date = new Date(timestamp);
     return date.toLocaleString('he-IL', {
@@ -51,7 +67,7 @@ export function DeviceCard({ device }: DeviceCardProps) {
             )}
           </div>
           <div>
-            <h3 className="font-semibold text-foreground">{device.name || 'מכשיר'}</h3>
+            <h3 className="font-semibold text-foreground">מכשיר {device.device_id.slice(0, 8)}</h3>
             <p className="text-xs text-muted-foreground">
               {isOnline ? 'מחובר' : 'לא מחובר'}
             </p>

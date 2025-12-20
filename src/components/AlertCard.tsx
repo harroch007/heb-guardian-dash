@@ -1,15 +1,23 @@
 import { Trash2, AlertTriangle, User, Clock } from "lucide-react";
-import { Alert } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
+
+interface Alert {
+  id: number;
+  sender: string | null;
+  content: string | null;
+  risk_score: number | null;
+  created_at: string;
+}
 
 interface AlertCardProps {
   alert: Alert;
-  onDelete: (id: string) => void;
+  onDelete: (id: number) => void;
   index?: number;
 }
 
 export function AlertCard({ alert, onDelete, index = 0 }: AlertCardProps) {
-  const isHighRisk = alert.risk_score > 80;
+  const riskScore = alert.risk_score ?? 0;
+  const isHighRisk = riskScore > 80;
   
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp);
@@ -67,19 +75,19 @@ export function AlertCard({ alert, onDelete, index = 0 }: AlertCardProps) {
             </span>
 
             <span className="text-xs text-muted-foreground">
-              {alert.risk_score}%
+              {riskScore}%
             </span>
           </div>
 
           {/* Sender */}
           <div className="flex items-center gap-2 mb-2">
             <User className="w-3.5 h-3.5 text-muted-foreground" />
-            <span className="text-sm font-medium text-foreground">{alert.sender}</span>
+            <span className="text-sm font-medium text-foreground">{alert.sender || 'לא ידוע'}</span>
           </div>
 
           {/* Content */}
           <p className="text-sm text-muted-foreground leading-relaxed mb-3">
-            {alert.content}
+            {alert.content || 'אין תוכן'}
           </p>
 
           {/* Time */}
