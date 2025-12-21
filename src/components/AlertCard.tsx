@@ -1,6 +1,8 @@
-import { forwardRef } from "react";
-import { Trash2, AlertTriangle, User, Clock } from "lucide-react";
+import { forwardRef, useState } from "react";
+import { Trash2, AlertTriangle, User, Clock, RefreshCw, Bot, Lightbulb } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface Alert {
   id: number;
@@ -8,17 +10,41 @@ interface Alert {
   content: string | null;
   risk_score: number | null;
   created_at: string;
+  ai_summary?: string | null;
+  ai_recommendation?: string | null;
+  is_processed?: boolean;
 }
 
 interface AlertCardProps {
   alert: Alert;
   onDelete: (id: number) => void;
+  onReanalyze?: (id: number) => void;
   index?: number;
 }
 
-export const AlertCard = forwardRef<HTMLDivElement, AlertCardProps>(function AlertCard({ alert, onDelete, index = 0 }, ref) {
+export const AlertCard = forwardRef<HTMLDivElement, AlertCardProps>(function AlertCard({ alert, onDelete, onReanalyze, index = 0 }, ref) {
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const riskScore = alert.risk_score ?? 0;
   const isHighRisk = riskScore > 80;
+  
+  const handleReanalyze = async () => {
+    setIsAnalyzing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('analyze-alert', {
+        body: { alert_id: alert.id }
+      });
+      
+      if (error) throw error;
+      
+      toast.success('הניתוח הושלם בהצלחה');
+      onReanalyze?.(alert.id);
+    } catch (err: any) {
+      console.error('Re-analyze error:', err);
+      toast.error('שגיאה בניתוח: ' + (err.message || 'נסה שוב'));
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
   
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp);
@@ -97,16 +123,53 @@ export const AlertCard = forwardRef<HTMLDivElement, AlertCardProps>(function Ale
             <Clock className="w-3.5 h-3.5 text-primary" />
             <span className="text-xs text-primary">{formatTime(alert.created_at)}</span>
           </div>
+
+          {/* AI Analysis Section */}
+          {alert.is_processed && (alert.ai_summary || alert.ai_recommendation) && (
+            <div className="mt-3 pt-3 border-t border-border/50 space-y-2">
+              {alert.ai_summary && (
+                <div className="flex items-start gap-2">
+                  <Bot className="w-3.5 h-3.5 text-primary mt-0.5 flex-shrink-0" />
+                  <p className="text-xs text-muted-foreground leading-relaxed">{alert.ai_summary}</p>
+                </div>
+              )}
+              {alert.ai_recommendation && (
+                <div className="flex items-start gap-2">
+                  <Lightbulb className="w-3.5 h-3.5 text-warning mt-0.5 flex-shrink-0" />
+                  <p className="text-xs text-foreground/80 leading-relaxed">{alert.ai_recommendation}</p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* Delete Button */}
-        <button
-          onClick={() => onDelete(alert.id)}
-          className="p-2 rounded-lg bg-muted/50 hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-all duration-200 group"
-          title="מחק התראה"
-        >
-          <Trash2 className="w-4 h-4 group-hover:scale-110 transition-transform" />
-        </button>
+        {/* Action Buttons */}
+        <div className="flex flex-col gap-2">
+          {/* Re-analyze Button */}
+          <button
+            onClick={handleReanalyze}
+            disabled={isAnalyzing}
+            className={cn(
+              "p-2 rounded-lg bg-muted/50 hover:bg-primary/20 text-muted-foreground hover:text-primary transition-all duration-200 group",
+              isAnalyzing && "opacity-50 cursor-not-allowed"
+            )}
+            title="נתח מחדש"
+          >
+            <RefreshCw className={cn(
+              "w-4 h-4 group-hover:scale-110 transition-transform",
+              isAnalyzing && "animate-spin"
+            )} />
+          </button>
+          
+          {/* Delete Button */}
+          <button
+            onClick={() => onDelete(alert.id)}
+            className="p-2 rounded-lg bg-muted/50 hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-all duration-200 group"
+            title="מחק התראה"
+          >
+            <Trash2 className="w-4 h-4 group-hover:scale-110 transition-transform" />
+          </button>
+        </div>
       </div>
     </div>
   );
