@@ -1,6 +1,8 @@
 import { forwardRef } from "react";
-import { Battery, MapPin, Clock, Wifi, WifiOff } from "lucide-react";
+import { Battery, MapPin, Clock, Wifi, WifiOff, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 interface Device {
   device_id: string;
@@ -104,20 +106,34 @@ export const DeviceCard = forwardRef<HTMLDivElement, DeviceCardProps>(function D
 
         {/* Location */}
         {device.latitude && device.longitude && (
-          <a
-            href={`https://www.google.com/maps?q=${device.latitude},${device.longitude}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full flex items-center justify-between p-3 rounded-lg bg-primary/5 hover:bg-primary/10 border border-primary/20 transition-all group-hover:glow-primary"
-          >
-            <div className="flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-primary" />
-              <span className="text-sm text-primary">צפה במיקום</span>
-            </div>
-            <span className="text-xs text-muted-foreground">
-              Google Maps ←
-            </span>
-          </a>
+          <div className="space-y-2">
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${device.latitude},${device.longitude}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full flex items-center justify-between p-3 rounded-lg bg-primary/5 hover:bg-primary/10 border border-primary/20 transition-all group-hover:glow-primary"
+            >
+              <div className="flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-primary" />
+                <span className="text-sm text-primary">צפה במיקום</span>
+              </div>
+              <span className="text-xs text-muted-foreground">
+                Google Maps ←
+              </span>
+            </a>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full"
+              onClick={() => {
+                navigator.clipboard.writeText(`${device.latitude},${device.longitude}`);
+                toast.success("המיקום הועתק!");
+              }}
+            >
+              <Copy className="w-4 h-4 ml-2" />
+              העתק מיקום
+            </Button>
+          </div>
         )}
       </div>
     </div>
