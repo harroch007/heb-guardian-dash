@@ -59,6 +59,7 @@ export default function ChildDashboard() {
   const [appUsage, setAppUsage] = useState<AppUsage[]>([]);
   const [loading, setLoading] = useState(true);
   const [locating, setLocating] = useState(false);
+  const [showMap, setShowMap] = useState(false);
 
   // Device is connected if a device record exists (app is installed and authorized)
   const isConnected = device !== null;
@@ -170,6 +171,7 @@ export default function ChildDashboard() {
     if (!device?.device_id) return;
 
     setLocating(true);
+    setShowMap(true);
     
     const { error } = await supabase.from('device_commands').insert({
       device_id: device.device_id,
@@ -191,6 +193,9 @@ export default function ChildDashboard() {
     }
 
     setTimeout(() => setLocating(false), 3000);
+    
+    // Hide map after 15 seconds
+    setTimeout(() => setShowMap(false), 15000);
   };
 
 
@@ -286,7 +291,7 @@ export default function ChildDashboard() {
                 </Button>
               </CardHeader>
               <CardContent>
-                {device.latitude && device.longitude ? (
+                {showMap && device.latitude && device.longitude ? (
                   <div className="space-y-3">
                     <LocationMap 
                       latitude={device.latitude} 
@@ -326,7 +331,7 @@ export default function ChildDashboard() {
                   </div>
                 ) : (
                   <div className="h-48 rounded-xl bg-muted/50 flex items-center justify-center">
-                    <p className="text-muted-foreground">אין מיקום זמין</p>
+                    <p className="text-muted-foreground">לחץ "אתר עכשיו" לראות את המיקום</p>
                   </div>
                 )}
               </CardContent>
