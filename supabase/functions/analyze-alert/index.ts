@@ -96,14 +96,14 @@ serve(async (req) => {
     let alertId: number;
     let content: string;
     let isProcessed: boolean;
-    let sender: string | null = null;
+    let deviceId: string | null = null;
 
     if (body.type === 'INSERT' && body.record) {
       // Database webhook format
       alertId = body.record.id;
       content = body.record.content;
       isProcessed = body.record.is_processed;
-      sender = body.record.sender;
+      deviceId = body.record.device_id; // Use device_id instead of sender
     } else if (body.alert_id) {
       // Direct call format (for re-analyze)
       alertId = body.alert_id;
@@ -120,7 +120,7 @@ serve(async (req) => {
       }
       
       content = alert.content;
-      sender = alert.sender;
+      deviceId = alert.device_id; // Use device_id instead of sender
       isProcessed = false; // Force re-analysis
     } else {
       throw new Error('Invalid request format');
@@ -149,14 +149,18 @@ serve(async (req) => {
     let childAge: number | null = null;
     let childGender: string | null = null;
     
-    if (sender) {
-      const { data: deviceData } = await supabase
+    if (deviceId) {
+      console.log(`Looking up child info for device_id: ${deviceId}`);
+      const { data: deviceData, error: deviceError } = await supabase
         .from('devices')
         .select('child_id')
-        .eq('device_id', sender)
+        .eq('device_id', deviceId)
         .single();
       
-      if (deviceData?.child_id) {
+      if (deviceError) {
+        console.log(`Device lookup failed: ${deviceError.message}`);
+      } else if (deviceData?.child_id) {
+        console.log(`Found child_id: ${deviceData.child_id}`);
         const { data: childData } = await supabase
           .from('children')
           .select('date_of_birth, gender')
@@ -169,8 +173,13 @@ serve(async (req) => {
           const now = new Date();
           childAge = Math.floor((now.getTime() - birthDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25));
           childGender = childData.gender;
+          console.log(`Child context: age=${childAge}, gender=${childGender}`);
         }
+      } else {
+        console.log('No child linked to this device');
       }
+    } else {
+      console.log('No device_id provided - child context unavailable');
     }
 
     // Call OpenAI API with JSON mode
