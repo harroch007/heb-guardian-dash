@@ -46,10 +46,8 @@ export const DeviceCard = forwardRef<HTMLDivElement, DeviceCardProps>(function D
 
   const openMaps = () => {
     if (device.latitude && device.longitude) {
-      window.open(
-        `https://www.google.com/maps?q=${device.latitude},${device.longitude}`,
-        '_blank'
-      );
+      const url = `https://www.google.com/maps?q=${device.latitude},${device.longitude}`;
+      window.open(url, '_blank', 'noopener,noreferrer');
     }
   };
 
