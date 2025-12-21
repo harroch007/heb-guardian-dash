@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { LocationMap } from '@/components/LocationMap';
 import { 
   ArrowRight, 
   MapPin, 
@@ -289,32 +290,41 @@ export default function ChildDashboard() {
               <CardContent>
                 {device.latitude && device.longitude ? (
                   <div className="space-y-3">
-                    <a 
-                      href={`https://www.google.com/maps/search/?api=1&query=${device.latitude},${device.longitude}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="h-48 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/30 flex items-center justify-center cursor-pointer hover:border-primary/50 transition-colors block"
-                    >
-                      <div className="text-center">
-                        <MapPin className="w-8 h-8 text-primary mx-auto mb-2" />
-                        <p className="text-sm text-muted-foreground">
-                          {device.latitude.toFixed(4)}, {device.longitude.toFixed(4)}
-                        </p>
-                        <p className="text-xs text-primary mt-1">לחץ לפתיחה במפות</p>
-                      </div>
-                    </a>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full"
-                      onClick={() => {
-                        navigator.clipboard.writeText(`${device.latitude},${device.longitude}`);
-                        sonnerToast.success("המיקום הועתק!");
-                      }}
-                    >
-                      <Copy className="w-4 h-4 ml-2" />
-                      העתק מיקום
-                    </Button>
+                    <LocationMap 
+                      latitude={device.latitude} 
+                      longitude={device.longitude}
+                      name={child?.name}
+                      height="250px"
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => {
+                          navigator.clipboard.writeText(`${device.latitude},${device.longitude}`);
+                          sonnerToast.success("המיקום הועתק!");
+                        }}
+                      >
+                        <Copy className="w-4 h-4 ml-2" />
+                        העתק מיקום
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        asChild
+                      >
+                        <a 
+                          href={`https://www.google.com/maps/search/?api=1&query=${device.latitude},${device.longitude}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <MapPin className="w-4 h-4 ml-2" />
+                          פתח ב-Google Maps
+                        </a>
+                      </Button>
+                    </div>
                   </div>
                 ) : (
                   <div className="h-48 rounded-xl bg-muted/50 flex items-center justify-center">
