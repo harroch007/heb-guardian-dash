@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
 import Family from "./pages/Family";
+import ChildDashboard from "./pages/ChildDashboard";
 import AlertsPage from "./pages/Alerts";
 import SettingsPage from "./pages/Settings";
 import NotFound from "./pages/NotFound";
@@ -37,6 +38,11 @@ const App = () => (
             <Route path="/family" element={
               <ProtectedRoute>
                 <Family />
+              </ProtectedRoute>
+            } />
+            <Route path="/child/:childId" element={
+              <ProtectedRoute>
+                <ChildDashboard />
               </ProtectedRoute>
             } />
             <Route path="/alerts" element={

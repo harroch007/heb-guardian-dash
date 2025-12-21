@@ -1,29 +1,38 @@
 import { QRCodeSVG } from 'qrcode.react';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, Smartphone } from 'lucide-react';
+import { Smartphone, Loader2 } from 'lucide-react';
 
 interface QRCodeDisplayProps {
+  childId: string;
+  parentId: string;
   onFinish: () => void;
 }
 
-export function QRCodeDisplay({ onFinish }: QRCodeDisplayProps) {
-  const downloadUrl = 'https://kippy.app/download';
+export function QRCodeDisplay({ childId, parentId, onFinish }: QRCodeDisplayProps) {
+  // Generate pairing QR code content as JSON
+  const qrContent = JSON.stringify({
+    action: 'pair',
+    child_id: childId,
+    parent_id: parentId,
+  });
 
   return (
     <div className="text-center py-4">
-      {/* Success Icon */}
-      <div className="inline-flex items-center justify-center p-4 rounded-full bg-success/20 mb-4">
-        <CheckCircle2 className="w-12 h-12 text-success" />
+      {/* Loading indicator */}
+      <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/20 mb-4">
+        <Loader2 className="w-4 h-4 animate-spin text-primary" />
+        <span className="text-sm text-primary">ממתין לחיבור מכשיר...</span>
       </div>
 
       <p className="text-muted-foreground mb-6">
-        כעת יש להתקין את האפליקציה על המכשיר של הילד
+        סרוק את הקוד עם אפליקציית Kippy במכשיר של הילד
       </p>
 
       {/* QR Code */}
-      <div className="bg-background p-6 rounded-2xl border border-primary/30 inline-block mb-6">
+      <div className="bg-background p-6 rounded-2xl border border-primary/30 inline-block mb-6 relative">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent rounded-2xl pointer-events-none" />
         <QRCodeSVG
-          value={downloadUrl}
+          value={qrContent}
           size={200}
           level="H"
           includeMargin
@@ -33,19 +42,25 @@ export function QRCodeDisplay({ onFinish }: QRCodeDisplayProps) {
       </div>
 
       {/* Instructions */}
-      <div className="flex items-center justify-center gap-2 text-muted-foreground mb-6">
-        <Smartphone className="w-5 h-5" />
-        <p className="text-sm">
-          סרוק עם המכשיר של הילד להורדת האפליקציה
+      <div className="space-y-3 mb-6">
+        <div className="flex items-center justify-center gap-2 text-muted-foreground">
+          <Smartphone className="w-5 h-5" />
+          <p className="text-sm">
+            וודא שהאפליקציה מותקנת במכשיר הילד
+          </p>
+        </div>
+        <p className="text-xs text-muted-foreground/70">
+          המודל ייסגר אוטומטית כאשר המכשיר יחובר
         </p>
       </div>
 
       <Button
         onClick={onFinish}
-        className="w-full glow-primary"
+        variant="outline"
+        className="w-full"
         size="lg"
       >
-        סיום
+        סגור וחבר מאוחר יותר
       </Button>
     </div>
   );
