@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -6,14 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { QRCodeDisplay } from '@/components/QRCodeDisplay';
-import { Loader2, CalendarIcon, User } from 'lucide-react';
+import { Loader2, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
-import { he } from 'date-fns/locale';
-import { cn } from '@/lib/utils';
 import { z } from 'zod';
 
 interface AddChildModalProps {
@@ -24,14 +20,33 @@ interface AddChildModalProps {
 
 const childSchema = z.object({
   name: z.string().min(2, 'השם חייב להכיל לפחות 2 תווים').max(100),
-  dateOfBirth: z.date({ required_error: 'נא לבחור תאריך לידה' }),
-  gender: z.enum(['boy', 'girl', 'other'], { required_error: 'נא לבחור מין' }),
+  day: z.string().min(1, 'נא לבחור יום'),
+  month: z.string().min(1, 'נא לבחור חודש'),
+  year: z.string().min(1, 'נא לבחור שנה'),
+  gender: z.enum(['male', 'female', 'other'], { required_error: 'נא לבחור מין' }),
 });
+
+const hebrewMonths = [
+  { value: '1', label: 'ינואר' },
+  { value: '2', label: 'פברואר' },
+  { value: '3', label: 'מרץ' },
+  { value: '4', label: 'אפריל' },
+  { value: '5', label: 'מאי' },
+  { value: '6', label: 'יוני' },
+  { value: '7', label: 'יולי' },
+  { value: '8', label: 'אוגוסט' },
+  { value: '9', label: 'ספטמבר' },
+  { value: '10', label: 'אוקטובר' },
+  { value: '11', label: 'נובמבר' },
+  { value: '12', label: 'דצמבר' },
+];
 
 export function AddChildModal({ open, onOpenChange, onChildAdded }: AddChildModalProps) {
   const [step, setStep] = useState<'form' | 'pairing'>('form');
   const [name, setName] = useState('');
-  const [dateOfBirth, setDateOfBirth] = useState<Date | undefined>();
+  const [day, setDay] = useState('');
+  const [month, setMonth] = useState('');
+  const [year, setYear] = useState('');
   const [gender, setGender] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -39,9 +54,27 @@ export function AddChildModal({ open, onOpenChange, onChildAdded }: AddChildModa
   const { user } = useAuth();
   const { toast } = useToast();
 
+  const currentYear = new Date().getFullYear();
+  const years = useMemo(() => {
+    const arr = [];
+    for (let y = currentYear; y >= currentYear - 18; y--) {
+      arr.push(y.toString());
+    }
+    return arr;
+  }, [currentYear]);
+
+  const days = useMemo(() => {
+    const daysInMonth = month && year 
+      ? new Date(parseInt(year), parseInt(month), 0).getDate() 
+      : 31;
+    return Array.from({ length: daysInMonth }, (_, i) => (i + 1).toString());
+  }, [month, year]);
+
   const resetForm = () => {
     setName('');
-    setDateOfBirth(undefined);
+    setDay('');
+    setMonth('');
+    setYear('');
     setGender('');
     setErrors({});
     setStep('form');
@@ -57,8 +90,10 @@ export function AddChildModal({ open, onOpenChange, onChildAdded }: AddChildModa
     try {
       childSchema.parse({
         name,
-        dateOfBirth,
-        gender: gender as 'boy' | 'girl' | 'other',
+        day,
+        month,
+        year,
+        gender: gender as 'male' | 'female' | 'other',
       });
       setErrors({});
       return true;
@@ -77,7 +112,9 @@ export function AddChildModal({ open, onOpenChange, onChildAdded }: AddChildModa
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm() || !user || !dateOfBirth) return;
+    if (!validateForm() || !user) return;
+
+    const dateOfBirth = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
 
     setLoading(true);
 
@@ -85,7 +122,7 @@ export function AddChildModal({ open, onOpenChange, onChildAdded }: AddChildModa
       const { data, error } = await supabase.from('children').insert({
         parent_id: user.id,
         name: name.trim(),
-        phone_number: '', // Will be set during pairing
+        phone_number: '',
         date_of_birth: format(dateOfBirth, 'yyyy-MM-dd'),
         gender,
       }).select('id').single();
@@ -108,7 +145,6 @@ export function AddChildModal({ open, onOpenChange, onChildAdded }: AddChildModa
     }
   };
 
-  // Listen for device pairing in real-time
   useEffect(() => {
     if (!childId || step !== 'pairing') return;
 
@@ -166,35 +202,49 @@ export function AddChildModal({ open, onOpenChange, onChildAdded }: AddChildModa
               {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
             </div>
 
-            {/* Date of Birth */}
+            {/* Date of Birth - Dropdowns */}
             <div className="space-y-2">
               <Label>תאריך לידה *</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-right",
-                      !dateOfBirth && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="ml-2 h-4 w-4" />
-                    {dateOfBirth ? format(dateOfBirth, 'dd/MM/yyyy') : 'בחר תאריך'}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={dateOfBirth}
-                    onSelect={setDateOfBirth}
-                    disabled={(date) => date > new Date() || date < new Date('1990-01-01')}
-                    initialFocus
-                    locale={he}
-                    className={cn("p-3 pointer-events-auto")}
-                  />
-                </PopoverContent>
-              </Popover>
-              {errors.dateOfBirth && <p className="text-sm text-destructive">{errors.dateOfBirth}</p>}
+              <div className="grid grid-cols-3 gap-2">
+                {/* Day */}
+                <Select value={day} onValueChange={setDay}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="יום" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {days.map((d) => (
+                      <SelectItem key={d} value={d}>{d}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {/* Month */}
+                <Select value={month} onValueChange={setMonth}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="חודש" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {hebrewMonths.map((m) => (
+                      <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {/* Year */}
+                <Select value={year} onValueChange={setYear}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="שנה" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {years.map((y) => (
+                      <SelectItem key={y} value={y}>{y}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {(errors.day || errors.month || errors.year) && (
+                <p className="text-sm text-destructive">נא למלא את כל שדות התאריך</p>
+              )}
             </div>
 
             {/* Gender */}
@@ -205,8 +255,8 @@ export function AddChildModal({ open, onOpenChange, onChildAdded }: AddChildModa
                   <SelectValue placeholder="בחר מין" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="boy">בן</SelectItem>
-                  <SelectItem value="girl">בת</SelectItem>
+                  <SelectItem value="male">בן</SelectItem>
+                  <SelectItem value="female">בת</SelectItem>
                   <SelectItem value="other">אחר</SelectItem>
                 </SelectContent>
               </Select>
