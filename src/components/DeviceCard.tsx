@@ -44,12 +44,6 @@ export const DeviceCard = forwardRef<HTMLDivElement, DeviceCardProps>(function D
     });
   };
 
-  const openMaps = () => {
-    if (device.latitude && device.longitude) {
-      const url = `https://www.google.com/maps?q=${device.latitude},${device.longitude}`;
-      window.open(url, '_blank', 'noopener,noreferrer');
-    }
-  };
 
   return (
     <div ref={ref} className="p-5 rounded-xl bg-card border border-border/50 hover:border-primary/50 transition-all duration-300 cyber-border group">
@@ -110,8 +104,10 @@ export const DeviceCard = forwardRef<HTMLDivElement, DeviceCardProps>(function D
 
         {/* Location */}
         {device.latitude && device.longitude && (
-          <button
-            onClick={openMaps}
+          <a
+            href={`https://www.google.com/maps?q=${device.latitude},${device.longitude}`}
+            target="_blank"
+            rel="noopener noreferrer"
             className="w-full flex items-center justify-between p-3 rounded-lg bg-primary/5 hover:bg-primary/10 border border-primary/20 transition-all group-hover:glow-primary"
           >
             <div className="flex items-center gap-2">
@@ -121,7 +117,7 @@ export const DeviceCard = forwardRef<HTMLDivElement, DeviceCardProps>(function D
             <span className="text-xs text-muted-foreground">
               Google Maps ←
             </span>
-          </button>
+          </a>
         )}
       </div>
     </div>
