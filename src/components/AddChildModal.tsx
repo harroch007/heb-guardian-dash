@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { QRCodeDisplay } from '@/components/QRCodeDisplay';
-import { Loader2, CalendarIcon, User, Phone, MapPin, GraduationCap } from 'lucide-react';
+import { Loader2, CalendarIcon, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
@@ -24,35 +24,28 @@ interface AddChildModalProps {
 
 const childSchema = z.object({
   name: z.string().min(2, 'השם חייב להכיל לפחות 2 תווים').max(100),
-  phoneNumber: z.string().min(9, 'מספר טלפון לא תקין').max(15),
   dateOfBirth: z.date({ required_error: 'נא לבחור תאריך לידה' }),
   gender: z.enum(['boy', 'girl', 'other'], { required_error: 'נא לבחור מין' }),
-  city: z.string().optional(),
-  school: z.string().optional(),
 });
 
 export function AddChildModal({ open, onOpenChange, onChildAdded }: AddChildModalProps) {
-  const [step, setStep] = useState<'form' | 'success'>('form');
+  const [step, setStep] = useState<'form' | 'pairing'>('form');
   const [name, setName] = useState('');
-  const [phoneNumber, setPhoneNumber] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState<Date | undefined>();
   const [gender, setGender] = useState<string>('');
-  const [city, setCity] = useState('');
-  const [school, setSchool] = useState('');
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [childId, setChildId] = useState<string | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
 
   const resetForm = () => {
     setName('');
-    setPhoneNumber('');
     setDateOfBirth(undefined);
     setGender('');
-    setCity('');
-    setSchool('');
     setErrors({});
     setStep('form');
+    setChildId(null);
   };
 
   const handleClose = () => {
@@ -64,11 +57,8 @@ export function AddChildModal({ open, onOpenChange, onChildAdded }: AddChildModa
     try {
       childSchema.parse({
         name,
-        phoneNumber,
         dateOfBirth,
         gender: gender as 'boy' | 'girl' | 'other',
-        city: city || undefined,
-        school: school || undefined,
       });
       setErrors({});
       return true;
@@ -92,15 +82,13 @@ export function AddChildModal({ open, onOpenChange, onChildAdded }: AddChildModa
     setLoading(true);
 
     try {
-      const { error } = await supabase.from('children').insert({
+      const { data, error } = await supabase.from('children').insert({
         parent_id: user.id,
         name: name.trim(),
-        phone_number: phoneNumber.trim(),
+        phone_number: '', // Will be set during pairing
         date_of_birth: format(dateOfBirth, 'yyyy-MM-dd'),
         gender,
-        city: city.trim() || null,
-        school: school.trim() || null,
-      });
+      }).select('id').single();
 
       if (error) {
         console.error('Error adding child:', error);
@@ -112,24 +100,50 @@ export function AddChildModal({ open, onOpenChange, onChildAdded }: AddChildModa
         return;
       }
 
-      toast({
-        title: 'הילד נוסף בהצלחה!',
-        description: `${name} נוסף למשפחה שלך`,
-      });
-      
-      setStep('success');
+      setChildId(data.id);
+      setStep('pairing');
       onChildAdded();
     } finally {
       setLoading(false);
     }
   };
 
+  // Listen for device pairing in real-time
+  useEffect(() => {
+    if (!childId || step !== 'pairing') return;
+
+    const channel = supabase
+      .channel(`device-pairing-${childId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'devices',
+          filter: `child_id=eq.${childId}`,
+        },
+        (payload) => {
+          console.log('Device paired!', payload);
+          toast({
+            title: '🎉 המכשיר חובר בהצלחה!',
+            description: 'המכשיר של הילד מחובר כעת למערכת',
+          });
+          handleClose();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [childId, step]);
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md border-primary/30 bg-card/95 backdrop-blur-sm max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl text-center">
-            {step === 'form' ? 'הוספת ילד חדש' : 'הילד נוסף בהצלחה!'}
+            {step === 'form' ? 'הוספת ילד חדש' : 'חיבור מכשיר'}
           </DialogTitle>
         </DialogHeader>
 
@@ -137,7 +151,7 @@ export function AddChildModal({ open, onOpenChange, onChildAdded }: AddChildModa
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Name */}
             <div className="space-y-2">
-              <Label htmlFor="name">שם *</Label>
+              <Label htmlFor="name">שם הילד *</Label>
               <div className="relative">
                 <User className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
@@ -150,24 +164,6 @@ export function AddChildModal({ open, onOpenChange, onChildAdded }: AddChildModa
                 />
               </div>
               {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
-            </div>
-
-            {/* Phone */}
-            <div className="space-y-2">
-              <Label htmlFor="phoneNumber">מספר טלפון *</Label>
-              <div className="relative">
-                <Phone className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  id="phoneNumber"
-                  type="tel"
-                  placeholder="050-1234567"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  className="pr-10"
-                  dir="ltr"
-                />
-              </div>
-              {errors.phoneNumber && <p className="text-sm text-destructive">{errors.phoneNumber}</p>}
             </div>
 
             {/* Date of Birth */}
@@ -217,49 +213,21 @@ export function AddChildModal({ open, onOpenChange, onChildAdded }: AddChildModa
               {errors.gender && <p className="text-sm text-destructive">{errors.gender}</p>}
             </div>
 
-            {/* City (Optional) */}
-            <div className="space-y-2">
-              <Label htmlFor="city">עיר (אופציונלי)</Label>
-              <div className="relative">
-                <MapPin className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  id="city"
-                  type="text"
-                  placeholder="תל אביב"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  className="pr-10"
-                />
-              </div>
-            </div>
-
-            {/* School (Optional) */}
-            <div className="space-y-2">
-              <Label htmlFor="school">בית ספר (אופציונלי)</Label>
-              <div className="relative">
-                <GraduationCap className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  id="school"
-                  type="text"
-                  placeholder="שם בית הספר"
-                  value={school}
-                  onChange={(e) => setSchool(e.target.value)}
-                  className="pr-10"
-                />
-              </div>
-            </div>
-
             <Button
               type="submit"
               className="w-full glow-primary mt-6"
               disabled={loading}
             >
               {loading ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : null}
-              הוסף ילד
+              המשך לחיבור מכשיר
             </Button>
           </form>
         ) : (
-          <QRCodeDisplay onFinish={handleClose} />
+          <QRCodeDisplay 
+            childId={childId!} 
+            parentId={user?.id || ''} 
+            onFinish={handleClose} 
+          />
         )}
       </DialogContent>
     </Dialog>

@@ -38,6 +38,41 @@ export type Database = {
         }
         Relationships: []
       }
+      app_usage: {
+        Row: {
+          app_name: string
+          device_id: string
+          id: string
+          last_updated: string
+          package_name: string
+          usage_seconds: number
+        }
+        Insert: {
+          app_name: string
+          device_id: string
+          id?: string
+          last_updated?: string
+          package_name: string
+          usage_seconds?: number
+        }
+        Update: {
+          app_name?: string
+          device_id?: string
+          id?: string
+          last_updated?: string
+          package_name?: string
+          usage_seconds?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_usage_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["device_id"]
+          },
+        ]
+      }
       children: {
         Row: {
           city: string | null
@@ -82,6 +117,38 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "parents"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      device_commands: {
+        Row: {
+          command_type: string
+          created_at: string
+          device_id: string
+          id: string
+          status: string
+        }
+        Insert: {
+          command_type: string
+          created_at?: string
+          device_id: string
+          id?: string
+          status?: string
+        }
+        Update: {
+          command_type?: string
+          created_at?: string
+          device_id?: string
+          id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_commands_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["device_id"]
           },
         ]
       }

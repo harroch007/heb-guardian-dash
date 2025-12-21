@@ -1,5 +1,6 @@
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
-import { User, Calendar, Phone, MapPin, GraduationCap } from 'lucide-react';
+import { User, Calendar, ChevronLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface Child {
@@ -18,6 +19,8 @@ interface ChildCardProps {
 }
 
 export function ChildCard({ child, style }: ChildCardProps) {
+  const navigate = useNavigate();
+
   const calculateAge = (dateOfBirth: string) => {
     const today = new Date();
     const birthDate = new Date(dateOfBirth);
@@ -49,7 +52,8 @@ export function ChildCard({ child, style }: ChildCardProps) {
 
   return (
     <Card 
-      className="border-primary/20 bg-card/80 backdrop-blur-sm hover:border-primary/40 transition-all duration-300 animate-fade-in opacity-0 group hover:glow-primary"
+      onClick={() => navigate(`/child/${child.id}`)}
+      className="border-primary/20 bg-card/80 backdrop-blur-sm hover:border-primary/40 transition-all duration-300 animate-fade-in opacity-0 group hover:glow-primary cursor-pointer"
       style={style}
     >
       <CardContent className="p-6">
@@ -74,33 +78,13 @@ export function ChildCard({ child, style }: ChildCardProps) {
               </span>
             </div>
           </div>
+          <ChevronLeft className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
         </div>
 
         {/* Details */}
-        <div className="space-y-2 text-sm">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Phone className="w-4 h-4" />
-            <span dir="ltr">{child.phone_number}</span>
-          </div>
-          
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Calendar className="w-4 h-4" />
-            <span>{new Date(child.date_of_birth).toLocaleDateString('he-IL')}</span>
-          </div>
-
-          {child.city && (
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <MapPin className="w-4 h-4" />
-              <span>{child.city}</span>
-            </div>
-          )}
-
-          {child.school && (
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <GraduationCap className="w-4 h-4" />
-              <span>{child.school}</span>
-            </div>
-          )}
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Calendar className="w-4 h-4" />
+          <span>{new Date(child.date_of_birth).toLocaleDateString('he-IL')}</span>
         </div>
       </CardContent>
     </Card>
