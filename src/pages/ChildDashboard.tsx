@@ -192,13 +192,6 @@ export default function ChildDashboard() {
     setTimeout(() => setLocating(false), 3000);
   };
 
-  // Open location in Google Maps
-  const openMaps = () => {
-    if (device?.latitude && device?.longitude) {
-      const url = `https://www.google.com/maps?q=${device.latitude},${device.longitude}`;
-      window.open(url, '_blank', 'noopener,noreferrer');
-    }
-  };
 
   if (loading) {
     return (
@@ -293,9 +286,11 @@ export default function ChildDashboard() {
               </CardHeader>
               <CardContent>
                 {device.latitude && device.longitude ? (
-                  <div 
-                    onClick={openMaps}
-                    className="h-48 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/30 flex items-center justify-center cursor-pointer hover:border-primary/50 transition-colors"
+                  <a 
+                    href={`https://www.google.com/maps?q=${device.latitude},${device.longitude}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="h-48 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/30 flex items-center justify-center cursor-pointer hover:border-primary/50 transition-colors block"
                   >
                     <div className="text-center">
                       <MapPin className="w-8 h-8 text-primary mx-auto mb-2" />
@@ -304,7 +299,7 @@ export default function ChildDashboard() {
                       </p>
                       <p className="text-xs text-primary mt-1">לחץ לפתיחה במפות</p>
                     </div>
-                  </div>
+                  </a>
                 ) : (
                   <div className="h-48 rounded-xl bg-muted/50 flex items-center justify-center">
                     <p className="text-muted-foreground">אין מיקום זמין</p>
