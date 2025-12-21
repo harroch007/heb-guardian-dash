@@ -3,7 +3,7 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { DeviceCard } from "@/components/DeviceCard";
 import { AlertCard } from "@/components/AlertCard";
 import { supabase } from "@/integrations/supabase/client";
-import { Shield, Smartphone, Bell, AlertTriangle, RefreshCw } from "lucide-react";
+import { Shield, Smartphone, Bell, AlertTriangle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -96,18 +96,9 @@ const Index = () => {
     <DashboardLayout>
       {/* Header */}
       <div className="mb-8">
-        <div className="flex items-center justify-between mb-2">
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground text-glow">
-            לוח בקרה
-          </h1>
-          <button
-            onClick={fetchData}
-            disabled={loading}
-            className="p-2 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary transition-all glow-primary disabled:opacity-50"
-          >
-            <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
-          </button>
-        </div>
+        <h1 className="text-2xl md:text-3xl font-bold text-foreground text-glow mb-2">
+          לוח בקרה
+        </h1>
         <p className="text-muted-foreground">ניטור מכשירים והתראות בזמן אמת</p>
       </div>
 
