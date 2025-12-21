@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { DeviceCard } from "@/components/DeviceCard";
 import { AlertCard } from "@/components/AlertCard";
 import { supabase } from "@/integrations/supabase/client";
-import { Shield, Smartphone, Bell, AlertTriangle } from "lucide-react";
+import { Shield, Smartphone, Bell, AlertTriangle, Plus, CheckCircle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
 
 interface Device {
   device_id: string;
@@ -25,6 +27,7 @@ interface Alert {
 }
 
 const Index = () => {
+  const navigate = useNavigate();
   const [devices, setDevices] = useState<Device[]>([]);
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(true);
@@ -173,7 +176,12 @@ const Index = () => {
           ) : (
             <div className="p-8 rounded-xl bg-card border border-border/50 text-center">
               <Smartphone className="w-12 h-12 text-muted-foreground mx-auto mb-3 opacity-50" />
-              <p className="text-muted-foreground">אין מכשירים מחוברים</p>
+              <p className="text-muted-foreground mb-4">אין מכשירים מחוברים</p>
+              <p className="text-sm text-muted-foreground mb-4">הוסף ילד וחבר מכשיר כדי להתחיל</p>
+              <Button onClick={() => navigate('/family')} className="gap-2">
+                <Plus className="w-4 h-4" />
+                הוסף ילד
+              </Button>
             </div>
           )}
         </section>
@@ -203,9 +211,10 @@ const Index = () => {
               ))}
             </div>
           ) : (
-            <div className="p-8 rounded-xl bg-card border border-border/50 text-center">
-              <Bell className="w-12 h-12 text-muted-foreground mx-auto mb-3 opacity-50" />
-              <p className="text-muted-foreground">אין התראות חדשות</p>
+            <div className="p-8 rounded-xl bg-card border border-success/20 text-center">
+              <CheckCircle className="w-12 h-12 text-success mx-auto mb-3" />
+              <p className="text-foreground font-medium">אין התראות - מצוין!</p>
+              <p className="text-sm text-muted-foreground mt-1">כל המכשירים בטוחים</p>
             </div>
           )}
         </section>

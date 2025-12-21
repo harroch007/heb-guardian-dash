@@ -1,3 +1,4 @@
+import { forwardRef } from "react";
 import { Home, Users, Bell, Settings } from "lucide-react";
 import { NavLink as RouterNavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -11,7 +12,7 @@ const navItems = [
   { title: "הגדרות", url: "/settings", icon: Settings },
 ];
 
-export function BottomNavigation() {
+export const BottomNavigation = forwardRef<HTMLElement, object>(function BottomNavigation(_, ref) {
   const location = useLocation();
   const [alertsCount, setAlertsCount] = useState(0);
   
@@ -48,7 +49,7 @@ export function BottomNavigation() {
   }, []);
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-card border-t border-border/50 md:hidden">
+    <nav ref={ref} className="fixed bottom-0 left-0 right-0 z-40 bg-card border-t border-border/50 md:hidden">
       <div className="flex items-center justify-around h-16">
         {navItems.map((item) => {
           const active = isActive(item.url);
@@ -78,4 +79,6 @@ export function BottomNavigation() {
       </div>
     </nav>
   );
-}
+});
+
+BottomNavigation.displayName = "BottomNavigation";

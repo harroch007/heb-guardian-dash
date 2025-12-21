@@ -1,3 +1,4 @@
+import { forwardRef } from "react";
 import { Battery, MapPin, Clock, Wifi, WifiOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -14,7 +15,7 @@ interface DeviceCardProps {
   device: Device;
 }
 
-export function DeviceCard({ device }: DeviceCardProps) {
+export const DeviceCard = forwardRef<HTMLDivElement, DeviceCardProps>(function DeviceCard({ device }, ref) {
   const batteryLevel = device.battery_level ?? 0;
   
   // Check if device was seen in the last 5 minutes
@@ -53,7 +54,7 @@ export function DeviceCard({ device }: DeviceCardProps) {
   };
 
   return (
-    <div className="p-5 rounded-xl bg-card border border-border/50 hover:border-primary/50 transition-all duration-300 cyber-border group">
+    <div ref={ref} className="p-5 rounded-xl bg-card border border-border/50 hover:border-primary/50 transition-all duration-300 cyber-border group">
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className={cn(
@@ -127,4 +128,6 @@ export function DeviceCard({ device }: DeviceCardProps) {
       </div>
     </div>
   );
-}
+});
+
+DeviceCard.displayName = "DeviceCard";

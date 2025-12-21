@@ -1,7 +1,9 @@
 import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { User, Calendar, ChevronLeft } from 'lucide-react';
+import { User, Calendar, ChevronLeft, Wifi, WifiOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Child {
   id: string;
@@ -13,6 +15,11 @@ interface Child {
   school: string | null;
 }
 
+interface Device {
+  device_id: string;
+  last_seen: string | null;
+}
+
 interface ChildCardProps {
   child: Child;
   style?: React.CSSProperties;
@@ -20,6 +27,31 @@ interface ChildCardProps {
 
 export function ChildCard({ child, style }: ChildCardProps) {
   const navigate = useNavigate();
+  const [device, setDevice] = useState<Device | null>(null);
+  const [loadingDevice, setLoadingDevice] = useState(true);
+
+  useEffect(() => {
+    const fetchDevice = async () => {
+      const { data } = await supabase
+        .from('devices')
+        .select('device_id, last_seen')
+        .eq('child_id', child.id)
+        .maybeSingle();
+      
+      setDevice(data);
+      setLoadingDevice(false);
+    };
+
+    fetchDevice();
+  }, [child.id]);
+
+  const isOnline = (() => {
+    if (!device?.last_seen) return false;
+    const lastSeen = new Date(device.last_seen);
+    const now = new Date();
+    const diffMs = now.getTime() - lastSeen.getTime();
+    return diffMs < 5 * 60 * 1000; // 5 minutes
+  })();
 
   const calculateAge = (dateOfBirth: string) => {
     const today = new Date();
@@ -82,9 +114,26 @@ export function ChildCard({ child, style }: ChildCardProps) {
         </div>
 
         {/* Details */}
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Calendar className="w-4 h-4" />
-          <span>{new Date(child.date_of_birth).toLocaleDateString('he-IL')}</span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Calendar className="w-4 h-4" />
+            <span>{new Date(child.date_of_birth).toLocaleDateString('he-IL')}</span>
+          </div>
+          
+          {/* Device Status */}
+          {loadingDevice ? (
+            <div className="w-20 h-5 bg-muted animate-pulse rounded" />
+          ) : device ? (
+            <div className={cn(
+              "flex items-center gap-1.5 text-xs px-2 py-1 rounded-full",
+              isOnline ? "bg-success/20 text-success" : "bg-muted text-muted-foreground"
+            )}>
+              {isOnline ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
+              <span>{isOnline ? 'מחובר' : 'לא מחובר'}</span>
+            </div>
+          ) : (
+            <span className="text-xs text-muted-foreground">אין מכשיר</span>
+          )}
         </div>
       </CardContent>
     </Card>
