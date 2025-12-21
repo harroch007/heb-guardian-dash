@@ -16,23 +16,32 @@ export type Database = {
     Tables: {
       alerts: {
         Row: {
+          ai_recommendation: string | null
+          ai_summary: string | null
           content: string | null
           created_at: string
           id: number
+          is_processed: boolean | null
           risk_score: number | null
           sender: string | null
         }
         Insert: {
+          ai_recommendation?: string | null
+          ai_summary?: string | null
           content?: string | null
           created_at?: string
           id?: number
+          is_processed?: boolean | null
           risk_score?: number | null
           sender?: string | null
         }
         Update: {
+          ai_recommendation?: string | null
+          ai_summary?: string | null
           content?: string | null
           created_at?: string
           id?: number
+          is_processed?: boolean | null
           risk_score?: number | null
           sender?: string | null
         }
