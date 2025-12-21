@@ -21,14 +21,8 @@ interface DeviceCardProps {
 export const DeviceCard = forwardRef<HTMLDivElement, DeviceCardProps>(function DeviceCard({ device }, ref) {
   const batteryLevel = device.battery_level ?? 0;
   
-  // Check if device was seen in the last 5 minutes
-  const isOnline = (() => {
-    if (!device.last_seen) return false;
-    const lastSeen = new Date(device.last_seen);
-    const now = new Date();
-    const diffMs = now.getTime() - lastSeen.getTime();
-    return diffMs < 5 * 60 * 1000; // 5 minutes
-  })();
+  // Device is always connected since the component only renders when a device exists
+  const isConnected = true;
   
   const getBatteryColor = (level: number) => {
     if (level > 60) return "text-success";
@@ -52,21 +46,12 @@ export const DeviceCard = forwardRef<HTMLDivElement, DeviceCardProps>(function D
     <div ref={ref} className="p-5 rounded-xl bg-card border border-border/50 hover:border-primary/50 transition-all duration-300 cyber-border group">
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className={cn(
-            "p-2 rounded-lg",
-            isOnline ? "bg-success/10 glow-secondary" : "bg-muted"
-          )}>
-            {isOnline ? (
-              <Wifi className="w-5 h-5 text-success" />
-            ) : (
-              <WifiOff className="w-5 h-5 text-muted-foreground" />
-            )}
+          <div className="p-2 rounded-lg bg-success/10 glow-secondary">
+            <Wifi className="w-5 h-5 text-success" />
           </div>
           <div>
             <h3 className="font-semibold text-foreground">מכשיר {device.device_id.slice(0, 8)}</h3>
-            <p className="text-xs text-muted-foreground">
-              {isOnline ? 'מחובר' : 'לא מחובר'}
-            </p>
+            <p className="text-xs text-success">מחובר</p>
           </div>
         </div>
       </div>

@@ -60,10 +60,8 @@ export default function ChildDashboard() {
   const [loading, setLoading] = useState(true);
   const [locating, setLocating] = useState(false);
 
-  // Check if device is online (seen within last 5 minutes)
-  const isOnline = device?.last_seen 
-    ? new Date().getTime() - new Date(device.last_seen).getTime() < 5 * 60 * 1000
-    : false;
+  // Device is connected if a device record exists (app is installed and authorized)
+  const isConnected = device !== null;
 
   // Format seconds to readable time
   const formatTime = (seconds: number) => {
@@ -226,10 +224,10 @@ export default function ChildDashboard() {
                 {child?.name}
               </h1>
               <Badge 
-                variant={isOnline ? 'default' : 'secondary'}
-                className={isOnline ? 'bg-success text-success-foreground' : ''}
+                variant={isConnected ? 'default' : 'secondary'}
+                className={isConnected ? 'bg-success text-success-foreground' : ''}
               >
-                {isOnline ? (
+                {isConnected ? (
                   <>
                     <Wifi className="w-3 h-3 ml-1" />
                     מחובר
@@ -276,7 +274,7 @@ export default function ChildDashboard() {
                 <Button 
                   onClick={handleLocateNow} 
                   size="sm" 
-                  disabled={locating || !isOnline}
+                  disabled={locating}
                   className="glow-primary"
                 >
                   {locating ? (
@@ -374,9 +372,7 @@ export default function ChildDashboard() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">סטטוס</span>
-                    <span className={isOnline ? 'text-success' : 'text-muted-foreground'}>
-                      {isOnline ? 'מחובר' : 'לא מחובר'}
-                    </span>
+                    <span className="text-success">מחובר</span>
                   </div>
                 </div>
               </CardContent>
