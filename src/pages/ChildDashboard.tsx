@@ -195,10 +195,8 @@ export default function ChildDashboard() {
   // Open location in Google Maps
   const openMaps = () => {
     if (device?.latitude && device?.longitude) {
-      window.open(
-        `https://www.google.com/maps?q=${device.latitude},${device.longitude}`,
-        '_blank'
-      );
+      const url = `https://www.google.com/maps?q=${device.latitude},${device.longitude}`;
+      window.open(url, '_blank', 'noopener,noreferrer');
     }
   };
 
