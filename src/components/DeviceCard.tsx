@@ -1,5 +1,5 @@
-import { forwardRef } from "react";
-import { Battery, MapPin, Clock, Wifi, WifiOff, Copy } from "lucide-react";
+import { forwardRef, useState } from "react";
+import { Battery, MapPin, Clock, Wifi, Copy, Navigation } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -20,9 +20,16 @@ interface DeviceCardProps {
 
 export const DeviceCard = forwardRef<HTMLDivElement, DeviceCardProps>(function DeviceCard({ device }, ref) {
   const batteryLevel = device.battery_level ?? 0;
+  const [showMap, setShowMap] = useState(false);
+  const [locating, setLocating] = useState(false);
   
-  // Device is always connected since the component only renders when a device exists
-  const isConnected = true;
+  const handleLocateNow = () => {
+    setLocating(true);
+    setShowMap(true);
+    
+    setTimeout(() => setLocating(false), 2000);
+    setTimeout(() => setShowMap(false), 15000);
+  };
   
   const getBatteryColor = (level: number) => {
     if (level > 60) return "text-success";
@@ -91,44 +98,60 @@ export const DeviceCard = forwardRef<HTMLDivElement, DeviceCardProps>(function D
         </div>
 
         {/* Location */}
-        {device.latitude && device.longitude && (
-          <div className="space-y-2">
-            <LocationMap 
-              latitude={device.latitude} 
-              longitude={device.longitude}
-              height="150px"
-            />
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex-1"
-                onClick={() => {
-                  navigator.clipboard.writeText(`${device.latitude},${device.longitude}`);
-                  toast.success("המיקום הועתק!");
-                }}
-              >
-                <Copy className="w-4 h-4 ml-2" />
-                העתק
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex-1"
-                asChild
-              >
-                <a 
-                  href={`https://www.google.com/maps/search/?api=1&query=${device.latitude},${device.longitude}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
+        <div className="space-y-2">
+          <Button
+            onClick={handleLocateNow}
+            disabled={locating}
+            className="w-full"
+            size="sm"
+          >
+            <Navigation className="w-4 h-4 ml-2" />
+            {locating ? 'מאתר...' : 'אתר עכשיו'}
+          </Button>
+          
+          {showMap && device.latitude && device.longitude ? (
+            <div className="space-y-2">
+              <LocationMap 
+                latitude={device.latitude} 
+                longitude={device.longitude}
+                height="150px"
+              />
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => {
+                    navigator.clipboard.writeText(`${device.latitude},${device.longitude}`);
+                    toast.success("המיקום הועתק!");
+                  }}
                 >
-                  <MapPin className="w-4 h-4 ml-2" />
-                  Maps
-                </a>
-              </Button>
+                  <Copy className="w-4 h-4 ml-2" />
+                  העתק
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  asChild
+                >
+                  <a 
+                    href={`https://www.google.com/maps/search/?api=1&query=${device.latitude},${device.longitude}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <MapPin className="w-4 h-4 ml-2" />
+                    Maps
+                  </a>
+                </Button>
+              </div>
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="h-32 rounded-xl bg-muted/50 flex items-center justify-center">
+              <p className="text-sm text-muted-foreground text-center">לחץ "אתר עכשיו" לראות את המיקום</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
