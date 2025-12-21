@@ -96,12 +96,14 @@ serve(async (req) => {
     let alertId: number;
     let content: string;
     let isProcessed: boolean;
+    let sender: string | null = null;
 
     if (body.type === 'INSERT' && body.record) {
       // Database webhook format
       alertId = body.record.id;
       content = body.record.content;
       isProcessed = body.record.is_processed;
+      sender = body.record.sender;
     } else if (body.alert_id) {
       // Direct call format (for re-analyze)
       alertId = body.alert_id;
@@ -118,6 +120,7 @@ serve(async (req) => {
       }
       
       content = alert.content;
+      sender = alert.sender;
       isProcessed = false; // Force re-analysis
     } else {
       throw new Error('Invalid request format');
@@ -141,6 +144,34 @@ serve(async (req) => {
     }
 
     console.log(`Analyzing alert ${alertId} with content:`, content.substring(0, 200));
+
+    // PRIVACY STEP 1: Fetch child info for anonymous training data (before analysis)
+    let childAge: number | null = null;
+    let childGender: string | null = null;
+    
+    if (sender) {
+      const { data: deviceData } = await supabase
+        .from('devices')
+        .select('child_id')
+        .eq('device_id', sender)
+        .single();
+      
+      if (deviceData?.child_id) {
+        const { data: childData } = await supabase
+          .from('children')
+          .select('date_of_birth, gender')
+          .eq('id', deviceData.child_id)
+          .single();
+        
+        if (childData) {
+          // Calculate age at incident
+          const birthDate = new Date(childData.date_of_birth);
+          const now = new Date();
+          childAge = Math.floor((now.getTime() - birthDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25));
+          childGender = childData.gender;
+        }
+      }
+    }
 
     // Call OpenAI API with JSON mode
     const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -179,18 +210,38 @@ serve(async (req) => {
     const aiResult = JSON.parse(aiContent);
     console.log('Parsed AI result:', JSON.stringify(aiResult, null, 2));
 
+    // PRIVACY STEP 2: Copy to anonymous training_dataset BEFORE wiping
+    // This table has NO user linkage (no child_id, parent_id, device_id)
+    const { error: trainingError } = await supabase
+      .from('training_dataset')
+      .insert({
+        age_at_incident: childAge,
+        gender: childGender,
+        raw_text: content, // Store raw text only in training table
+        ai_verdict: aiResult, // Store full AI response as JSONB
+      });
+
+    if (trainingError) {
+      console.error('Training dataset insert error:', trainingError);
+      // Don't fail the whole process, just log it
+    } else {
+      console.log('Successfully copied to anonymous training_dataset');
+    }
+
     // Map AI output fields to database columns:
     // AI `explanation` -> DB `ai_summary`
     // AI `recommendation` -> DB `ai_recommendation`
     // AI `risk_score` -> DB `risk_score`
+    // PRIVACY STEP 3: Wipe content after analysis
     const updateData = {
       ai_summary: aiResult.explanation || null,
       ai_recommendation: aiResult.recommendation || null,
       risk_score: typeof aiResult.risk_score === 'number' ? aiResult.risk_score : null,
       is_processed: true,
+      content: '[CONTENT DELETED FOR PRIVACY]', // WIPE raw content!
     };
 
-    console.log(`Updating alert ${alertId} with:`, JSON.stringify(updateData, null, 2));
+    console.log(`Updating alert ${alertId} with privacy wipe:`, JSON.stringify(updateData, null, 2));
 
     // Update the alert in database
     const { error: updateError } = await supabase
@@ -203,7 +254,7 @@ serve(async (req) => {
       throw new Error(`Failed to update alert: ${updateError.message}`);
     }
 
-    console.log(`Successfully analyzed and updated alert ${alertId}`);
+    console.log(`Successfully analyzed alert ${alertId} - content wiped for privacy`);
 
     return new Response(
       JSON.stringify({ 
@@ -211,7 +262,8 @@ serve(async (req) => {
         alert_id: alertId,
         ai_summary: updateData.ai_summary,
         ai_recommendation: updateData.ai_recommendation,
-        risk_score: updateData.risk_score
+        risk_score: updateData.risk_score,
+        privacy: 'content_wiped'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
