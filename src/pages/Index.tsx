@@ -24,6 +24,9 @@ interface Alert {
   content: string | null;
   risk_score: number | null;
   created_at: string;
+  ai_summary: string | null;
+  ai_recommendation: string | null;
+  is_processed: boolean;
 }
 
 const Index = () => {
@@ -87,6 +90,11 @@ const Index = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const handleReanalyze = async (id: number) => {
+    // Refresh the alert data after re-analysis
+    await fetchData();
   };
 
   useEffect(() => {
@@ -206,6 +214,7 @@ const Index = () => {
                   key={alert.id}
                   alert={alert}
                   onDelete={deleteAlert}
+                  onReanalyze={handleReanalyze}
                   index={index}
                 />
               ))}

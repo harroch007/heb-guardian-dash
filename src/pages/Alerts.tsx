@@ -11,6 +11,9 @@ interface Alert {
   content: string | null;
   risk_score: number | null;
   created_at: string;
+  ai_summary: string | null;
+  ai_recommendation: string | null;
+  is_processed: boolean;
 }
 
 const AlertsPage = () => {
@@ -85,6 +88,10 @@ const AlertsPage = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const handleReanalyze = async (id: number) => {
+    await fetchAlerts();
   };
 
   useEffect(() => {
@@ -173,6 +180,7 @@ const AlertsPage = () => {
               key={alert.id}
               alert={alert}
               onDelete={deleteAlert}
+              onReanalyze={handleReanalyze}
               index={index}
             />
           ))}
