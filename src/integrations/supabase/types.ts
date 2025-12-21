@@ -220,6 +220,33 @@ export type Database = {
         }
         Relationships: []
       }
+      training_dataset: {
+        Row: {
+          age_at_incident: number | null
+          ai_verdict: Json | null
+          created_at: string
+          gender: string | null
+          id: string
+          raw_text: string
+        }
+        Insert: {
+          age_at_incident?: number | null
+          ai_verdict?: Json | null
+          created_at?: string
+          gender?: string | null
+          id?: string
+          raw_text: string
+        }
+        Update: {
+          age_at_incident?: number | null
+          ai_verdict?: Json | null
+          created_at?: string
+          gender?: string | null
+          id?: string
+          raw_text?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
