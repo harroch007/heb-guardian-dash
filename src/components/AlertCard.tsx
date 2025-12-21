@@ -1,3 +1,4 @@
+import { forwardRef } from "react";
 import { Trash2, AlertTriangle, User, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -15,7 +16,7 @@ interface AlertCardProps {
   index?: number;
 }
 
-export function AlertCard({ alert, onDelete, index = 0 }: AlertCardProps) {
+export const AlertCard = forwardRef<HTMLDivElement, AlertCardProps>(function AlertCard({ alert, onDelete, index = 0 }, ref) {
   const riskScore = alert.risk_score ?? 0;
   const isHighRisk = riskScore > 80;
   
@@ -42,6 +43,7 @@ export function AlertCard({ alert, onDelete, index = 0 }: AlertCardProps) {
 
   return (
     <div
+      ref={ref}
       className={cn(
         "p-4 rounded-xl border transition-all duration-300 animate-slide-in-right opacity-0",
         isHighRisk
@@ -108,4 +110,6 @@ export function AlertCard({ alert, onDelete, index = 0 }: AlertCardProps) {
       </div>
     </div>
   );
-}
+});
+
+AlertCard.displayName = "AlertCard";
