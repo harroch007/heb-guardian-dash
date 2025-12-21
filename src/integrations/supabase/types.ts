@@ -20,6 +20,7 @@ export type Database = {
           ai_summary: string | null
           content: string | null
           created_at: string
+          device_id: string | null
           id: number
           is_processed: boolean | null
           risk_score: number | null
@@ -30,6 +31,7 @@ export type Database = {
           ai_summary?: string | null
           content?: string | null
           created_at?: string
+          device_id?: string | null
           id?: number
           is_processed?: boolean | null
           risk_score?: number | null
@@ -40,12 +42,21 @@ export type Database = {
           ai_summary?: string | null
           content?: string | null
           created_at?: string
+          device_id?: string | null
           id?: number
           is_processed?: boolean | null
           risk_score?: number | null
           sender?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "alerts_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["device_id"]
+          },
+        ]
       }
       app_usage: {
         Row: {
