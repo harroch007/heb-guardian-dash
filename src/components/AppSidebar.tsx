@@ -13,19 +13,27 @@ const navItems = [
 ];
 
 export function AppSidebar() {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
   const { signOut } = useAuth();
 
   const handleLogout = async () => {
     await signOut();
   };
 
+  const handleLogoClick = () => {
+    window.location.href = "/";
+  };
+
+  const handleNavClick = () => {
+    setIsOpen(false);
+  };
+
   return (
     <>
-      {/* Mobile toggle */}
+      {/* Mobile toggle - moved to left */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed top-4 right-4 z-50 p-2 rounded-lg bg-card border border-primary/30 text-primary md:hidden glow-primary"
+        className="fixed top-4 left-4 z-50 p-2 rounded-lg bg-card border border-primary/30 text-primary md:hidden glow-primary"
       >
         {isOpen ? <X size={24} /> : <Menu size={24} />}
       </button>
@@ -46,9 +54,12 @@ export function AppSidebar() {
           isOpen ? "translate-x-0" : "translate-x-full md:translate-x-0"
         )}
       >
-        {/* Logo */}
+        {/* Logo - clickable for refresh */}
         <div className="p-6 border-b border-sidebar-border">
-          <div className="flex items-center gap-3">
+          <button
+            onClick={handleLogoClick}
+            className="flex items-center gap-3 w-full text-right hover:opacity-80 transition-opacity"
+          >
             <div className="p-2 rounded-lg bg-primary/10 glow-primary animate-glow-pulse">
               <Shield className="w-8 h-8 text-primary" />
             </div>
@@ -56,7 +67,7 @@ export function AppSidebar() {
               <h1 className="text-lg font-bold text-foreground text-glow">Kippy</h1>
               <p className="text-xs text-muted-foreground">מרכז בטיחות</p>
             </div>
-          </div>
+          </button>
         </div>
 
         {/* Navigation */}
@@ -67,6 +78,7 @@ export function AppSidebar() {
                 <NavLink
                   to={item.url}
                   end={item.url === "/"}
+                  onClick={handleNavClick}
                   className="flex items-center gap-3 px-4 py-3 rounded-lg text-muted-foreground hover:text-foreground hover:bg-sidebar-accent transition-all duration-200 group"
                   activeClassName="bg-primary/10 text-primary glow-primary border border-primary/30"
                 >
