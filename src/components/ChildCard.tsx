@@ -45,13 +45,8 @@ export function ChildCard({ child, style }: ChildCardProps) {
     fetchDevice();
   }, [child.id]);
 
-  const isOnline = (() => {
-    if (!device?.last_seen) return false;
-    const lastSeen = new Date(device.last_seen);
-    const now = new Date();
-    const diffMs = now.getTime() - lastSeen.getTime();
-    return diffMs < 5 * 60 * 1000; // 5 minutes
-  })();
+  // Device is connected if a device record exists (app is installed and authorized)
+  const isConnected = device !== null;
 
   const calculateAge = (dateOfBirth: string) => {
     const today = new Date();
@@ -123,13 +118,10 @@ export function ChildCard({ child, style }: ChildCardProps) {
           {/* Device Status */}
           {loadingDevice ? (
             <div className="w-20 h-5 bg-muted animate-pulse rounded" />
-          ) : device ? (
-            <div className={cn(
-              "flex items-center gap-1.5 text-xs px-2 py-1 rounded-full",
-              isOnline ? "bg-success/20 text-success" : "bg-muted text-muted-foreground"
-            )}>
-              {isOnline ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
-              <span>{isOnline ? 'מחובר' : 'לא מחובר'}</span>
+          ) : isConnected ? (
+            <div className="flex items-center gap-1.5 text-xs px-2 py-1 rounded-full bg-success/20 text-success">
+              <Wifi className="w-3 h-3" />
+              <span>מחובר</span>
             </div>
           ) : (
             <span className="text-xs text-muted-foreground">אין מכשיר</span>
