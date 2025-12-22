@@ -16,6 +16,11 @@ interface Device {
   last_seen: string | null;
   latitude: number | null;
   longitude: number | null;
+  children?: {
+    id: string;
+    name: string;
+    parent_id: string;
+  };
 }
 
 interface Alert {
@@ -42,10 +47,18 @@ const Index = () => {
       setLoading(true);
       setError(null);
 
-      // Fetch devices
+      // Fetch devices - only connected devices belonging to the parent's children
       const { data: devicesData, error: devicesError } = await supabase
         .from('devices')
-        .select('*')
+        .select(`
+          *,
+          children!inner (
+            id,
+            name,
+            parent_id
+          )
+        `)
+        .eq('children.parent_id', user?.id)
         .order('last_seen', { ascending: false });
 
       if (devicesError) throw devicesError;
@@ -98,8 +111,10 @@ const Index = () => {
   };
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (user?.id) {
+      fetchData();
+    }
+  }, [user?.id]);
 
   const highRiskCount = alerts.filter(a => (a.risk_score ?? 0) > 80).length;
 
