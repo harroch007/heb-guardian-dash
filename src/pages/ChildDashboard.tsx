@@ -19,8 +19,20 @@ import {
   Loader2,
   LocateFixed,
   AlertCircle,
-  Copy
+  Copy,
+  Unlink
 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { toast as sonnerToast } from 'sonner';
 import { useToast } from '@/hooks/use-toast';
 
@@ -198,6 +210,31 @@ export default function ChildDashboard() {
     setTimeout(() => setShowMap(false), 15000);
   };
 
+  // Disconnect device
+  const handleDisconnectDevice = async () => {
+    if (!device?.device_id) return;
+
+    const { error } = await supabase
+      .from('devices')
+      .update({ child_id: null })
+      .eq('device_id', device.device_id);
+
+    if (error) {
+      toast({
+        title: 'שגיאה',
+        description: 'לא ניתן לנתק את המכשיר',
+        variant: 'destructive',
+      });
+    } else {
+      toast({
+        title: 'המכשיר נותק',
+        description: 'המעקב הופסק בהצלחה',
+      });
+      setDevice(null);
+      setAppUsage([]);
+    }
+  };
+
 
   if (loading) {
     return (
@@ -370,15 +407,44 @@ export default function ChildDashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">מזהה מכשיר</span>
-                    <span className="font-mono text-xs">{device.device_id.slice(0, 12)}...</span>
+                <div className="space-y-4">
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">מזהה מכשיר</span>
+                      <span className="font-mono text-xs">{device.device_id.slice(0, 12)}...</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">סטטוס</span>
+                      <span className="text-success">מחובר</span>
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">סטטוס</span>
-                    <span className="text-success">מחובר</span>
-                  </div>
+                  
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive" size="sm" className="w-full">
+                        <Unlink className="w-4 h-4 ml-2" />
+                        נתק מכשיר
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>לנתק את המכשיר?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          הניתוק יפסיק את המעקב אחרי המכשיר של {child?.name}. 
+                          תוכל לחבר אותו מחדש מאוחר יותר באמצעות קוד ההתאמה.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter className="flex-row-reverse gap-2">
+                        <AlertDialogCancel>ביטול</AlertDialogCancel>
+                        <AlertDialogAction 
+                          onClick={handleDisconnectDevice}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          נתק מכשיר
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </CardContent>
             </Card>
