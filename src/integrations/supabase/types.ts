@@ -16,37 +16,79 @@ export type Database = {
     Tables: {
       alerts: {
         Row: {
+          ai_analysis: Json | null
+          ai_classification: Json | null
+          ai_confidence: number | null
+          ai_explanation: string | null
+          ai_explanation_short: string | null
+          ai_patterns: string[] | null
           ai_recommendation: string | null
+          ai_recommendation_short: string | null
+          ai_risk_score: number | null
           ai_summary: string | null
+          ai_verdict: string | null
+          analyzed_at: string | null
+          chat_type: string | null
           content: string | null
           created_at: string
           device_id: string | null
+          escalate: boolean | null
           id: number
           is_processed: boolean | null
+          message_count: number | null
           risk_score: number | null
           sender: string | null
+          should_store: boolean | null
         }
         Insert: {
+          ai_analysis?: Json | null
+          ai_classification?: Json | null
+          ai_confidence?: number | null
+          ai_explanation?: string | null
+          ai_explanation_short?: string | null
+          ai_patterns?: string[] | null
           ai_recommendation?: string | null
+          ai_recommendation_short?: string | null
+          ai_risk_score?: number | null
           ai_summary?: string | null
+          ai_verdict?: string | null
+          analyzed_at?: string | null
+          chat_type?: string | null
           content?: string | null
           created_at?: string
           device_id?: string | null
+          escalate?: boolean | null
           id?: number
           is_processed?: boolean | null
+          message_count?: number | null
           risk_score?: number | null
           sender?: string | null
+          should_store?: boolean | null
         }
         Update: {
+          ai_analysis?: Json | null
+          ai_classification?: Json | null
+          ai_confidence?: number | null
+          ai_explanation?: string | null
+          ai_explanation_short?: string | null
+          ai_patterns?: string[] | null
           ai_recommendation?: string | null
+          ai_recommendation_short?: string | null
+          ai_risk_score?: number | null
           ai_summary?: string | null
+          ai_verdict?: string | null
+          analyzed_at?: string | null
+          chat_type?: string | null
           content?: string | null
           created_at?: string
           device_id?: string | null
+          escalate?: boolean | null
           id?: number
           is_processed?: boolean | null
+          message_count?: number | null
           risk_score?: number | null
           sender?: string | null
+          should_store?: boolean | null
         }
         Relationships: [
           {
@@ -105,6 +147,7 @@ export type Database = {
           parent_id: string
           phone_number: string
           school: string | null
+          subscription_tier: string | null
         }
         Insert: {
           city?: string | null
@@ -117,6 +160,7 @@ export type Database = {
           parent_id: string
           phone_number: string
           school?: string | null
+          subscription_tier?: string | null
         }
         Update: {
           city?: string | null
@@ -129,6 +173,7 @@ export type Database = {
           parent_id?: string
           phone_number?: string
           school?: string | null
+          subscription_tier?: string | null
         }
         Relationships: [
           {
@@ -171,6 +216,30 @@ export type Database = {
             referencedColumns: ["device_id"]
           },
         ]
+      }
+      device_status: {
+        Row: {
+          battery: number | null
+          device_id: string
+          latitude: number | null
+          longitude: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          battery?: number | null
+          device_id: string
+          latitude?: number | null
+          longitude?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          battery?: number | null
+          device_id?: string
+          latitude?: number | null
+          longitude?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       devices: {
         Row: {
@@ -263,7 +332,43 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_alert:
+        | {
+            Args: { p_message: string; p_risk_level: number; p_source: string }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              p_chat_type?: string
+              p_device_id?: string
+              p_message: string
+              p_message_count?: number
+              p_risk_level: number
+              p_source: string
+            }
+            Returns: {
+              alert_id: number
+            }[]
+          }
+      generate_pairing_code: { Args: { p_child_id: string }; Returns: string }
+      pair_device: {
+        Args: { p_device_id: string; p_pairing_code: string }
+        Returns: {
+          child_id: string
+          child_name: string
+          error_message: string
+          success: boolean
+        }[]
+      }
+      update_device_status: {
+        Args: {
+          p_battery?: number
+          p_device_id: string
+          p_lat?: number
+          p_lon?: number
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
