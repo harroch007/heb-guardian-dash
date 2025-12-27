@@ -1,6 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Check, Star, Shield, Zap, MapPin, Bell } from "lucide-react";
+import kippyLogo from "@/assets/kippy-logo.png";
 
 interface UpgradeModalProps {
   open: boolean;
@@ -25,8 +26,8 @@ export function UpgradeModal({ open, onOpenChange, childName }: UpgradeModalProp
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader className="text-center">
-          <div className="mx-auto mb-4 w-16 h-16 rounded-full bg-yellow-500/20 flex items-center justify-center">
-            <Star className="w-8 h-8 text-yellow-500" />
+          <div className="mx-auto mb-4 w-16 h-16 rounded-xl glow-primary flex items-center justify-center">
+            <img src={kippyLogo} alt="Kippy" className="w-14 h-14 rounded-lg" />
           </div>
           <DialogTitle className="text-xl">
             שדרג ל-Kippy Premium

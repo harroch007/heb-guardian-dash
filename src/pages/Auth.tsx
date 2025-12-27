@@ -5,9 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Shield, Loader2, Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
+import kippyLogo from '@/assets/kippy-logo.png';
 
 const authSchema = z.object({
   email: z.string().email('כתובת אימייל לא תקינה'),
@@ -119,10 +120,10 @@ export default function Auth() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center p-4 rounded-2xl bg-primary/10 glow-primary animate-glow-pulse mb-4">
-            <Shield className="w-12 h-12 text-primary" />
+          <div className="inline-flex items-center justify-center p-2 rounded-2xl glow-primary animate-glow-pulse mb-4">
+            <img src={kippyLogo} alt="Kippy" className="w-20 h-20 rounded-xl" />
           </div>
-          <h1 className="text-3xl font-bold text-foreground text-glow">מרכז הבטיחות Kippy</h1>
+          <h1 className="text-3xl font-bold text-foreground text-glow">Kippy</h1>
           <p className="text-muted-foreground mt-2">הגנה על הילדים שלך בעולם הדיגיטלי</p>
         </div>
 

@@ -1,9 +1,10 @@
-import { Home, Bell, Settings, Shield, Menu, X, Users, LogOut } from "lucide-react";
+import { Home, Bell, Settings, Menu, X, Users, LogOut } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
+import kippyLogo from "@/assets/kippy-logo.png";
 
 const navItems = [
   { title: "בית", url: "/", icon: Home },
@@ -60,8 +61,8 @@ export function AppSidebar() {
             onClick={handleLogoClick}
             className="flex items-center gap-3 w-full text-right hover:opacity-80 transition-opacity"
           >
-            <div className="p-2 rounded-lg bg-primary/10 glow-primary animate-glow-pulse">
-              <Shield className="w-8 h-8 text-primary" />
+            <div className="p-1 rounded-lg glow-primary animate-glow-pulse">
+              <img src={kippyLogo} alt="Kippy" className="w-10 h-10 rounded-lg" />
             </div>
             <div>
               <h1 className="text-lg font-bold text-foreground text-glow">Kippy</h1>
