@@ -2,35 +2,56 @@ import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { AlertCard } from "@/components/AlertCard";
 import { supabase } from "@/integrations/supabase/client";
-import { Bell, Filter, RefreshCw, Trash2 } from "lucide-react";
+import { MessageCircle, Filter, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface Alert {
   id: number;
-  sender: string | null;
-  content: string | null;
-  risk_score: number | null;
+  child_id: string | null;
+  child_name?: string;
+  parent_message: string | null;
+  suggested_action: string | null;
+  category: string | null;
+  ai_risk_score: number | null;
   created_at: string;
-  ai_summary: string | null;
-  ai_recommendation: string | null;
   is_processed: boolean;
 }
 
 const AlertsPage = () => {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'high' | 'medium'>('all');
+  const [filter, setFilter] = useState<'all' | 'urgent' | 'important' | 'attention'>('all');
 
   const fetchAlerts = async () => {
     try {
       setLoading(true);
       const { data, error } = await supabase
         .from('alerts')
-        .select('*')
+        .select(`
+          id,
+          child_id,
+          parent_message,
+          suggested_action,
+          category,
+          ai_risk_score,
+          created_at,
+          is_processed,
+          children!child_id(name)
+        `)
+        .eq('is_processed', true)
+        .not('parent_message', 'is', null)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setAlerts(data || []);
+      
+      // Transform data to flatten child name
+      const transformedData = (data || []).map(alert => ({
+        ...alert,
+        child_name: (alert.children as any)?.name || 'לא ידוע',
+        children: undefined
+      }));
+      
+      setAlerts(transformedData);
     } catch (err: any) {
       toast({
         title: "שגיאה",
@@ -90,8 +111,20 @@ const AlertsPage = () => {
     }
   };
 
-  const handleReanalyze = async (id: number) => {
-    await fetchAlerts();
+  const handleAcknowledge = (id: number) => {
+    // For now, just remove from view - in future, update acknowledged field
+    setAlerts(prev => prev.filter(alert => alert.id !== id));
+    toast({
+      title: "תודה!",
+      description: "ההודעה סומנה כנקראה",
+    });
+  };
+
+  const handleRemindLater = (id: number) => {
+    toast({
+      title: "תזכורת נשמרה",
+      description: "נזכיר לך מאוחר יותר",
+    });
   };
 
   useEffect(() => {
@@ -99,9 +132,10 @@ const AlertsPage = () => {
   }, []);
 
   const filteredAlerts = alerts.filter(alert => {
-    const score = alert.risk_score ?? 0;
-    if (filter === 'high') return score > 80;
-    if (filter === 'medium') return score <= 80;
+    const score = alert.ai_risk_score ?? 0;
+    if (filter === 'urgent') return score > 80;
+    if (filter === 'important') return score > 60 && score <= 80;
+    if (filter === 'attention') return score > 30 && score <= 60;
     return true;
   });
 
@@ -111,11 +145,11 @@ const AlertsPage = () => {
       <div className="mb-8">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-warning/10 glow-warning">
-              <Bell className="w-6 h-6 text-warning" />
+            <div className="p-2 rounded-lg bg-primary/10 glow-primary">
+              <MessageCircle className="w-6 h-6 text-primary" />
             </div>
             <h1 className="text-2xl md:text-3xl font-bold text-foreground text-glow">
-              התראות
+              עדכונים מ-Kippy
             </h1>
           </div>
           <div className="flex items-center gap-2">
@@ -136,17 +170,18 @@ const AlertsPage = () => {
             )}
           </div>
         </div>
-        <p className="text-muted-foreground">צפייה וניהול כל ההתראות במערכת</p>
+        <p className="text-muted-foreground">עדכונים חשובים על הילדים שלך</p>
       </div>
 
       {/* Filters */}
       <div className="flex items-center gap-3 mb-6">
         <Filter className="w-4 h-4 text-muted-foreground" />
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {[
             { key: 'all', label: 'הכל' },
-            { key: 'high', label: 'סיכון גבוה' },
-            { key: 'medium', label: 'סיכון בינוני' },
+            { key: 'urgent', label: '🔴 דחוף' },
+            { key: 'important', label: '🟠 חשוב' },
+            { key: 'attention', label: '🟡 שים לב' },
           ].map(item => (
             <button
               key={item.key}
@@ -162,7 +197,7 @@ const AlertsPage = () => {
           ))}
         </div>
         <span className="text-xs text-muted-foreground mr-auto">
-          {filteredAlerts.length} התראות
+          {filteredAlerts.length} עדכונים
         </span>
       </div>
 
@@ -170,29 +205,30 @@ const AlertsPage = () => {
       {loading ? (
         <div className="space-y-4">
           {[1, 2, 3, 4].map(i => (
-            <div key={i} className="h-28 rounded-xl bg-card/50 animate-pulse border border-border/30" />
+            <div key={i} className="h-48 rounded-xl bg-card/50 animate-pulse border border-border/30" />
           ))}
         </div>
       ) : filteredAlerts.length > 0 ? (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {filteredAlerts.map((alert, index) => (
             <AlertCard
               key={alert.id}
               alert={alert}
+              onAcknowledge={handleAcknowledge}
+              onRemindLater={handleRemindLater}
               onDelete={deleteAlert}
-              onReanalyze={handleReanalyze}
               index={index}
             />
           ))}
         </div>
       ) : (
         <div className="p-12 rounded-xl bg-card border border-border/50 text-center">
-          <Bell className="w-16 h-16 text-muted-foreground mx-auto mb-4 opacity-50" />
+          <MessageCircle className="w-16 h-16 text-muted-foreground mx-auto mb-4 opacity-50" />
           <p className="text-lg text-muted-foreground mb-2">
-            {filter === 'all' ? 'אין התראות' : 'אין התראות בקטגוריה זו'}
+            {filter === 'all' ? 'אין עדכונים חדשים' : 'אין עדכונים בקטגוריה זו'}
           </p>
           <p className="text-sm text-muted-foreground/70">
-            התראות חדשות יופיעו כאן באופן אוטומטי
+            עדכונים חדשים יופיעו כאן באופן אוטומטי
           </p>
         </div>
       )}

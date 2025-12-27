@@ -28,6 +28,7 @@ export type Database = {
           ai_summary: string | null
           ai_verdict: string | null
           analyzed_at: string | null
+          category: string | null
           chat_type: string | null
           child_id: string | null
           content: string | null
@@ -37,10 +38,13 @@ export type Database = {
           id: number
           is_processed: boolean | null
           message_count: number | null
+          parent_message: string | null
           risk_score: number | null
           sender: string | null
+          should_alert: boolean | null
           should_store: boolean | null
           source: string | null
+          suggested_action: string | null
         }
         Insert: {
           ai_analysis?: Json | null
@@ -55,6 +59,7 @@ export type Database = {
           ai_summary?: string | null
           ai_verdict?: string | null
           analyzed_at?: string | null
+          category?: string | null
           chat_type?: string | null
           child_id?: string | null
           content?: string | null
@@ -64,10 +69,13 @@ export type Database = {
           id?: number
           is_processed?: boolean | null
           message_count?: number | null
+          parent_message?: string | null
           risk_score?: number | null
           sender?: string | null
+          should_alert?: boolean | null
           should_store?: boolean | null
           source?: string | null
+          suggested_action?: string | null
         }
         Update: {
           ai_analysis?: Json | null
@@ -82,6 +90,7 @@ export type Database = {
           ai_summary?: string | null
           ai_verdict?: string | null
           analyzed_at?: string | null
+          category?: string | null
           chat_type?: string | null
           child_id?: string | null
           content?: string | null
@@ -91,10 +100,13 @@ export type Database = {
           id?: number
           is_processed?: boolean | null
           message_count?: number | null
+          parent_message?: string | null
           risk_score?: number | null
           sender?: string | null
+          should_alert?: boolean | null
           should_store?: boolean | null
           source?: string | null
+          suggested_action?: string | null
         }
         Relationships: [
           {
