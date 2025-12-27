@@ -319,32 +319,32 @@ export default function ChildDashboard() {
                   אתר עכשיו
                 </Button>
               </CardHeader>
-              <CardContent>
+              <CardContent className="px-3 sm:px-6">
                 {showMap && device.latitude && device.longitude ? (
-                  <div className="space-y-3">
+                  <div className="space-y-2 sm:space-y-3">
                     <LocationMap 
                       latitude={device.latitude} 
                       longitude={device.longitude}
                       name={child?.name}
-                      height="250px"
                     />
-                    <div className="flex gap-2">
+                    <div className="flex gap-1.5 sm:gap-2">
                       <Button
                         variant="outline"
                         size="sm"
-                        className="flex-1"
+                        className="flex-1 text-xs sm:text-sm px-2 sm:px-4 h-8 sm:h-9"
                         onClick={() => {
                           navigator.clipboard.writeText(`${device.latitude},${device.longitude}`);
                           sonnerToast.success("המיקום הועתק!");
                         }}
                       >
-                        <Copy className="w-4 h-4 ml-2" />
-                        העתק מיקום
+                        <Copy className="w-3 h-3 sm:w-4 sm:h-4 ml-1 sm:ml-2" />
+                        <span className="hidden sm:inline">העתק מיקום</span>
+                        <span className="sm:hidden">העתק</span>
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
-                        className="flex-1"
+                        className="flex-1 text-xs sm:text-sm px-2 sm:px-4 h-8 sm:h-9"
                         asChild
                       >
                         <a 
@@ -352,15 +352,16 @@ export default function ChildDashboard() {
                           target="_blank"
                           rel="noopener noreferrer"
                         >
-                          <MapPin className="w-4 h-4 ml-2" />
-                          פתח ב-Google Maps
+                          <MapPin className="w-3 h-3 sm:w-4 sm:h-4 ml-1 sm:ml-2" />
+                          <span className="hidden sm:inline">פתח ב-Google Maps</span>
+                          <span className="sm:hidden">מפות</span>
                         </a>
                       </Button>
                     </div>
                   </div>
                 ) : (
-                  <div className="h-48 rounded-xl bg-muted/50 flex items-center justify-center">
-                    <p className="text-muted-foreground">לחץ "אתר עכשיו" לראות את המיקום</p>
+                  <div className="h-32 sm:h-48 rounded-xl bg-muted/50 flex items-center justify-center">
+                    <p className="text-muted-foreground text-sm sm:text-base">לחץ "אתר עכשיו" לראות את המיקום</p>
                   </div>
                 )}
               </CardContent>
