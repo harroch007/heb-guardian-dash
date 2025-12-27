@@ -136,7 +136,6 @@ export const DeviceCard = forwardRef<HTMLDivElement, DeviceCardProps>(function D
               <LocationMap 
                 latitude={device.latitude} 
                 longitude={device.longitude}
-                height="150px"
               />
               <div className="flex gap-2">
                 <Button
