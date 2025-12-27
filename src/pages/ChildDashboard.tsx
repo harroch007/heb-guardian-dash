@@ -15,13 +15,13 @@ import {
   Wifi, 
   WifiOff, 
   Smartphone, 
-  Clock, 
   Loader2,
   LocateFixed,
   AlertCircle,
   Copy,
   Unlink
 } from 'lucide-react';
+import { ScreenTimeCard } from '@/components/ScreenTimeCard';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -53,11 +53,9 @@ interface Device {
 }
 
 interface AppUsage {
-  id: string;
-  app_name: string;
+  app_name: string | null;
   package_name: string;
-  usage_seconds: number;
-  last_updated: string;
+  usage_minutes: number;
 }
 
 export default function ChildDashboard() {
@@ -76,14 +74,6 @@ export default function ChildDashboard() {
   // Device is connected if a device record exists (app is installed and authorized)
   const isConnected = device !== null;
 
-  // Format seconds to readable time
-  const formatTime = (seconds: number) => {
-    if (seconds < 60) return `${seconds}ש'`;
-    if (seconds < 3600) return `${Math.floor(seconds / 60)}ד'`;
-    const hours = Math.floor(seconds / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    return mins > 0 ? `${hours}ש' ${mins}ד'` : `${hours}ש'`;
-  };
 
   // Get battery color based on level
   const getBatteryColor = (level: number | null) => {
@@ -135,13 +125,15 @@ export default function ChildDashboard() {
       
       setDevice(deviceData);
 
-      // Fetch app usage
+      // Fetch app usage for today
       if (deviceData) {
+        const today = new Date().toISOString().split('T')[0];
         const { data: usageData } = await supabase
           .from('app_usage')
-          .select('*')
-          .eq('device_id', deviceData.device_id)
-          .order('usage_seconds', { ascending: false })
+          .select('app_name, package_name, usage_minutes')
+          .eq('child_id', childId)
+          .eq('usage_date', today)
+          .order('usage_minutes', { ascending: false })
           .limit(10);
         
         setAppUsage(usageData || []);
@@ -450,44 +442,9 @@ export default function ChildDashboard() {
             </Card>
 
             {/* Screen Time / App Usage */}
-            <Card className="md:col-span-2 border-border/50">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Clock className="w-5 h-5 text-primary" />
-                  זמן מסך
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {appUsage.length > 0 ? (
-                  <div className="space-y-3">
-                    {appUsage.map((app) => (
-                      <div 
-                        key={app.id} 
-                        className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center">
-                            <span className="text-lg">📱</span>
-                          </div>
-                          <div>
-                            <p className="font-medium">{app.app_name}</p>
-                            <p className="text-xs text-muted-foreground">{app.package_name}</p>
-                          </div>
-                        </div>
-                        <span className="text-primary font-semibold">
-                          {formatTime(app.usage_seconds)}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Clock className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                    <p>אין נתוני שימוש זמינים</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <div className="md:col-span-2">
+              <ScreenTimeCard appUsage={appUsage} showChart={true} />
+            </div>
           </div>
         )}
       </div>

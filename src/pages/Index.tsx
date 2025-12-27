@@ -4,7 +4,8 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { DeviceCard } from "@/components/DeviceCard";
 import { AlertCard } from "@/components/AlertCard";
 import { supabase } from "@/integrations/supabase/client";
-import { Shield, Smartphone, Bell, AlertTriangle, Plus, CheckCircle } from "lucide-react";
+import { Shield, Smartphone, Bell, AlertTriangle, Plus, CheckCircle, Clock } from "lucide-react";
+import { formatScreenTime } from "@/components/ScreenTimeCard";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,7 @@ const Index = () => {
   const navigate = useNavigate();
   const [devices, setDevices] = useState<Device[]>([]);
   const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [totalScreenTime, setTotalScreenTime] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
@@ -75,6 +77,20 @@ const Index = () => {
 
       if (alertsError) throw alertsError;
       setAlerts(alertsData || []);
+
+      // Fetch total screen time for all children today
+      const childIds = devicesData?.map(d => d.children?.id).filter(Boolean) || [];
+      if (childIds.length > 0) {
+        const today = new Date().toISOString().split('T')[0];
+        const { data: screenTimeData } = await supabase
+          .from('app_usage')
+          .select('usage_minutes')
+          .in('child_id', childIds)
+          .eq('usage_date', today);
+        
+        const total = screenTimeData?.reduce((sum, app) => sum + (app.usage_minutes || 0), 0) || 0;
+        setTotalScreenTime(total);
+      }
 
     } catch (err: any) {
       console.error('Error fetching data:', err);
@@ -131,7 +147,7 @@ const Index = () => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
         <div className="p-4 rounded-xl bg-card border border-border/50 cyber-border animate-fade-in opacity-0" style={{ animationDelay: '0ms' }}>
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-primary/10">
@@ -146,6 +162,18 @@ const Index = () => {
 
         <div className="p-4 rounded-xl bg-card border border-border/50 cyber-border animate-fade-in opacity-0" style={{ animationDelay: '100ms' }}>
           <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-secondary/10">
+              <Clock className="w-5 h-5 text-secondary" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-foreground">{formatScreenTime(totalScreenTime)}</p>
+              <p className="text-xs text-muted-foreground">זמן מסך היום</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4 rounded-xl bg-card border border-border/50 cyber-border animate-fade-in opacity-0" style={{ animationDelay: '200ms' }}>
+          <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-warning/10">
               <Bell className="w-5 h-5 text-warning" />
             </div>
@@ -156,7 +184,7 @@ const Index = () => {
           </div>
         </div>
 
-        <div className="p-4 rounded-xl bg-card border border-border/50 cyber-border animate-fade-in opacity-0" style={{ animationDelay: '200ms' }}>
+        <div className="p-4 rounded-xl bg-card border border-border/50 cyber-border animate-fade-in opacity-0" style={{ animationDelay: '300ms' }}>
           <div className="flex items-center gap-3">
             <div className={`p-2 rounded-lg ${highRiskCount > 0 ? 'bg-destructive/10' : 'bg-success/10'}`}>
               <AlertTriangle className={`w-5 h-5 ${highRiskCount > 0 ? 'text-destructive' : 'text-success'}`} />

@@ -115,30 +115,46 @@ export type Database = {
       }
       app_usage: {
         Row: {
-          app_name: string
-          device_id: string
-          id: string
-          last_updated: string
+          app_name: string | null
+          child_id: string | null
+          created_at: string | null
+          device_id: string | null
+          id: number
           package_name: string
-          usage_seconds: number
+          updated_at: string | null
+          usage_date: string
+          usage_minutes: number | null
         }
         Insert: {
-          app_name: string
-          device_id: string
-          id?: string
-          last_updated?: string
+          app_name?: string | null
+          child_id?: string | null
+          created_at?: string | null
+          device_id?: string | null
+          id?: number
           package_name: string
-          usage_seconds?: number
+          updated_at?: string | null
+          usage_date?: string
+          usage_minutes?: number | null
         }
         Update: {
-          app_name?: string
-          device_id?: string
-          id?: string
-          last_updated?: string
+          app_name?: string | null
+          child_id?: string | null
+          created_at?: string | null
+          device_id?: string | null
+          id?: number
           package_name?: string
-          usage_seconds?: number
+          updated_at?: string | null
+          usage_date?: string
+          usage_minutes?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "app_usage_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "app_usage_device_id_fkey"
             columns: ["device_id"]
@@ -380,6 +396,15 @@ export type Database = {
           p_device_id: string
           p_lat?: number
           p_lon?: number
+        }
+        Returns: undefined
+      }
+      upsert_app_usage: {
+        Args: {
+          p_app_name: string
+          p_device_id: string
+          p_package_name: string
+          p_usage_minutes: number
         }
         Returns: undefined
       }

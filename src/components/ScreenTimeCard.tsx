@@ -1,0 +1,192 @@
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Clock, Gamepad2, MessageCircle, Video, Globe } from 'lucide-react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
+
+interface AppUsageData {
+  app_name: string | null;
+  package_name: string;
+  usage_minutes: number;
+}
+
+interface ScreenTimeCardProps {
+  appUsage: AppUsageData[];
+  showChart?: boolean;
+}
+
+// Category colors using design system colors
+const CATEGORY_COLORS = {
+  games: 'hsl(280, 100%, 60%)', // accent
+  social: 'hsl(45, 100%, 50%)', // warning
+  video: 'hsl(0, 90%, 55%)', // destructive
+  other: 'hsl(180, 100%, 50%)', // primary
+};
+
+// Get app category based on package name
+const getAppCategory = (packageName: string): { name: string; color: string; icon: typeof Gamepad2 } => {
+  const pkg = packageName.toLowerCase();
+  
+  if (pkg.includes('game') || pkg.includes('play') || pkg.includes('minecraft') || pkg.includes('roblox') || pkg.includes('fortnite')) {
+    return { name: 'משחקים', color: CATEGORY_COLORS.games, icon: Gamepad2 };
+  }
+  if (pkg.includes('tiktok') || pkg.includes('instagram') || pkg.includes('snapchat') || pkg.includes('whatsapp') || pkg.includes('telegram') || pkg.includes('facebook') || pkg.includes('twitter')) {
+    return { name: 'רשתות חברתיות', color: CATEGORY_COLORS.social, icon: MessageCircle };
+  }
+  if (pkg.includes('youtube') || pkg.includes('netflix') || pkg.includes('twitch') || pkg.includes('video') || pkg.includes('player')) {
+    return { name: 'וידאו', color: CATEGORY_COLORS.video, icon: Video };
+  }
+  return { name: 'אחר', color: CATEGORY_COLORS.other, icon: Globe };
+};
+
+// Format minutes to readable time (Hebrew)
+export const formatScreenTime = (minutes: number): string => {
+  if (minutes < 60) return `${minutes}ד'`;
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return mins > 0 ? `${hours}ש' ${mins}ד'` : `${hours}ש'`;
+};
+
+// Get emoji for app category
+const getCategoryEmoji = (packageName: string): string => {
+  const pkg = packageName.toLowerCase();
+  
+  if (pkg.includes('game') || pkg.includes('minecraft') || pkg.includes('roblox')) return '🎮';
+  if (pkg.includes('tiktok')) return '📱';
+  if (pkg.includes('instagram')) return '📷';
+  if (pkg.includes('whatsapp')) return '💬';
+  if (pkg.includes('youtube')) return '📺';
+  if (pkg.includes('netflix')) return '🎬';
+  return '📱';
+};
+
+export function ScreenTimeCard({ appUsage, showChart = true }: ScreenTimeCardProps) {
+  const totalMinutes = appUsage.reduce((sum, app) => sum + (app.usage_minutes || 0), 0);
+  
+  // Prepare data for pie chart - group by category
+  const categoryData = appUsage.reduce((acc, app) => {
+    const category = getAppCategory(app.package_name);
+    const existing = acc.find(c => c.name === category.name);
+    if (existing) {
+      existing.value += app.usage_minutes;
+    } else {
+      acc.push({
+        name: category.name,
+        value: app.usage_minutes,
+        color: category.color,
+      });
+    }
+    return acc;
+  }, [] as { name: string; value: number; color: string }[]);
+
+  // Sort by usage
+  categoryData.sort((a, b) => b.value - a.value);
+
+  // Top apps for list
+  const topApps = appUsage.slice(0, 5);
+
+  if (appUsage.length === 0) {
+    return (
+      <Card className="border-border/50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="w-5 h-5 text-primary" />
+            זמן מסך
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8 text-muted-foreground">
+            <Clock className="w-12 h-12 mx-auto mb-3 opacity-50" />
+            <p>אין נתוני שימוש זמינים</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="border-border/50">
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardTitle className="flex items-center gap-2">
+          <Clock className="w-5 h-5 text-primary" />
+          זמן מסך
+        </CardTitle>
+        <div className="text-xl font-bold text-primary">
+          {formatScreenTime(totalMinutes)}
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className={`grid gap-6 ${showChart ? 'md:grid-cols-2' : ''}`}>
+          {/* Pie Chart */}
+          {showChart && categoryData.length > 0 && (
+            <div className="h-48">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={categoryData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={35}
+                    outerRadius={65}
+                    paddingAngle={3}
+                    dataKey="value"
+                  >
+                    {categoryData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    formatter={(value: number) => formatScreenTime(value)}
+                    contentStyle={{
+                      backgroundColor: 'hsl(222, 47%, 10%)',
+                      border: '1px solid hsl(180, 50%, 20%)',
+                      borderRadius: '8px',
+                      direction: 'rtl',
+                    }}
+                  />
+                  <Legend 
+                    layout="vertical"
+                    align="left"
+                    verticalAlign="middle"
+                    formatter={(value) => <span className="text-sm text-foreground">{value}</span>}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          {/* App List */}
+          <div className="space-y-2">
+            {topApps.map((app, index) => {
+              const category = getAppCategory(app.package_name);
+              return (
+                <div 
+                  key={`${app.package_name}-${index}`}
+                  className="flex items-center justify-between p-2 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div 
+                      className="w-8 h-8 rounded-lg flex items-center justify-center text-lg"
+                      style={{ backgroundColor: `${category.color}20` }}
+                    >
+                      {getCategoryEmoji(app.package_name)}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm truncate max-w-[120px]">
+                        {app.app_name || app.package_name.split('.').pop()}
+                      </p>
+                    </div>
+                  </div>
+                  <span 
+                    className="text-sm font-semibold"
+                    style={{ color: category.color }}
+                  >
+                    {formatScreenTime(app.usage_minutes)}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
