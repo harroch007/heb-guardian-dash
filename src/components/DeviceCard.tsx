@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { LocationMap } from "@/components/LocationMap";
+import { UpgradeModal } from "@/components/UpgradeModal";
 
 interface Device {
   device_id: string;
@@ -27,6 +28,7 @@ interface DeviceCardProps {
 export const DeviceCard = forwardRef<HTMLDivElement, DeviceCardProps>(function DeviceCard({ device }, ref) {
   const batteryLevel = device.battery_level ?? 0;
   const [showMap, setShowMap] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   
   const handleLocateNow = () => {
     if (device.latitude && device.longitude) {
@@ -71,9 +73,12 @@ export const DeviceCard = forwardRef<HTMLDivElement, DeviceCardProps>(function D
                   ⭐ פרימיום
                 </span>
               ) : (
-                <span className="px-2 py-0.5 text-xs rounded-full bg-muted text-muted-foreground border border-border">
+                <button
+                  onClick={() => setShowUpgradeModal(true)}
+                  className="px-2 py-0.5 text-xs rounded-full bg-muted text-muted-foreground border border-border hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-colors cursor-pointer"
+                >
                   🆓 חינמי
-                </span>
+                </button>
               )}
             </div>
             <p className="text-xs text-success">מחובר</p>
@@ -170,6 +175,12 @@ export const DeviceCard = forwardRef<HTMLDivElement, DeviceCardProps>(function D
           )}
         </div>
       </div>
+
+      <UpgradeModal
+        open={showUpgradeModal}
+        onOpenChange={setShowUpgradeModal}
+        childName={device.children?.name}
+      />
     </div>
   );
 });
