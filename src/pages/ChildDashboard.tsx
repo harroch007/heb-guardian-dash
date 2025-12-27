@@ -4,9 +4,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { LocationMap } from '@/components/LocationMap';
 import { 
   ArrowRight, 
@@ -14,25 +13,12 @@ import {
   Battery, 
   Wifi, 
   WifiOff, 
-  Smartphone, 
   Loader2,
   LocateFixed,
   AlertCircle,
-  Copy,
-  Unlink
+  Copy
 } from 'lucide-react';
 import { ScreenTimeCard } from '@/components/ScreenTimeCard';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
 import { toast as sonnerToast } from 'sonner';
 import { useToast } from '@/hooks/use-toast';
 
@@ -73,7 +59,6 @@ export default function ChildDashboard() {
 
   // Device is connected if a device record exists (app is installed and authorized)
   const isConnected = device !== null;
-
 
   // Get battery color based on level
   const getBatteryColor = (level: number | null) => {
@@ -202,32 +187,6 @@ export default function ChildDashboard() {
     setTimeout(() => setShowMap(false), 15000);
   };
 
-  // Disconnect device
-  const handleDisconnectDevice = async () => {
-    if (!device?.device_id) return;
-
-    const { error } = await supabase
-      .from('devices')
-      .update({ child_id: null })
-      .eq('device_id', device.device_id);
-
-    if (error) {
-      toast({
-        title: 'שגיאה',
-        description: 'לא ניתן לנתק את המכשיר',
-        variant: 'destructive',
-      });
-    } else {
-      toast({
-        title: 'המכשיר נותק',
-        description: 'המעקב הופסק בהצלחה',
-      });
-      setDevice(null);
-      setAppUsage([]);
-    }
-  };
-
-
   if (loading) {
     return (
       <DashboardLayout>
@@ -240,9 +199,9 @@ export default function ChildDashboard() {
 
   return (
     <DashboardLayout>
-      <div className="p-6 md:p-8">
+      <div className="p-4 sm:p-6 md:p-8">
         {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
+        <div className="flex items-center gap-4 mb-6">
           <Button
             variant="ghost"
             size="icon"
@@ -297,155 +256,88 @@ export default function ChildDashboard() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-6 md:grid-cols-2">
-            {/* Location Card */}
-            <Card className="md:col-span-2 border-primary/30">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <MapPin className="w-5 h-5 text-primary" />
-                  מיקום
-                </CardTitle>
-                <Button 
-                  onClick={handleLocateNow} 
-                  size="sm" 
-                  disabled={locating}
-                  className="glow-primary"
-                >
-                  {locating ? (
-                    <Loader2 className="w-4 h-4 animate-spin ml-2" />
-                  ) : (
-                    <LocateFixed className="w-4 h-4 ml-2" />
-                  )}
-                  אתר עכשיו
-                </Button>
-              </CardHeader>
-              <CardContent className="px-3 sm:px-6">
-                {showMap && device.latitude && device.longitude ? (
-                  <div className="space-y-2 sm:space-y-3">
-                    <LocationMap 
-                      latitude={device.latitude} 
-                      longitude={device.longitude}
-                      name={child?.name}
-                    />
-                    <div className="flex gap-1.5 sm:gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 text-xs sm:text-sm px-2 sm:px-4 h-8 sm:h-9"
-                        onClick={() => {
-                          navigator.clipboard.writeText(`${device.latitude},${device.longitude}`);
-                          sonnerToast.success("המיקום הועתק!");
-                        }}
-                      >
-                        <Copy className="w-3 h-3 sm:w-4 sm:h-4 ml-1 sm:ml-2" />
-                        <span className="hidden sm:inline">העתק מיקום</span>
-                        <span className="sm:hidden">העתק</span>
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 text-xs sm:text-sm px-2 sm:px-4 h-8 sm:h-9"
-                        asChild
-                      >
-                        <a 
-                          href={`https://www.google.com/maps/search/?api=1&query=${device.latitude},${device.longitude}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          <MapPin className="w-3 h-3 sm:w-4 sm:h-4 ml-1 sm:ml-2" />
-                          <span className="hidden sm:inline">פתח ב-Google Maps</span>
-                          <span className="sm:hidden">מפות</span>
-                        </a>
-                      </Button>
-                    </div>
-                  </div>
+          <div className="space-y-4">
+            {/* Compact Status Row - Battery + Location + Locate Button */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-4 rounded-xl bg-card border border-border/50">
+              <div className="flex items-center gap-4 flex-wrap">
+                {/* Location */}
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-primary" />
+                  <span className="text-sm text-foreground">
+                    {device.latitude && device.longitude ? 'מיקום ידוע' : 'לא ידוע'}
+                  </span>
+                </div>
+                
+                <div className="w-px h-4 bg-border hidden sm:block" />
+                
+                {/* Battery */}
+                <div className="flex items-center gap-2">
+                  <Battery className={`w-4 h-4 ${getBatteryColor(device.battery_level)}`} />
+                  <span className="text-sm text-foreground">
+                    {device.battery_level ?? '--'}%
+                  </span>
+                </div>
+              </div>
+              
+              <Button 
+                onClick={handleLocateNow} 
+                size="sm" 
+                disabled={locating}
+                className="glow-primary"
+              >
+                {locating ? (
+                  <Loader2 className="w-4 h-4 animate-spin ml-2" />
                 ) : (
-                  <div className="h-32 sm:h-48 rounded-xl bg-muted/50 flex items-center justify-center">
-                    <p className="text-muted-foreground text-sm sm:text-base">לחץ "אתר עכשיו" לראות את המיקום</p>
-                  </div>
+                  <LocateFixed className="w-4 h-4 ml-2" />
                 )}
-              </CardContent>
-            </Card>
+                אתר עכשיו
+              </Button>
+            </div>
 
-            {/* Battery Card */}
-            <Card className="border-border/50">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Battery className={`w-5 h-5 ${getBatteryColor(device.battery_level)}`} />
-                  סוללה
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-3xl font-bold">
-                      {device.battery_level ?? '--'}%
-                    </span>
-                    <Smartphone className="w-8 h-8 text-muted-foreground" />
-                  </div>
-                  <Progress 
-                    value={device.battery_level ?? 0} 
-                    className="h-3"
+            {/* Map - Shows when locate is clicked */}
+            {showMap && device.latitude && device.longitude && (
+              <Card className="border-primary/30 animate-fade-in">
+                <CardContent className="p-3 sm:p-4">
+                  <LocationMap 
+                    latitude={device.latitude} 
+                    longitude={device.longitude}
+                    name={child?.name}
                   />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Device Info Card */}
-            <Card className="border-border/50">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Smartphone className="w-5 h-5 text-primary" />
-                  פרטי מכשיר
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">מזהה מכשיר</span>
-                      <span className="font-mono text-xs">{device.device_id.slice(0, 12)}...</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">סטטוס</span>
-                      <span className="text-success">מחובר</span>
-                    </div>
+                  <div className="flex gap-2 mt-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 text-xs sm:text-sm"
+                      onClick={() => {
+                        navigator.clipboard.writeText(`${device.latitude},${device.longitude}`);
+                        sonnerToast.success("המיקום הועתק!");
+                      }}
+                    >
+                      <Copy className="w-3.5 h-3.5 ml-1.5" />
+                      העתק
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 text-xs sm:text-sm"
+                      asChild
+                    >
+                      <a 
+                        href={`https://www.google.com/maps/search/?api=1&query=${device.latitude},${device.longitude}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <MapPin className="w-3.5 h-3.5 ml-1.5" />
+                        מפות
+                      </a>
+                    </Button>
                   </div>
-                  
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="destructive" size="sm" className="w-full">
-                        <Unlink className="w-4 h-4 ml-2" />
-                        נתק מכשיר
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>לנתק את המכשיר?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          הניתוק יפסיק את המעקב אחרי המכשיר של {child?.name}. 
-                          תוכל לחבר אותו מחדש מאוחר יותר באמצעות קוד ההתאמה.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter className="flex-row-reverse gap-2">
-                        <AlertDialogCancel>ביטול</AlertDialogCancel>
-                        <AlertDialogAction 
-                          onClick={handleDisconnectDevice}
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        >
-                          נתק מכשיר
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Screen Time / App Usage */}
-            <div className="md:col-span-2">
-              <ScreenTimeCard appUsage={appUsage} showChart={true} />
-            </div>
+            <ScreenTimeCard appUsage={appUsage} showChart={true} />
           </div>
         )}
       </div>
