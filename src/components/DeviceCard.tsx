@@ -12,6 +12,12 @@ interface Device {
   last_seen: string | null;
   latitude: number | null;
   longitude: number | null;
+  children?: {
+    id: string;
+    name: string;
+    parent_id: string;
+    subscription_tier: string | null;
+  };
 }
 
 interface DeviceCardProps {
@@ -21,14 +27,13 @@ interface DeviceCardProps {
 export const DeviceCard = forwardRef<HTMLDivElement, DeviceCardProps>(function DeviceCard({ device }, ref) {
   const batteryLevel = device.battery_level ?? 0;
   const [showMap, setShowMap] = useState(false);
-  const [locating, setLocating] = useState(false);
   
   const handleLocateNow = () => {
-    setLocating(true);
-    setShowMap(true);
-    
-    setTimeout(() => setLocating(false), 2000);
-    setTimeout(() => setShowMap(false), 15000);
+    if (device.latitude && device.longitude) {
+      setShowMap(true);
+    } else {
+      toast.error('אין מיקום זמין למכשיר זה');
+    }
   };
   
   const getBatteryColor = (level: number) => {
@@ -57,7 +62,20 @@ export const DeviceCard = forwardRef<HTMLDivElement, DeviceCardProps>(function D
             <Wifi className="w-5 h-5 text-success" />
           </div>
           <div>
-            <h3 className="font-semibold text-foreground">מכשיר {device.device_id.slice(0, 8)}</h3>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="font-semibold text-foreground">
+                הטלפון של {device.children?.name || 'לא מוגדר'}
+              </h3>
+              {device.children?.subscription_tier === 'premium' ? (
+                <span className="px-2 py-0.5 text-xs rounded-full bg-warning/20 text-warning border border-warning/30">
+                  ⭐ פרימיום
+                </span>
+              ) : (
+                <span className="px-2 py-0.5 text-xs rounded-full bg-muted text-muted-foreground border border-border">
+                  🆓 חינמי
+                </span>
+              )}
+            </div>
             <p className="text-xs text-success">מחובר</p>
           </div>
         </div>
@@ -101,12 +119,11 @@ export const DeviceCard = forwardRef<HTMLDivElement, DeviceCardProps>(function D
         <div className="space-y-2">
           <Button
             onClick={handleLocateNow}
-            disabled={locating}
             className="w-full"
             size="sm"
           >
             <Navigation className="w-4 h-4 ml-2" />
-            {locating ? 'מאתר...' : 'אתר עכשיו'}
+            {showMap ? 'מיקום מוצג' : 'אתר עכשיו'}
           </Button>
           
           {showMap && device.latitude && device.longitude ? (

@@ -29,6 +29,7 @@ export type Database = {
           ai_verdict: string | null
           analyzed_at: string | null
           chat_type: string | null
+          child_id: string | null
           content: string | null
           created_at: string
           device_id: string | null
@@ -39,6 +40,7 @@ export type Database = {
           risk_score: number | null
           sender: string | null
           should_store: boolean | null
+          source: string | null
         }
         Insert: {
           ai_analysis?: Json | null
@@ -54,6 +56,7 @@ export type Database = {
           ai_verdict?: string | null
           analyzed_at?: string | null
           chat_type?: string | null
+          child_id?: string | null
           content?: string | null
           created_at?: string
           device_id?: string | null
@@ -64,6 +67,7 @@ export type Database = {
           risk_score?: number | null
           sender?: string | null
           should_store?: boolean | null
+          source?: string | null
         }
         Update: {
           ai_analysis?: Json | null
@@ -79,6 +83,7 @@ export type Database = {
           ai_verdict?: string | null
           analyzed_at?: string | null
           chat_type?: string | null
+          child_id?: string | null
           content?: string | null
           created_at?: string
           device_id?: string | null
@@ -89,8 +94,16 @@ export type Database = {
           risk_score?: number | null
           sender?: string | null
           should_store?: boolean | null
+          source?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "alerts_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "alerts_device_id_fkey"
             columns: ["device_id"]
@@ -245,6 +258,7 @@ export type Database = {
         Row: {
           battery_level: number | null
           child_id: string | null
+          created_at: string | null
           device_id: string
           last_seen: string | null
           latitude: number | null
@@ -253,6 +267,7 @@ export type Database = {
         Insert: {
           battery_level?: number | null
           child_id?: string | null
+          created_at?: string | null
           device_id: string
           last_seen?: string | null
           latitude?: number | null
@@ -261,6 +276,7 @@ export type Database = {
         Update: {
           battery_level?: number | null
           child_id?: string | null
+          created_at?: string | null
           device_id?: string
           last_seen?: string | null
           latitude?: number | null
@@ -346,9 +362,7 @@ export type Database = {
               p_risk_level: number
               p_source: string
             }
-            Returns: {
-              alert_id: number
-            }[]
+            Returns: number
           }
       generate_pairing_code: { Args: { p_child_id: string }; Returns: string }
       pair_device: {

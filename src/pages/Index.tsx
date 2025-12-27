@@ -20,6 +20,7 @@ interface Device {
     id: string;
     name: string;
     parent_id: string;
+    subscription_tier: string | null;
   };
 }
 
@@ -55,7 +56,8 @@ const Index = () => {
           children!inner (
             id,
             name,
-            parent_id
+            parent_id,
+            subscription_tier
           )
         `)
         .eq('children.parent_id', user?.id)
