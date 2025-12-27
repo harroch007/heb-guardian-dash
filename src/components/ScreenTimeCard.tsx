@@ -104,28 +104,28 @@ export function ScreenTimeCard({ appUsage, showChart = true }: ScreenTimeCardPro
 
   return (
     <Card className="border-border/50">
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="flex items-center gap-2">
-          <Clock className="w-5 h-5 text-primary" />
-          זמן מסך
+      <CardHeader className="flex flex-row items-center justify-between pb-2 gap-2">
+        <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+          <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-primary flex-shrink-0" />
+          <span className="truncate">זמן מסך</span>
         </CardTitle>
-        <div className="text-xl font-bold text-primary">
+        <div className="text-lg sm:text-xl font-bold text-primary flex-shrink-0">
           {formatScreenTime(totalMinutes)}
         </div>
       </CardHeader>
-      <CardContent>
-        <div className={`grid gap-6 ${showChart ? 'md:grid-cols-2' : ''}`}>
+      <CardContent className="px-3 sm:px-6">
+        <div className={`flex flex-col gap-4 ${showChart ? 'md:grid md:grid-cols-2 md:gap-6' : ''}`}>
           {/* Pie Chart */}
           {showChart && categoryData.length > 0 && (
-            <div className="h-48">
+            <div className="h-36 sm:h-48">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={categoryData}
                     cx="50%"
-                    cy="50%"
-                    innerRadius={35}
-                    outerRadius={65}
+                    cy="45%"
+                    innerRadius={25}
+                    outerRadius={45}
                     paddingAngle={3}
                     dataKey="value"
                   >
@@ -140,13 +140,15 @@ export function ScreenTimeCard({ appUsage, showChart = true }: ScreenTimeCardPro
                       border: '1px solid hsl(180, 50%, 20%)',
                       borderRadius: '8px',
                       direction: 'rtl',
+                      fontSize: '12px',
                     }}
                   />
                   <Legend 
-                    layout="vertical"
-                    align="left"
-                    verticalAlign="middle"
-                    formatter={(value) => <span className="text-sm text-foreground">{value}</span>}
+                    layout="horizontal"
+                    align="center"
+                    verticalAlign="bottom"
+                    wrapperStyle={{ paddingTop: '8px', fontSize: '11px' }}
+                    formatter={(value) => <span className="text-xs sm:text-sm text-foreground">{value}</span>}
                   />
                 </PieChart>
               </ResponsiveContainer>
@@ -154,29 +156,29 @@ export function ScreenTimeCard({ appUsage, showChart = true }: ScreenTimeCardPro
           )}
 
           {/* App List */}
-          <div className="space-y-2">
+          <div className="space-y-1.5 sm:space-y-2">
             {topApps.map((app, index) => {
               const category = getAppCategory(app.package_name);
               return (
                 <div 
                   key={`${app.package_name}-${index}`}
-                  className="flex items-center justify-between p-2 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
+                  className="flex items-center justify-between p-1.5 sm:p-2 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors gap-2"
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
                     <div 
-                      className="w-8 h-8 rounded-lg flex items-center justify-center text-lg"
+                      className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center text-sm sm:text-lg flex-shrink-0"
                       style={{ backgroundColor: `${category.color}20` }}
                     >
                       {getCategoryEmoji(app.package_name)}
                     </div>
-                    <div className="min-w-0">
-                      <p className="font-medium text-sm truncate max-w-[120px]">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-xs sm:text-sm truncate">
                         {app.app_name || app.package_name.split('.').pop()}
                       </p>
                     </div>
                   </div>
                   <span 
-                    className="text-sm font-semibold"
+                    className="text-xs sm:text-sm font-semibold flex-shrink-0"
                     style={{ color: category.color }}
                   >
                     {formatScreenTime(app.usage_minutes)}
