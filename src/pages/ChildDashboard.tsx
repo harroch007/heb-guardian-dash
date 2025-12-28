@@ -20,8 +20,20 @@ import {
   QrCode,
   Bell,
   User,
-  ChevronLeft
+  ChevronLeft,
+  Trash2
 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { ScreenTimeCard } from '@/components/ScreenTimeCard';
 import { toast as sonnerToast } from 'sonner';
 import { useToast } from '@/hooks/use-toast';
@@ -71,6 +83,7 @@ export default function ChildDashboard() {
   const [appUsage, setAppUsage] = useState<AppUsage[]>([]);
   const [recentAlerts, setRecentAlerts] = useState<RecentAlert[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(false);
   const [locating, setLocating] = useState(false);
   const [showMap, setShowMap] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
@@ -217,6 +230,34 @@ export default function ChildDashboard() {
     setTimeout(() => setShowMap(false), 15000);
   };
 
+  // Delete child
+  const handleDeleteChild = async () => {
+    if (!childId) return;
+    
+    setDeleting(true);
+    
+    const { data, error } = await supabase.rpc('delete_child_data', { 
+      p_child_id: childId 
+    });
+
+    if (error) {
+      toast({
+        title: 'שגיאה',
+        description: 'לא ניתן למחוק את הילד',
+        variant: 'destructive',
+      });
+      setDeleting(false);
+      return;
+    }
+
+    toast({
+      title: 'הילד הוסר בהצלחה',
+      description: `כל הנתונים של ${child?.name} נמחקו`,
+    });
+
+    navigate('/family');
+  };
+
   // Format time for alerts
   const formatTimeAgo = (dateString: string) => {
     const diff = new Date().getTime() - new Date(dateString).getTime();
@@ -275,6 +316,36 @@ export default function ChildDashboard() {
               </p>
             )}
           </div>
+
+          {/* Delete Child Button */}
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                <Trash2 className="w-5 h-5" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>האם להסיר את {child?.name}?</AlertDialogTitle>
+                <AlertDialogDescription className="text-right">
+                  פעולה זו תמחק את כל הנתונים הקשורים לילד זה כולל: התראות, מכשירים מחוברים, ונתוני שימוש.
+                  <br /><br />
+                  <strong>לא ניתן לבטל פעולה זו.</strong>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter className="flex-row-reverse gap-2">
+                <AlertDialogCancel>ביטול</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDeleteChild}
+                  disabled={deleting}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  {deleting ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : null}
+                  כן, הסר
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
 
         {!device ? (
