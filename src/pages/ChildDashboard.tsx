@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { LocationMap } from '@/components/LocationMap';
 import { QRCodeDisplay } from '@/components/QRCodeDisplay';
 import { EditChildModal } from '@/components/EditChildModal';
+import { ScreenTimeLimitModal } from '@/components/ScreenTimeLimitModal';
 import { 
   ArrowRight, 
   MapPin, 
@@ -92,6 +93,8 @@ export default function ChildDashboard() {
   const [showQRModal, setShowQRModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
+  const [showScreenTimeLimitModal, setShowScreenTimeLimitModal] = useState(false);
+  const [screenTimeLimit, setScreenTimeLimit] = useState<number | null>(null);
 
   // Calculate age
   const calculateAge = (dateOfBirth: string) => {
@@ -173,6 +176,17 @@ export default function ChildDashboard() {
         .limit(3);
       
       setRecentAlerts(alertsData || []);
+
+      // Fetch screen time limit settings
+      const { data: settingsData } = await supabase
+        .from('settings')
+        .select('daily_screen_time_limit_minutes')
+        .eq('child_id', childId)
+        .maybeSingle();
+      
+      if (settingsData) {
+        setScreenTimeLimit(settingsData.daily_screen_time_limit_minutes);
+      }
 
       setLoading(false);
     };
@@ -546,7 +560,12 @@ export default function ChildDashboard() {
             </Card>
 
             {/* Screen Time Card */}
-            <ScreenTimeCard appUsage={appUsage} showChart={true} />
+            <ScreenTimeCard 
+              appUsage={appUsage} 
+              showChart={true} 
+              screenTimeLimit={screenTimeLimit}
+              onSettingsClick={() => setShowScreenTimeLimitModal(true)}
+            />
 
             {/* Recent Alerts Card */}
             <Card>
@@ -626,6 +645,18 @@ export default function ChildDashboard() {
             open={showEditModal}
             onOpenChange={setShowEditModal}
             onUpdated={(updatedChild) => setChild(updatedChild as Child)}
+          />
+        )}
+
+        {/* Screen Time Limit Modal */}
+        {child && (
+          <ScreenTimeLimitModal
+            childId={child.id}
+            childName={child.name}
+            open={showScreenTimeLimitModal}
+            onOpenChange={setShowScreenTimeLimitModal}
+            currentLimit={screenTimeLimit}
+            onUpdated={setScreenTimeLimit}
           />
         )}
       </div>
