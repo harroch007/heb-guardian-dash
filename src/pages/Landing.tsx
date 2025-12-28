@@ -11,6 +11,7 @@ import { LandingPricing } from '@/components/landing/LandingPricing';
 import { LandingCTA } from '@/components/landing/LandingCTA';
 import { LandingFAQ } from '@/components/landing/LandingFAQ';
 import { LandingFooter } from '@/components/landing/LandingFooter';
+import { CookieConsent } from '@/components/landing/CookieConsent';
 
 export default function Landing() {
   return (
@@ -30,6 +31,7 @@ export default function Landing() {
         <LandingFAQ />
       </main>
       <LandingFooter />
+      <CookieConsent />
     </div>
   );
 }
