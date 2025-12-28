@@ -58,7 +58,7 @@ export function LandingNavbar() {
             <Link to="/auth">
               <Button variant="ghost">התחברות</Button>
             </Link>
-            <Link to="/auth">
+            <Link to="/auth?signup=true">
               <Button className="glow-primary">התחילו חינם</Button>
             </Link>
           </div>
@@ -104,7 +104,7 @@ export function LandingNavbar() {
                 <Link to="/auth">
                   <Button variant="ghost" className="w-full">התחברות</Button>
                 </Link>
-                <Link to="/auth">
+                <Link to="/auth?signup=true">
                   <Button className="w-full glow-primary">התחילו חינם</Button>
                 </Link>
               </div>
