@@ -1,3 +1,4 @@
+import { motion } from 'framer-motion';
 import { LandingNavbar } from '@/components/landing/LandingNavbar';
 import { LandingHero } from '@/components/landing/LandingHero';
 import { LandingPlatforms } from '@/components/landing/LandingPlatforms';
@@ -13,24 +14,62 @@ import { LandingCTA } from '@/components/landing/LandingCTA';
 import { LandingFAQ } from '@/components/landing/LandingFAQ';
 import { LandingFooter } from '@/components/landing/LandingFooter';
 import { CookieConsent } from '@/components/landing/CookieConsent';
+import { AnimatedSection } from '@/components/landing/AnimatedSection';
 
 export default function Landing() {
   return (
     <div className="min-h-screen bg-background">
       <LandingNavbar />
       <main id="main-content">
-        <LandingHero />
-        <LandingPlatforms />
-        <LandingFeatures />
-        <LandingProblemSolution />
-        <LandingDifferentiators />
-        <LandingHowItWorks />
-        <LandingCapabilities />
-        <LandingAlertExamples />
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+        >
+          <LandingHero />
+        </motion.div>
+        
+        <AnimatedSection delay={0.1}>
+          <LandingPlatforms />
+        </AnimatedSection>
+        
+        <AnimatedSection delay={0.1}>
+          <LandingFeatures />
+        </AnimatedSection>
+        
+        <AnimatedSection delay={0.1}>
+          <LandingProblemSolution />
+        </AnimatedSection>
+        
+        <AnimatedSection delay={0.1}>
+          <LandingDifferentiators />
+        </AnimatedSection>
+        
+        <AnimatedSection delay={0.1}>
+          <LandingHowItWorks />
+        </AnimatedSection>
+        
+        <AnimatedSection delay={0.1}>
+          <LandingCapabilities />
+        </AnimatedSection>
+        
+        <AnimatedSection delay={0.1}>
+          <LandingAlertExamples />
+        </AnimatedSection>
+        
         <LandingTestimonials />
-        <LandingPricing />
-        <LandingCTA />
-        <LandingFAQ />
+        
+        <AnimatedSection delay={0.1}>
+          <LandingPricing />
+        </AnimatedSection>
+        
+        <AnimatedSection delay={0.1}>
+          <LandingCTA />
+        </AnimatedSection>
+        
+        <AnimatedSection delay={0.1}>
+          <LandingFAQ />
+        </AnimatedSection>
       </main>
       <LandingFooter />
       <CookieConsent />
