@@ -9,6 +9,7 @@ interface Alert {
   id: number;
   child_id: string | null;
   child_name?: string;
+  sender: string | null;
   parent_message: string | null;
   suggested_action: string | null;
   category: string | null;
@@ -30,6 +31,7 @@ const AlertsPage = () => {
         .select(`
           id,
           child_id,
+          sender,
           parent_message,
           suggested_action,
           category,
@@ -38,8 +40,6 @@ const AlertsPage = () => {
           is_processed,
           children!child_id(name)
         `)
-        .eq('is_processed', true)
-        .not('parent_message', 'is', null)
         .order('created_at', { ascending: false });
 
       if (error) throw error;

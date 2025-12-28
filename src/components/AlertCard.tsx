@@ -1,5 +1,5 @@
 import { forwardRef } from "react";
-import { MessageCircle, User, Clock, Lightbulb, Check, Bell, Trash2, Tag } from "lucide-react";
+import { MessageCircle, User, Clock, Lightbulb, Check, Bell, Trash2, Tag, MessageSquare, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -7,6 +7,7 @@ interface Alert {
   id: number;
   child_id: string | null;
   child_name?: string;
+  sender: string | null;
   parent_message: string | null;
   suggested_action: string | null;
   category: string | null;
@@ -43,7 +44,8 @@ const getRiskLevel = (score: number) => {
   return { label: 'דחוף', color: 'destructive', emoji: '🔴' };
 };
 
-const getCardStyles = (score: number) => {
+const getCardStyles = (score: number, isProcessed: boolean) => {
+  if (!isProcessed) return 'bg-muted/5 border-muted/30 hover:border-muted/50';
   if (score <= 30) return 'bg-emerald-500/5 border-emerald-500/30 hover:border-emerald-500/50';
   if (score <= 60) return 'bg-yellow-500/5 border-yellow-500/30 hover:border-yellow-500/50';
   if (score <= 80) return 'bg-orange-500/5 border-orange-500/30 hover:border-orange-500/50';
@@ -91,7 +93,7 @@ export const AlertCard = forwardRef<HTMLDivElement, AlertCardProps>(function Ale
       ref={ref}
       className={cn(
         'p-5 rounded-xl border transition-all duration-300 animate-slide-in-right opacity-0',
-        getCardStyles(riskScore)
+        getCardStyles(riskScore, alert.is_processed)
       )}
       style={{ animationDelay: `${index * 100}ms` }}
     >
@@ -112,10 +114,18 @@ export const AlertCard = forwardRef<HTMLDivElement, AlertCardProps>(function Ale
 
         <div className="flex items-center gap-2">
           {/* Risk Badge */}
-          <span className={cn('px-3 py-1 rounded-full text-xs font-medium', getBadgeStyles(riskScore))}>
-            {riskLevel.emoji} {riskLevel.label}
-          </span>
-          <span className="text-xs text-muted-foreground">{riskScore}%</span>
+          {alert.is_processed ? (
+            <>
+              <span className={cn('px-3 py-1 rounded-full text-xs font-medium', getBadgeStyles(riskScore))}>
+                {riskLevel.emoji} {riskLevel.label}
+              </span>
+              <span className="text-xs text-muted-foreground">{riskScore}%</span>
+            </>
+          ) : (
+            <span className="px-3 py-1 rounded-full text-xs font-medium bg-muted/30 text-muted-foreground">
+              ⏳ ממתין...
+            </span>
+          )}
           
           {/* Delete Button */}
           <button
@@ -128,8 +138,18 @@ export const AlertCard = forwardRef<HTMLDivElement, AlertCardProps>(function Ale
         </div>
       </div>
 
+      {/* Contact Name (sender) */}
+      {alert.sender && (
+        <div className="flex items-center gap-2 mb-3">
+          <MessageSquare className="w-3.5 h-3.5 text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">
+            השיחה עם: <span className="font-medium text-foreground">{alert.sender}</span>
+          </span>
+        </div>
+      )}
+
       {/* Category */}
-      {categoryLabel && (
+      {alert.is_processed && categoryLabel && (
         <div className="flex items-center gap-2 mb-3">
           <Tag className="w-3.5 h-3.5 text-muted-foreground" />
           <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full">
@@ -138,22 +158,34 @@ export const AlertCard = forwardRef<HTMLDivElement, AlertCardProps>(function Ale
         </div>
       )}
 
-      {/* Parent Message */}
-      {alert.parent_message && (
-        <div className="mb-4 p-3 rounded-lg bg-background/50">
-          <p className="text-sm text-foreground leading-relaxed">{alert.parent_message}</p>
-        </div>
-      )}
-
-      {/* Suggested Action */}
-      {alert.suggested_action && (
-        <div className="mb-4 p-3 rounded-lg bg-primary/5 border border-primary/20">
-          <div className="flex items-start gap-2">
-            <Lightbulb className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-            <div>
-              <p className="text-xs font-medium text-primary mb-1">המלצה</p>
-              <p className="text-sm text-foreground/90 leading-relaxed">{alert.suggested_action}</p>
+      {/* Content - conditional based on is_processed */}
+      {alert.is_processed ? (
+        <>
+          {/* Parent Message */}
+          {alert.parent_message && (
+            <div className="mb-4 p-3 rounded-lg bg-background/50">
+              <p className="text-sm text-foreground leading-relaxed">{alert.parent_message}</p>
             </div>
+          )}
+
+          {/* Suggested Action */}
+          {alert.suggested_action && (
+            <div className="mb-4 p-3 rounded-lg bg-primary/5 border border-primary/20">
+              <div className="flex items-start gap-2">
+                <Lightbulb className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-xs font-medium text-primary mb-1">המלצה</p>
+                  <p className="text-sm text-foreground/90 leading-relaxed">{alert.suggested_action}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="mb-4 p-3 rounded-lg bg-muted/30 border border-muted/50">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            <span className="text-sm">⏳ ממתין לניתוח...</span>
           </div>
         </div>
       )}
