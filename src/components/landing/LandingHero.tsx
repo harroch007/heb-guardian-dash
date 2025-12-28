@@ -31,7 +31,7 @@ export function LandingHero() {
               <span className="text-primary">בלי לקרוא כל הודעה. בלי לפגוע בפרטיות. רק הגנה אמיתית כשזה הכי חשוב.</span>
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-              <Link to="/auth">
+              <Link to="/auth?signup=true">
                 <Button size="lg" className="glow-primary text-lg px-8">
                   התחילו להגן עכשיו - חינם
                 </Button>

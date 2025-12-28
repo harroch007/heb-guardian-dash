@@ -48,7 +48,6 @@ const plans = [
     cta: "דברו איתנו",
     highlighted: false,
     pricingTable: null,
-    isContact: true,
   },
 ];
 
@@ -110,22 +109,14 @@ export function LandingPricing() {
                 </div>
               )}
 
-              {plan.isContact ? (
-                <a href="mailto:support@kippy.ai" className="block">
-                  <Button className="w-full" variant="outline">
-                    {plan.cta}
-                  </Button>
-                </a>
-              ) : (
-                <Link to="/auth" className="block">
-                  <Button
-                    className={`w-full ${plan.highlighted ? "glow-primary" : ""}`}
-                    variant={plan.highlighted ? "default" : "outline"}
-                  >
-                    {plan.cta}
-                  </Button>
-                </Link>
-              )}
+              <Link to="/auth?signup=true" className="block">
+                <Button
+                  className={`w-full ${plan.highlighted ? "glow-primary" : ""}`}
+                  variant={plan.highlighted ? "default" : "outline"}
+                >
+                  {plan.cta}
+                </Button>
+              </Link>
             </div>
           ))}
         </div>

@@ -14,7 +14,7 @@ export function LandingCTA() {
         </p>
 
         <div className="flex justify-center mb-12">
-          <Link to="/auth">
+          <Link to="/auth?signup=true">
             <Button size="lg" className="glow-primary text-lg px-8">
               הצטרפו חינם עכשיו
             </Button>
