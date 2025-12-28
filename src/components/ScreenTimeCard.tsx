@@ -1,5 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Clock, Gamepad2, MessageCircle, Video, Globe } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Clock, Gamepad2, MessageCircle, Video, Globe, Settings2 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 
 interface AppUsageData {
@@ -11,6 +13,8 @@ interface AppUsageData {
 interface ScreenTimeCardProps {
   appUsage: AppUsageData[];
   showChart?: boolean;
+  screenTimeLimit?: number | null;
+  onSettingsClick?: () => void;
 }
 
 // Category colors using design system colors
@@ -58,7 +62,7 @@ const getCategoryEmoji = (packageName: string): string => {
   return '📱';
 };
 
-export function ScreenTimeCard({ appUsage, showChart = true }: ScreenTimeCardProps) {
+export function ScreenTimeCard({ appUsage, showChart = true, screenTimeLimit, onSettingsClick }: ScreenTimeCardProps) {
   const totalMinutes = appUsage.reduce((sum, app) => sum + (app.usage_minutes || 0), 0);
   
   // Prepare data for pie chart - group by category
@@ -108,9 +112,26 @@ export function ScreenTimeCard({ appUsage, showChart = true }: ScreenTimeCardPro
         <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
           <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-primary flex-shrink-0" />
           <span className="truncate">זמן מסך</span>
+          {screenTimeLimit && (
+            <Badge variant="outline" className="text-xs font-normal">
+              מגבלה: {Math.floor(screenTimeLimit / 60)}ש' {screenTimeLimit % 60 > 0 ? `${screenTimeLimit % 60}ד'` : ''}
+            </Badge>
+          )}
         </CardTitle>
-        <div className="text-lg sm:text-xl font-bold text-primary flex-shrink-0">
-          {formatScreenTime(totalMinutes)}
+        <div className="flex items-center gap-2">
+          <div className="text-lg sm:text-xl font-bold text-primary flex-shrink-0">
+            {formatScreenTime(totalMinutes)}
+          </div>
+          {onSettingsClick && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={onSettingsClick}
+              className="text-muted-foreground h-8 px-2"
+            >
+              <Settings2 className="w-4 h-4" />
+            </Button>
+          )}
         </div>
       </CardHeader>
       <CardContent className="px-3 sm:px-6">
