@@ -27,9 +27,9 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     return <Navigate to="/onboarding" replace />;
   }
 
-  // If user has completed onboarding and is on onboarding page, redirect to family
+  // If user has completed onboarding and is on onboarding page, redirect to dashboard
   if (isNewUser === false && location.pathname === '/onboarding') {
-    return <Navigate to="/family" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <>{children}</>;
