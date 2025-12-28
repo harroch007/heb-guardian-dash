@@ -26,12 +26,9 @@ interface Device {
 
 interface Alert {
   id: number;
-  sender: string | null;
-  content: string | null;
-  risk_score: number | null;
+  parent_message: string | null;
+  ai_risk_score: number | null;
   created_at: string;
-  ai_summary: string | null;
-  ai_recommendation: string | null;
   is_processed: boolean;
   child_id: string | null;
 }
@@ -81,10 +78,12 @@ const Index = () => {
 
       setChildren(childrenWithDevices);
 
-      // Fetch alerts (latest 5)
+      // Fetch PROCESSED alerts only (with parent_message)
       const { data: alertsData, error: alertsError } = await supabase
         .from('alerts')
-        .select('*')
+        .select('id, parent_message, ai_risk_score, created_at, is_processed, child_id')
+        .eq('is_processed', true)
+        .not('parent_message', 'is', null)
         .order('created_at', { ascending: false })
         .limit(5);
 
