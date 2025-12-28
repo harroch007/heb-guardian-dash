@@ -1,17 +1,16 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Shield, MessageSquare, Users, Bell } from 'lucide-react';
-
 export function LandingHero() {
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
     if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
+      element.scrollIntoView({
+        behavior: 'smooth'
+      });
     }
   };
-
-  return (
-    <section className="relative min-h-screen flex items-center pt-16 overflow-hidden">
+  return <section className="relative min-h-screen flex items-center pt-16 overflow-hidden">
       {/* Background Effects */}
       <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent" />
       <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
@@ -37,12 +36,7 @@ export function LandingHero() {
                   התחילו להגן עכשיו - חינם
                 </Button>
               </Link>
-              <Button 
-                size="lg" 
-                variant="outline" 
-                className="text-lg px-8"
-                onClick={() => scrollToSection('how-it-works')}
-              >
+              <Button size="lg" variant="outline" className="text-lg px-8" onClick={() => scrollToSection('how-it-works')}>
                 ראו איך זה עובד
               </Button>
             </div>
@@ -68,9 +62,7 @@ export function LandingHero() {
                   הצעה: לדבר על גבולות ועל זכות להגיד "לא"
                 </p>
               </div>
-              <div className="bg-muted rounded-lg p-3">
-                <p className="text-sm text-muted-foreground">קיבלתי, תודה! אבדוק איתה מיד.</p>
-              </div>
+              
             </div>
           </div>
         </div>
@@ -91,6 +83,5 @@ export function LandingHero() {
           </div>
         </div>
       </div>
-    </section>
-  );
+    </section>;
 }
