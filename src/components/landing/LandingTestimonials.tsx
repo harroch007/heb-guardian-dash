@@ -11,7 +11,7 @@ const testimonials = [
     rating: 5
   },
   {
-    quote: "כהורה חרדי, חיפשתי פתרון שמגן אבל לא פולש. Kippy עושה את זה בדיוק נכון - הבן שלי מוגן ואני שקט.",
+    quote: "כהורה חרדתי, חיפשתי פתרון שמגן אבל לא פולש. Kippy עושה את זה בדיוק נכון - הבן שלי מוגן ואני שקט.",
     name: "דוד לוי",
     location: "ירושלים",
     avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
