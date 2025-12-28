@@ -1,19 +1,13 @@
-export type DeviceStatus = 'connected' | 'inactive' | 'not_connected';
+export type DeviceStatus = 'connected' | 'not_connected';
 
 export function getDeviceStatus(lastSeen: string | null): DeviceStatus {
   if (!lastSeen) return 'not_connected';
-  
-  const diff = new Date().getTime() - new Date(lastSeen).getTime();
-  const mins = Math.floor(diff / 60000);
-  
-  if (mins <= 30) return 'connected';
-  return 'inactive';
+  return 'connected';
 }
 
 export function getStatusColor(status: DeviceStatus): string {
   switch (status) {
     case 'connected': return 'bg-green-500';
-    case 'inactive': return 'bg-orange-500';
     case 'not_connected': return 'bg-gray-500';
   }
 }
@@ -21,7 +15,6 @@ export function getStatusColor(status: DeviceStatus): string {
 export function getStatusLabel(status: DeviceStatus): string {
   switch (status) {
     case 'connected': return 'מחובר';
-    case 'inactive': return 'לא פעיל';
     case 'not_connected': return 'לא מחובר';
   }
 }

@@ -347,13 +347,12 @@ export default function ChildDashboard() {
               <h1 className="text-2xl md:text-3xl font-bold text-foreground">
                 {child?.name}
               </h1>
-              <Badge 
-                variant="secondary"
-                className={cn(
-                  status === 'connected' && 'bg-green-500/20 text-green-600 dark:text-green-400',
-                  status === 'inactive' && 'bg-orange-500/20 text-orange-600 dark:text-orange-400',
-                  status === 'not_connected' && 'bg-gray-500/20 text-gray-600 dark:text-gray-400'
-                )}
+                <Badge 
+                  variant="secondary"
+                  className={cn(
+                    status === 'connected' && 'bg-green-500/20 text-green-600 dark:text-green-400',
+                    status === 'not_connected' && 'bg-gray-500/20 text-gray-600 dark:text-gray-400'
+                  )}
               >
                 <div className={cn('w-2 h-2 rounded-full ml-1.5', getStatusColor(status))} />
                 {getStatusLabel(status)}
