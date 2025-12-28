@@ -10,6 +10,7 @@ interface Alert {
   child_id: string | null;
   child_name?: string;
   sender: string | null;
+  sender_display: string | null;
   parent_message: string | null;
   suggested_action: string | null;
   category: string | null;
@@ -32,6 +33,7 @@ const AlertsPage = () => {
           id,
           child_id,
           sender,
+          sender_display,
           parent_message,
           suggested_action,
           category,
@@ -48,7 +50,8 @@ const AlertsPage = () => {
       const transformedData = (data || []).map(alert => ({
         ...alert,
         child_name: (alert.children as any)?.name || 'לא ידוע',
-        children: undefined
+        children: undefined,
+        sender_display: alert.sender_display ?? null
       }));
       
       setAlerts(transformedData);
