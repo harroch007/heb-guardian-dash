@@ -6,7 +6,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Bell, Plus, CheckCircle, AlertTriangle, MapPin, ChevronLeft, Users } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { getDeviceStatus, getStatusColor, getStatusLabel, formatLastSeen } from "@/lib/deviceStatus";
 
 interface Child {
   id: string;
@@ -33,9 +35,14 @@ interface Alert {
   child_id: string | null;
 }
 
+interface ChildWithDevice extends Child {
+  device?: Device;
+  alertsCount?: number;
+}
+
 const Index = () => {
   const navigate = useNavigate();
-  const [children, setChildren] = useState<(Child & { device?: Device })[]>([]);
+  const [children, setChildren] = useState<ChildWithDevice[]>([]);
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -58,6 +65,7 @@ const Index = () => {
       // Fetch devices for these children
       const childIds = childrenData?.map(c => c.id) || [];
       let devicesMap: Record<string, Device> = {};
+      let alertsCountMap: Record<string, number> = {};
       
       if (childIds.length > 0) {
         const { data: devicesData } = await supabase
@@ -65,15 +73,36 @@ const Index = () => {
           .select('*')
           .in('child_id', childIds);
         
+        // Group by child_id, keeping the most recent device
         devicesData?.forEach(d => {
-          if (d.child_id) devicesMap[d.child_id] = d;
+          if (d.child_id) {
+            const existing = devicesMap[d.child_id];
+            if (!existing || (d.last_seen && (!existing.last_seen || new Date(d.last_seen) > new Date(existing.last_seen)))) {
+              devicesMap[d.child_id] = d;
+            }
+          }
+        });
+
+        // Count alerts per child
+        const { data: alertsCount } = await supabase
+          .from('alerts')
+          .select('child_id')
+          .in('child_id', childIds)
+          .eq('is_processed', true)
+          .not('parent_message', 'is', null);
+
+        alertsCount?.forEach(a => {
+          if (a.child_id) {
+            alertsCountMap[a.child_id] = (alertsCountMap[a.child_id] || 0) + 1;
+          }
         });
       }
 
-      // Combine children with their devices
-      const childrenWithDevices = childrenData?.map(child => ({
+      // Combine children with their devices and alert counts
+      const childrenWithDevices: ChildWithDevice[] = childrenData?.map(child => ({
         ...child,
-        device: devicesMap[child.id]
+        device: devicesMap[child.id],
+        alertsCount: alertsCountMap[child.id] || 0
       })) || [];
 
       setChildren(childrenWithDevices);
@@ -171,26 +200,42 @@ const Index = () => {
             </div>
           ) : children.length > 0 ? (
             <div className="space-y-2">
-              {children.map((child) => (
-                <div 
-                  key={child.id}
-                  onClick={() => navigate(`/child/${child.id}`)}
-                  className="p-3 sm:p-4 rounded-lg bg-card border border-border/50 flex items-center justify-between cursor-pointer hover:border-primary/50 transition-all hover:scale-[1.01]"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={cn(
-                      "w-2.5 h-2.5 rounded-full",
-                      child.device ? "bg-success" : "bg-muted"
-                    )} />
-                    <span className="font-medium text-foreground">{child.name}</span>
+              {children.map((child) => {
+                const status = child.device ? getDeviceStatus(child.device.last_seen) : 'not_connected';
+                
+                return (
+                  <div 
+                    key={child.id}
+                    onClick={() => navigate(`/child/${child.id}`)}
+                    className="p-3 sm:p-4 rounded-lg bg-card border border-border/50 flex items-center justify-between cursor-pointer hover:border-primary/50 transition-all hover:scale-[1.01]"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={cn(
+                        "w-2.5 h-2.5 rounded-full",
+                        getStatusColor(status)
+                      )} />
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-foreground">{child.name}</span>
+                          {child.alertsCount && child.alertsCount > 0 && (
+                            <Badge variant="destructive" className="text-xs px-1.5 py-0">
+                              {child.alertsCount}
+                            </Badge>
+                          )}
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {formatLastSeen(child.device?.last_seen ?? null)}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <MapPin className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">{getLocationLabel(child.device)}</span>
+                      <ChevronLeft className="w-4 h-4" />
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <MapPin className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">{getLocationLabel(child.device)}</span>
-                    <ChevronLeft className="w-4 h-4" />
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="p-8 rounded-xl bg-card border border-border/50 text-center">
