@@ -13,15 +13,12 @@ export function LandingCTA() {
           הרשמה חינמית, ללא כרטיס אשראי. מוכנים תוך 5 דקות.
         </p>
 
-        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+        <div className="flex justify-center mb-12">
           <Link to="/auth">
             <Button size="lg" className="glow-primary text-lg px-8">
               הצטרפו חינם עכשיו
             </Button>
           </Link>
-          <Button size="lg" variant="outline" className="text-lg px-8">
-            שוחח עם המומחים שלנו
-          </Button>
         </div>
 
         <div className="flex flex-wrap justify-center gap-8 text-muted-foreground">
