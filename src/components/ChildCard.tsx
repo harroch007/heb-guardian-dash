@@ -1,9 +1,10 @@
 import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { User, Calendar, ChevronLeft, Wifi, WifiOff } from 'lucide-react';
+import { User, Calendar, ChevronLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
+import { getDeviceStatus, getStatusColor, getStatusLabel, formatLastSeen } from '@/lib/deviceStatus';
 
 interface Child {
   id: string;
@@ -36,6 +37,8 @@ export function ChildCard({ child, style }: ChildCardProps) {
         .from('devices')
         .select('device_id, last_seen')
         .eq('child_id', child.id)
+        .order('last_seen', { ascending: false })
+        .limit(1)
         .maybeSingle();
       
       setDevice(data);
@@ -45,8 +48,8 @@ export function ChildCard({ child, style }: ChildCardProps) {
     fetchDevice();
   }, [child.id]);
 
-  // Device is connected if a device record exists (app is installed and authorized)
-  const isConnected = device !== null;
+  // Get device status
+  const status = device ? getDeviceStatus(device.last_seen) : 'not_connected';
 
   const calculateAge = (dateOfBirth: string) => {
     const today = new Date();
@@ -118,13 +121,23 @@ export function ChildCard({ child, style }: ChildCardProps) {
           {/* Device Status */}
           {loadingDevice ? (
             <div className="w-20 h-5 bg-muted animate-pulse rounded" />
-          ) : isConnected ? (
-            <div className="flex items-center gap-1.5 text-xs px-2 py-1 rounded-full bg-success/20 text-success">
-              <Wifi className="w-3 h-3" />
-              <span>מחובר</span>
-            </div>
           ) : (
-            <span className="text-xs text-muted-foreground">אין מכשיר</span>
+            <div className="flex flex-col items-end gap-0.5">
+              <div className={cn(
+                "flex items-center gap-1.5 text-xs px-2 py-1 rounded-full",
+                status === 'connected' && 'bg-green-500/20 text-green-600 dark:text-green-400',
+                status === 'inactive' && 'bg-orange-500/20 text-orange-600 dark:text-orange-400',
+                status === 'not_connected' && 'bg-gray-500/20 text-gray-600 dark:text-gray-400'
+              )}>
+                <div className={cn('w-2 h-2 rounded-full', getStatusColor(status))} />
+                <span>{getStatusLabel(status)}</span>
+              </div>
+              {device && (
+                <span className="text-xs text-muted-foreground">
+                  {formatLastSeen(device.last_seen)}
+                </span>
+              )}
+            </div>
           )}
         </div>
       </CardContent>
