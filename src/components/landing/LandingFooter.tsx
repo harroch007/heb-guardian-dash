@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Shield, Mail, Phone } from 'lucide-react';
+import { Shield, Mail } from 'lucide-react';
 import kippyLogo from '@/assets/kippy-logo.png';
 
 export function LandingFooter() {
@@ -55,10 +55,6 @@ export function LandingFooter() {
                 <a href="mailto:support@kippy.ai" className="hover:text-primary transition-colors">
                   support@kippy.ai
                 </a>
-              </li>
-              <li className="flex items-center gap-2 text-muted-foreground">
-                <Phone className="w-4 h-4" />
-                <span>03-1234567</span>
               </li>
             </ul>
           </div>

@@ -78,16 +78,16 @@ export function LandingHero() {
         {/* Stats */}
         <div className="grid grid-cols-3 gap-8 mt-16 pt-16 border-t border-border">
           <div className="text-center">
-            <p className="text-3xl md:text-4xl font-bold text-primary text-glow">5,000+</p>
-            <p className="text-muted-foreground mt-2">הורים כבר משתמשים</p>
+            <p className="text-3xl md:text-4xl font-bold text-primary text-glow">+50,000</p>
+            <p className="text-muted-foreground mt-2">הודעות נותחו החודש</p>
           </div>
           <div className="text-center">
-            <p className="text-3xl md:text-4xl font-bold text-primary text-glow">15,000+</p>
-            <p className="text-muted-foreground mt-2">התרעות נשלחו החודש</p>
+            <p className="text-3xl md:text-4xl font-bold text-primary text-glow">פחות מ-5%</p>
+            <p className="text-muted-foreground mt-2">התראות שווא בזכות ה-AI שלנו</p>
           </div>
           <div className="text-center">
-            <p className="text-3xl md:text-4xl font-bold text-primary text-glow">98%</p>
-            <p className="text-muted-foreground mt-2">הורים מרגישים שקט נפשי</p>
+            <p className="text-3xl md:text-4xl font-bold text-primary text-glow">95%</p>
+            <p className="text-muted-foreground mt-2">מהניתוח על המכשיר עצמו</p>
           </div>
         </div>
       </div>

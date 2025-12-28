@@ -5,49 +5,55 @@ import { Check, Star } from 'lucide-react';
 const plans = [
   {
     name: "Basic",
-    subtitle: "מושלם להתחלה",
+    subtitle: "תמונת מצב מלאה",
     price: "חינם",
     features: [
-      "עד ילד 1",
-      "התרעות בסיסיות",
-      "זיהוי סכנות מרכזיות",
-      "תמיכה קהילתית",
-      "דוח שבועי בסיסי"
+      "ילד אחד",
+      "מיקום הילד בזמן אמת",
+      "מצב בטריה",
+      "זמן מסך יומי",
+      "הגבלת זמן מסך",
+      "סטטוס מכשיר (מחובר/מנותק)"
     ],
     cta: "התחילו חינם",
-    highlighted: false
+    highlighted: false,
+    pricingTable: null
   },
   {
-    name: "Pro",
-    subtitle: "המומלץ למשפחות",
-    price: "₪29",
+    name: "Premium",
+    subtitle: "הגנה מלאה ושקט נפשי",
+    price: "החל מ-₪29",
     period: "/חודש",
     features: [
-      "עד 3 ילדים",
-      "התרעות מתקדמות + הקשר",
-      "ניתוח AI מלא",
-      "דוחות שבועיים מפורטים",
-      "תמיכה מועדפת",
-      "היסטוריה של 6 חודשים"
+      "כל מה שב-Basic",
+      "ניתוח AI 24/7 על כל התקשורות",
+      "WhatsApp, Telegram, Discord, TikTok, Instagram ועוד",
+      "התראות חכמות בזמן אמת",
+      "דוח שבועי מפורט",
+      "פחות מ-5% התראות שווא",
+      "תמיכה מועדפת"
     ],
-    cta: "בחרו Pro",
-    highlighted: true
+    cta: "בחרו Premium",
+    highlighted: true,
+    pricingTable: [
+      { children: "ילד אחד", price: "₪29/חודש" },
+      { children: "2 ילדים", price: "₪45/חודש" },
+      { children: "3 ילדים", price: "₪60/חודש" }
+    ]
   },
   {
-    name: "Enterprise",
-    subtitle: "למשפחות גדולות",
-    price: "₪99",
-    period: "/חודש",
+    name: "משפחות גדולות",
+    subtitle: "4 ילדים ומעלה",
+    price: "צרו קשר",
     features: [
-      "מספר ילדים ללא הגבלה",
-      "כל התכונות של Pro",
-      "תמיכה VIP 24/7",
-      "ניתוח מותאם אישית",
-      "ייעוץ משפחתי חודשי",
-      "היסטוריה ללא הגבלה"
+      "כל מה שב-Premium",
+      "מחיר מותאם אישית",
+      "תמיכה VIP"
     ],
-    cta: "פנו אלינו",
-    highlighted: false
+    cta: "דברו איתנו",
+    highlighted: false,
+    pricingTable: null,
+    isContact: true
   }
 ];
 
@@ -90,7 +96,7 @@ export function LandingPricing() {
                 </div>
               </div>
 
-              <ul className="space-y-4 mb-8">
+              <ul className="space-y-4 mb-6">
                 {plan.features.map((feature, idx) => (
                   <li key={idx} className="flex items-center gap-3">
                     <Check className="w-5 h-5 text-success flex-shrink-0" />
@@ -99,20 +105,42 @@ export function LandingPricing() {
                 ))}
               </ul>
 
-              <Link to="/auth" className="block">
-                <Button 
-                  className={`w-full ${plan.highlighted ? 'glow-primary' : ''}`}
-                  variant={plan.highlighted ? 'default' : 'outline'}
-                >
-                  {plan.cta}
-                </Button>
-              </Link>
+              {plan.pricingTable && (
+                <div className="bg-muted/50 rounded-lg p-4 mb-6">
+                  {plan.pricingTable.map((row, idx) => (
+                    <div key={idx} className="flex justify-between items-center py-2 border-b border-border last:border-0">
+                      <span className="text-muted-foreground">{row.children}</span>
+                      <span className="font-medium text-foreground">{row.price}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {plan.isContact ? (
+                <a href="mailto:support@kippy.ai" className="block">
+                  <Button 
+                    className="w-full"
+                    variant="outline"
+                  >
+                    {plan.cta}
+                  </Button>
+                </a>
+              ) : (
+                <Link to="/auth" className="block">
+                  <Button 
+                    className={`w-full ${plan.highlighted ? 'glow-primary' : ''}`}
+                    variant={plan.highlighted ? 'default' : 'outline'}
+                  >
+                    {plan.cta}
+                  </Button>
+                </Link>
+              )}
             </div>
           ))}
         </div>
 
         <p className="text-center text-muted-foreground mt-8">
-          כל התכניות כוללות ניסיון חינם ל-14 יום • ללא צורך בכרטיס אשראי • ניתן לבטל בכל עת
+          כל התכניות כוללות ניסיון חינם ל-14 יום · ללא צורך בכרטיס אשראי · ניתן לבטל בכל עת
         </p>
       </div>
     </section>
