@@ -41,6 +41,7 @@ export type Database = {
           parent_message: string | null
           risk_score: number | null
           sender: string | null
+          sender_display: string | null
           should_alert: boolean | null
           should_store: boolean | null
           source: string | null
@@ -72,6 +73,7 @@ export type Database = {
           parent_message?: string | null
           risk_score?: number | null
           sender?: string | null
+          sender_display?: string | null
           should_alert?: boolean | null
           should_store?: boolean | null
           source?: string | null
@@ -103,6 +105,7 @@ export type Database = {
           parent_message?: string | null
           risk_score?: number | null
           sender?: string | null
+          sender_display?: string | null
           should_alert?: boolean | null
           should_store?: boolean | null
           source?: string | null
@@ -344,6 +347,103 @@ export type Database = {
         }
         Relationships: []
       }
+      settings: {
+        Row: {
+          accessibility_service_enabled: boolean | null
+          alert_on_trigger_words: boolean | null
+          alert_on_unknown_contacts: boolean | null
+          alert_threshold: number | null
+          blocked_apps: Json | null
+          child_id: string | null
+          created_at: string | null
+          custom_trigger_words: Json | null
+          daily_screen_time_limit_minutes: number | null
+          device_id: string | null
+          id: string
+          local_llm_enabled: boolean | null
+          location_tracking_enabled: boolean | null
+          location_update_interval_minutes: number | null
+          monitoring_enabled: boolean | null
+          notification_listener_enabled: boolean | null
+          parent_id: string | null
+          redaction_mode: string | null
+          remote_llm_enabled: boolean | null
+          screen_time_tracking_enabled: boolean | null
+          updated_at: string | null
+          version: number | null
+        }
+        Insert: {
+          accessibility_service_enabled?: boolean | null
+          alert_on_trigger_words?: boolean | null
+          alert_on_unknown_contacts?: boolean | null
+          alert_threshold?: number | null
+          blocked_apps?: Json | null
+          child_id?: string | null
+          created_at?: string | null
+          custom_trigger_words?: Json | null
+          daily_screen_time_limit_minutes?: number | null
+          device_id?: string | null
+          id?: string
+          local_llm_enabled?: boolean | null
+          location_tracking_enabled?: boolean | null
+          location_update_interval_minutes?: number | null
+          monitoring_enabled?: boolean | null
+          notification_listener_enabled?: boolean | null
+          parent_id?: string | null
+          redaction_mode?: string | null
+          remote_llm_enabled?: boolean | null
+          screen_time_tracking_enabled?: boolean | null
+          updated_at?: string | null
+          version?: number | null
+        }
+        Update: {
+          accessibility_service_enabled?: boolean | null
+          alert_on_trigger_words?: boolean | null
+          alert_on_unknown_contacts?: boolean | null
+          alert_threshold?: number | null
+          blocked_apps?: Json | null
+          child_id?: string | null
+          created_at?: string | null
+          custom_trigger_words?: Json | null
+          daily_screen_time_limit_minutes?: number | null
+          device_id?: string | null
+          id?: string
+          local_llm_enabled?: boolean | null
+          location_tracking_enabled?: boolean | null
+          location_update_interval_minutes?: number | null
+          monitoring_enabled?: boolean | null
+          notification_listener_enabled?: boolean | null
+          parent_id?: string | null
+          redaction_mode?: string | null
+          remote_llm_enabled?: boolean | null
+          screen_time_tracking_enabled?: boolean | null
+          updated_at?: string | null
+          version?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "settings_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "settings_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "settings_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "parents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       training_dataset: {
         Row: {
           age_at_incident: number | null
@@ -376,23 +476,26 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      create_alert:
-        | {
-            Args: { p_message: string; p_risk_level: number; p_source: string }
-            Returns: undefined
-          }
-        | {
-            Args: {
-              p_chat_type?: string
-              p_device_id?: string
-              p_message: string
-              p_message_count?: number
-              p_risk_level: number
-              p_source: string
-            }
-            Returns: number
-          }
+      cleanup_old_data: { Args: never; Returns: Json }
+      create_alert: {
+        Args: {
+          p_chat_type?: string
+          p_contact_hash?: string
+          p_device_id: string
+          p_message: string
+          p_message_count?: number
+          p_pii_redacted_count?: number
+          p_risk_level: number
+          p_sender_display?: string
+          p_source: string
+        }
+        Returns: number
+      }
+      delete_all_my_data: { Args: never; Returns: Json }
+      delete_child_data: { Args: { p_child_id: string }; Returns: Json }
+      export_my_data: { Args: never; Returns: Json }
       generate_pairing_code: { Args: { p_child_id: string }; Returns: string }
+      get_device_settings: { Args: { p_device_id: string }; Returns: Json }
       pair_device: {
         Args: { p_device_id: string; p_pairing_code: string }
         Returns: {
@@ -401,6 +504,10 @@ export type Database = {
           error_message: string
           success: boolean
         }[]
+      }
+      update_device_settings: {
+        Args: { p_device_id: string; p_settings: Json }
+        Returns: Json
       }
       update_device_status: {
         Args: {
