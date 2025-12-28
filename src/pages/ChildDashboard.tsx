@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { LocationMap } from '@/components/LocationMap';
 import { QRCodeDisplay } from '@/components/QRCodeDisplay';
+import { EditChildModal } from '@/components/EditChildModal';
 import { 
   ArrowRight, 
   MapPin, 
@@ -21,7 +22,9 @@ import {
   Bell,
   User,
   ChevronLeft,
-  Trash2
+  Trash2,
+  Pencil,
+  Unplug
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -87,6 +90,8 @@ export default function ChildDashboard() {
   const [locating, setLocating] = useState(false);
   const [showMap, setShowMap] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
 
   // Calculate age
   const calculateAge = (dateOfBirth: string) => {
@@ -258,6 +263,36 @@ export default function ChildDashboard() {
     navigate('/family');
   };
 
+  // Disconnect device from child
+  const handleDisconnectDevice = async () => {
+    if (!device?.device_id) return;
+    
+    setDisconnecting(true);
+    
+    const { error } = await supabase
+      .from('devices')
+      .update({ child_id: null })
+      .eq('device_id', device.device_id);
+
+    if (error) {
+      toast({
+        title: 'שגיאה',
+        description: 'לא ניתן לנתק את המכשיר',
+        variant: 'destructive',
+      });
+      setDisconnecting(false);
+      return;
+    }
+
+    toast({
+      title: 'המכשיר נותק',
+      description: 'המכשיר נותק בהצלחה מהילד',
+    });
+
+    setDevice(null);
+    setDisconnecting(false);
+  };
+
   // Format time for alerts
   const formatTimeAgo = (dateString: string) => {
     const diff = new Date().getTime() - new Date(dateString).getTime();
@@ -316,6 +351,16 @@ export default function ChildDashboard() {
               </p>
             )}
           </div>
+
+          {/* Edit Child Button */}
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => setShowEditModal(true)}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <Pencil className="w-5 h-5" />
+          </Button>
 
           {/* Delete Child Button */}
           <AlertDialog>
@@ -379,13 +424,45 @@ export default function ChildDashboard() {
                     <h2 className="text-xl font-bold text-foreground">{child?.name}</h2>
                     <p className="text-muted-foreground">{child && calculateAge(child.date_of_birth)} שנים</p>
                   </div>
-                  <div className="text-left">
+                  <div className="flex flex-col items-end gap-2">
                     {device.battery_level !== null && (
                       <div className="flex items-center gap-2">
                         <Battery className={cn('w-5 h-5', getBatteryColor(device.battery_level))} />
                         <span className="text-sm font-medium">{device.battery_level}%</span>
                       </div>
                     )}
+                    {/* Disconnect Device Button */}
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-xs text-muted-foreground hover:text-destructive"
+                        >
+                          <Unplug className="w-3.5 h-3.5 ml-1" />
+                          נתק מכשיר
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>האם לנתק את המכשיר?</AlertDialogTitle>
+                          <AlertDialogDescription className="text-right">
+                            המכשיר ינותק מ-{child?.name} אך לא יימחק מהמערכת. תוכל לחבר אותו מחדש בכל עת.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter className="flex-row-reverse gap-2">
+                          <AlertDialogCancel>ביטול</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={handleDisconnectDevice}
+                            disabled={disconnecting}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            {disconnecting ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : null}
+                            כן, נתק
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </div>
               </CardContent>
@@ -540,6 +617,16 @@ export default function ChildDashboard() {
               <QRCodeDisplay childId={child.id} parentId={user?.id || ''} onFinish={() => setShowQRModal(false)} />
             </div>
           </div>
+        )}
+
+        {/* Edit Child Modal */}
+        {child && (
+          <EditChildModal
+            child={child}
+            open={showEditModal}
+            onOpenChange={setShowEditModal}
+            onUpdated={(updatedChild) => setChild(updatedChild as Child)}
+          />
         )}
       </div>
     </DashboardLayout>
