@@ -1,3 +1,5 @@
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { LandingNavbar } from '@/components/landing/LandingNavbar';
 import { LandingHero } from '@/components/landing/LandingHero';
@@ -15,8 +17,27 @@ import { LandingFAQ } from '@/components/landing/LandingFAQ';
 import { LandingFooter } from '@/components/landing/LandingFooter';
 import { CookieConsent } from '@/components/landing/CookieConsent';
 import { AnimatedSection } from '@/components/landing/AnimatedSection';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function Landing() {
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!loading && user) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [user, loading, navigate]);
+
+  // Show nothing while checking auth to avoid flash
+  if (loading) {
+    return null;
+  }
+
+  // If user is logged in, they'll be redirected
+  if (user) {
+    return null;
+  }
   return (
     <div className="min-h-screen bg-background">
       <LandingNavbar />
