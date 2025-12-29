@@ -348,9 +348,20 @@ export default function ChildDashboard() {
           
           <div className="flex-1">
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-                {child?.name}
-              </h1>
+              <div className="flex items-center gap-2">
+                {child?.gender === 'male' ? (
+                  <div className="p-1.5 rounded-full bg-blue-500/10">
+                    <User className="w-5 h-5 text-blue-500" />
+                  </div>
+                ) : child?.gender === 'female' ? (
+                  <div className="p-1.5 rounded-full bg-pink-500/10">
+                    <User className="w-5 h-5 text-pink-500" />
+                  </div>
+                ) : null}
+                <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+                  {child?.name}
+                </h1>
+              </div>
                 <Badge 
                   variant="secondary"
                   className={cn(
@@ -431,12 +442,48 @@ export default function ChildDashboard() {
           </Card>
         ) : (
           <div className="space-y-4">
+            {/* Disconnected Warning Banner */}
+            {status === 'disconnected' && (
+              <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/30 flex items-start gap-3">
+                <div className="p-2 rounded-full bg-destructive/20 shrink-0">
+                  <Smartphone className="w-5 h-5 text-destructive" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-semibold text-destructive mb-1">המכשיר מנותק</h4>
+                  <p className="text-sm text-muted-foreground">
+                    לא התקבל עדכון מהמכשיר יותר משעה. ייתכן שהאפליקציה הוסרה מהטלפון או שהמכשיר כבוי.
+                    <br />
+                    מומלץ לבדוק שהאפליקציה עדיין מותקנת ופועלת.
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="mt-3 text-primary border-primary/30 hover:bg-primary/10"
+                    onClick={() => setShowReconnectModal(true)}
+                  >
+                    <RefreshCw className="w-4 h-4 ml-2" />
+                    חבר מכשיר מחדש
+                  </Button>
+                </div>
+              </div>
+            )}
+
             {/* Status Card */}
             <Card className="border-primary/20">
               <CardContent className="p-6">
                 <div className="flex items-center gap-4">
-                  <div className="p-4 rounded-2xl bg-primary/10 border border-primary/30">
-                    <User className="w-10 h-10 text-primary" />
+                  <div className={cn(
+                    "p-4 rounded-2xl border",
+                    child?.gender === 'male' && "bg-blue-500/10 border-blue-500/30",
+                    child?.gender === 'female' && "bg-pink-500/10 border-pink-500/30",
+                    !child?.gender && "bg-primary/10 border-primary/30"
+                  )}>
+                    <User className={cn(
+                      "w-10 h-10",
+                      child?.gender === 'male' && "text-blue-500",
+                      child?.gender === 'female' && "text-pink-500",
+                      !child?.gender && "text-primary"
+                    )} />
                   </div>
                   <div className="flex-1">
                     <h2 className="text-xl font-bold text-foreground">{child?.name}</h2>
