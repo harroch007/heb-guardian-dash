@@ -65,8 +65,8 @@ export function LandingFooter() {
             © {new Date().getFullYear()} Kippy. כל הזכויות שמורות.
           </p>
           <div className="flex gap-6 text-sm text-muted-foreground">
-            <a href="#" className="hover:text-primary transition-colors">מדיניות פרטיות</a>
-            <a href="#" className="hover:text-primary transition-colors">תנאי שימוש</a>
+            <Link to="/privacy" className="hover:text-primary transition-colors">מדיניות פרטיות</Link>
+            <Link to="/terms" className="hover:text-primary transition-colors">תנאי שימוש</Link>
           </div>
         </div>
       </div>
