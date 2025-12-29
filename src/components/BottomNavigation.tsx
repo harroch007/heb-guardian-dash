@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 const navItems = [
-  { title: "בית", url: "/", icon: Home },
+  { title: "בית", url: "/dashboard", icon: Home },
   { title: "משפחה", url: "/family", icon: Users },
   { title: "התראות", url: "/alerts", icon: Bell },
   { title: "הגדרות", url: "/settings", icon: Settings },
@@ -17,8 +17,8 @@ export const BottomNavigation = forwardRef<HTMLElement, object>(function BottomN
   const [alertsCount, setAlertsCount] = useState(0);
   
   const isActive = (url: string) => {
-    if (url === "/") {
-      return location.pathname === "/";
+    if (url === "/dashboard") {
+      return location.pathname === "/dashboard";
     }
     return location.pathname.startsWith(url);
   };
