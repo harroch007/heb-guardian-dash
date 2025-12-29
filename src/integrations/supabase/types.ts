@@ -567,15 +567,25 @@ export type Database = {
             }
             Returns: Json
           }
-      register_device: {
-        Args: {
-          p_child_id: string
-          p_device_id: string
-          p_device_model?: string
-          p_device_name?: string
-        }
-        Returns: undefined
-      }
+      register_device:
+        | {
+            Args: {
+              p_child_id: string
+              p_device_id: string
+              p_device_model?: string
+              p_device_name?: string
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              p_child_id: string
+              p_device_id: string
+              p_device_model?: string
+              p_device_name?: string
+            }
+            Returns: undefined
+          }
       update_device_settings: {
         Args: { p_device_id: string; p_settings: Json }
         Returns: Json
