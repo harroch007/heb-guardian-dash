@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       alerts: {
         Row: {
+          acknowledged_at: string | null
           ai_analysis: Json | null
           ai_classification: Json | null
           ai_confidence: number | null
@@ -48,6 +49,7 @@ export type Database = {
           suggested_action: string | null
         }
         Insert: {
+          acknowledged_at?: string | null
           ai_analysis?: Json | null
           ai_classification?: Json | null
           ai_confidence?: number | null
@@ -80,6 +82,7 @@ export type Database = {
           suggested_action?: string | null
         }
         Update: {
+          acknowledged_at?: string | null
           ai_analysis?: Json | null
           ai_classification?: Json | null
           ai_confidence?: number | null
