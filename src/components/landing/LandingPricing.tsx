@@ -13,7 +13,6 @@ const plans = [
       "מצב סוללה",
       "זמן מסך יומי",
       "הגבלת זמן מסך",
-      "סטטוס מכשיר (מחובר/מנותק)",
     ],
     cta: "התחילו חינם",
     highlighted: false,
@@ -25,7 +24,7 @@ const plans = [
     price: "₪29",
     period: "/חודש",
     features: [
-      "כל מה שבחינם",
+      "כל מה שבחבילת הבסיס +",
       "ניתוח AI 24/7 על כל התקשורות",
       "WhatsApp, Telegram, Discord, TikTok, Instagram ועוד",
       "התראות חכמות בזמן אמת",
