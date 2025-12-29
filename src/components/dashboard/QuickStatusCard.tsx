@@ -131,21 +131,21 @@ export const QuickStatusCard = ({ device, childName }: QuickStatusCardProps) => 
           </div>
         )}
 
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 gap-1.5 sm:gap-3">
           {/* Battery */}
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className={cn(
-                  "flex flex-col items-center p-3 rounded-lg bg-muted/30",
+                  "flex flex-col items-center p-2 sm:p-3 rounded-lg bg-muted/30",
                   isDataStale && "cursor-help"
                 )}>
-                  <Battery className={cn("w-5 h-5 mb-1", getBatteryColor(device?.battery_level ?? null))} />
-                  <span className={cn("text-sm font-medium", getBatteryColor(device?.battery_level ?? null))}>
+                  <Battery className={cn("w-4 h-4 sm:w-5 sm:h-5 mb-1", getBatteryColor(device?.battery_level ?? null))} />
+                  <span className={cn("text-xs sm:text-sm font-medium", getBatteryColor(device?.battery_level ?? null))}>
                     {getBatteryIcon(device?.battery_level ?? null)}
                   </span>
-                  <span className="text-xs text-muted-foreground">
-                    {isDataStale ? 'סוללה אחרונה' : 'סוללה'}
+                  <span className="text-[10px] sm:text-xs text-muted-foreground">
+                    {isDataStale ? 'אחרונה' : 'סוללה'}
                   </span>
                 </div>
               </TooltipTrigger>
@@ -165,23 +165,21 @@ export const QuickStatusCard = ({ device, childName }: QuickStatusCardProps) => 
                   onClick={handleLocationClick}
                   disabled={!hasLocation}
                   className={cn(
-                    "flex flex-col items-center p-3 rounded-lg bg-muted/30 transition-colors",
+                    "flex flex-col items-center p-2 sm:p-3 rounded-lg bg-muted/30 transition-colors",
                     hasLocation && "cursor-pointer hover:bg-muted/50 active:bg-muted/70"
                   )}
                 >
                   <MapPin className={cn(
-                    "w-5 h-5 mb-1", 
+                    "w-4 h-4 sm:w-5 sm:h-5 mb-1", 
                     !hasLocation ? "text-muted-foreground" : isDataStale ? "text-muted-foreground" : "text-primary"
                   )} />
                   <span className={cn(
-                    "text-sm font-medium", 
+                    "text-xs sm:text-sm font-medium", 
                     !hasLocation ? "text-muted-foreground" : isDataStale ? "text-muted-foreground" : "text-foreground"
                   )}>
                     {hasLocation ? (isDataStale ? 'אחרון' : 'ידוע') : '—'}
                   </span>
-                  <span className="text-xs text-muted-foreground">
-                    {isDataStale && hasLocation ? 'מיקום אחרון' : 'מיקום'}
-                  </span>
+                  <span className="text-[10px] sm:text-xs text-muted-foreground">מיקום</span>
                 </button>
               </TooltipTrigger>
               {isDataStale && hasLocation && (
@@ -194,25 +192,25 @@ export const QuickStatusCard = ({ device, childName }: QuickStatusCardProps) => 
 
           {/* Last Seen */}
           <div className={cn(
-            "flex flex-col items-center p-3 rounded-lg bg-muted/30",
+            "flex flex-col items-center p-2 sm:p-3 rounded-lg bg-muted/30",
             status === 'disconnected' && "bg-destructive/10",
             status === 'inactive' && "bg-warning/10"
           )}>
             <Clock className={cn(
-              "w-5 h-5 mb-1",
+              "w-4 h-4 sm:w-5 sm:h-5 mb-1",
               status === 'connected' && "text-muted-foreground",
               status === 'inactive' && "text-warning",
               status === 'disconnected' && "text-destructive"
             )} />
             <span className={cn(
-              "text-sm font-medium truncate max-w-full",
+              "text-xs sm:text-sm font-medium",
               status === 'connected' && "text-foreground",
               status === 'inactive' && "text-warning",
               status === 'disconnected' && "text-destructive"
             )}>
-              {device?.last_seen ? formatLastSeen(device.last_seen).replace('נראה ', '') : '—'}
+              {getLastSeenShort() || '—'}
             </span>
-            <span className="text-xs text-muted-foreground">עדכון</span>
+            <span className="text-[10px] sm:text-xs text-muted-foreground">עדכון</span>
           </div>
         </div>
       </Card>

@@ -11,7 +11,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       <AppSidebar />
       <main className="flex-1 overflow-auto">
         <div className="scanline fixed inset-0 pointer-events-none z-50 opacity-30" />
-        <div className="p-6 md:p-8 pb-20 md:pb-8 relative">
+        <div className="p-3 sm:p-6 md:p-8 pb-20 md:pb-8 relative">
           {children}
         </div>
       </main>

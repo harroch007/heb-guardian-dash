@@ -1,6 +1,5 @@
-import { Home, Bell, Settings, Menu, X, Users, LogOut } from "lucide-react";
+import { Home, Bell, Settings, Users, LogOut } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
-import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -14,7 +13,6 @@ const navItems = [
 ];
 
 export function AppSidebar() {
-  const [isOpen, setIsOpen] = useState(false);
   const { signOut } = useAuth();
 
   const handleLogout = async () => {
@@ -25,34 +23,13 @@ export function AppSidebar() {
     window.location.href = "/dashboard";
   };
 
-  const handleNavClick = () => {
-    setIsOpen(false);
-  };
-
   return (
     <>
-      {/* Mobile toggle - moved to left */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="fixed top-4 left-4 z-50 p-2 rounded-lg bg-card border border-primary/30 text-primary md:hidden glow-primary"
-      >
-        {isOpen ? <X size={24} /> : <Menu size={24} />}
-      </button>
-
-      {/* Overlay for mobile */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-30 md:hidden"
-          onClick={() => setIsOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
+      {/* Sidebar - Desktop only */}
       <aside
         className={cn(
-          "fixed md:static top-0 right-0 h-screen w-64 bg-sidebar border-l border-sidebar-border z-40 transition-transform duration-300",
-          "flex flex-col",
-          isOpen ? "translate-x-0" : "translate-x-full md:translate-x-0"
+          "hidden md:flex fixed md:static top-0 right-0 h-screen w-64 bg-sidebar border-l border-sidebar-border z-40",
+          "flex-col"
         )}
       >
         {/* Logo - clickable for refresh */}
@@ -79,7 +56,6 @@ export function AppSidebar() {
                 <NavLink
                   to={item.url}
                   end={item.url === "/"}
-                  onClick={handleNavClick}
                   className="flex items-center gap-3 px-4 py-3 rounded-lg text-muted-foreground hover:text-foreground hover:bg-sidebar-accent transition-all duration-200 group"
                   activeClassName="bg-primary/10 text-primary glow-primary border border-primary/30"
                 >
