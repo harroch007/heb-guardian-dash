@@ -157,8 +157,8 @@ export default function TermsOfService() {
         <ul className="list-none text-muted-foreground space-y-2">
           <li>
             דואר אלקטרוני:{' '}
-            <a href="mailto:yariv@kippyai.com" className="text-primary hover:underline">
-              yariv@kippyai.com
+            <a href="mailto:support@kippyai.com" className="text-primary hover:underline">
+              support@kippyai.com
             </a>
           </li>
           <li>
