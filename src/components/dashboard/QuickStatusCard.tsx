@@ -45,8 +45,11 @@ export const QuickStatusCard = ({ device, childName }: QuickStatusCardProps) => 
     }
   }, [showMap]);
 
+  const isDataStale = status === 'inactive' || status === 'disconnected';
+
   const getBatteryColor = (level: number | null) => {
     if (!level) return 'text-muted-foreground';
+    if (isDataStale) return 'text-muted-foreground';
     if (level <= 20) return 'text-destructive';
     if (level <= 40) return 'text-warning';
     return 'text-success';
@@ -55,6 +58,17 @@ export const QuickStatusCard = ({ device, childName }: QuickStatusCardProps) => 
   const getBatteryIcon = (level: number | null) => {
     if (!level) return '—';
     return `${level}%`;
+  };
+
+  const getLastSeenShort = () => {
+    if (!device?.last_seen) return '';
+    const diff = new Date().getTime() - new Date(device.last_seen).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 60) return `לפני ${mins} דק׳`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `לפני ${hours} שע׳`;
+    const days = Math.floor(hours / 24);
+    return `לפני ${days} ימים`;
   };
 
   const handleLocationClick = () => {
@@ -119,30 +133,64 @@ export const QuickStatusCard = ({ device, childName }: QuickStatusCardProps) => 
 
         <div className="grid grid-cols-3 gap-3">
           {/* Battery */}
-          <div className="flex flex-col items-center p-3 rounded-lg bg-muted/30">
-            <Battery className={cn("w-5 h-5 mb-1", getBatteryColor(device?.battery_level ?? null))} />
-            <span className={cn("text-sm font-medium", getBatteryColor(device?.battery_level ?? null))}>
-              {getBatteryIcon(device?.battery_level ?? null)}
-            </span>
-            <span className="text-xs text-muted-foreground">סוללה</span>
-          </div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className={cn(
+                  "flex flex-col items-center p-3 rounded-lg bg-muted/30",
+                  isDataStale && "cursor-help"
+                )}>
+                  <Battery className={cn("w-5 h-5 mb-1", getBatteryColor(device?.battery_level ?? null))} />
+                  <span className={cn("text-sm font-medium", getBatteryColor(device?.battery_level ?? null))}>
+                    {getBatteryIcon(device?.battery_level ?? null)}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {isDataStale ? 'סוללה אחרונה' : 'סוללה'}
+                  </span>
+                </div>
+              </TooltipTrigger>
+              {isDataStale && device?.battery_level && (
+                <TooltipContent side="bottom">
+                  <p>נמדד {getLastSeenShort()}</p>
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
 
           {/* Location - Clickable */}
-          <button
-            onClick={handleLocationClick}
-            disabled={!hasLocation}
-            className={cn(
-              "flex flex-col items-center p-3 rounded-lg bg-muted/30 transition-colors",
-              hasLocation && "cursor-pointer hover:bg-muted/50 active:bg-muted/70"
-            )}
-            title={hasLocation ? "לחץ לצפייה במפה" : undefined}
-          >
-            <MapPin className={cn("w-5 h-5 mb-1", hasLocation ? "text-primary" : "text-muted-foreground")} />
-            <span className={cn("text-sm font-medium", hasLocation ? "text-foreground" : "text-muted-foreground")}>
-              {hasLocation ? 'ידוע' : '—'}
-            </span>
-            <span className="text-xs text-muted-foreground">מיקום</span>
-          </button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={handleLocationClick}
+                  disabled={!hasLocation}
+                  className={cn(
+                    "flex flex-col items-center p-3 rounded-lg bg-muted/30 transition-colors",
+                    hasLocation && "cursor-pointer hover:bg-muted/50 active:bg-muted/70"
+                  )}
+                >
+                  <MapPin className={cn(
+                    "w-5 h-5 mb-1", 
+                    !hasLocation ? "text-muted-foreground" : isDataStale ? "text-muted-foreground" : "text-primary"
+                  )} />
+                  <span className={cn(
+                    "text-sm font-medium", 
+                    !hasLocation ? "text-muted-foreground" : isDataStale ? "text-muted-foreground" : "text-foreground"
+                  )}>
+                    {hasLocation ? (isDataStale ? 'אחרון' : 'ידוע') : '—'}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {isDataStale && hasLocation ? 'מיקום אחרון' : 'מיקום'}
+                  </span>
+                </button>
+              </TooltipTrigger>
+              {isDataStale && hasLocation && (
+                <TooltipContent side="bottom">
+                  <p>נמדד {getLastSeenShort()} • לחץ לצפייה</p>
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
 
           {/* Last Seen */}
           <div className={cn(
@@ -173,12 +221,26 @@ export const QuickStatusCard = ({ device, childName }: QuickStatusCardProps) => 
       <Dialog open={showMap} onOpenChange={setShowMap}>
         <DialogContent className="sm:max-w-md p-0 overflow-hidden" dir="rtl">
           <div className="p-4 pb-2">
-            <h3 className="text-lg font-semibold text-foreground">מיקום {childName}</h3>
+            <h3 className="text-lg font-semibold text-foreground">
+              {isDataStale ? `מיקום אחרון של ${childName}` : `מיקום ${childName}`}
+            </h3>
             <p className="text-sm text-muted-foreground">נסגר אוטומטית בעוד {Math.ceil(progress / 10)} שניות</p>
           </div>
           <div className="px-4">
             <Progress value={progress} className="h-1" />
           </div>
+          
+          {/* Stale data warning */}
+          {isDataStale && (
+            <div className="mx-4 p-3 rounded-lg bg-warning/10 border border-warning/30 flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-warning shrink-0 mt-0.5" />
+              <div className="text-xs text-warning">
+                <p className="font-medium">זהו המיקום האחרון הידוע ({getLastSeenShort()})</p>
+                <p className="text-warning/80">המיקום הנוכחי עשוי להיות שונה</p>
+              </div>
+            </div>
+          )}
+          
           <div className="p-4 pt-3">
             {hasLocation && (
               <LocationMap 
