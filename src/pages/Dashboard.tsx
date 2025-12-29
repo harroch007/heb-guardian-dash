@@ -83,13 +83,14 @@ const Index = () => {
           }
         });
 
-        // Count alerts per child
+        // Count alerts per child (only unacknowledged)
         const { data: alertsCount } = await supabase
           .from('alerts')
           .select('child_id')
           .in('child_id', childIds)
           .eq('is_processed', true)
-          .not('parent_message', 'is', null);
+          .not('parent_message', 'is', null)
+          .is('acknowledged_at', null);
 
         alertsCount?.forEach(a => {
           if (a.child_id) {
@@ -107,12 +108,13 @@ const Index = () => {
 
       setChildren(childrenWithDevices);
 
-      // Fetch PROCESSED alerts only (with parent_message)
+      // Fetch PROCESSED alerts only (with parent_message, unacknowledged)
       const { data: alertsData, error: alertsError } = await supabase
         .from('alerts')
         .select('id, parent_message, ai_risk_score, created_at, is_processed, child_id')
         .eq('is_processed', true)
         .not('parent_message', 'is', null)
+        .is('acknowledged_at', null)
         .order('created_at', { ascending: false })
         .limit(5);
 
