@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
@@ -28,7 +29,8 @@ export default function Auth() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [errors, setErrors] = useState<{ email?: string; password?: string; terms?: string }>({});
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -92,6 +94,10 @@ export default function Auth() {
   };
 
   const handleGoogleSignIn = async () => {
+    if (!isLogin && !agreedToTerms) {
+      setErrors({ terms: 'יש לאשר את תנאי השימוש ומדיניות הפרטיות' });
+      return;
+    }
     setGoogleLoading(true);
     try {
       const { error } = await supabase.auth.signInWithOAuth({
@@ -117,6 +123,11 @@ export default function Auth() {
     e.preventDefault();
     
     if (!validateForm()) return;
+
+    if (!isLogin && !agreedToTerms) {
+      setErrors(prev => ({ ...prev, terms: 'יש לאשר את תנאי השימוש ומדיניות הפרטיות' }));
+      return;
+    }
 
     setLoading(true);
 
@@ -378,6 +389,27 @@ export default function Auth() {
                   >
                     שכחת סיסמה?
                   </button>
+                </div>
+              )}
+
+              {!isLogin && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="terms"
+                      checked={agreedToTerms}
+                      onCheckedChange={(checked) => {
+                        setAgreedToTerms(checked === true);
+                        if (checked) setErrors(prev => ({ ...prev, terms: undefined }));
+                      }}
+                    />
+                    <label htmlFor="terms" className="text-sm text-muted-foreground cursor-pointer">
+                      קראתי ואני מסכים/ה ל<a href="/terms" target="_blank" className="text-primary hover:underline">תנאי השימוש</a> ול<a href="/privacy" target="_blank" className="text-primary hover:underline">מדיניות הפרטיות</a>
+                    </label>
+                  </div>
+                  {errors.terms && (
+                    <p className="text-sm text-destructive">{errors.terms}</p>
+                  )}
                 </div>
               )}
 
