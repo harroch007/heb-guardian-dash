@@ -6,6 +6,7 @@ import { ChildTabs } from "@/components/dashboard/ChildTabs";
 import { QuickStatusCard } from "@/components/dashboard/QuickStatusCard";
 import { ScreenTimeCard } from "@/components/dashboard/ScreenTimeCard";
 import { AlertsCard } from "@/components/dashboard/AlertsCard";
+import { ReconnectChildModal } from "@/components/ReconnectChildModal";
 import { supabase } from "@/integrations/supabase/client";
 import { Plus, Users } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -52,6 +53,7 @@ const Index = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
+  const [reconnectChildId, setReconnectChildId] = useState<string | null>(null);
   const { user } = useAuth();
 
   const fetchData = async () => {
@@ -206,6 +208,8 @@ const Index = () => {
                 <QuickStatusCard 
                   device={selectedChild.device}
                   childName={selectedChild.name}
+                  childId={selectedChild.id}
+                  onReconnect={() => setReconnectChildId(selectedChild.id)}
                 />
 
                 {/* Screen Time Card */}
@@ -242,6 +246,17 @@ const Index = () => {
             </Button>
           </div>
         )}
+
+        {/* Reconnect Modal */}
+        <ReconnectChildModal
+          childId={reconnectChildId}
+          childName={children.find(c => c.id === reconnectChildId)?.name || ''}
+          parentEmail={user?.email || ''}
+          onClose={() => {
+            setReconnectChildId(null);
+            fetchData(); // Refresh data after modal closes
+          }}
+        />
       </div>
     </DashboardLayout>
   );

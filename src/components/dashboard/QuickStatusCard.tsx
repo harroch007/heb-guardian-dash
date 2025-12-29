@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { MapPin, Wifi, WifiOff, Clock, AlertTriangle } from "lucide-react";
+import { MapPin, Wifi, WifiOff, Clock, AlertTriangle, RefreshCw } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { getDeviceStatus, getStatusLabel, getStatusTextColor, getStatusBgColor, getStatusDescription, formatLastSeen } from "@/lib/deviceStatus";
@@ -56,9 +57,11 @@ interface Device {
 interface QuickStatusCardProps {
   device?: Device;
   childName: string;
+  childId?: string;
+  onReconnect?: () => void;
 }
 
-export const QuickStatusCard = ({ device, childName }: QuickStatusCardProps) => {
+export const QuickStatusCard = ({ device, childName, childId, onReconnect }: QuickStatusCardProps) => {
   const [showMap, setShowMap] = useState(false);
   const [progress, setProgress] = useState(100);
   
@@ -267,6 +270,19 @@ export const QuickStatusCard = ({ device, childName }: QuickStatusCardProps) => 
             <span className="text-[10px] sm:text-xs text-muted-foreground">עדכון</span>
           </motion.div>
         </div>
+
+        {/* Reconnect Button for disconnected devices */}
+        {status === 'disconnected' && onReconnect && (
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={onReconnect}
+            className="w-full mt-3 gap-2 border-destructive/50 text-destructive hover:bg-destructive/10"
+          >
+            <RefreshCw className="w-4 h-4" />
+            חבר מחדש
+          </Button>
+        )}
       </Card>
 
       {/* Map Dialog */}
