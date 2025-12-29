@@ -4,6 +4,30 @@ import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 
+// System apps to filter out from screen time display
+const SYSTEM_APPS_TO_FILTER = [
+  'com.google.android.permissioncontroller',  // בקר הרשאות
+  'com.android.systemui',                      // System UI
+  'com.android.settings',                      // הגדרות
+  'com.google.android.gms',                    // Google Play Services
+  'com.google.android.gsf',                    // Google Services Framework
+  'com.android.providers',                     // System providers
+  'com.samsung.android.app.routines',          // Samsung Routines
+  'com.sec.android.app.launcher',              // Samsung Launcher
+  'com.miui.home',                             // Xiaomi Launcher
+  'com.android.launcher',                      // Stock Launcher
+  'com.android.packageinstaller',              // Package Installer
+  'com.android.bluetooth',                     // Bluetooth
+  'com.android.nfc',                           // NFC
+];
+
+// Helper function to check if app is a system app
+const isSystemApp = (packageName: string): boolean => {
+  return SYSTEM_APPS_TO_FILTER.some(systemPkg => 
+    packageName.startsWith(systemPkg)
+  );
+};
+
 interface AppUsage {
   app_name: string | null;
   package_name: string;
@@ -34,7 +58,9 @@ export const ScreenTimeCard = ({ childId, deviceId, screenTimeLimit }: ScreenTim
         .eq('usage_date', today)
         .order('usage_minutes', { ascending: false });
       
-      setAppUsage(data || []);
+      // Filter out system apps
+      const filteredApps = (data || []).filter(app => !isSystemApp(app.package_name));
+      setAppUsage(filteredApps);
       setLoading(false);
     };
 
