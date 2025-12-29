@@ -25,8 +25,8 @@ export function LandingHero() {
             <br />
             <span className="text-primary text-glow">בלי לפגוע בפרטיות שלהם</span>
           </h1>
-          <p className="text-lg md:text-xl lg:text-2xl text-muted-foreground mb-8 max-w-2xl lg:max-w-none">
-              KippyAI מגינה על הילד שלכם בזמן אמת מפני בריונות, שיחות אלימות, זרים מסוכנים ותוכן לא הולם - ומתריעה אליכם רק כשיש באמת צורך להתערב.
+            <p className="text-lg md:text-xl lg:text-2xl text-muted-foreground mb-8 max-w-2xl lg:max-w-none">
+              KippyAI מגינה על הילד שלכם בזמן אמת מפני בריונות, חרמות, שיח מיני מוקדם, פניה מזרים ועוד.. ומתריעה רק כשיש באמת צורך בהתערבות הורית.
               <br />
               <span className="text-primary">בלי לקרוא כל הודעה. בלי לפגוע בפרטיות. רק הגנה אמיתית כשזה הכי חשוב.</span>
             </p>
