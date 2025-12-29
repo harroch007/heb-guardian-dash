@@ -2,3 +2,6 @@ project_id = "fsedenvbdpctzoznppwo"
 
 [functions.analyze-alert]
 verify_jwt = false
+
+[functions.check-device-health]
+verify_jwt = false

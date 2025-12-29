@@ -264,6 +264,51 @@ export type Database = {
           },
         ]
       }
+      device_events: {
+        Row: {
+          child_id: string | null
+          created_at: string | null
+          device_id: string
+          event_data: Json | null
+          event_type: string
+          id: string
+          is_notified: boolean | null
+        }
+        Insert: {
+          child_id?: string | null
+          created_at?: string | null
+          device_id: string
+          event_data?: Json | null
+          event_type: string
+          id?: string
+          is_notified?: boolean | null
+        }
+        Update: {
+          child_id?: string | null
+          created_at?: string | null
+          device_id?: string
+          event_data?: Json | null
+          event_type?: string
+          id?: string
+          is_notified?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_events_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "device_events_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["device_id"]
+          },
+        ]
+      }
       device_status: {
         Row: {
           battery: number | null
