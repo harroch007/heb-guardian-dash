@@ -4,13 +4,13 @@ import { Check, Star } from "lucide-react";
 
 const plans = [
   {
-    name: "Basic",
-    subtitle: "תמונת מצב מלאה",
+    name: "חינמי",
+    subtitle: "בקרת הורים בסיסית",
     price: "חינם",
     features: [
-      "ילד אחד",
-      "מיקום הילד בזמן אמת",
-      "מצב בטריה",
+      "ללא הגבלת ילדים",
+      "מיקום בזמן אמת",
+      "מצב סוללה",
       "זמן מסך יומי",
       "הגבלת זמן מסך",
       "סטטוס מכשיר (מחובר/מנותק)",
@@ -22,15 +22,14 @@ const plans = [
   {
     name: "Premium",
     subtitle: "הגנה מלאה ושקט נפשי",
-    price: " ₪29",
+    price: "₪29",
     period: "/חודש",
     features: [
-      "כל מה שב-Basic",
+      "כל מה שבחינם",
       "ניתוח AI 24/7 על כל התקשורות",
       "WhatsApp, Telegram, Discord, TikTok, Instagram ועוד",
       "התראות חכמות בזמן אמת",
-      "דוח שבועי מפורט",
-      "תמיכה VIP",
+      "שירות לקוחות VIP",
     ],
     cta: "בחרו Premium",
     highlighted: true,
@@ -44,7 +43,11 @@ const plans = [
     name: "משפחות גדולות",
     subtitle: "4 ילדים ומעלה",
     price: "צרו קשר",
-    features: ["כל מה שב-Premium", "מחיר מותאם אישית", "תמיכה VIP"],
+    features: [
+      "כל מה שב-Premium",
+      "מחיר מותאם אישית למשפחה",
+      "שירות לקוחות VIP",
+    ],
     cta: "דברו איתנו",
     highlighted: false,
     pricingTable: null,
