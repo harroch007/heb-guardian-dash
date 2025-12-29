@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -199,16 +199,18 @@ export default function Auth() {
   // Reset password view
   if (isResetPassword) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="w-full max-w-md">
-          {/* Logo */}
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center p-2 rounded-2xl glow-primary animate-glow-pulse mb-4">
-              <img src={kippyLogo} alt="Kippy" className="w-20 h-20 rounded-xl" />
-            </div>
-            <h1 className="text-3xl font-bold text-foreground text-glow">Kippy</h1>
-            <p className="text-muted-foreground mt-2">הגנה על הילדים שלך בעולם הדיגיטלי</p>
+      <div className="min-h-screen bg-background flex flex-col">
+        <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+          <div className="container mx-auto px-4 py-4 flex items-center justify-center">
+            <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+              <img src={kippyLogo} alt="Kippy" className="h-9 w-auto" />
+              <span className="text-2xl font-bold text-primary">Kippy</span>
+            </Link>
           </div>
+        </header>
+        
+        <div className="flex-1 flex items-center justify-center p-4">
+          <div className="w-full max-w-md">
 
           <Card className="border-primary/30 bg-card/80 backdrop-blur-sm">
             <CardHeader className="text-center">
@@ -262,22 +264,25 @@ export default function Auth() {
               </div>
             </CardContent>
           </Card>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center p-2 rounded-2xl glow-primary animate-glow-pulse mb-4">
-            <img src={kippyLogo} alt="Kippy" className="w-20 h-20 rounded-xl" />
-          </div>
-          <h1 className="text-3xl font-bold text-foreground text-glow">Kippy</h1>
-          <p className="text-muted-foreground mt-2">הגנה על הילדים שלך בעולם הדיגיטלי</p>
+    <div className="min-h-screen bg-background flex flex-col">
+      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-center">
+          <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+            <img src={kippyLogo} alt="Kippy" className="h-9 w-auto" />
+            <span className="text-2xl font-bold text-primary">Kippy</span>
+          </Link>
         </div>
+      </header>
+      
+      <div className="flex-1 flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
 
         <Card className="border-primary/30 bg-card/80 backdrop-blur-sm">
           <CardHeader className="text-center">
@@ -446,6 +451,7 @@ export default function Auth() {
           {' '}ו
           <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">מדיניות הפרטיות</a>
         </p>
+        </div>
       </div>
     </div>
   );
