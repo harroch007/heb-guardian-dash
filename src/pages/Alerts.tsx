@@ -45,6 +45,8 @@ const AlertsPage = () => {
           children!child_id(name)
         `)
         .is('acknowledged_at', null)
+        .eq('is_processed', true)
+        .not('parent_message', 'is', null)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
