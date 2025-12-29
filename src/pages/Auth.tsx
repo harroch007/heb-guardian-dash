@@ -409,7 +409,10 @@ export default function Auth() {
         </Card>
 
         <p className="text-center text-xs text-muted-foreground mt-6">
-          בהמשך השימוש אתה מסכים לתנאי השימוש ומדיניות הפרטיות
+          בהמשך השימוש אתה מסכים ל
+          <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">תנאי השימוש</a>
+          {' '}ו
+          <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">מדיניות הפרטיות</a>
         </p>
       </div>
     </div>
