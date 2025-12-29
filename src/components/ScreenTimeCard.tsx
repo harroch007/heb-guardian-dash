@@ -162,6 +162,13 @@ export function ScreenTimeCard({ appUsage, showChart = true, screenTimeLimit, on
                       borderRadius: '8px',
                       direction: 'rtl',
                       fontSize: '12px',
+                      color: 'hsl(0, 0%, 100%)',
+                    }}
+                    labelStyle={{
+                      color: 'hsl(0, 0%, 90%)',
+                    }}
+                    itemStyle={{
+                      color: 'hsl(0, 0%, 100%)',
                     }}
                   />
                   <Legend 
