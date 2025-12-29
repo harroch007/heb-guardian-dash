@@ -40,7 +40,7 @@ export function LandingHowItWorks() {
   return (
     <section id="how-it-works" className="py-24">
       <div className="container mx-auto px-4">
-        <h2 className="text-3xl md:text-4xl font-bold text-center mb-16">
+        <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-center mb-16">
           איך זה <span className="text-primary text-glow">עובד?</span>
         </h2>
 
@@ -60,8 +60,8 @@ export function LandingHowItWorks() {
                   </div>
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-2xl font-bold mb-4 text-foreground">{step.title}</h3>
-                  <p className="text-muted-foreground mb-6">{step.description}</p>
+                  <h3 className="text-2xl lg:text-3xl font-bold mb-4 text-foreground">{step.title}</h3>
+                  <p className="text-muted-foreground mb-6 lg:text-lg">{step.description}</p>
                   <ul className="space-y-2">
                     {step.bullets.map((bullet, idx) => (
                       <li key={idx} className="flex items-center gap-2 text-muted-foreground">

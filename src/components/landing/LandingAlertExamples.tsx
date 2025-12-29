@@ -21,10 +21,10 @@ export function LandingAlertExamples() {
   return (
     <section className="py-24">
       <div className="container mx-auto px-4">
-        <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">
+        <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-center mb-4">
           ככה נראות ההתרעות מ-<span className="text-primary text-glow">KippyAI</span>
         </h2>
-        <p className="text-muted-foreground text-center mb-16 max-w-2xl mx-auto">
+        <p className="text-muted-foreground text-center mb-16 max-w-2xl mx-auto lg:text-lg">
           התרעות חכמות שמגיעות אליכם בזמן אמת כשהילדים שלכם זקוקים לעזרה
         </p>
 

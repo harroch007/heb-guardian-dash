@@ -27,10 +27,10 @@ export function LandingProblemSolution() {
   return (
     <section className="py-24">
       <div className="container mx-auto px-4">
-        <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">
+        <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-center mb-4">
           הבעיה והפתרון
         </h2>
-        <p className="text-muted-foreground text-center mb-16 max-w-2xl mx-auto">
+        <p className="text-muted-foreground text-center mb-16 max-w-2xl mx-auto lg:text-lg">
           שלושה אתגרים מרכזיים שהורים מתמודדים איתם היום
         </p>
 
@@ -47,8 +47,8 @@ export function LandingProblemSolution() {
                   </div>
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-xl font-bold mb-3 text-foreground">{item.title}</h3>
-                  <p className="text-muted-foreground mb-4">{item.problem}</p>
+                  <h3 className="text-xl lg:text-2xl font-bold mb-3 text-foreground">{item.title}</h3>
+                  <p className="text-muted-foreground mb-4 lg:text-lg">{item.problem}</p>
                   <div className="flex items-start gap-3 bg-success/10 border border-success/30 rounded-lg p-4">
                     <CheckCircle2 className="w-5 h-5 text-success flex-shrink-0 mt-0.5" />
                     <div>

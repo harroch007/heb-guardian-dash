@@ -25,7 +25,7 @@ export function LandingDifferentiators() {
   return (
     <section className="py-24 bg-card/50">
       <div className="container mx-auto px-4">
-        <h2 className="text-3xl md:text-4xl font-bold text-center mb-16">
+        <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-center mb-16">
           מה עושה אותנו <span className="text-primary text-glow">שונים</span>
         </h2>
 
@@ -38,9 +38,9 @@ export function LandingDifferentiators() {
               <div className="w-14 h-14 bg-primary/20 rounded-xl flex items-center justify-center mb-6">
                 <item.icon className="w-7 h-7 text-primary" />
               </div>
-              <h3 className="text-xl font-bold mb-2 text-foreground">{item.title}</h3>
-              <p className="text-primary font-medium mb-4">{item.subtitle}</p>
-              <p className="text-muted-foreground">{item.description}</p>
+              <h3 className="text-xl lg:text-2xl font-bold mb-2 text-foreground">{item.title}</h3>
+              <p className="text-primary font-medium mb-4 lg:text-lg">{item.subtitle}</p>
+              <p className="text-muted-foreground lg:text-lg">{item.description}</p>
             </div>
           ))}
         </div>

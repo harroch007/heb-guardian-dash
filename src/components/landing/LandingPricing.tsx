@@ -55,8 +55,8 @@ export function LandingPricing() {
   return (
     <section id="pricing" className="py-24">
       <div className="container mx-auto px-4">
-        <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">תמחור שקוף ופשוט</h2>
-        <p className="text-muted-foreground text-center mb-16 max-w-2xl mx-auto">
+        <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-center mb-4">תמחור שקוף ופשוט</h2>
+        <p className="text-muted-foreground text-center mb-16 max-w-2xl mx-auto lg:text-lg">
           בחרו את התכנית המתאימה למשפחה שלכם - ללא התחייבות, ניתן לשנות בכל עת
         </p>
 
