@@ -17,6 +17,7 @@ interface Alert {
   ai_risk_score: number | null;
   created_at: string;
   is_processed: boolean;
+  acknowledged_at?: string | null;
 }
 
 const AlertsPage = () => {
@@ -40,8 +41,10 @@ const AlertsPage = () => {
           ai_risk_score,
           created_at,
           is_processed,
+          acknowledged_at,
           children!child_id(name)
         `)
+        .is('acknowledged_at', null)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -114,13 +117,27 @@ const AlertsPage = () => {
     }
   };
 
-  const handleAcknowledge = (id: number) => {
-    // For now, just remove from view - in future, update acknowledged field
-    setAlerts(prev => prev.filter(alert => alert.id !== id));
-    toast({
-      title: "תודה!",
-      description: "ההודעה סומנה כנקראה",
-    });
+  const handleAcknowledge = async (id: number) => {
+    try {
+      const { error } = await supabase
+        .from('alerts')
+        .update({ acknowledged_at: new Date().toISOString() })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setAlerts(prev => prev.filter(alert => alert.id !== id));
+      toast({
+        title: "תודה!",
+        description: "ההודעה סומנה כנקראה",
+      });
+    } catch (err: any) {
+      toast({
+        title: "שגיאה",
+        description: err.message || "לא ניתן לסמן את ההתראה",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleRemindLater = (id: number) => {
