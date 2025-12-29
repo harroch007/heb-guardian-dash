@@ -6,10 +6,10 @@ export function LandingCTA() {
   return (
     <section className="py-24 bg-gradient-to-b from-primary/10 to-transparent">
       <div className="container mx-auto px-4 text-center">
-        <h2 className="text-3xl md:text-4xl font-bold mb-6">
+        <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6">
           התחילו להגן על הילדים שלכם עוד היום
         </h2>
-        <p className="text-xl text-muted-foreground mb-8">
+        <p className="text-xl lg:text-2xl text-muted-foreground mb-8">
           הרשמה חינמית, ללא כרטיס אשראי. מוכנים תוך 5 דקות.
         </p>
 

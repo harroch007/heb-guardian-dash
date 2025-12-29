@@ -40,7 +40,7 @@ export function LandingFAQ() {
   return (
     <section id="faq" className="py-24 bg-card/50">
       <div className="container mx-auto px-4">
-        <h2 className="text-3xl md:text-4xl font-bold text-center mb-16">
+        <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-center mb-16">
           הורים שואלים – <span className="text-primary text-glow">אנחנו עונים</span>
         </h2>
 
@@ -53,9 +53,9 @@ export function LandingFAQ() {
                 className="bg-card border border-border rounded-xl px-6 data-[state=open]:border-primary/50"
               >
                 <AccordionTrigger className="text-right hover:no-underline py-6">
-                  <span className="text-lg font-medium text-foreground">{faq.question}</span>
+                  <span className="text-lg lg:text-xl font-medium text-foreground">{faq.question}</span>
                 </AccordionTrigger>
-                <AccordionContent className="text-muted-foreground pb-6">
+                <AccordionContent className="text-muted-foreground pb-6 lg:text-lg">
                   {faq.answer}
                 </AccordionContent>
               </AccordionItem>

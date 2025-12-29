@@ -20,12 +20,12 @@ export function LandingHero() {
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Text Content */}
           <div className="text-center lg:text-right">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6">
-              <span className="text-foreground">הגנה חכמה לילדים ברשת</span>
-              <br />
-              <span className="text-primary text-glow">בלי לפגוע בפרטיות שלהם</span>
-            </h1>
-            <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl lg:max-w-none">
+          <h1 className="text-4xl md:text-5xl lg:text-7xl font-bold leading-tight mb-6">
+            <span className="text-foreground">הגנה חכמה לילדים ברשת</span>
+            <br />
+            <span className="text-primary text-glow">בלי לפגוע בפרטיות שלהם</span>
+          </h1>
+          <p className="text-lg md:text-xl lg:text-2xl text-muted-foreground mb-8 max-w-2xl lg:max-w-none">
               KippyAI מגינה על הילד שלכם בזמן אמת מפני בריונות, שיחות אלימות, זרים מסוכנים ותוכן לא הולם - ומתריעה אליכם רק כשיש באמת צורך להתערב.
               <br />
               <span className="text-primary">בלי לקרוא כל הודעה. בלי לפגוע בפרטיות. רק הגנה אמיתית כשזה הכי חשוב.</span>
@@ -70,16 +70,16 @@ export function LandingHero() {
         {/* Stats */}
         <div className="grid grid-cols-3 gap-8 mt-16 pt-16 border-t border-border">
           <div className="text-center">
-            <p className="text-3xl md:text-4xl font-bold text-primary text-glow">+50,000</p>
-            <p className="text-muted-foreground mt-2">הודעות נותחו החודש</p>
+            <p className="text-3xl md:text-4xl lg:text-5xl font-bold text-primary text-glow">+50,000</p>
+            <p className="text-muted-foreground mt-2 lg:text-lg">הודעות נותחו החודש</p>
           </div>
           <div className="text-center">
-            <p className="text-3xl md:text-4xl font-bold text-primary text-glow">פחות מ-5%</p>
-            <p className="text-muted-foreground mt-2">התראות שווא בזכות ה-AI שלנו</p>
+            <p className="text-3xl md:text-4xl lg:text-5xl font-bold text-primary text-glow">פחות מ-5%</p>
+            <p className="text-muted-foreground mt-2 lg:text-lg">התראות שווא בזכות ה-AI שלנו</p>
           </div>
           <div className="text-center">
-            <p className="text-3xl md:text-4xl font-bold text-primary text-glow">95%</p>
-            <p className="text-muted-foreground mt-2">מהניתוח על המכשיר עצמו</p>
+            <p className="text-3xl md:text-4xl lg:text-5xl font-bold text-primary text-glow">95%</p>
+            <p className="text-muted-foreground mt-2 lg:text-lg">מהניתוח על המכשיר עצמו</p>
           </div>
         </div>
       </div>
