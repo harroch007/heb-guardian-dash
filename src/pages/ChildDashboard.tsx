@@ -117,7 +117,7 @@ export default function ChildDashboard() {
   };
 
   // Get status for current device
-  const status = device ? getDeviceStatus(device.last_seen) : 'not_connected';
+  const status = getDeviceStatus(device?.last_seen ?? null);
 
   // Fetch child data
   useEffect(() => {
@@ -350,8 +350,9 @@ export default function ChildDashboard() {
                 <Badge 
                   variant="secondary"
                   className={cn(
-                    status === 'connected' && 'bg-green-500/20 text-green-600 dark:text-green-400',
-                    status === 'not_connected' && 'bg-gray-500/20 text-gray-600 dark:text-gray-400'
+                    status === 'connected' && 'bg-success/20 text-success',
+                    status === 'inactive' && 'bg-warning/20 text-warning',
+                    status === 'disconnected' && 'bg-destructive/20 text-destructive'
                   )}
               >
                 <div className={cn('w-2 h-2 rounded-full ml-1.5', getStatusColor(status))} />

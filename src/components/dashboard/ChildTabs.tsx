@@ -25,7 +25,7 @@ export const ChildTabs = ({ children, selectedChildId, onSelectChild }: ChildTab
       <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
         {children.map((child) => {
           const isSelected = child.id === selectedChildId;
-          const status = child.device ? getDeviceStatus(child.device.last_seen) : 'not_connected';
+          const status = getDeviceStatus(child.device?.last_seen ?? null);
           
           return (
             <button
