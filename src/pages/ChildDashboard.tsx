@@ -10,6 +10,7 @@ import { LocationMap } from '@/components/LocationMap';
 import { QRCodeDisplay } from '@/components/QRCodeDisplay';
 import { EditChildModal } from '@/components/EditChildModal';
 import { ScreenTimeLimitModal } from '@/components/ScreenTimeLimitModal';
+import { ReconnectChildModal } from '@/components/ReconnectChildModal';
 import { 
   ArrowRight, 
   MapPin, 
@@ -25,7 +26,8 @@ import {
   ChevronLeft,
   Trash2,
   Pencil,
-  Unplug
+  Unplug,
+  RefreshCw
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -95,6 +97,7 @@ export default function ChildDashboard() {
   const [disconnecting, setDisconnecting] = useState(false);
   const [showScreenTimeLimitModal, setShowScreenTimeLimitModal] = useState(false);
   const [screenTimeLimit, setScreenTimeLimit] = useState<number | null>(null);
+  const [showReconnectModal, setShowReconnectModal] = useState(false);
 
   // Calculate age
   const calculateAge = (dateOfBirth: string) => {
@@ -165,13 +168,14 @@ export default function ChildDashboard() {
         setAppUsage(usageData || []);
       }
 
-      // Fetch recent alerts
+      // Fetch open alerts (same logic as dashboard)
       const { data: alertsData } = await supabase
         .from('alerts')
         .select('id, parent_message, sender_display, sender, category, created_at')
         .eq('child_id', childId)
         .eq('is_processed', true)
         .not('parent_message', 'is', null)
+        .is('acknowledged_at', null)
         .order('created_at', { ascending: false })
         .limit(3);
       
@@ -445,38 +449,50 @@ export default function ChildDashboard() {
                         <span className="text-sm font-medium">{device.battery_level}%</span>
                       </div>
                     )}
-                    {/* Disconnect Device Button */}
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="text-xs text-muted-foreground hover:text-destructive"
-                        >
-                          <Unplug className="w-3.5 h-3.5 ml-1" />
-                          נתק מכשיר
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>האם לנתק את המכשיר?</AlertDialogTitle>
-                          <AlertDialogDescription className="text-right">
-                            המכשיר ינותק מ-{child?.name} אך לא יימחק מהמערכת. תוכל לחבר אותו מחדש בכל עת.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter className="flex-row-reverse gap-2">
-                          <AlertDialogCancel>ביטול</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={handleDisconnectDevice}
-                            disabled={disconnecting}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    {/* Disconnect/Reconnect Device Button */}
+                    {status === 'disconnected' ? (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => setShowReconnectModal(true)}
+                        className="text-xs text-primary hover:text-primary"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5 ml-1" />
+                        חבר מחדש
+                      </Button>
+                    ) : (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="text-xs text-muted-foreground hover:text-destructive"
                           >
-                            {disconnecting ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : null}
-                            כן, נתק
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                            <Unplug className="w-3.5 h-3.5 ml-1" />
+                            נתק מכשיר
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>האם לנתק את המכשיר?</AlertDialogTitle>
+                            <AlertDialogDescription className="text-right">
+                              המכשיר ינותק מ-{child?.name} אך לא יימחק מהמערכת. תוכל לחבר אותו מחדש בכל עת.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter className="flex-row-reverse gap-2">
+                            <AlertDialogCancel>ביטול</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={handleDisconnectDevice}
+                              disabled={disconnecting}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              {disconnecting ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : null}
+                              כן, נתק
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
                   </div>
                 </div>
               </CardContent>
@@ -571,9 +587,9 @@ export default function ChildDashboard() {
             <Card>
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-base flex items-center gap-2">
+                <CardTitle className="text-base flex items-center gap-2">
                     <Bell className="w-4 h-4 text-warning" />
-                    התראות אחרונות
+                    התראות פתוחות
                   </CardTitle>
                   {recentAlerts.length > 0 && (
                     <Button 
@@ -657,6 +673,16 @@ export default function ChildDashboard() {
             onOpenChange={setShowScreenTimeLimitModal}
             currentLimit={screenTimeLimit}
             onUpdated={setScreenTimeLimit}
+          />
+        )}
+
+        {/* Reconnect Child Modal */}
+        {child && user?.email && (
+          <ReconnectChildModal
+            childId={showReconnectModal ? child.id : null}
+            childName={child.name}
+            parentEmail={user.email}
+            onClose={() => setShowReconnectModal(false)}
           />
         )}
       </div>
