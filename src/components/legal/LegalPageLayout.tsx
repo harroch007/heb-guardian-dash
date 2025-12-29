@@ -41,8 +41,8 @@ export function LegalPageLayout({ children, title }: LegalPageLayoutProps) {
           <p className="mb-2">לשאלות ובירורים:</p>
           <p>
             דואר אלקטרוני:{' '}
-            <a href="mailto:yariv@kippyai.com" className="text-primary hover:underline">
-              yariv@kippyai.com
+            <a href="mailto:support@kippyai.com" className="text-primary hover:underline">
+              support@kippyai.com
             </a>
           </p>
           <p>
