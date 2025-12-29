@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import kippyLogo from "@/assets/kippy-logo.png";
 
 const navItems = [
-  { title: "בית", url: "/", icon: Home },
+  { title: "בית", url: "/dashboard", icon: Home },
   { title: "המשפחה שלי", url: "/family", icon: Users },
   { title: "התראות", url: "/alerts", icon: Bell },
   { title: "הגדרות", url: "/settings", icon: Settings },
@@ -22,7 +22,7 @@ export function AppSidebar() {
   };
 
   const handleLogoClick = () => {
-    window.location.href = "/";
+    window.location.href = "/dashboard";
   };
 
   const handleNavClick = () => {
