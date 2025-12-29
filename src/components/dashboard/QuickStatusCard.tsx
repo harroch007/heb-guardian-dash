@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Battery, MapPin, Wifi, WifiOff, Clock, AlertTriangle } from "lucide-react";
+import { MapPin, Wifi, WifiOff, Clock, AlertTriangle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
@@ -7,7 +7,45 @@ import { getDeviceStatus, getStatusLabel, getStatusTextColor, getStatusBgColor, 
 import { LocationMap } from "@/components/LocationMap";
 import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { motion } from "framer-motion";
 
+// Dynamic battery icon component with fill based on level
+const DynamicBatteryIcon = ({ level, className }: { level: number | null; className?: string }) => {
+  const fillPercent = level ?? 0;
+  const fillColor = !level ? 'currentColor' : 
+    level <= 20 ? 'hsl(var(--destructive))' : 
+    level <= 40 ? 'hsl(var(--warning))' : 
+    'hsl(var(--success))';
+  
+  return (
+    <svg 
+      viewBox="0 0 24 24" 
+      fill="none" 
+      stroke="currentColor" 
+      strokeWidth="2" 
+      strokeLinecap="round" 
+      strokeLinejoin="round"
+      className={className}
+    >
+      {/* Battery body */}
+      <rect x="2" y="7" width="18" height="10" rx="2" ry="2" />
+      {/* Battery cap */}
+      <path d="M22 11v2" />
+      {/* Dynamic fill */}
+      <motion.rect 
+        x="4" 
+        y="9" 
+        height="6" 
+        rx="1"
+        fill={fillColor}
+        stroke="none"
+        initial={{ width: 0 }}
+        animate={{ width: (fillPercent / 100) * 14 }}
+        transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
+      />
+    </svg>
+  );
+};
 interface Device {
   battery_level: number | null;
   last_seen: string | null;
@@ -136,18 +174,26 @@ export const QuickStatusCard = ({ device, childName }: QuickStatusCardProps) => 
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className={cn(
-                  "flex flex-col items-center p-2 sm:p-3 rounded-lg bg-muted/30",
-                  isDataStale && "cursor-help"
-                )}>
-                  <Battery className={cn("w-4 h-4 sm:w-5 sm:h-5 mb-1", getBatteryColor(device?.battery_level ?? null))} />
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: 0.1 }}
+                  className={cn(
+                    "flex flex-col items-center p-2 sm:p-3 rounded-lg bg-muted/30",
+                    isDataStale && "cursor-help"
+                  )}
+                >
+                  <DynamicBatteryIcon 
+                    level={isDataStale ? null : device?.battery_level ?? null} 
+                    className={cn("w-5 h-5 sm:w-6 sm:h-6 mb-1", getBatteryColor(device?.battery_level ?? null))} 
+                  />
                   <span className={cn("text-xs sm:text-sm font-medium", getBatteryColor(device?.battery_level ?? null))}>
                     {getBatteryIcon(device?.battery_level ?? null)}
                   </span>
                   <span className="text-[10px] sm:text-xs text-muted-foreground">
                     {isDataStale ? 'אחרונה' : 'סוללה'}
                   </span>
-                </div>
+                </motion.div>
               </TooltipTrigger>
               {isDataStale && device?.battery_level && (
                 <TooltipContent side="bottom">
@@ -161,7 +207,10 @@ export const QuickStatusCard = ({ device, childName }: QuickStatusCardProps) => 
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <button
+                <motion.button
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: 0.2 }}
                   onClick={handleLocationClick}
                   disabled={!hasLocation}
                   className={cn(
@@ -170,7 +219,7 @@ export const QuickStatusCard = ({ device, childName }: QuickStatusCardProps) => 
                   )}
                 >
                   <MapPin className={cn(
-                    "w-4 h-4 sm:w-5 sm:h-5 mb-1", 
+                    "w-5 h-5 sm:w-6 sm:h-6 mb-1", 
                     !hasLocation ? "text-muted-foreground" : isDataStale ? "text-muted-foreground" : "text-primary"
                   )} />
                   <span className={cn(
@@ -180,7 +229,7 @@ export const QuickStatusCard = ({ device, childName }: QuickStatusCardProps) => 
                     {hasLocation ? (isDataStale ? 'אחרון' : 'ידוע') : '—'}
                   </span>
                   <span className="text-[10px] sm:text-xs text-muted-foreground">מיקום</span>
-                </button>
+                </motion.button>
               </TooltipTrigger>
               {isDataStale && hasLocation && (
                 <TooltipContent side="bottom">
@@ -191,13 +240,18 @@ export const QuickStatusCard = ({ device, childName }: QuickStatusCardProps) => 
           </TooltipProvider>
 
           {/* Last Seen */}
-          <div className={cn(
-            "flex flex-col items-center p-2 sm:p-3 rounded-lg bg-muted/30",
-            status === 'disconnected' && "bg-destructive/10",
-            status === 'inactive' && "bg-warning/10"
-          )}>
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.3 }}
+            className={cn(
+              "flex flex-col items-center p-2 sm:p-3 rounded-lg bg-muted/30",
+              status === 'disconnected' && "bg-destructive/10",
+              status === 'inactive' && "bg-warning/10"
+            )}
+          >
             <Clock className={cn(
-              "w-4 h-4 sm:w-5 sm:h-5 mb-1",
+              "w-5 h-5 sm:w-6 sm:h-6 mb-1",
               status === 'connected' && "text-muted-foreground",
               status === 'inactive' && "text-warning",
               status === 'disconnected' && "text-destructive"
@@ -211,7 +265,7 @@ export const QuickStatusCard = ({ device, childName }: QuickStatusCardProps) => 
               {getLastSeenShort() || '—'}
             </span>
             <span className="text-[10px] sm:text-xs text-muted-foreground">עדכון</span>
-          </div>
+          </motion.div>
         </div>
       </Card>
 

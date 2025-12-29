@@ -544,14 +544,33 @@ export type Database = {
       export_my_data: { Args: never; Returns: Json }
       generate_pairing_code: { Args: { p_child_id: string }; Returns: string }
       get_device_settings: { Args: { p_device_id: string }; Returns: Json }
-      pair_device: {
-        Args: { p_device_id: string; p_pairing_code: string }
-        Returns: {
-          child_id: string
-          child_name: string
-          error_message: string
-          success: boolean
-        }[]
+      pair_device:
+        | {
+            Args: { p_device_id: string; p_pairing_code: string }
+            Returns: {
+              child_id: string
+              child_name: string
+              error_message: string
+              success: boolean
+            }[]
+          }
+        | {
+            Args: {
+              p_device_id: string
+              p_device_model?: string
+              p_device_name?: string
+              p_pairing_code: string
+            }
+            Returns: Json
+          }
+      register_device: {
+        Args: {
+          p_child_id: string
+          p_device_id: string
+          p_device_model?: string
+          p_device_name?: string
+        }
+        Returns: undefined
       }
       update_device_settings: {
         Args: { p_device_id: string; p_settings: Json }
@@ -574,6 +593,10 @@ export type Database = {
           p_usage_minutes: number
         }
         Returns: undefined
+      }
+      verify_parent_code: {
+        Args: { p_code: string; p_email: string }
+        Returns: Json
       }
     }
     Enums: {
