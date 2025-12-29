@@ -27,7 +27,10 @@ export const BottomNavigation = forwardRef<HTMLElement, object>(function BottomN
     const fetchAlertsCount = async () => {
       const { count } = await supabase
         .from('alerts')
-        .select('*', { count: 'exact', head: true });
+        .select('*', { count: 'exact', head: true })
+        .is('acknowledged_at', null)
+        .eq('is_processed', true)
+        .not('parent_message', 'is', null);
       setAlertsCount(count || 0);
     };
 
