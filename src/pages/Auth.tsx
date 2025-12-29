@@ -103,7 +103,7 @@ export default function Auth() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/family`,
+          redirectTo: `${window.location.origin}/dashboard`,
         },
       });
 
@@ -159,7 +159,7 @@ export default function Auth() {
           title: 'התחברת בהצלחה!',
           description: 'ברוך הבא למרכז הבטיחות',
         });
-        navigate('/family');
+        navigate('/dashboard');
       } else {
         const { error } = await supabase.auth.signUp({
           email,
