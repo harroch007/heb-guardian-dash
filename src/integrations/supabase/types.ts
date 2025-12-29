@@ -191,6 +191,7 @@ export type Database = {
           id: string
           name: string
           pairing_code: string | null
+          pairing_code_expires_at: string | null
           parent_id: string
           phone_number: string
           school: string | null
@@ -204,6 +205,7 @@ export type Database = {
           id?: string
           name: string
           pairing_code?: string | null
+          pairing_code_expires_at?: string | null
           parent_id: string
           phone_number: string
           school?: string | null
@@ -217,6 +219,7 @@ export type Database = {
           id?: string
           name?: string
           pairing_code?: string | null
+          pairing_code_expires_at?: string | null
           parent_id?: string
           phone_number?: string
           school?: string | null
@@ -542,6 +545,7 @@ export type Database = {
       delete_all_my_data: { Args: never; Returns: Json }
       delete_child_data: { Args: { p_child_id: string }; Returns: Json }
       export_my_data: { Args: never; Returns: Json }
+      generate_new_pairing_code: { Args: { p_child_id: string }; Returns: Json }
       generate_pairing_code: { Args: { p_child_id: string }; Returns: string }
       get_device_settings: { Args: { p_device_id: string }; Returns: Json }
       pair_device:
