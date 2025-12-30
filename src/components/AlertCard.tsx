@@ -129,7 +129,7 @@ export const AlertCard = forwardRef<HTMLDivElement, AlertCardProps>(function Ale
           {/* Verdict Badge */}
           {alert.is_processed ? (
             <span className={cn('px-3 py-1 rounded-full text-xs font-medium', verdictDisplay.bg)}>
-              {verdictDisplay.emoji} {verdictDisplay.label} {riskScore}%
+              {verdictDisplay.emoji} {verdictDisplay.label}<span className="hidden"> {riskScore}%</span>
             </span>
           ) : (
             <span className="px-3 py-1 rounded-full text-xs font-medium bg-muted/30 text-muted-foreground">
