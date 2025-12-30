@@ -15,6 +15,9 @@ interface Alert {
   suggested_action: string | null;
   category: string | null;
   ai_risk_score: number | null;
+  ai_verdict: string | null;
+  ai_summary: string | null;
+  ai_recommendation: string | null;
   created_at: string;
   is_processed: boolean;
   acknowledged_at?: string | null;
@@ -39,6 +42,9 @@ const AlertsPage = () => {
           suggested_action,
           category,
           ai_risk_score,
+          ai_verdict,
+          ai_summary,
+          ai_recommendation,
           created_at,
           is_processed,
           acknowledged_at,
@@ -46,7 +52,6 @@ const AlertsPage = () => {
         `)
         .is('acknowledged_at', null)
         .eq('is_processed', true)
-        .not('parent_message', 'is', null)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -154,10 +159,10 @@ const AlertsPage = () => {
   }, []);
 
   const filteredAlerts = alerts.filter(alert => {
-    const score = alert.ai_risk_score ?? 0;
-    if (filter === 'urgent') return score > 80;
-    if (filter === 'important') return score > 60 && score <= 80;
-    if (filter === 'attention') return score > 30 && score <= 60;
+    const verdict = alert.ai_verdict;
+    if (filter === 'urgent') return verdict === 'notify';
+    if (filter === 'important') return verdict === 'review';
+    if (filter === 'attention') return verdict === 'monitor';
     return true;
   });
 
@@ -202,8 +207,8 @@ const AlertsPage = () => {
           {[
             { key: 'all', label: 'הכל' },
             { key: 'urgent', label: '🔴 דחוף' },
-            { key: 'important', label: '🟠 חשוב' },
-            { key: 'attention', label: '🟡 שים לב' },
+            { key: 'important', label: '🟠 לבדיקה' },
+            { key: 'attention', label: '🟡 במעקב' },
           ].map(item => (
             <button
               key={item.key}

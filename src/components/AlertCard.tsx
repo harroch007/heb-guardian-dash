@@ -13,6 +13,9 @@ interface Alert {
   suggested_action: string | null;
   category: string | null;
   ai_risk_score: number | null;
+  ai_verdict: string | null;
+  ai_summary: string | null;
+  ai_recommendation: string | null;
   created_at: string;
   is_processed: boolean;
 }
@@ -38,26 +41,36 @@ const categoryLabels: Record<string, string> = {
   'safe': 'בטוח',
 };
 
-const getRiskLevel = (score: number) => {
-  if (score <= 30) return { label: 'הכל בסדר', color: 'success', emoji: '🟢' };
-  if (score <= 60) return { label: 'שים לב', color: 'warning', emoji: '🟡' };
-  if (score <= 80) return { label: 'חשוב', color: 'orange', emoji: '🟠' };
-  return { label: 'דחוף', color: 'destructive', emoji: '🔴' };
+// New verdict-based display function (using lowercase values)
+const getVerdictDisplay = (verdict: string | null) => {
+  switch (verdict) {
+    case 'safe':
+      return { label: 'בטוח', emoji: '🟢', bg: 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' };
+    case 'monitor':
+      return { label: 'במעקב', emoji: '🟡', bg: 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400' };
+    case 'review':
+      return { label: 'לבדיקה', emoji: '🟠', bg: 'bg-orange-500/20 text-orange-600 dark:text-orange-400' };
+    case 'notify':
+      return { label: 'דחוף', emoji: '🔴', bg: 'bg-destructive/20 text-destructive' };
+    default:
+      return { label: 'ממתין', emoji: '⏳', bg: 'bg-muted/30 text-muted-foreground' };
+  }
 };
 
-const getCardStyles = (score: number, isProcessed: boolean) => {
+const getCardStylesByVerdict = (verdict: string | null, isProcessed: boolean) => {
   if (!isProcessed) return 'bg-muted/5 border-muted/30 hover:border-muted/50';
-  if (score <= 30) return 'bg-emerald-500/5 border-emerald-500/30 hover:border-emerald-500/50';
-  if (score <= 60) return 'bg-yellow-500/5 border-yellow-500/30 hover:border-yellow-500/50';
-  if (score <= 80) return 'bg-orange-500/5 border-orange-500/30 hover:border-orange-500/50';
-  return 'bg-destructive/5 border-destructive/30 hover:border-destructive/50';
-};
-
-const getBadgeStyles = (score: number) => {
-  if (score <= 30) return 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400';
-  if (score <= 60) return 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400';
-  if (score <= 80) return 'bg-orange-500/20 text-orange-600 dark:text-orange-400';
-  return 'bg-destructive/20 text-destructive';
+  switch (verdict) {
+    case 'safe':
+      return 'bg-emerald-500/5 border-emerald-500/30 hover:border-emerald-500/50';
+    case 'monitor':
+      return 'bg-yellow-500/5 border-yellow-500/30 hover:border-yellow-500/50';
+    case 'review':
+      return 'bg-orange-500/5 border-orange-500/30 hover:border-orange-500/50';
+    case 'notify':
+      return 'bg-destructive/5 border-destructive/30 hover:border-destructive/50';
+    default:
+      return 'bg-muted/5 border-muted/30 hover:border-muted/50';
+  }
 };
 
 export const AlertCard = forwardRef<HTMLDivElement, AlertCardProps>(function AlertCard(
@@ -65,9 +78,8 @@ export const AlertCard = forwardRef<HTMLDivElement, AlertCardProps>(function Ale
   ref
 ) {
   const riskScore = alert.ai_risk_score ?? 0;
-  const riskLevel = getRiskLevel(riskScore);
+  const verdictDisplay = getVerdictDisplay(alert.ai_verdict);
   const categoryLabel = alert.category ? categoryLabels[alert.category] || alert.category : null;
-
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp);
     const now = new Date();
@@ -94,7 +106,7 @@ export const AlertCard = forwardRef<HTMLDivElement, AlertCardProps>(function Ale
       ref={ref}
       className={cn(
         'p-5 rounded-xl border transition-all duration-300 animate-slide-in-right opacity-0',
-        getCardStyles(riskScore, alert.is_processed)
+        getCardStylesByVerdict(alert.ai_verdict, alert.is_processed)
       )}
       style={{ animationDelay: `${index * 100}ms` }}
     >
@@ -114,11 +126,11 @@ export const AlertCard = forwardRef<HTMLDivElement, AlertCardProps>(function Ale
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Risk Badge */}
+          {/* Verdict Badge */}
           {alert.is_processed ? (
             <>
-              <span className={cn('px-3 py-1 rounded-full text-xs font-medium', getBadgeStyles(riskScore))}>
-                {riskLevel.emoji} {riskLevel.label}
+              <span className={cn('px-3 py-1 rounded-full text-xs font-medium', verdictDisplay.bg)}>
+                {verdictDisplay.emoji} {verdictDisplay.label}
               </span>
               <span className="text-xs text-muted-foreground">{riskScore}%</span>
             </>
@@ -162,21 +174,23 @@ export const AlertCard = forwardRef<HTMLDivElement, AlertCardProps>(function Ale
       {/* Content - conditional based on is_processed */}
       {alert.is_processed ? (
         <>
-          {/* Parent Message */}
-          {alert.parent_message && (
+          {/* AI Summary (main message) */}
+          {(alert.ai_summary || alert.parent_message) && (
             <div className="mb-4 p-3 rounded-lg bg-background/50">
-              <p className="text-sm text-foreground leading-relaxed">{alert.parent_message}</p>
+              <p className="text-sm text-foreground leading-relaxed">
+                {alert.ai_summary || alert.parent_message}
+              </p>
             </div>
           )}
 
-          {/* Suggested Action */}
-          {alert.suggested_action && (
+          {/* AI Recommendation */}
+          {alert.ai_recommendation && (
             <div className="mb-4 p-3 rounded-lg bg-primary/5 border border-primary/20">
               <div className="flex items-start gap-2">
                 <Lightbulb className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
                 <div>
-                  <p className="text-xs font-medium text-primary mb-1">המלצה</p>
-                  <p className="text-sm text-foreground/90 leading-relaxed">{alert.suggested_action}</p>
+                  <p className="text-xs font-medium text-primary mb-1">המלצה:</p>
+                  <p className="text-sm text-foreground/90 leading-relaxed">{alert.ai_recommendation}</p>
                 </div>
               </div>
             </div>

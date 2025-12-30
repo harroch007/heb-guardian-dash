@@ -528,6 +528,14 @@ export type Database = {
     }
     Functions: {
       cleanup_old_data: { Args: never; Returns: Json }
+      connect_child_device: {
+        Args: {
+          p_device_id: string
+          p_pairing_code: string
+          p_parent_email: string
+        }
+        Returns: Json
+      }
       create_alert: {
         Args: {
           p_chat_type?: string
@@ -574,6 +582,10 @@ export type Database = {
           p_device_model: string
           p_device_name: string
         }
+        Returns: Json
+      }
+      update_device_location: {
+        Args: { p_device_id: string; p_lat: number; p_lon: number }
         Returns: Json
       }
       update_device_settings: {
