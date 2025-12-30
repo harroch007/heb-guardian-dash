@@ -106,8 +106,8 @@ export function AccessibilityPanel() {
         aria-modal="true"
         aria-labelledby="accessibility-panel-title"
         className={cn(
-          "fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
-          "z-[9999] w-[90vw] max-w-md max-h-[85vh]",
+          "fixed bottom-4 left-20",
+          "z-[9999] w-[90vw] max-w-md max-h-[70vh]",
           "bg-card border border-border rounded-lg shadow-xl",
           "overflow-hidden flex flex-col",
           "animate-fade-in"
