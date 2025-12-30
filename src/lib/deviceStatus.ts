@@ -1,57 +1,42 @@
-export type DeviceStatus = 'connected' | 'inactive' | 'disconnected';
+export type DeviceStatus = 'connected' | 'not_connected';
 
-// Thresholds in minutes
-const INACTIVE_THRESHOLD = 15;  // 15 minutes without update = inactive
-const DISCONNECTED_THRESHOLD = 60;  // 1 hour without update = disconnected
-
-export function getDeviceStatus(lastSeen: string | null): DeviceStatus {
-  if (!lastSeen) return 'disconnected';
-  
-  const diff = new Date().getTime() - new Date(lastSeen).getTime();
-  const minutes = Math.floor(diff / 60000);
-  
-  if (minutes < INACTIVE_THRESHOLD) return 'connected';
-  if (minutes < DISCONNECTED_THRESHOLD) return 'inactive';
-  return 'disconnected';
+// Binary status: device exists = connected, no device = not connected
+export function getDeviceStatus(hasDevice: boolean): DeviceStatus {
+  return hasDevice ? 'connected' : 'not_connected';
 }
 
 export function getStatusColor(status: DeviceStatus): string {
   switch (status) {
     case 'connected': return 'bg-success';
-    case 'inactive': return 'bg-warning';
-    case 'disconnected': return 'bg-destructive';
+    case 'not_connected': return 'bg-destructive';
   }
 }
 
 export function getStatusTextColor(status: DeviceStatus): string {
   switch (status) {
     case 'connected': return 'text-success';
-    case 'inactive': return 'text-warning';
-    case 'disconnected': return 'text-destructive';
+    case 'not_connected': return 'text-destructive';
   }
 }
 
 export function getStatusBgColor(status: DeviceStatus): string {
   switch (status) {
     case 'connected': return 'bg-success/10';
-    case 'inactive': return 'bg-warning/10';
-    case 'disconnected': return 'bg-destructive/10';
+    case 'not_connected': return 'bg-destructive/10';
   }
 }
 
 export function getStatusLabel(status: DeviceStatus): string {
   switch (status) {
     case 'connected': return 'מחובר';
-    case 'inactive': return 'לא פעיל';
-    case 'disconnected': return 'מנותק';
+    case 'not_connected': return 'לא מחובר';
   }
 }
 
 export function getStatusDescription(status: DeviceStatus): string {
   switch (status) {
-    case 'connected': return 'המכשיר מדווח באופן תקין';
-    case 'inactive': return 'לא התקבל עדכון ב-15 הדקות האחרונות';
-    case 'disconnected': return 'לא התקבל עדכון יותר משעה - יתכן שהאפליקציה הוסרה';
+    case 'connected': return 'המכשיר מחובר לחשבון';
+    case 'not_connected': return 'אין מכשיר מחובר לילד זה';
   }
 }
 

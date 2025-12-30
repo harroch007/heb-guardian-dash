@@ -119,8 +119,8 @@ export default function ChildDashboard() {
     return 'text-success';
   };
 
-  // Get status for current device
-  const status = getDeviceStatus(device?.last_seen ?? null);
+  // Get status for current device - binary: has device = connected
+  const status = getDeviceStatus(device !== null);
 
   // Fetch child data
   useEffect(() => {
@@ -366,8 +366,7 @@ export default function ChildDashboard() {
                   variant="secondary"
                   className={cn(
                     status === 'connected' && 'bg-success/20 text-success',
-                    status === 'inactive' && 'bg-warning/20 text-warning',
-                    status === 'disconnected' && 'bg-destructive/20 text-destructive'
+                    status === 'not_connected' && 'bg-destructive/20 text-destructive'
                   )}
               >
                 <div className={cn('w-2 h-2 rounded-full ml-1.5', getStatusColor(status))} />
@@ -442,31 +441,7 @@ export default function ChildDashboard() {
           </Card>
         ) : (
           <div className="space-y-4">
-            {/* Disconnected Warning Banner */}
-            {status === 'disconnected' && (
-              <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/30 flex items-start gap-3">
-                <div className="p-2 rounded-full bg-destructive/20 shrink-0">
-                  <Smartphone className="w-5 h-5 text-destructive" />
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-semibold text-destructive mb-1">המכשיר מנותק</h4>
-                  <p className="text-sm text-muted-foreground">
-                    לא התקבל עדכון מהמכשיר יותר משעה. ייתכן שהאפליקציה הוסרה מהטלפון או שהמכשיר כבוי.
-                    <br />
-                    מומלץ לבדוק שהאפליקציה עדיין מותקנת ופועלת.
-                  </p>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="mt-3 text-primary border-primary/30 hover:bg-primary/10"
-                    onClick={() => setShowReconnectModal(true)}
-                  >
-                    <RefreshCw className="w-4 h-4 ml-2" />
-                    חבר מכשיר מחדש
-                  </Button>
-                </div>
-              </div>
-            )}
+            {/* No device warning is handled by the !device block above */}
 
             {/* Status Card */}
             <Card className="border-primary/20">
@@ -496,28 +471,17 @@ export default function ChildDashboard() {
                         <span className="text-sm font-medium">{device.battery_level}%</span>
                       </div>
                     )}
-                    {/* Disconnect/Reconnect Device Button */}
-                    {status === 'disconnected' ? (
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => setShowReconnectModal(true)}
-                        className="text-xs text-primary hover:text-primary"
-                      >
-                        <RefreshCw className="w-3.5 h-3.5 ml-1" />
-                        חבר מחדש
-                      </Button>
-                    ) : (
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="text-xs text-muted-foreground hover:text-destructive"
-                          >
-                            <Unplug className="w-3.5 h-3.5 ml-1" />
-                            נתק מכשיר
-                          </Button>
+                    {/* Disconnect Device Button */}
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-xs text-muted-foreground hover:text-destructive"
+                        >
+                          <Unplug className="w-3.5 h-3.5 ml-1" />
+                          נתק מכשיר
+                        </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
@@ -539,7 +503,6 @@ export default function ChildDashboard() {
                           </AlertDialogFooter>
                         </AlertDialogContent>
                       </AlertDialog>
-                    )}
                   </div>
                 </div>
               </CardContent>
