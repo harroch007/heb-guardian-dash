@@ -128,12 +128,9 @@ export const AlertCard = forwardRef<HTMLDivElement, AlertCardProps>(function Ale
         <div className="flex items-center gap-2">
           {/* Verdict Badge */}
           {alert.is_processed ? (
-            <>
-              <span className={cn('px-3 py-1 rounded-full text-xs font-medium', verdictDisplay.bg)}>
-                {verdictDisplay.emoji} {verdictDisplay.label}
-              </span>
-              <span className="text-xs text-muted-foreground">{riskScore}%</span>
-            </>
+            <span className={cn('px-3 py-1 rounded-full text-xs font-medium', verdictDisplay.bg)}>
+              {verdictDisplay.emoji} {verdictDisplay.label} {riskScore}%
+            </span>
           ) : (
             <span className="px-3 py-1 rounded-full text-xs font-medium bg-muted/30 text-muted-foreground">
               ⏳ ממתין...
