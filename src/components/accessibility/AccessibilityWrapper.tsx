@@ -5,10 +5,10 @@ import { AccessibilityPanel } from './AccessibilityPanel';
 import { RestoreAccessibilityButton } from './RestoreAccessibilityButton';
 
 export function AccessibilityWrapper() {
-  const { tripleEscapeEnabled, openPanel, isPanelOpen } = useAccessibility();
+  const { tripleEscapeEnabled, openPanel, isPanelOpen, isHidden } = useAccessibility();
 
   useTripleEscape({
-    enabled: tripleEscapeEnabled && !isPanelOpen,
+    enabled: tripleEscapeEnabled && !isPanelOpen && !isHidden,
     onTripleEscape: openPanel,
   });
 
