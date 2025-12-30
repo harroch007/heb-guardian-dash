@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import kippyLogo from '@/assets/kippy-logo.png';
+import kippyLogo from '@/assets/kippy-logo.svg';
 
 interface LegalPageLayoutProps {
   children: React.ReactNode;

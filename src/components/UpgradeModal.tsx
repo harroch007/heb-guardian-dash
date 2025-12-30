@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Check, Star, Shield, Zap, MapPin, Bell } from "lucide-react";
-import kippyLogo from "@/assets/kippy-logo.png";
+import kippyLogo from "@/assets/kippy-logo.svg";
 
 interface UpgradeModalProps {
   open: boolean;

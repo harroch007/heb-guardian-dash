@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-label="Neon shield with letter K">
+  <defs>
+    <filter id="neonGlow" x="-40%" y="-40%" width="180%" height="180%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="10" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Slightly tighter glow for the crisp stroke -->
+    <filter id="neonGlowTight" x="-30%" y="-30%" width="160%" height="160%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background is transparent by default -->
+
+  <!-- Glow layer -->
+  <g fill="none" stroke="#32F3EE" stroke-linecap="round" stroke-linejoin="round" filter="url(#neonGlow)" opacity="0.85">
+    <!-- Outer shield -->
+    <path d="M512 152
+             C640 192 756 208 824 232
+             C848 240 864 262 864 288
+             L864 520
+             C864 708 720 832 512 904
+             C304 832 160 708 160 520
+             L160 288
+             C160 262 176 240 200 232
+             C268 208 384 192 512 152 Z"
+          stroke-width="16"/>
+    <!-- Inner shield -->
+    <path d="M512 224
+             C626 258 726 270 782 290
+             C796 296 806 310 806 326
+             L806 518
+             C806 676 686 778 512 840
+             C338 778 218 676 218 518
+             L218 326
+             C218 310 228 296 242 290
+             C298 270 398 258 512 224 Z"
+          stroke-width="12"/>
+
+    <!-- K (glow) -->
+    <path d="M402 360
+             L402 738
+             L476 694
+             L476 556
+             L570 662
+             L706 662
+             L564 510
+             L706 360
+             L570 360
+             L476 470
+             L476 360
+             Z"
+          stroke-width="14"/>
+  </g>
+
+  <!-- Crisp stroke layer -->
+  <g fill="none" stroke="#7CFFFA" stroke-linecap="round" stroke-linejoin="round" filter="url(#neonGlowTight)">
+    <path d="M512 152
+             C640 192 756 208 824 232
+             C848 240 864 262 864 288
+             L864 520
+             C864 708 720 832 512 904
+             C304 832 160 708 160 520
+             L160 288
+             C160 262 176 240 200 232
+             C268 208 384 192 512 152 Z"
+          stroke-width="6"/>
+    <path d="M512 224
+             C626 258 726 270 782 290
+             C796 296 806 310 806 326
+             L806 518
+             C806 676 686 778 512 840
+             C338 778 218 676 218 518
+             L218 326
+             C218 310 228 296 242 290
+             C298 270 398 258 512 224 Z"
+          stroke-width="5"/>
+    <path d="M402 360
+             L402 738
+             L476 694
+             L476 556
+             L570 662
+             L706 662
+             L564 510
+             L706 360
+             L570 360
+             L476 470
+             L476 360
+             Z"
+          stroke-width="6"/>
+  </g>
+</svg>
