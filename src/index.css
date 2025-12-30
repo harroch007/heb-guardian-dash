@@ -132,3 +132,71 @@
     );
   }
 }
+
+/* Accessibility - Text Size Levels */
+.accessibility-text-0 {
+  font-size: 100%;
+}
+
+.accessibility-text-1 {
+  font-size: 110%;
+}
+
+.accessibility-text-2 {
+  font-size: 120%;
+}
+
+.accessibility-text-3 {
+  font-size: 130%;
+}
+
+.accessibility-text-4 {
+  font-size: 140%;
+}
+
+/* Accessibility - High Contrast Mode */
+.high-contrast {
+  --background: 0 0% 0%;
+  --foreground: 0 0% 100%;
+  --card: 0 0% 5%;
+  --card-foreground: 0 0% 100%;
+  --popover: 0 0% 5%;
+  --popover-foreground: 0 0% 100%;
+  --primary: 60 100% 50%;
+  --primary-foreground: 0 0% 0%;
+  --secondary: 180 100% 50%;
+  --secondary-foreground: 0 0% 0%;
+  --muted: 0 0% 15%;
+  --muted-foreground: 0 0% 80%;
+  --border: 0 0% 40%;
+  --input: 0 0% 10%;
+  --ring: 60 100% 50%;
+}
+
+/* Accessibility - Enhanced Focus */
+.enhanced-focus *:focus {
+  outline: 3px solid hsl(var(--primary)) !important;
+  outline-offset: 3px !important;
+  box-shadow: 0 0 0 6px hsl(var(--primary) / 0.3) !important;
+}
+
+.enhanced-focus *:focus:not(:focus-visible) {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.enhanced-focus *:focus-visible {
+  outline: 3px solid hsl(var(--primary)) !important;
+  outline-offset: 3px !important;
+  box-shadow: 0 0 0 6px hsl(var(--primary) / 0.3) !important;
+}
+
+/* Accessibility - Reduce Motion */
+.reduce-motion *,
+.reduce-motion *::before,
+.reduce-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
