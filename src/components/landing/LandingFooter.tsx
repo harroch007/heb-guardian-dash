@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Mail, MessageCircle } from 'lucide-react';
-import kippyLogo from '@/assets/kippy-logo.png';
+import kippyLogo from '@/assets/kippy-logo.svg';
 
 export function LandingFooter() {
   return (

@@ -3,7 +3,7 @@ import { NavLink } from "@/components/NavLink";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import kippyLogo from "@/assets/kippy-logo.png";
+import kippyLogo from "@/assets/kippy-logo.svg";
 
 const navItems = [
   { title: "בית", url: "/dashboard", icon: Home },

@@ -9,7 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
-import kippyLogo from '@/assets/kippy-logo.png';
+import kippyLogo from '@/assets/kippy-logo.svg';
 
 const authSchema = z.object({
   email: z.string().email('כתובת אימייל לא תקינה'),

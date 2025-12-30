@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { Shield, Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
-import kippyLogo from '@/assets/kippy-logo.png';
+import kippyLogo from '@/assets/kippy-logo.svg';
 
 export function LandingNavbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
