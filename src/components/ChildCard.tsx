@@ -48,8 +48,8 @@ export function ChildCard({ child, style }: ChildCardProps) {
     fetchDevice();
   }, [child.id]);
 
-  // Get device status
-  const status = getDeviceStatus(device?.last_seen ?? null);
+  // Get device status - binary: has device = connected
+  const status = getDeviceStatus(device !== null);
 
   const calculateAge = (dateOfBirth: string) => {
     const today = new Date();
@@ -126,8 +126,7 @@ export function ChildCard({ child, style }: ChildCardProps) {
               <div className={cn(
                 "flex items-center gap-1.5 text-xs px-2 py-1 rounded-full",
                 status === 'connected' && 'bg-success/20 text-success',
-                status === 'inactive' && 'bg-warning/20 text-warning',
-                status === 'disconnected' && 'bg-destructive/20 text-destructive'
+                status === 'not_connected' && 'bg-destructive/20 text-destructive'
               )}>
                 <div className={cn('w-2 h-2 rounded-full', getStatusColor(status))} />
                 <span>{getStatusLabel(status)}</span>

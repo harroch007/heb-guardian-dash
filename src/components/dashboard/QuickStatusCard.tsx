@@ -65,7 +65,7 @@ export const QuickStatusCard = ({ device, childName, childId, onReconnect }: Qui
   const [showMap, setShowMap] = useState(false);
   const [progress, setProgress] = useState(100);
   
-  const status = getDeviceStatus(device?.last_seen ?? null);
+  const status = getDeviceStatus(!!device);
   const hasLocation = device?.latitude && device?.longitude;
 
   // Auto-close after 10 seconds with progress animation
@@ -86,7 +86,7 @@ export const QuickStatusCard = ({ device, childName, childId, onReconnect }: Qui
     }
   }, [showMap]);
 
-  const isDataStale = status === 'inactive' || status === 'disconnected';
+  const isDataStale = false; // No longer tracking staleness
 
   const getBatteryColor = (level: number | null) => {
     if (!level) return 'text-muted-foreground';
@@ -121,8 +121,7 @@ export const QuickStatusCard = ({ device, childName, childId, onReconnect }: Qui
   const getStatusIcon = () => {
     switch (status) {
       case 'connected': return <Wifi className="w-3 h-3" />;
-      case 'inactive': return <AlertTriangle className="w-3 h-3" />;
-      case 'disconnected': return <WifiOff className="w-3 h-3" />;
+      case 'not_connected': return <WifiOff className="w-3 h-3" />;
     }
   };
 
@@ -130,7 +129,7 @@ export const QuickStatusCard = ({ device, childName, childId, onReconnect }: Qui
     <>
       <Card className={cn(
         "p-4 bg-card border-border/50",
-        status === 'disconnected' && "border-destructive/50"
+        status === 'not_connected' && "border-destructive/50"
       )}>
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-semibold text-foreground">{childName}</h3>
@@ -153,22 +152,14 @@ export const QuickStatusCard = ({ device, childName, childId, onReconnect }: Qui
           </TooltipProvider>
         </div>
 
-        {/* Warning banner for disconnected status */}
-        {status === 'disconnected' && (
+        {/* Warning banner for not connected status */}
+        {status === 'not_connected' && (
           <div className="mb-3 p-2 rounded-lg bg-destructive/10 border border-destructive/30 flex items-start gap-2">
             <AlertTriangle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
             <div className="text-xs text-destructive">
-              <p className="font-medium">המכשיר לא מדווח יותר משעה</p>
-              <p className="text-destructive/80">יתכן שהאפליקציה הוסרה או שהטלפון כבוי</p>
+              <p className="font-medium">אין מכשיר מחובר</p>
+              <p className="text-destructive/80">יש לחבר מכשיר כדי להתחיל במעקב</p>
             </div>
-          </div>
-        )}
-
-        {/* Warning banner for inactive status */}
-        {status === 'inactive' && (
-          <div className="mb-3 p-2 rounded-lg bg-warning/10 border border-warning/30 flex items-start gap-2">
-            <AlertTriangle className="w-4 h-4 text-warning shrink-0 mt-0.5" />
-            <p className="text-xs text-warning">לא התקבל עדכון ב-15 הדקות האחרונות</p>
           </div>
         )}
 
@@ -247,32 +238,18 @@ export const QuickStatusCard = ({ device, childName, childId, onReconnect }: Qui
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.3 }}
-            className={cn(
-              "flex flex-col items-center p-2 sm:p-3 rounded-lg bg-muted/30",
-              status === 'disconnected' && "bg-destructive/10",
-              status === 'inactive' && "bg-warning/10"
-            )}
+            className="flex flex-col items-center p-2 sm:p-3 rounded-lg bg-muted/30"
           >
-            <Clock className={cn(
-              "w-5 h-5 sm:w-6 sm:h-6 mb-1",
-              status === 'connected' && "text-muted-foreground",
-              status === 'inactive' && "text-warning",
-              status === 'disconnected' && "text-destructive"
-            )} />
-            <span className={cn(
-              "text-xs sm:text-sm font-medium",
-              status === 'connected' && "text-foreground",
-              status === 'inactive' && "text-warning",
-              status === 'disconnected' && "text-destructive"
-            )}>
+            <Clock className="w-5 h-5 sm:w-6 sm:h-6 mb-1 text-muted-foreground" />
+            <span className="text-xs sm:text-sm font-medium text-foreground">
               {getLastSeenShort() || '—'}
             </span>
-            <span className="text-[10px] sm:text-xs text-muted-foreground">עדכון</span>
+            <span className="text-[10px] sm:text-xs text-muted-foreground">עדכון אחרון</span>
           </motion.div>
         </div>
 
         {/* Reconnect Button for disconnected devices */}
-        {status === 'disconnected' && onReconnect && (
+        {status === 'not_connected' && onReconnect && (
           <Button 
             variant="outline" 
             size="sm"
