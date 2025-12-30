@@ -233,12 +233,12 @@ export const QuickStatusCard = ({ device, childName, childId, onReconnect }: Qui
             </Tooltip>
           </TooltipProvider>
 
-          {/* Last Seen */}
+          {/* Last Seen - Hidden but code preserved */}
           <motion.div 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.3 }}
-            className="flex flex-col items-center p-2 sm:p-3 rounded-lg bg-muted/30"
+            className="hidden flex-col items-center p-2 sm:p-3 rounded-lg bg-muted/30"
           >
             <Clock className="w-5 h-5 sm:w-6 sm:h-6 mb-1 text-muted-foreground" />
             <span className="text-xs sm:text-sm font-medium text-foreground">
