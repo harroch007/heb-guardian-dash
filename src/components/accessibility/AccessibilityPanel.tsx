@@ -271,6 +271,7 @@ function ToggleControl({ icon: Icon, label, description, checked, onCheckedChang
         checked={checked}
         onCheckedChange={onCheckedChange}
         className="shrink-0"
+        dir="ltr"
         aria-describedby={`${id}-description`}
       />
     </div>
