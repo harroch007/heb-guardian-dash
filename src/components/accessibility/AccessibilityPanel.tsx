@@ -223,7 +223,7 @@ export function AccessibilityPanel() {
                 הסתר פקדי נגישות
               </Button>
             </AlertDialogTrigger>
-            <AlertDialogContent className="z-[10000]">
+            <AlertDialogContent className="z-[10000]" dir="rtl">
               <AlertDialogHeader>
                 <AlertDialogTitle>הסתר פקדי נגישות?</AlertDialogTitle>
                 <AlertDialogDescription>
