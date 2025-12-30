@@ -1,4 +1,4 @@
-import { Accessibility } from 'lucide-react';
+import { PersonStanding } from 'lucide-react';
 import { useAccessibility } from '@/contexts/AccessibilityContext';
 import { cn } from '@/lib/utils';
 
@@ -26,7 +26,7 @@ export function AccessibilityButton() {
       aria-label="הגדרות נגישות"
       title="הגדרות נגישות"
     >
-      <Accessibility className="w-6 h-6" aria-hidden="true" />
+      <PersonStanding className="w-6 h-6" aria-hidden="true" />
     </button>
   );
 }
