@@ -10,6 +10,7 @@ import { Loader2, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
 import kippyLogo from '@/assets/kippy-logo.svg';
+import { WAITLIST_MODE } from '@/config/featureFlags';
 
 const authSchema = z.object({
   email: z.string().email('כתובת אימייל לא תקינה'),
@@ -22,7 +23,8 @@ const resetPasswordSchema = z.object({
 
 export default function Auth() {
   const [searchParams] = useSearchParams();
-  const [isLogin, setIsLogin] = useState(() => searchParams.get('signup') !== 'true');
+  // In waitlist mode, force login only (ignore signup param)
+  const [isLogin, setIsLogin] = useState(() => WAITLIST_MODE ? true : searchParams.get('signup') !== 'true');
   const [isResetPassword, setIsResetPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -35,6 +37,11 @@ export default function Auth() {
   const { toast } = useToast();
 
   useEffect(() => {
+    // In waitlist mode, always stay in login mode
+    if (WAITLIST_MODE) {
+      setIsLogin(true);
+      return;
+    }
     if (searchParams.get('signup') === 'true') {
       setIsLogin(false);
     }
@@ -430,18 +437,21 @@ export default function Auth() {
               </Button>
             </form>
 
-            <div className="mt-6 text-center">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsLogin(!isLogin);
-                  setErrors({});
-                }}
-                className="text-primary hover:underline text-sm"
-              >
-                {isLogin ? 'אין לך חשבון? הרשם עכשיו' : 'יש לך חשבון? התחבר'}
-              </button>
-            </div>
+            {/* Hide signup toggle in waitlist mode */}
+            {!WAITLIST_MODE && (
+              <div className="mt-6 text-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsLogin(!isLogin);
+                    setErrors({});
+                  }}
+                  className="text-primary hover:underline text-sm"
+                >
+                  {isLogin ? 'אין לך חשבון? הרשם עכשיו' : 'יש לך חשבון? התחבר'}
+                </button>
+              </div>
+            )}
           </CardContent>
         </Card>
 
