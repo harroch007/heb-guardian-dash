@@ -193,15 +193,15 @@ export function WaitlistModal() {
           </div>
         ) : (
           <>
-            <DialogHeader className="text-center pb-4">
+            <DialogHeader className="text-right pb-4">
               <div className="flex items-center justify-center gap-2 mb-3">
                 <img src={kippyLogo} alt="Kippy" className="h-8 w-auto" />
                 <span className="text-xl font-bold text-primary">KippyAI</span>
               </div>
-              <DialogTitle className="text-xl md:text-2xl font-bold">
+              <DialogTitle className="text-xl md:text-2xl font-bold text-right">
                 הצטרפות לרשימת ההמתנה של KippyAI
               </DialogTitle>
-              <p className="text-sm text-muted-foreground mt-2">
+              <p className="text-sm text-muted-foreground mt-2 text-right">
                 אנחנו פותחים גישה בהדרגה למעגלים קטנים כדי לוודא חוויה בטוחה ומדויקת.
                 השאירו פרטים ונעדכן כשייפתח מקום לגישה. אין ספאם, ניתן להסיר בכל רגע.
               </p>
@@ -362,10 +362,10 @@ export function WaitlistModal() {
                     value={formData.region}
                     onValueChange={(value) => setFormData({ ...formData, region: value })}
                   >
-                    <SelectTrigger className="bg-muted/50 h-11">
+                    <SelectTrigger className="bg-muted/50 h-11" dir="rtl">
                       <SelectValue placeholder="בחר אזור" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent dir="rtl">
                       {regions.map((region) => (
                         <SelectItem key={region.value} value={region.value}>
                           {region.label}
@@ -385,10 +385,10 @@ export function WaitlistModal() {
                     value={formData.referralSource}
                     onValueChange={(value) => setFormData({ ...formData, referralSource: value })}
                   >
-                    <SelectTrigger className="bg-muted/50 h-11">
+                    <SelectTrigger className="bg-muted/50 h-11" dir="rtl">
                       <SelectValue placeholder="בחר אפשרות" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent dir="rtl">
                       {referralSources.map((source) => (
                         <SelectItem key={source.value} value={source.value}>
                           {source.label}
@@ -405,6 +405,7 @@ export function WaitlistModal() {
                   onChange={(e) => setFormData({ ...formData, referralOther: e.target.value })}
                   placeholder="פרט/י איך..."
                   className="bg-muted/50 h-11"
+                  dir="rtl"
                 />
               )}
 
