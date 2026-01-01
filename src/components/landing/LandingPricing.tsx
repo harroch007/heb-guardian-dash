@@ -1,6 +1,8 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Check, Star } from "lucide-react";
+import { WAITLIST_MODE } from '@/config/featureFlags';
+import { useWaitlist } from '@/contexts/WaitlistContext';
 
 const plans = [
   {
@@ -54,6 +56,14 @@ const plans = [
 ];
 
 export function LandingPricing() {
+  const { openModal } = useWaitlist();
+
+  const handleCTAClick = () => {
+    if (WAITLIST_MODE) {
+      openModal();
+    }
+  };
+
   return (
     <section id="pricing" className="py-24">
       <div className="container mx-auto px-4">
@@ -111,14 +121,24 @@ export function LandingPricing() {
                 </div>
               )}
 
-              <Link to="/auth?signup=true" className="block">
+              {WAITLIST_MODE ? (
                 <Button
                   className={`w-full ${plan.highlighted ? "glow-primary" : ""}`}
                   variant={plan.highlighted ? "default" : "outline"}
+                  onClick={handleCTAClick}
                 >
                   {plan.cta}
                 </Button>
-              </Link>
+              ) : (
+                <Link to="/auth?signup=true" className="block">
+                  <Button
+                    className={`w-full ${plan.highlighted ? "glow-primary" : ""}`}
+                    variant={plan.highlighted ? "default" : "outline"}
+                  >
+                    {plan.cta}
+                  </Button>
+                </Link>
+              )}
             </div>
           ))}
         </div>

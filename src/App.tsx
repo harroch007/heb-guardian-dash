@@ -5,7 +5,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { AccessibilityProvider } from "@/contexts/AccessibilityContext";
+import { WaitlistProvider } from "@/contexts/WaitlistContext";
 import { AccessibilityWrapper } from "@/components/accessibility/AccessibilityWrapper";
+import { WaitlistRouteGuard } from "@/components/WaitlistRouteGuard";
+import { WaitlistModal } from "@/components/WaitlistModal";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
@@ -24,53 +27,58 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AccessibilityProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <AccessibilityWrapper />
-        <BrowserRouter>
-          <AuthProvider>
-            <Routes>
-            <Route path="/" element={<Landing />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/privacy" element={<PrivacyPolicy />} />
-            <Route path="/terms" element={<TermsOfService />} />
-            <Route path="/onboarding" element={
-              <ProtectedRoute>
-                <Onboarding />
-              </ProtectedRoute>
-            } />
-            <Route path="/dashboard" element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            } />
-            <Route path="/family" element={
-              <ProtectedRoute>
-                <Family />
-              </ProtectedRoute>
-            } />
-            <Route path="/child/:childId" element={
-              <ProtectedRoute>
-                <ChildDashboard />
-              </ProtectedRoute>
-            } />
-            <Route path="/alerts" element={
-              <ProtectedRoute>
-                <AlertsPage />
-              </ProtectedRoute>
-            } />
-            <Route path="/settings" element={
-              <ProtectedRoute>
-                <SettingsPage />
-              </ProtectedRoute>
-            } />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </AccessibilityProvider>
+      <WaitlistProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <AccessibilityWrapper />
+          <WaitlistModal />
+          <BrowserRouter>
+            <WaitlistRouteGuard>
+              <AuthProvider>
+                <Routes>
+                  <Route path="/" element={<Landing />} />
+                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/privacy" element={<PrivacyPolicy />} />
+                  <Route path="/terms" element={<TermsOfService />} />
+                  <Route path="/onboarding" element={
+                    <ProtectedRoute>
+                      <Onboarding />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/dashboard" element={
+                    <ProtectedRoute>
+                      <Dashboard />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/family" element={
+                    <ProtectedRoute>
+                      <Family />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/child/:childId" element={
+                    <ProtectedRoute>
+                      <ChildDashboard />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/alerts" element={
+                    <ProtectedRoute>
+                      <AlertsPage />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/settings" element={
+                    <ProtectedRoute>
+                      <SettingsPage />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </AuthProvider>
+            </WaitlistRouteGuard>
+          </BrowserRouter>
+        </TooltipProvider>
+      </WaitlistProvider>
+    </AccessibilityProvider>
   </QueryClientProvider>
 );
 
