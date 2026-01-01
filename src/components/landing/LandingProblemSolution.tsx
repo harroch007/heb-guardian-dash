@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Eye, MessageCircleOff, ShieldOff, CheckCircle2 } from 'lucide-react';
+import { WAITLIST_MODE } from '@/config/featureFlags';
+import { useWaitlist } from '@/contexts/WaitlistContext';
 
 const problems = [
   {
@@ -24,6 +26,14 @@ const problems = [
 ];
 
 export function LandingProblemSolution() {
+  const { openModal } = useWaitlist();
+
+  const handleCTAClick = () => {
+    if (WAITLIST_MODE) {
+      openModal();
+    }
+  };
+
   return (
     <section className="py-24">
       <div className="container mx-auto px-4">
@@ -63,9 +73,13 @@ export function LandingProblemSolution() {
         </div>
 
         <div className="text-center mt-12">
-          <Link to="/auth">
-            <Button size="lg" className="glow-primary">הצטרפו עכשיו</Button>
-          </Link>
+          {WAITLIST_MODE ? (
+            <Button size="lg" className="glow-primary" onClick={handleCTAClick}>הצטרפו עכשיו</Button>
+          ) : (
+            <Link to="/auth?signup=true">
+              <Button size="lg" className="glow-primary">הצטרפו עכשיו</Button>
+            </Link>
+          )}
         </div>
       </div>
     </section>
