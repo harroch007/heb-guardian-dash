@@ -34,63 +34,65 @@ const App = () => (
           <AccessibilityWrapper />
           <WaitlistModal />
           <BrowserRouter>
-            <AuthProvider>
-              <Routes>
-                <Route path="/" element={<Landing />} />
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/privacy" element={<PrivacyPolicy />} />
-                <Route path="/terms" element={<TermsOfService />} />
-                <Route
-                  path="/onboarding"
-                  element={
-                    <ProtectedRoute>
-                      <Onboarding />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/dashboard"
-                  element={
-                    <ProtectedRoute>
-                      <Dashboard />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/family"
-                  element={
-                    <ProtectedRoute>
-                      <Family />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/child/:childId"
-                  element={
-                    <ProtectedRoute>
-                      <ChildDashboard />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/alerts"
-                  element={
-                    <ProtectedRoute>
-                      <AlertsPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/settings"
-                  element={
-                    <ProtectedRoute>
-                      <SettingsPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </AuthProvider>
+            <WaitlistRouteGuard>
+              <AuthProvider>
+                <Routes>
+                  <Route path="/" element={<Landing />} />
+                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/privacy" element={<PrivacyPolicy />} />
+                  <Route path="/terms" element={<TermsOfService />} />
+                  <Route
+                    path="/onboarding"
+                    element={
+                      <ProtectedRoute>
+                        <Onboarding />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/dashboard"
+                    element={
+                      <ProtectedRoute>
+                        <Dashboard />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/family"
+                    element={
+                      <ProtectedRoute>
+                        <Family />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/child/:childId"
+                    element={
+                      <ProtectedRoute>
+                        <ChildDashboard />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/alerts"
+                    element={
+                      <ProtectedRoute>
+                        <AlertsPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/settings"
+                    element={
+                      <ProtectedRoute>
+                        <SettingsPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </AuthProvider>
+            </WaitlistRouteGuard>
           </BrowserRouter>
         </TooltipProvider>
       </WaitlistProvider>
