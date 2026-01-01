@@ -1,8 +1,18 @@
-import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Shield, CreditCard, Calendar, X } from 'lucide-react';
+import { CreditCard, Calendar, X } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { WAITLIST_MODE } from '@/config/featureFlags';
+import { useWaitlist } from '@/contexts/WaitlistContext';
 
 export function LandingCTA() {
+  const { openModal } = useWaitlist();
+
+  const handleCTAClick = () => {
+    if (WAITLIST_MODE) {
+      openModal();
+    }
+  };
+
   return (
     <section className="py-24 bg-gradient-to-b from-primary/10 to-transparent">
       <div className="container mx-auto px-4 text-center">
@@ -14,11 +24,17 @@ export function LandingCTA() {
         </p>
 
         <div className="flex justify-center mb-12">
-          <Link to="/auth?signup=true">
-            <Button size="lg" className="glow-primary text-lg px-8">
+          {WAITLIST_MODE ? (
+            <Button size="lg" className="glow-primary text-lg px-8" onClick={handleCTAClick}>
               הצטרפו חינם עכשיו
             </Button>
-          </Link>
+          ) : (
+            <Link to="/auth?signup=true">
+              <Button size="lg" className="glow-primary text-lg px-8">
+                הצטרפו חינם עכשיו
+              </Button>
+            </Link>
+          )}
         </div>
 
         <div className="flex flex-wrap justify-center gap-8 text-muted-foreground">

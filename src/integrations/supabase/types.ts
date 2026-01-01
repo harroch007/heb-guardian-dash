@@ -522,6 +522,48 @@ export type Database = {
         }
         Relationships: []
       }
+      waitlist_signups: {
+        Row: {
+          child_age: number
+          created_at: string | null
+          device_os: string
+          email: string
+          id: string
+          parent_name: string
+          phone: string
+          referral_other: string | null
+          referral_source: string | null
+          region: string | null
+          status: string | null
+        }
+        Insert: {
+          child_age: number
+          created_at?: string | null
+          device_os: string
+          email: string
+          id?: string
+          parent_name: string
+          phone: string
+          referral_other?: string | null
+          referral_source?: string | null
+          region?: string | null
+          status?: string | null
+        }
+        Update: {
+          child_age?: number
+          created_at?: string | null
+          device_os?: string
+          email?: string
+          id?: string
+          parent_name?: string
+          phone?: string
+          referral_other?: string | null
+          referral_source?: string | null
+          region?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

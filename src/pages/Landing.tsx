@@ -18,24 +18,26 @@ import { LandingFooter } from '@/components/landing/LandingFooter';
 import { CookieConsent } from '@/components/landing/CookieConsent';
 import { AnimatedSection } from '@/components/landing/AnimatedSection';
 import { useAuth } from '@/contexts/AuthContext';
+import { WAITLIST_MODE } from '@/config/featureFlags';
 
 export default function Landing() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!loading && user) {
+    // Only redirect to dashboard if NOT in waitlist mode
+    if (!WAITLIST_MODE && !loading && user) {
       navigate('/dashboard', { replace: true });
     }
   }, [user, loading, navigate]);
 
-  // Show nothing while checking auth to avoid flash
-  if (loading) {
+  // Show nothing while checking auth (only when not in waitlist mode)
+  if (!WAITLIST_MODE && loading) {
     return null;
   }
 
-  // If user is logged in, they'll be redirected
-  if (user) {
+  // If user is logged in and not in waitlist mode, they'll be redirected
+  if (!WAITLIST_MODE && user) {
     return null;
   }
   return (

@@ -1,7 +1,12 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Shield, MessageSquare, Users, Bell } from 'lucide-react';
+import { Bell } from 'lucide-react';
+import { WAITLIST_MODE } from '@/config/featureFlags';
+import { useWaitlist } from '@/contexts/WaitlistContext';
+
 export function LandingHero() {
+  const { openModal } = useWaitlist();
+
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
     if (element) {
@@ -10,7 +15,15 @@ export function LandingHero() {
       });
     }
   };
-  return <section className="relative min-h-screen flex items-center pt-16 overflow-hidden">
+
+  const handleCTAClick = () => {
+    if (WAITLIST_MODE) {
+      openModal();
+    }
+  };
+
+  return (
+    <section className="relative min-h-screen flex items-center pt-16 overflow-hidden">
       {/* Background Effects */}
       <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent" />
       <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
@@ -20,22 +33,28 @@ export function LandingHero() {
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Text Content */}
           <div className="text-center lg:text-right">
-          <h1 className="text-4xl md:text-5xl lg:text-7xl font-bold leading-tight mb-6">
-            <span className="text-foreground">הגנה חכמה לילדים ברשת</span>
-            <br />
-            <span className="text-primary text-glow">בלי לפגוע בפרטיות שלהם</span>
-          </h1>
+            <h1 className="text-4xl md:text-5xl lg:text-7xl font-bold leading-tight mb-6">
+              <span className="text-foreground">הגנה חכמה לילדים ברשת</span>
+              <br />
+              <span className="text-primary text-glow">בלי לפגוע בפרטיות שלהם</span>
+            </h1>
             <p className="text-lg md:text-xl lg:text-2xl text-muted-foreground mb-8 max-w-2xl lg:max-w-none">
               KippyAI מגינה על הילד שלכם בזמן אמת מפני בריונות, חרמות, שיח מיני מוקדם, פניה מזרים ועוד.. ומתריעה רק כשיש באמת צורך בהתערבות הורית.
               <br />
               <span className="text-primary">בלי לקרוא כל הודעה. בלי לפגוע בפרטיות. רק הגנה אמיתית כשזה הכי חשוב.</span>
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-              <Link to="/auth?signup=true">
-                <Button size="lg" className="glow-primary text-lg px-8">
+              {WAITLIST_MODE ? (
+                <Button size="lg" className="glow-primary text-lg px-8" onClick={handleCTAClick}>
                   התחילו להגן עכשיו - חינם
                 </Button>
-              </Link>
+              ) : (
+                <Link to="/auth?signup=true">
+                  <Button size="lg" className="glow-primary text-lg px-8">
+                    התחילו להגן עכשיו - חינם
+                  </Button>
+                </Link>
+              )}
               <Button size="lg" variant="outline" className="text-lg px-8" onClick={() => scrollToSection('how-it-works')}>
                 ראו איך זה עובד
               </Button>
@@ -62,7 +81,6 @@ export function LandingHero() {
                   הצעה: לדבר על גבולות ועל זכות להגיד "לא"
                 </p>
               </div>
-              
             </div>
           </div>
         </div>
@@ -83,5 +101,6 @@ export function LandingHero() {
           </div>
         </div>
       </div>
-    </section>;
+    </section>
+  );
 }
