@@ -1,21 +1,15 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Check, Star } from "lucide-react";
-import { WAITLIST_MODE } from '@/config/featureFlags';
-import { useWaitlist } from '@/contexts/WaitlistContext';
+import { WAITLIST_MODE } from "@/config/featureFlags";
+import { useWaitlist } from "@/contexts/WaitlistContext";
 
 const plans = [
   {
     name: "חינמי",
     subtitle: "בקרת הורים בסיסית",
     price: "חינם",
-    features: [
-      "ללא הגבלת ילדים",
-      "מיקום בזמן אמת",
-      "מצב סוללה",
-      "זמן מסך יומי",
-      "הגבלת זמן מסך",
-    ],
+    features: ["ללא הגבלת ילדים", "מיקום בזמן אמת", "מצב סוללה", "זמן מסך יומי", "הגבלת זמן מסך"],
     cta: "התחילו חינם",
     highlighted: false,
     pricingTable: null,
@@ -23,7 +17,7 @@ const plans = [
   {
     name: "Premium",
     subtitle: "הגנה מלאה ושקט נפשי",
-    price: "₪29",
+    price: "₪19",
     period: "/חודש",
     features: [
       "כל מה שבחבילת הבסיס +",
@@ -35,20 +29,16 @@ const plans = [
     cta: "בחרו Premium",
     highlighted: true,
     pricingTable: [
-      { children: "ילד אחד", price: "₪29/חודש" },
-      { children: "2 ילדים", price: "₪45/חודש" },
-      { children: "3 ילדים", price: "₪60/חודש" },
+      { children: "ילד אחד", price: "₪19/חודש" },
+      { children: "2 ילדים", price: "₪30/חודש" },
+      { children: "3 ילדים", price: "₪40/חודש" },
     ],
   },
   {
     name: "משפחות גדולות",
     subtitle: "4 ילדים ומעלה",
     price: "צרו קשר",
-    features: [
-      "כל מה שב-Premium",
-      "מחיר מותאם אישית למשפחה",
-      "שירות לקוחות VIP",
-    ],
+    features: ["כל מה שב-Premium", "מחיר מותאם אישית למשפחה", "שירות לקוחות VIP"],
     cta: "דברו איתנו",
     highlighted: false,
     pricingTable: null,
