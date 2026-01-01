@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, forwardRef } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -21,7 +21,7 @@ const resetPasswordSchema = z.object({
   email: z.string().email('כתובת אימייל לא תקינה'),
 });
 
-export default function Auth() {
+const Auth = forwardRef<HTMLDivElement>((_, ref) => {
   const [searchParams] = useSearchParams();
   // In waitlist mode, force login only (ignore signup param)
   const [isLogin, setIsLogin] = useState(() => WAITLIST_MODE ? true : searchParams.get('signup') !== 'true');
@@ -206,7 +206,7 @@ export default function Auth() {
   // Reset password view
   if (isResetPassword) {
     return (
-      <div className="min-h-screen bg-background flex flex-col">
+      <div ref={ref} className="min-h-screen bg-background flex flex-col">
         <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
           <div className="container mx-auto px-4 py-4 flex items-center justify-center">
             <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
@@ -278,7 +278,7 @@ export default function Auth() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div ref={ref} className="min-h-screen bg-background flex flex-col">
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-center">
           <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
@@ -465,4 +465,7 @@ export default function Auth() {
       </div>
     </div>
   );
-}
+});
+
+Auth.displayName = 'Auth';
+export default Auth;
