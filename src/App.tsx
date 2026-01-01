@@ -34,47 +34,63 @@ const App = () => (
           <AccessibilityWrapper />
           <WaitlistModal />
           <BrowserRouter>
-            <WaitlistRouteGuard>
-              <AuthProvider>
-                <Routes>
-                  <Route path="/" element={<Landing />} />
-                  <Route path="/auth" element={<Auth />} />
-                  <Route path="/privacy" element={<PrivacyPolicy />} />
-                  <Route path="/terms" element={<TermsOfService />} />
-                  <Route path="/onboarding" element={
+            <AuthProvider>
+              <Routes>
+                <Route path="/" element={<Landing />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/privacy" element={<PrivacyPolicy />} />
+                <Route path="/terms" element={<TermsOfService />} />
+                <Route
+                  path="/onboarding"
+                  element={
                     <ProtectedRoute>
                       <Onboarding />
                     </ProtectedRoute>
-                  } />
-                  <Route path="/dashboard" element={
+                  }
+                />
+                <Route
+                  path="/dashboard"
+                  element={
                     <ProtectedRoute>
                       <Dashboard />
                     </ProtectedRoute>
-                  } />
-                  <Route path="/family" element={
+                  }
+                />
+                <Route
+                  path="/family"
+                  element={
                     <ProtectedRoute>
                       <Family />
                     </ProtectedRoute>
-                  } />
-                  <Route path="/child/:childId" element={
+                  }
+                />
+                <Route
+                  path="/child/:childId"
+                  element={
                     <ProtectedRoute>
                       <ChildDashboard />
                     </ProtectedRoute>
-                  } />
-                  <Route path="/alerts" element={
+                  }
+                />
+                <Route
+                  path="/alerts"
+                  element={
                     <ProtectedRoute>
                       <AlertsPage />
                     </ProtectedRoute>
-                  } />
-                  <Route path="/settings" element={
+                  }
+                />
+                <Route
+                  path="/settings"
+                  element={
                     <ProtectedRoute>
                       <SettingsPage />
                     </ProtectedRoute>
-                  } />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </AuthProvider>
-            </WaitlistRouteGuard>
+                  }
+                />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </AuthProvider>
           </BrowserRouter>
         </TooltipProvider>
       </WaitlistProvider>
