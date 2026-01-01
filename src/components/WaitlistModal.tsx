@@ -175,7 +175,7 @@ export function WaitlistModal() {
   return (
     <Dialog open={isModalOpen} onOpenChange={handleClose}>
       <DialogContent 
-        className="w-[95vw] max-w-2xl bg-card border-primary/30 shadow-[0_0_30px_rgba(0,255,255,0.1)] p-6 md:p-8" 
+        className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto bg-card border-primary/30 shadow-[0_0_30px_rgba(0,255,255,0.1)] p-6 md:p-8" 
         dir="rtl"
       >
         {isSuccess ? (
