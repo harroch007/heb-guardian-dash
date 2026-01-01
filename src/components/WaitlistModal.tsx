@@ -63,23 +63,35 @@ export function WaitlistModal() {
   });
   const [errors, setErrors] = useState<FormErrors>({});
 
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    return emailRegex.test(email.trim());
+  };
+
+  const validatePhone = (phone: string): boolean => {
+    const cleanPhone = phone.replace(/[-\s]/g, '');
+    return /^05\d{8}$/.test(cleanPhone);
+  };
+
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
 
     if (!formData.parentName.trim()) {
       newErrors.parentName = 'חובה למלא שדה זה';
+    } else if (formData.parentName.trim().length < 2) {
+      newErrors.parentName = 'שם חייב להכיל לפחות 2 תווים';
     }
 
     if (!formData.email.trim()) {
       newErrors.email = 'חובה למלא שדה זה';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+    } else if (!validateEmail(formData.email)) {
       newErrors.email = 'אימייל לא תקין';
     }
 
     if (!formData.phone.trim()) {
       newErrors.phone = 'חובה למלא שדה זה';
-    } else if (!/^05\d{8}$/.test(formData.phone.replace(/-/g, ''))) {
-      newErrors.phone = 'מספר טלפון לא תקין';
+    } else if (!validatePhone(formData.phone)) {
+      newErrors.phone = 'מספר טלפון לא תקין (דוגמה: 0501234567)';
     }
 
     if (!formData.childAge) {
@@ -110,7 +122,7 @@ export function WaitlistModal() {
       const { error } = await supabase.from('waitlist_signups').insert({
         parent_name: formData.parentName.trim(),
         email: formData.email.trim().toLowerCase(),
-        phone: formData.phone.replace(/-/g, ''),
+        phone: formData.phone.replace(/[-\s]/g, ''),
         child_age: parseInt(formData.childAge),
         device_os: formData.deviceOs,
         region: formData.region || null,
@@ -120,7 +132,6 @@ export function WaitlistModal() {
 
       if (error) {
         if (error.code === '23505') {
-          // Unique constraint violation - email already exists
           setErrors({ email: 'האימייל הזה כבר רשום ברשימת ההמתנה' });
         } else {
           throw error;
@@ -138,7 +149,6 @@ export function WaitlistModal() {
 
   const handleClose = () => {
     closeModal();
-    // Reset form after animation
     setTimeout(() => {
       setIsSuccess(false);
       setFormData({
@@ -164,7 +174,10 @@ export function WaitlistModal() {
 
   return (
     <Dialog open={isModalOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md w-[95vw] max-h-[90vh] overflow-y-auto bg-card border-primary/30 shadow-[0_0_30px_rgba(0,255,255,0.1)]" dir="rtl">
+      <DialogContent 
+        className="w-[95vw] max-w-2xl bg-card border-primary/30 shadow-[0_0_30px_rgba(0,255,255,0.1)] p-6 md:p-8" 
+        dir="rtl"
+      >
         {isSuccess ? (
           <div className="py-8 text-center">
             <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-primary/20 flex items-center justify-center">
@@ -180,125 +193,125 @@ export function WaitlistModal() {
           </div>
         ) : (
           <>
-            <DialogHeader className="text-center pb-2">
-              <div className="flex items-center justify-center gap-2 mb-4">
+            <DialogHeader className="text-center pb-4">
+              <div className="flex items-center justify-center gap-2 mb-3">
                 <img src={kippyLogo} alt="Kippy" className="h-8 w-auto" />
                 <span className="text-xl font-bold text-primary">KippyAI</span>
               </div>
-              <DialogTitle className="text-xl font-bold">
+              <DialogTitle className="text-xl md:text-2xl font-bold">
                 הצטרפות לרשימת ההמתנה של KippyAI
               </DialogTitle>
-              <p className="text-sm text-muted-foreground mt-3">
+              <p className="text-sm text-muted-foreground mt-2">
                 אנחנו פותחים גישה בהדרגה למעגלים קטנים כדי לוודא חוויה בטוחה ומדויקת.
-                השאירו פרטים ונעדכן כשייפתח מקום לגישה.
-              </p>
-              <p className="text-xs text-muted-foreground/70 mt-2">
-                אין ספאם, ניתן להסיר בכל רגע.
+                השאירו פרטים ונעדכן כשייפתח מקום לגישה. אין ספאם, ניתן להסיר בכל רגע.
               </p>
             </DialogHeader>
 
-            <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-              {/* Parent Name */}
-              <div className="space-y-2">
-                <Label htmlFor="parentName" className="text-sm font-medium">
-                  שם ההורה <span className="text-destructive">*</span>
-                </Label>
-                <div className="relative">
-                  <Input
-                    id="parentName"
-                    value={formData.parentName}
-                    onChange={(e) => setFormData({ ...formData, parentName: e.target.value })}
-                    placeholder="איך לפנות אליך?"
-                    className={cn(
-                      'pr-10 bg-muted/50',
-                      errors.parentName && 'border-destructive'
-                    )}
-                  />
-                  <User className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+              {/* Two column layout for desktop */}
+              <div className="grid md:grid-cols-2 gap-4">
+                {/* Parent Name */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="parentName" className="text-sm font-medium">
+                    שם ההורה <span className="text-destructive">*</span>
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="parentName"
+                      value={formData.parentName}
+                      onChange={(e) => setFormData({ ...formData, parentName: e.target.value })}
+                      placeholder="איך לפנות אליך?"
+                      className={cn(
+                        'pr-10 bg-muted/50 h-11',
+                        errors.parentName && 'border-destructive'
+                      )}
+                    />
+                    <User className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  </div>
+                  {errors.parentName && (
+                    <p className="text-xs text-destructive">{errors.parentName}</p>
+                  )}
                 </div>
-                {errors.parentName && (
-                  <p className="text-xs text-destructive">{errors.parentName}</p>
-                )}
+
+                {/* Email */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="email" className="text-sm font-medium">
+                    אימייל <span className="text-destructive">*</span>
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      placeholder="name@example.com"
+                      className={cn(
+                        'pr-10 bg-muted/50 h-11',
+                        errors.email && 'border-destructive'
+                      )}
+                      dir="ltr"
+                    />
+                    <Mail className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  </div>
+                  {errors.email && (
+                    <p className="text-xs text-destructive">{errors.email}</p>
+                  )}
+                </div>
+
+                {/* Phone */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="phone" className="text-sm font-medium">
+                    מספר טלפון (הורה) <span className="text-destructive">*</span>
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="phone"
+                      type="tel"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      placeholder="0501234567"
+                      className={cn(
+                        'pr-10 bg-muted/50 h-11',
+                        errors.phone && 'border-destructive'
+                      )}
+                      dir="ltr"
+                    />
+                    <Phone className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  </div>
+                  {errors.phone && (
+                    <p className="text-xs text-destructive">{errors.phone}</p>
+                  )}
+                </div>
+
+                {/* Child Age */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="childAge" className="text-sm font-medium">
+                    גיל הילד.ה <span className="text-destructive">*</span>
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="childAge"
+                      type="number"
+                      min="4"
+                      max="18"
+                      value={formData.childAge}
+                      onChange={(e) => setFormData({ ...formData, childAge: e.target.value })}
+                      placeholder="4-18"
+                      className={cn(
+                        'pr-10 bg-muted/50 h-11',
+                        errors.childAge && 'border-destructive'
+                      )}
+                    />
+                    <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  </div>
+                  {errors.childAge && (
+                    <p className="text-xs text-destructive">{errors.childAge}</p>
+                  )}
+                </div>
               </div>
 
-              {/* Email */}
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium">
-                  אימייל <span className="text-destructive">*</span>
-                </Label>
-                <div className="relative">
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    placeholder="name@example.com"
-                    className={cn(
-                      'pr-10 bg-muted/50',
-                      errors.email && 'border-destructive'
-                    )}
-                    dir="ltr"
-                  />
-                  <Mail className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                </div>
-                {errors.email && (
-                  <p className="text-xs text-destructive">{errors.email}</p>
-                )}
-              </div>
-
-              {/* Phone */}
-              <div className="space-y-2">
-                <Label htmlFor="phone" className="text-sm font-medium">
-                  מספר טלפון (הורה) <span className="text-destructive">*</span>
-                </Label>
-                <div className="relative">
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    placeholder="05X-XXXXXXX"
-                    className={cn(
-                      'pr-10 bg-muted/50',
-                      errors.phone && 'border-destructive'
-                    )}
-                    dir="ltr"
-                  />
-                  <Phone className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                </div>
-                {errors.phone && (
-                  <p className="text-xs text-destructive">{errors.phone}</p>
-                )}
-              </div>
-
-              {/* Child Age */}
-              <div className="space-y-2">
-                <Label htmlFor="childAge" className="text-sm font-medium">
-                  גיל הילד.ה <span className="text-destructive">*</span>
-                </Label>
-                <div className="relative">
-                  <Input
-                    id="childAge"
-                    type="number"
-                    min="4"
-                    max="18"
-                    value={formData.childAge}
-                    onChange={(e) => setFormData({ ...formData, childAge: e.target.value })}
-                    placeholder="4-18"
-                    className={cn(
-                      'pr-10 bg-muted/50',
-                      errors.childAge && 'border-destructive'
-                    )}
-                  />
-                  <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                </div>
-                {errors.childAge && (
-                  <p className="text-xs text-destructive">{errors.childAge}</p>
-                )}
-              </div>
-
-              {/* Device OS */}
-              <div className="space-y-2">
+              {/* Device OS - Full width */}
+              <div className="space-y-1.5">
                 <Label className="text-sm font-medium">
                   מערכת הטלפון של הילד.ה <span className="text-destructive">*</span>
                 </Label>
@@ -307,7 +320,7 @@ export function WaitlistModal() {
                     type="button"
                     onClick={() => setFormData({ ...formData, deviceOs: 'android' })}
                     className={cn(
-                      'flex items-center justify-center gap-2 py-3 px-4 rounded-xl border transition-all',
+                      'flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border transition-all',
                       formData.deviceOs === 'android'
                         ? 'border-primary bg-primary/10 text-primary'
                         : 'border-border bg-muted/50 text-muted-foreground hover:border-primary/50'
@@ -320,7 +333,7 @@ export function WaitlistModal() {
                     type="button"
                     onClick={() => setFormData({ ...formData, deviceOs: 'iphone' })}
                     className={cn(
-                      'flex items-center justify-center gap-2 py-3 px-4 rounded-xl border transition-all',
+                      'flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border transition-all',
                       formData.deviceOs === 'iphone'
                         ? 'border-primary bg-primary/10 text-primary'
                         : 'border-border bg-muted/50 text-muted-foreground hover:border-primary/50'
@@ -337,65 +350,68 @@ export function WaitlistModal() {
                 )}
               </div>
 
-              {/* Region (optional) */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-muted-foreground" />
-                  אזור מגורים
-                </Label>
-                <Select
-                  value={formData.region}
-                  onValueChange={(value) => setFormData({ ...formData, region: value })}
-                >
-                  <SelectTrigger className="bg-muted/50">
-                    <SelectValue placeholder="בחר אזור" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {regions.map((region) => (
-                      <SelectItem key={region.value} value={region.value}>
-                        {region.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {/* Optional fields in two columns */}
+              <div className="grid md:grid-cols-2 gap-4">
+                {/* Region (optional) */}
+                <div className="space-y-1.5">
+                  <Label className="text-sm font-medium flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-muted-foreground" />
+                    אזור מגורים
+                  </Label>
+                  <Select
+                    value={formData.region}
+                    onValueChange={(value) => setFormData({ ...formData, region: value })}
+                  >
+                    <SelectTrigger className="bg-muted/50 h-11">
+                      <SelectValue placeholder="בחר אזור" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {regions.map((region) => (
+                        <SelectItem key={region.value} value={region.value}>
+                          {region.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              {/* Referral Source (optional) */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium flex items-center gap-2">
-                  <MessageCircle className="w-4 h-4 text-muted-foreground" />
-                  איך שמעת על קיפי?
-                </Label>
-                <Select
-                  value={formData.referralSource}
-                  onValueChange={(value) => setFormData({ ...formData, referralSource: value })}
-                >
-                  <SelectTrigger className="bg-muted/50">
-                    <SelectValue placeholder="בחר אפשרות" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {referralSources.map((source) => (
-                      <SelectItem key={source.value} value={source.value}>
-                        {source.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                
-                {formData.referralSource === 'other' && (
-                  <Input
-                    value={formData.referralOther}
-                    onChange={(e) => setFormData({ ...formData, referralOther: e.target.value })}
-                    placeholder="פרט/י איך..."
-                    className="mt-2 bg-muted/50"
-                  />
-                )}
+                {/* Referral Source (optional) */}
+                <div className="space-y-1.5">
+                  <Label className="text-sm font-medium flex items-center gap-2">
+                    <MessageCircle className="w-4 h-4 text-muted-foreground" />
+                    איך שמעת על קיפי?
+                  </Label>
+                  <Select
+                    value={formData.referralSource}
+                    onValueChange={(value) => setFormData({ ...formData, referralSource: value })}
+                  >
+                    <SelectTrigger className="bg-muted/50 h-11">
+                      <SelectValue placeholder="בחר אפשרות" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {referralSources.map((source) => (
+                        <SelectItem key={source.value} value={source.value}>
+                          {source.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
+              
+              {formData.referralSource === 'other' && (
+                <Input
+                  value={formData.referralOther}
+                  onChange={(e) => setFormData({ ...formData, referralOther: e.target.value })}
+                  placeholder="פרט/י איך..."
+                  className="bg-muted/50 h-11"
+                />
+              )}
 
               {/* Submit Button */}
               <Button
                 type="submit"
-                className="w-full py-6 text-lg glow-primary"
+                className="w-full py-5 text-lg glow-primary"
                 disabled={!isFormValid || isSubmitting}
               >
                 {isSubmitting ? 'שולח...' : 'הצטרפתי לרשימה'}
@@ -404,7 +420,6 @@ export function WaitlistModal() {
               {/* Privacy Text */}
               <p className="text-xs text-muted-foreground/70 text-center leading-relaxed">
                 בלחיצה על "הצטרפתי לרשימה" אני מסכימ/ה לקבל עדכונים על גישה מוקדמת.
-                <br />
                 הפרטים נשמרים לצורך יצירת קשר בלבד ולא מועברים לצדדים שלישיים.
               </p>
             </form>
