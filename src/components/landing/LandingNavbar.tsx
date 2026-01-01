@@ -65,20 +65,17 @@ export function LandingNavbar() {
 
           {/* CTA Buttons */}
           <div className="hidden md:flex items-center gap-3">
+            {/* התחברות always goes to /auth for existing users */}
+            <Link to="/auth">
+              <Button variant="ghost">התחברות</Button>
+            </Link>
+            {/* התחילו חינם goes to waitlist in WAITLIST_MODE, otherwise signup */}
             {WAITLIST_MODE ? (
-              <>
-                <Button variant="ghost" onClick={handleCTAClick}>התחברות</Button>
-                <Button className="glow-primary" onClick={handleCTAClick}>התחילו חינם</Button>
-              </>
+              <Button className="glow-primary" onClick={handleCTAClick}>התחילו חינם</Button>
             ) : (
-              <>
-                <Link to="/auth">
-                  <Button variant="ghost">התחברות</Button>
-                </Link>
-                <Link to="/auth?signup=true">
-                  <Button className="glow-primary">התחילו חינם</Button>
-                </Link>
-              </>
+              <Link to="/auth?signup=true">
+                <Button className="glow-primary">התחילו חינם</Button>
+              </Link>
             )}
           </div>
 
@@ -120,20 +117,17 @@ export function LandingNavbar() {
                 שאלות נפוצות
               </button>
               <div className="flex flex-col gap-2 pt-4 border-t border-border">
+                {/* התחברות always goes to /auth for existing users */}
+                <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="ghost" className="w-full">התחברות</Button>
+                </Link>
+                {/* התחילו חינם goes to waitlist in WAITLIST_MODE, otherwise signup */}
                 {WAITLIST_MODE ? (
-                  <>
-                    <Button variant="ghost" className="w-full" onClick={handleCTAClick}>התחברות</Button>
-                    <Button className="w-full glow-primary" onClick={handleCTAClick}>התחילו חינם</Button>
-                  </>
+                  <Button className="w-full glow-primary" onClick={handleCTAClick}>התחילו חינם</Button>
                 ) : (
-                  <>
-                    <Link to="/auth">
-                      <Button variant="ghost" className="w-full">התחברות</Button>
-                    </Link>
-                    <Link to="/auth?signup=true">
-                      <Button className="w-full glow-primary">התחילו חינם</Button>
-                    </Link>
-                  </>
+                  <Link to="/auth?signup=true" onClick={() => setMobileMenuOpen(false)}>
+                    <Button className="w-full glow-primary">התחילו חינם</Button>
+                  </Link>
                 )}
               </div>
             </div>
