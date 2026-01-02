@@ -16,7 +16,7 @@ export function AccessibilityButton() {
 
     // Find elements that might overlap (bottom nav, other fixed controls)
     const fixedElements = document.querySelectorAll(
-      'nav[class*="fixed"][class*="bottom-0"], [class*="fixed"][class*="bottom-"]'
+      'nav[class*="fixed"][class*="bottom-0"], [class*="fixed"][class*="bottom-"]',
     );
 
     let maxObstacleHeight = 0;
@@ -31,7 +31,7 @@ export function AccessibilityButton() {
     });
 
     // Position button above obstacles with padding
-    const newOffset = Math.max(96, maxObstacleHeight + 16 + 48); // obstacle + padding + button size
+    const newOffset = Math.max(96, maxObstacleHeight + 16 + 24); // obstacle + padding + button size
     setOffsetBottom(newOffset);
   }, []);
 
