@@ -36,12 +36,33 @@ export default function Auth() {
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
 
-  // Redirect if already logged in
+  // Check if email is allowed and redirect if already logged in
   useEffect(() => {
-    if (!authLoading && user) {
-      navigate('/dashboard');
-    }
-  }, [user, authLoading, navigate]);
+    const checkUserAccess = async () => {
+      if (!authLoading && user) {
+        // In waitlist mode, verify user's email is in allowed list
+        if (WAITLIST_MODE && user.email) {
+          const { data: isAllowed, error } = await supabase
+            .rpc('is_email_allowed', { p_email: user.email });
+          
+          if (error || !isAllowed) {
+            // Not allowed - sign out and show error
+            await supabase.auth.signOut();
+            toast({
+              variant: "destructive",
+              title: "גישה נדחתה",
+              description: "האימייל שלך לא נמצא ברשימת המורשים. הצטרף לרשימת ההמתנה.",
+            });
+            navigate('/');
+            return;
+          }
+        }
+        navigate('/dashboard');
+      }
+    };
+    
+    checkUserAccess();
+  }, [user, authLoading, navigate, toast]);
 
   const validateForm = () => {
     const newErrors: { email?: string; password?: string; name?: string } = {};
