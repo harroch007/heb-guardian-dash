@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, forwardRef } from 'react';
 import { X, Cookie } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-export function CookieConsent() {
+export const CookieConsent = forwardRef<HTMLDivElement>((props, ref) => {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
@@ -31,7 +31,7 @@ export function CookieConsent() {
   if (!isVisible) return null;
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:max-w-md z-50 animate-in slide-in-from-bottom-4 duration-300">
+    <div ref={ref} className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:max-w-md z-50 animate-in slide-in-from-bottom-4 duration-300">
       <div className="bg-card border border-border rounded-xl shadow-xl p-5">
         {/* Close button */}
         <button
@@ -83,4 +83,6 @@ export function CookieConsent() {
       </div>
     </div>
   );
-}
+});
+
+CookieConsent.displayName = 'CookieConsent';
