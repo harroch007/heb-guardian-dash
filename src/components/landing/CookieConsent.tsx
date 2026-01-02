@@ -1,8 +1,8 @@
-import { useState, useEffect, forwardRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Cookie } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-export const CookieConsent = forwardRef<HTMLDivElement>((props, ref) => {
+export const CookieConsent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>((props, ref) => {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
