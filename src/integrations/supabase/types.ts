@@ -131,6 +131,30 @@ export type Database = {
           },
         ]
       }
+      allowed_emails: {
+        Row: {
+          added_by: string | null
+          created_at: string | null
+          email: string
+          id: string
+          notes: string | null
+        }
+        Insert: {
+          added_by?: string | null
+          created_at?: string | null
+          email: string
+          id?: string
+          notes?: string | null
+        }
+        Update: {
+          added_by?: string | null
+          created_at?: string | null
+          email?: string
+          id?: string
+          notes?: string | null
+        }
+        Relationships: []
+      }
       app_usage: {
         Row: {
           app_name: string | null
@@ -598,6 +622,7 @@ export type Database = {
       generate_new_pairing_code: { Args: { p_child_id: string }; Returns: Json }
       generate_pairing_code: { Args: { p_child_id: string }; Returns: string }
       get_device_settings: { Args: { p_device_id: string }; Returns: Json }
+      is_email_allowed: { Args: { p_email: string }; Returns: boolean }
       pair_device:
         | {
             Args: { p_device_id: string; p_pairing_code: string }
