@@ -1,19 +1,21 @@
 import { PersonStanding } from "lucide-react";
 import { useAccessibility } from "@/contexts/AccessibilityContext";
 import { cn } from "@/lib/utils";
-import { useRef, useCallback } from "react";
+import { useLocation } from "react-router-dom";
 
 export function AccessibilityButton() {
   const { isHidden, openPanel } = useAccessibility();
-  const buttonRef = useRef<HTMLButtonElement>(null);
+  const location = useLocation();
+  
+  const allowedPaths = ["/", "/dashboard"];
+  const isOnAllowedPage = allowedPaths.includes(location.pathname);
 
-  if (isHidden) {
+  if (isHidden || !isOnAllowedPage) {
     return null;
   }
 
   return (
     <button
-      ref={buttonRef}
       onClick={openPanel}
       className={cn(
         "fixed bottom-24 left-4 z-[9999]",
