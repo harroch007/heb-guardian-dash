@@ -31,9 +31,9 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          <AccessibilityWrapper />
           <WaitlistModal />
           <BrowserRouter>
+            <AccessibilityWrapper />
             <WaitlistRouteGuard>
               <AuthProvider>
                 <Routes>
