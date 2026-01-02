@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.check-device-health]
 verify_jwt = false
+
+[functions.cleanup-unauthorized-user]
+verify_jwt = false

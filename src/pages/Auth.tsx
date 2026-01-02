@@ -46,7 +46,15 @@ export default function Auth() {
             .rpc('is_email_allowed', { p_email: user.email });
           
           if (error || !isAllowed) {
-            // Not allowed - sign out and show error
+            // Not allowed - cleanup user from database and sign out
+            try {
+              await supabase.functions.invoke('cleanup-unauthorized-user', {
+                body: { userId: user.id }
+              });
+            } catch (cleanupError) {
+              console.error('Cleanup failed:', cleanupError);
+            }
+            
             await supabase.auth.signOut();
             toast({
               variant: "destructive",
