@@ -31,7 +31,7 @@ export function AccessibilityButton() {
     });
 
     // Position button above obstacles with padding
-    const newOffset = Math.max(96, maxObstacleHeight + 16 + 24); // obstacle + padding + button size
+    const newOffset = Math.max(96, maxObstacleHeight + 16); // obstacle + padding + button size
     setOffsetBottom(newOffset);
   }, []);
 
