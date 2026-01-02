@@ -1,10 +1,11 @@
+import { forwardRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Mail, MessageCircle } from 'lucide-react';
 import kippyLogo from '@/assets/kippy-logo.svg';
 
-export function LandingFooter() {
+export const LandingFooter = forwardRef<HTMLElement>((props, ref) => {
   return (
-    <footer className="py-16 border-t border-border">
+    <footer ref={ref} className="py-16 border-t border-border">
       <div className="container mx-auto px-4">
         <div className="grid md:grid-cols-4 gap-8 mb-12">
           {/* Logo & Description */}
@@ -78,4 +79,6 @@ export function LandingFooter() {
       </div>
     </footer>
   );
-}
+});
+
+LandingFooter.displayName = 'LandingFooter';
