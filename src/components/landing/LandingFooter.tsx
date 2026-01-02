@@ -1,9 +1,9 @@
-import { forwardRef } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { Mail, MessageCircle } from 'lucide-react';
 import kippyLogo from '@/assets/kippy-logo.svg';
 
-export const LandingFooter = forwardRef<HTMLElement>((props, ref) => {
+export const LandingFooter = React.forwardRef<HTMLElement, React.HTMLAttributes<HTMLElement>>((props, ref) => {
   return (
     <footer ref={ref} className="py-16 border-t border-border">
       <div className="container mx-auto px-4">
