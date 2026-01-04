@@ -137,15 +137,14 @@ const Index = () => {
 
       // Fetch alerts for all children
       if (childIds.length > 0) {
-        const { data: alertsData, error: alertsError } = await supabase
-          .from('alerts')
-          .select('id, parent_message, ai_risk_score, created_at, is_processed, child_id')
-          .in('child_id', childIds)
-          .eq('is_processed', true)
-          .not('parent_message', 'is', null)
-          .is('acknowledged_at', null)
-          .order('created_at', { ascending: false })
-          .limit(10);
+       const { data: alertsData, error: alertsError } = await supabase
+  .from('alerts')
+  .select('id, parent_message, ai_risk_score, created_at, is_processed, child_id')
+  .in('child_id', childIds)
+  .eq('is_processed', true)
+  .not('parent_message', 'is', null)
+  .is('acknowledged_at', null)
+  .order('created_at', { ascending: false });  .limit(10);
 
         if (alertsError) throw alertsError;
         setAlerts(alertsData || []);
