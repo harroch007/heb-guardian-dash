@@ -63,29 +63,29 @@ const Index = () => {
 
       // Fetch children
       const { data: childrenData, error: childrenError } = await supabase
-        .from('children')
-        .select('*')
-        .eq('parent_id', user?.id)
-        .order('created_at', { ascending: false });
+        .from("children")
+        .select("*")
+        .eq("parent_id", user?.id)
+        .order("created_at", { ascending: false });
 
       if (childrenError) throw childrenError;
 
-      const childIds = childrenData?.map(c => c.id) || [];
+      const childIds = childrenData?.map((c) => c.id) || [];
       let devicesMap: Record<string, Device> = {};
       let alertsCountMap: Record<string, number> = {};
       let settingsMap: Record<string, Settings> = {};
-      
+
       if (childIds.length > 0) {
         // Fetch devices
-        const { data: devicesData } = await supabase
-          .from('devices')
-          .select('*')
-          .in('child_id', childIds);
-        
-        devicesData?.forEach(d => {
+        const { data: devicesData } = await supabase.from("devices").select("*").in("child_id", childIds);
+
+        devicesData?.forEach((d) => {
           if (d.child_id) {
             const existing = devicesMap[d.child_id];
-            if (!existing || (d.last_seen && (!existing.last_seen || new Date(d.last_seen) > new Date(existing.last_seen)))) {
+            if (
+              !existing ||
+              (d.last_seen && (!existing.last_seen || new Date(d.last_seen) > new Date(existing.last_seen)))
+            ) {
               devicesMap[d.child_id] = d;
             }
           }
@@ -93,14 +93,14 @@ const Index = () => {
 
         // Count unacknowledged alerts per child
         const { data: alertsCount } = await supabase
-          .from('alerts')
-          .select('child_id')
-          .in('child_id', childIds)
-          .eq('is_processed', true)
-          .not('parent_message', 'is', null)
-          .is('acknowledged_at', null);
+          .from("alerts")
+          .select("child_id")
+          .in("child_id", childIds)
+          .eq("is_processed", true)
+          .not("parent_message", "is", null)
+          .is("acknowledged_at", null);
 
-        alertsCount?.forEach(a => {
+        alertsCount?.forEach((a) => {
           if (a.child_id) {
             alertsCountMap[a.child_id] = (alertsCountMap[a.child_id] || 0) + 1;
           }
@@ -108,28 +108,29 @@ const Index = () => {
 
         // Fetch settings for screen time limits
         const { data: settingsData } = await supabase
-          .from('settings')
-          .select('child_id, daily_screen_time_limit_minutes')
-          .in('child_id', childIds);
+          .from("settings")
+          .select("child_id, daily_screen_time_limit_minutes")
+          .in("child_id", childIds);
 
-        settingsData?.forEach(s => {
+        settingsData?.forEach((s) => {
           if (s.child_id) {
-            settingsMap[s.child_id] = { 
-              daily_screen_time_limit_minutes: s.daily_screen_time_limit_minutes 
+            settingsMap[s.child_id] = {
+              daily_screen_time_limit_minutes: s.daily_screen_time_limit_minutes,
             };
           }
         });
       }
 
-      const childrenWithDevices: ChildWithDevice[] = childrenData?.map(child => ({
-        ...child,
-        device: devicesMap[child.id],
-        alertsCount: alertsCountMap[child.id] || 0,
-        settings: settingsMap[child.id]
-      })) || [];
+      const childrenWithDevices: ChildWithDevice[] =
+        childrenData?.map((child) => ({
+          ...child,
+          device: devicesMap[child.id],
+          alertsCount: alertsCountMap[child.id] || 0,
+          settings: settingsMap[child.id],
+        })) || [];
 
       setChildren(childrenWithDevices);
-      
+
       // Set first child as selected if none selected
       if (childrenWithDevices.length > 0 && !selectedChildId) {
         setSelectedChildId(childrenWithDevices[0].id);
@@ -137,22 +138,21 @@ const Index = () => {
 
       // Fetch alerts for all children
       if (childIds.length > 0) {
-       const { data: alertsData, error: alertsError } = await supabase
-  .from('alerts')
-  .select('id, parent_message, ai_risk_score, created_at, is_processed, child_id')
-  .in('child_id', childIds)
-  .eq('is_processed', true)
-  .not('parent_message', 'is', null)
-  .is('acknowledged_at', null)
-  .order('created_at', { ascending: false });  .limit(10);
+        const { data: alertsData, error: alertsError } = await supabase
+          .from("alerts")
+          .select("id, parent_message, ai_risk_score, created_at, is_processed, child_id")
+          .in("child_id", childIds)
+          .eq("is_processed", true)
+          .not("parent_message", "is", null)
+          .is("acknowledged_at", null)
+          .order("created_at", { ascending: false });
 
         if (alertsError) throw alertsError;
         setAlerts(alertsData || []);
       }
-
     } catch (err: any) {
-      console.error('Error fetching data:', err);
-      setError(err.message || 'שגיאה בטעינת נתונים');
+      console.error("Error fetching data:", err);
+      setError(err.message || "שגיאה בטעינת נתונים");
     } finally {
       setLoading(false);
     }
@@ -164,8 +164,8 @@ const Index = () => {
     }
   }, [user?.id]);
 
-  const selectedChild = children.find(c => c.id === selectedChildId);
-  const selectedChildAlerts = alerts.filter(a => a.child_id === selectedChildId);
+  const selectedChild = children.find((c) => c.id === selectedChildId);
+  const selectedChildAlerts = alerts.filter((a) => a.child_id === selectedChildId);
 
   return (
     <DashboardLayout>
@@ -190,12 +190,12 @@ const Index = () => {
         ) : children.length > 0 ? (
           <>
             {/* Child Tabs (only shown if multiple children) */}
-            <ChildTabs 
-              children={children.map(c => ({
+            <ChildTabs
+              children={children.map((c) => ({
                 id: c.id,
                 name: c.name,
                 alertsCount: c.alertsCount,
-                device: c.device ? { last_seen: c.device.last_seen } : undefined
+                device: c.device ? { last_seen: c.device.last_seen } : undefined,
               }))}
               selectedChildId={selectedChildId}
               onSelectChild={setSelectedChildId}
@@ -204,7 +204,7 @@ const Index = () => {
             {selectedChild && (
               <div className="space-y-4 animate-fade-in">
                 {/* Quick Status Card */}
-                <QuickStatusCard 
+                <QuickStatusCard
                   device={selectedChild.device}
                   childName={selectedChild.name}
                   childId={selectedChild.id}
@@ -212,24 +212,17 @@ const Index = () => {
                 />
 
                 {/* Screen Time Card */}
-                <ScreenTimeCard 
+                <ScreenTimeCard
                   childId={selectedChild.id}
                   deviceId={selectedChild.device?.device_id}
                   screenTimeLimit={selectedChild.settings?.daily_screen_time_limit_minutes}
                 />
 
                 {/* Alerts Card */}
-                <AlertsCard 
-                  alerts={selectedChildAlerts}
-                  onAlertAcknowledged={fetchData}
-                />
+                <AlertsCard alerts={selectedChildAlerts} onAlertAcknowledged={fetchData} />
 
                 {/* Quick action to view full profile */}
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => navigate(`/child/${selectedChild.id}`)}
-                >
+                <Button variant="outline" className="w-full" onClick={() => navigate(`/child/${selectedChild.id}`)}>
                   צפה בפרופיל המלא של {selectedChild.name}
                 </Button>
               </div>
@@ -239,7 +232,7 @@ const Index = () => {
           <div className="p-8 rounded-xl bg-card border border-border/50 text-center">
             <Users className="w-12 h-12 text-muted-foreground mx-auto mb-3 opacity-50" />
             <p className="text-muted-foreground mb-4">אין ילדים רשומים</p>
-            <Button onClick={() => navigate('/family')} className="gap-2">
+            <Button onClick={() => navigate("/family")} className="gap-2">
               <Plus className="w-4 h-4" />
               הוסף ילד
             </Button>
@@ -249,8 +242,8 @@ const Index = () => {
         {/* Reconnect Modal */}
         <ReconnectChildModal
           childId={reconnectChildId}
-          childName={children.find(c => c.id === reconnectChildId)?.name || ''}
-          parentEmail={user?.email || ''}
+          childName={children.find((c) => c.id === reconnectChildId)?.name || ""}
+          parentEmail={user?.email || ""}
           onClose={() => {
             setReconnectChildId(null);
             fetchData(); // Refresh data after modal closes
