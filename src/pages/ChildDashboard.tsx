@@ -27,7 +27,6 @@ import {
   Trash2,
   Pencil,
   Unplug,
-  RefreshCw,
   AlertTriangle,
 } from "lucide-react";
 import {
@@ -79,7 +78,6 @@ interface RecentAlert {
   created_at: string;
 }
 
-// Locate status type
 type LocateStatus = "idle" | "locating" | "success" | "failed";
 
 export default function ChildDashboard() {
@@ -102,12 +100,10 @@ export default function ChildDashboard() {
   const [screenTimeLimit, setScreenTimeLimit] = useState<number | null>(null);
   const [showReconnectModal, setShowReconnectModal] = useState(false);
 
-  // New locate states
   const [locateStatus, setLocateStatus] = useState<LocateStatus>("idle");
   const [locateCommandId, setLocateCommandId] = useState<string | null>(null);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Calculate age
   const calculateAge = (dateOfBirth: string) => {
     const today = new Date();
     const birthDate = new Date(dateOfBirth);
@@ -119,7 +115,6 @@ export default function ChildDashboard() {
     return age;
   };
 
-  // Get battery color based on level
   const getBatteryColor = (level: number | null) => {
     if (!level) return "text-muted-foreground";
     if (level <= 20) return "text-destructive";
@@ -127,17 +122,14 @@ export default function ChildDashboard() {
     return "text-success";
   };
 
-  // Get status for current device - binary: has device = connected
   const status = getDeviceStatus(device !== null);
 
-  // Fetch child data
   useEffect(() => {
     const fetchData = async () => {
       if (!childId || !user) return;
 
       setLoading(true);
 
-      // Fetch child
       const { data: childData } = await supabase
         .from("children")
         .select("*")
@@ -151,7 +143,6 @@ export default function ChildDashboard() {
       }
       setChild(childData);
 
-      // Fetch device - get the most recently seen device
       const { data: deviceData } = await supabase
         .from("devices")
         .select("*")
@@ -162,7 +153,6 @@ export default function ChildDashboard() {
 
       setDevice(deviceData);
 
-      // Fetch app usage for today
       if (deviceData) {
         const today = new Date().toISOString().split("T")[0];
         const { data: usageData } = await supabase
@@ -176,7 +166,6 @@ export default function ChildDashboard() {
         setAppUsage(usageData || []);
       }
 
-      // Fetch open alerts (same logic as dashboard)
       const { data: alertsData } = await supabase
         .from("alerts")
         .select("id, parent_message, sender_display, sender, category, created_at")
@@ -189,7 +178,6 @@ export default function ChildDashboard() {
 
       setRecentAlerts(alertsData || []);
 
-      // Fetch screen time limit settings
       const { data: settingsData } = await supabase
         .from("settings")
         .select("daily_screen_time_limit_minutes")
@@ -204,9 +192,8 @@ export default function ChildDashboard() {
     };
 
     fetchData();
-  }, [childId, user]);
+  }, [childId, user, navigate]);
 
-  // Real-time device updates
   useEffect(() => {
     if (!device?.device_id) return;
 
@@ -231,7 +218,6 @@ export default function ChildDashboard() {
     };
   }, [device?.device_id]);
 
-  // Cleanup polling on unmount
   useEffect(() => {
     return () => {
       if (pollingRef.current) {
@@ -240,16 +226,14 @@ export default function ChildDashboard() {
     };
   }, []);
 
-  // Polling for locate command status
   useEffect(() => {
     if (!locateCommandId || locateStatus !== "locating") return;
 
     const startTime = Date.now();
-    const TIMEOUT_MS = 2 * 60 * 1000; // 2 minutes
-    const POLL_INTERVAL = 5000; // 5 seconds
+    const TIMEOUT_MS = 2 * 60 * 1000;
+    const POLL_INTERVAL = 5000;
 
     const pollCommand = async () => {
-      // Check command status
       const { data: commandData } = await supabase
         .from("device_commands")
         .select("status")
@@ -257,7 +241,6 @@ export default function ChildDashboard() {
         .single();
 
       if (commandData?.status === "COMPLETED") {
-        // Command completed - fetch new location from devices table
         const { data: updatedDevice } = await supabase
           .from("devices")
           .select("*")
@@ -288,7 +271,6 @@ export default function ChildDashboard() {
         return;
       }
 
-      // Check timeout
       if (Date.now() - startTime > TIMEOUT_MS) {
         setLocateStatus("failed");
         setLocateCommandId(null);
@@ -300,7 +282,6 @@ export default function ChildDashboard() {
         return;
       }
 
-      // Continue polling
       pollingRef.current = setTimeout(pollCommand, POLL_INTERVAL);
     };
 
@@ -311,17 +292,14 @@ export default function ChildDashboard() {
         clearTimeout(pollingRef.current);
       }
     };
-  }, [locateCommandId, locateStatus, device?.device_id]);
+  }, [locateCommandId, locateStatus, device?.device_id, toast]);
 
-  // Send locate command - FIXED VERSION
   const handleLocateNow = async () => {
     if (!device?.device_id) return;
 
-    // Reset previous state
     setLocateStatus("locating");
     setShowMap(false);
 
-    // Create LOCATE_NOW command
     const { data: command, error } = await supabase
       .from("device_commands")
       .insert({
@@ -342,7 +320,6 @@ export default function ChildDashboard() {
       return;
     }
 
-    // Store command ID for polling
     setLocateCommandId(command.id);
 
     toast({
@@ -351,13 +328,12 @@ export default function ChildDashboard() {
     });
   };
 
-  // Delete child
   const handleDeleteChild = async () => {
     if (!childId) return;
 
     setDeleting(true);
 
-    const { data, error } = await supabase.rpc("delete_child_data", {
+    const { error } = await supabase.rpc("delete_child_data", {
       p_child_id: childId,
     });
 
@@ -379,7 +355,6 @@ export default function ChildDashboard() {
     navigate("/family");
   };
 
-  // Disconnect device from child
   const handleDisconnectDevice = async () => {
     if (!device?.device_id) return;
 
@@ -406,7 +381,6 @@ export default function ChildDashboard() {
     setDisconnecting(false);
   };
 
-  // Format time for alerts
   const formatTimeAgo = (dateString: string) => {
     const diff = new Date().getTime() - new Date(dateString).getTime();
     const mins = Math.floor(diff / 60000);
@@ -417,7 +391,6 @@ export default function ChildDashboard() {
     return `לפני ${Math.floor(hours / 24)} ימים`;
   };
 
-  // Get locate button content
   const getLocateButtonContent = () => {
     switch (locateStatus) {
       case "locating":
@@ -457,7 +430,6 @@ export default function ChildDashboard() {
   return (
     <DashboardLayout>
       <div className="p-4 sm:p-6 md:p-8">
-        {/* Header */}
         <div className="flex items-center gap-4 mb-6">
           <Button variant="ghost" size="icon" onClick={() => navigate("/family")} className="shrink-0">
             <ArrowRight className="w-5 h-5" />
@@ -495,7 +467,6 @@ export default function ChildDashboard() {
             )}
           </div>
 
-          {/* Edit Child Button */}
           <Button
             variant="ghost"
             size="icon"
@@ -505,7 +476,6 @@ export default function ChildDashboard() {
             <Pencil className="w-5 h-5" />
           </Button>
 
-          {/* Delete Child Button */}
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button
@@ -542,7 +512,6 @@ export default function ChildDashboard() {
         </div>
 
         {!device ? (
-          /* No device connected */
           <Card className="border-muted/30 bg-muted/5">
             <CardContent className="py-12 text-center">
               <div className="relative inline-block mb-6">
@@ -561,7 +530,6 @@ export default function ChildDashboard() {
           </Card>
         ) : (
           <div className="space-y-4">
-            {/* Status Card */}
             <Card className="border-primary/20">
               <CardContent className="p-6">
                 <div className="flex items-center gap-4">
@@ -593,7 +561,6 @@ export default function ChildDashboard() {
                         <span className="text-sm font-medium">{device.battery_level}%</span>
                       </div>
                     )}
-                    {/* Disconnect Device Button */}
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button
@@ -630,7 +597,6 @@ export default function ChildDashboard() {
               </CardContent>
             </Card>
 
-            {/* Location Card */}
             <Card>
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
@@ -649,7 +615,6 @@ export default function ChildDashboard() {
                 </div>
               </CardHeader>
               <CardContent>
-                {/* Device not responding warning */}
                 {locateStatus === "failed" && (
                   <div className="mb-3 p-3 rounded-lg bg-destructive/10 border border-destructive/30 flex items-center gap-2">
                     <AlertTriangle className="w-5 h-5 text-destructive shrink-0" />
@@ -659,7 +624,6 @@ export default function ChildDashboard() {
                   </div>
                 )}
 
-                {/* Locating spinner */}
                 {locateStatus === "locating" && (
                   <div className="mb-3 p-4 rounded-lg bg-primary/5 border border-primary/20 flex flex-col items-center gap-2">
                     <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -687,7 +651,7 @@ export default function ChildDashboard() {
                             העתק
                           </Button>
                           <Button variant="outline" size="sm" className="flex-1 text-xs sm:text-sm" asChild>
-                            
+                            <a
                               href={`https://www.google.com/maps/search/?api=1&query=${device.latitude},${device.longitude}`}
                               target="_blank"
                               rel="noopener noreferrer"
@@ -709,7 +673,6 @@ export default function ChildDashboard() {
               </CardContent>
             </Card>
 
-            {/* Screen Time Card */}
             <ScreenTimeCard
               appUsage={appUsage}
               showChart={true}
@@ -717,7 +680,6 @@ export default function ChildDashboard() {
               onSettingsClick={() => setShowScreenTimeLimitModal(true)}
             />
 
-            {/* Recent Alerts Card */}
             <Card>
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
@@ -769,7 +731,6 @@ export default function ChildDashboard() {
           </div>
         )}
 
-        {/* QR Modal */}
         {showQRModal && child && (
           <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
             <div className="bg-card border border-border rounded-xl shadow-xl max-w-md w-full p-6">
@@ -784,7 +745,6 @@ export default function ChildDashboard() {
           </div>
         )}
 
-        {/* Edit Child Modal */}
         {child && (
           <EditChildModal
             child={child}
@@ -794,7 +754,6 @@ export default function ChildDashboard() {
           />
         )}
 
-        {/* Screen Time Limit Modal */}
         {child && (
           <ScreenTimeLimitModal
             childId={child.id}
@@ -806,7 +765,6 @@ export default function ChildDashboard() {
           />
         )}
 
-        {/* Reconnect Child Modal */}
         {child && user?.email && (
           <ReconnectChildModal
             childId={showReconnectModal ? child.id : null}
