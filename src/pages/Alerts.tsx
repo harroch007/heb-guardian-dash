@@ -11,6 +11,7 @@ interface Alert {
   child_name?: string;
   sender: string | null;
   sender_display: string | null;
+  chat_type: string | null;
   parent_message: string | null;
   suggested_action: string | null;
   category: string | null;
@@ -21,6 +22,7 @@ interface Alert {
   created_at: string;
   is_processed: boolean;
   acknowledged_at?: string | null;
+  remind_at?: string | null;
 }
 
 const AlertsPage = () => {
@@ -38,6 +40,7 @@ const AlertsPage = () => {
           child_id,
           sender,
           sender_display,
+          chat_type,
           parent_message,
           suggested_action,
           category,
@@ -48,10 +51,12 @@ const AlertsPage = () => {
           created_at,
           is_processed,
           acknowledged_at,
+          remind_at,
           children!child_id(name)
         `)
         .is('acknowledged_at', null)
         .eq('is_processed', true)
+        .or(`remind_at.is.null,remind_at.lt.${new Date().toISOString()}`)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -147,11 +152,30 @@ const AlertsPage = () => {
     }
   };
 
-  const handleRemindLater = (id: number) => {
-    toast({
-      title: "תזכורת נשמרה",
-      description: "נזכיר לך מאוחר יותר",
-    });
+  const handleRemindLater = async (id: number) => {
+    try {
+      const remindAt = new Date();
+      remindAt.setHours(remindAt.getHours() + 3);
+      
+      const { error } = await supabase
+        .from('alerts')
+        .update({ remind_at: remindAt.toISOString() })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setAlerts(prev => prev.filter(alert => alert.id !== id));
+      toast({
+        title: "תזכורת נשמרה",
+        description: "נזכיר לך בעוד 3 שעות",
+      });
+    } catch (err: any) {
+      toast({
+        title: "שגיאה",
+        description: err.message || "לא ניתן לשמור תזכורת",
+        variant: "destructive",
+      });
+    }
   };
 
   useEffect(() => {

@@ -9,6 +9,7 @@ interface Alert {
   child_name?: string;
   sender: string | null;
   sender_display: string | null;
+  chat_type: string | null;
   parent_message: string | null;
   suggested_action: string | null;
   category: string | null;
@@ -53,7 +54,7 @@ const getVerdictDisplay = (verdict: string | null) => {
     case 'notify':
       return { label: 'דחוף', emoji: '🔴', bg: 'bg-destructive/20 text-destructive' };
     default:
-      return { label: 'ממתין', emoji: '⏳', bg: 'bg-muted/30 text-muted-foreground' };
+      return { label: 'בניתוח...', emoji: '⏳', bg: 'bg-muted/30 text-muted-foreground' };
   }
 };
 
@@ -153,7 +154,9 @@ export const AlertCard = forwardRef<HTMLDivElement, AlertCardProps>(function Ale
         <div className="flex items-center gap-2 mb-3">
           <MessageSquare className="w-3.5 h-3.5 text-muted-foreground" />
           <span className="text-sm text-muted-foreground">
-            השיחה עם: <span className="font-medium text-foreground">{alert.sender_display || alert.sender}</span>
+            {alert.chat_type === 'GROUP' 
+              ? `בקבוצת "${alert.sender_display || alert.sender}"` 
+              : `בשיחה עם ${alert.sender_display || alert.sender}`}
           </span>
         </div>
       )}
