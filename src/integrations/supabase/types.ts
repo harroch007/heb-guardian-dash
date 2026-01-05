@@ -291,6 +291,50 @@ export type Database = {
           },
         ]
       }
+      device_daily_health: {
+        Row: {
+          check_date: string | null
+          checks_responded: number | null
+          checks_sent: number | null
+          created_at: string | null
+          device_id: string | null
+          id: string
+          last_lat: number | null
+          last_lon: number | null
+          last_response_at: string | null
+        }
+        Insert: {
+          check_date?: string | null
+          checks_responded?: number | null
+          checks_sent?: number | null
+          created_at?: string | null
+          device_id?: string | null
+          id?: string
+          last_lat?: number | null
+          last_lon?: number | null
+          last_response_at?: string | null
+        }
+        Update: {
+          check_date?: string | null
+          checks_responded?: number | null
+          checks_sent?: number | null
+          created_at?: string | null
+          device_id?: string | null
+          id?: string
+          last_lat?: number | null
+          last_lon?: number | null
+          last_response_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_daily_health_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["device_id"]
+          },
+        ]
+      }
       device_events: {
         Row: {
           child_id: string | null
@@ -336,32 +380,9 @@ export type Database = {
           },
         ]
       }
-      device_status: {
-        Row: {
-          battery: number | null
-          device_id: string
-          latitude: number | null
-          longitude: number | null
-          updated_at: string | null
-        }
-        Insert: {
-          battery?: number | null
-          device_id: string
-          latitude?: number | null
-          longitude?: number | null
-          updated_at?: string | null
-        }
-        Update: {
-          battery?: number | null
-          device_id?: string
-          latitude?: number | null
-          longitude?: number | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
       devices: {
         Row: {
+          address: string | null
           battery_level: number | null
           child_id: string | null
           created_at: string | null
@@ -371,6 +392,7 @@ export type Database = {
           longitude: number | null
         }
         Insert: {
+          address?: string | null
           battery_level?: number | null
           child_id?: string | null
           created_at?: string | null
@@ -380,6 +402,7 @@ export type Database = {
           longitude?: number | null
         }
         Update: {
+          address?: string | null
           battery_level?: number | null
           child_id?: string | null
           created_at?: string | null
@@ -593,6 +616,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_unresponsive_devices: { Args: never; Returns: undefined }
       cleanup_old_data: { Args: never; Returns: Json }
       connect_child_device: {
         Args: {
@@ -615,6 +639,14 @@ export type Database = {
           p_source: string
         }
         Returns: number
+      }
+      create_permission_alert: {
+        Args: {
+          p_alert_message: string
+          p_device_id: string
+          p_missing_permissions: string
+        }
+        Returns: undefined
       }
       delete_all_my_data: { Args: never; Returns: Json }
       delete_child_data: { Args: { p_child_id: string }; Returns: Json }
@@ -651,9 +683,15 @@ export type Database = {
         }
         Returns: Json
       }
+      send_locate_to_all_devices: { Args: never; Returns: undefined }
       update_device_location: {
-        Args: { p_device_id: string; p_lat: number; p_lon: number }
-        Returns: Json
+        Args: {
+          p_address?: string
+          p_device_id: string
+          p_lat: number
+          p_lon: number
+        }
+        Returns: undefined
       }
       update_device_settings: {
         Args: { p_device_id: string; p_settings: Json }

@@ -61,6 +61,7 @@ interface Device {
   latitude: number | null;
   longitude: number | null;
   last_seen: string | null;
+  address: string | null;
 }
 
 interface AppUsage {
@@ -663,7 +664,9 @@ export default function ChildDashboard() {
                         </div>
                       </div>
                     )}
-                    {!showMap && locateStatus !== "failed" && <p className="text-sm text-foreground">מיקום ידוע</p>}
+                    {!showMap && locateStatus !== "failed" && (
+                      <p className="text-sm text-foreground">{device.address || "מיקום ידוע"}</p>
+                    )}
                     <p className="text-xs text-muted-foreground mt-1">עודכן: {formatLastSeen(device.last_seen)}</p>
                   </>
                 ) : (
