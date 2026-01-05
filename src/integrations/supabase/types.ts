@@ -36,10 +36,12 @@ export type Database = {
           created_at: string
           device_id: string | null
           escalate: boolean | null
+          expert_type: string | null
           id: number
           is_processed: boolean | null
           message_count: number | null
           parent_message: string | null
+          remind_at: string | null
           risk_score: number | null
           sender: string | null
           sender_display: string | null
@@ -69,10 +71,12 @@ export type Database = {
           created_at?: string
           device_id?: string | null
           escalate?: boolean | null
+          expert_type?: string | null
           id?: number
           is_processed?: boolean | null
           message_count?: number | null
           parent_message?: string | null
+          remind_at?: string | null
           risk_score?: number | null
           sender?: string | null
           sender_display?: string | null
@@ -102,10 +106,12 @@ export type Database = {
           created_at?: string
           device_id?: string | null
           escalate?: boolean | null
+          expert_type?: string | null
           id?: number
           is_processed?: boolean | null
           message_count?: number | null
           parent_message?: string | null
+          remind_at?: string | null
           risk_score?: number | null
           sender?: string | null
           sender_display?: string | null
