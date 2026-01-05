@@ -56,13 +56,18 @@ const AlertsPage = () => {
         `)
         .is('acknowledged_at', null)
         .eq('is_processed', true)
-        .or(`remind_at.is.null,remind_at.lt.${new Date().toISOString()}`)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
       
+      // Filter remind_at in JavaScript (PostgREST doesn't support now())
+      const now = new Date();
+      const filteredData = data?.filter(alert => 
+        !alert.remind_at || new Date(alert.remind_at) < now
+      ) || [];
+      
       // Transform data to flatten child name
-      const transformedData = (data || []).map(alert => ({
+      const transformedData = filteredData.map(alert => ({
         ...alert,
         child_name: (alert.children as any)?.name || 'לא ידוע',
         children: undefined,
