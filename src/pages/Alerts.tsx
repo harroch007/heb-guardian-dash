@@ -11,6 +11,7 @@ interface Alert {
   child_name?: string;
   sender: string | null;
   sender_display: string | null;
+  chat_name: string | null;
   chat_type: string | null;
   parent_message: string | null;
   suggested_action: string | null;
@@ -40,6 +41,7 @@ const AlertsPage = () => {
           child_id,
           sender,
           sender_display,
+          chat_name,
           chat_type,
           parent_message,
           suggested_action,
