@@ -75,11 +75,21 @@ const getCardStylesByVerdict = (verdict: string | null, isProcessed: boolean) =>
   }
 };
 
+const normalizeName = (value?: string | null) => {
+  if (!value) return 'לא ידוע';
+  return value
+    .replace(/[\u200E\u200F\u202A-\u202E\u2066-\u2069]/g, '')
+    .replace(/^~\s*/, '')
+    .trim();
+};
+
 const getChatDisplayName = (alert: Alert) => {
-  const name = alert.chat_name || alert.sender_display || alert.sender || 'לא ידוע';
+  const name = normalizeName(alert.chat_name);
+
   if (alert.chat_type === 'GROUP') {
     return `בקבוצת "${name}"`;
   }
+
   return `בשיחה עם ${name}`;
 };
 
