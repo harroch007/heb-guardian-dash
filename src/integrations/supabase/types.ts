@@ -29,9 +29,12 @@ export type Database = {
           ai_summary: string | null
           ai_verdict: string | null
           analyzed_at: string | null
+          author_type: string | null
           category: string | null
+          chat_name: string | null
           chat_type: string | null
           child_id: string | null
+          child_role: string | null
           content: string | null
           created_at: string
           device_id: string | null
@@ -64,9 +67,12 @@ export type Database = {
           ai_summary?: string | null
           ai_verdict?: string | null
           analyzed_at?: string | null
+          author_type?: string | null
           category?: string | null
+          chat_name?: string | null
           chat_type?: string | null
           child_id?: string | null
+          child_role?: string | null
           content?: string | null
           created_at?: string
           device_id?: string | null
@@ -99,9 +105,12 @@ export type Database = {
           ai_summary?: string | null
           ai_verdict?: string | null
           analyzed_at?: string | null
+          author_type?: string | null
           category?: string | null
+          chat_name?: string | null
           chat_type?: string | null
           child_id?: string | null
+          child_role?: string | null
           content?: string | null
           created_at?: string
           device_id?: string | null

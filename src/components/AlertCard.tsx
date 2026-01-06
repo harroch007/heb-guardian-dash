@@ -9,6 +9,7 @@ interface Alert {
   child_name?: string;
   sender: string | null;
   sender_display: string | null;
+  chat_name: string | null;
   chat_type: string | null;
   parent_message: string | null;
   suggested_action: string | null;
@@ -72,6 +73,14 @@ const getCardStylesByVerdict = (verdict: string | null, isProcessed: boolean) =>
     default:
       return 'bg-muted/5 border-muted/30 hover:border-muted/50';
   }
+};
+
+const getChatDisplayName = (alert: Alert) => {
+  const name = alert.chat_name || alert.sender_display || alert.sender || 'לא ידוע';
+  if (alert.chat_type === 'GROUP') {
+    return `בקבוצת "${name}"`;
+  }
+  return `בשיחה עם ${name}`;
 };
 
 export const AlertCard = forwardRef<HTMLDivElement, AlertCardProps>(function AlertCard(
@@ -150,13 +159,11 @@ export const AlertCard = forwardRef<HTMLDivElement, AlertCardProps>(function Ale
       </div>
 
       {/* Contact Name (sender) */}
-      {alert.sender && (
+      {(alert.chat_name || alert.sender) && (
         <div className="flex items-center gap-2 mb-3">
           <MessageSquare className="w-3.5 h-3.5 text-muted-foreground" />
           <span className="text-sm text-muted-foreground">
-            {alert.chat_type === 'GROUP' 
-              ? `בקבוצת "${alert.sender_display || alert.sender}"` 
-              : `בשיחה עם ${alert.sender_display || alert.sender}`}
+            {getChatDisplayName(alert)}
           </span>
         </div>
       )}
