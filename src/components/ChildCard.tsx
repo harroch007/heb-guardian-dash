@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { User, Calendar, ChevronLeft, Smartphone } from 'lucide-react';
+import { User, Calendar, ChevronLeft, Smartphone, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { getDeviceStatus, getStatusColor, getStatusLabel, formatLastSeen } from '@/lib/deviceStatus';
@@ -85,14 +85,30 @@ export function ChildCard({ child, style, onConnectDevice }: ChildCardProps) {
   return (
     <Card 
       onClick={() => navigate(`/child/${child.id}`)}
-      className="border-primary/20 bg-card/80 backdrop-blur-sm hover:border-primary/40 transition-all duration-300 animate-fade-in opacity-0 group hover:glow-primary cursor-pointer"
+      className={cn(
+        "bg-card/80 backdrop-blur-sm transition-all duration-300 animate-fade-in opacity-0 group cursor-pointer",
+        device ? "border-primary/20 hover:border-primary/40 hover:glow-primary" : "border-orange-500/50 hover:border-orange-500/70"
+      )}
       style={style}
     >
       <CardContent className="p-6">
+        {/* Alert Banner for disconnected device */}
+        {!loadingDevice && !device && (
+          <div className="flex items-center gap-2 mb-4 px-3 py-2 rounded-lg bg-orange-500/10 border border-orange-500/30 text-orange-400">
+            <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+            <span className="text-xs font-medium">מכשיר לא מחובר</span>
+          </div>
+        )}
+
         {/* Avatar & Name */}
         <div className="flex items-start gap-4 mb-4">
-          <div className="p-3 rounded-xl bg-primary/10 border border-primary/30 group-hover:animate-glow-pulse">
-            <User className="w-8 h-8 text-primary" />
+          <div className={cn(
+            "p-3 rounded-xl border group-hover:animate-glow-pulse",
+            device 
+              ? "bg-primary/10 border-primary/30" 
+              : "bg-orange-500/10 border-orange-500/30"
+          )}>
+            <User className={cn("w-8 h-8", device ? "text-primary" : "text-orange-400")} />
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="text-lg font-bold text-foreground truncate">
