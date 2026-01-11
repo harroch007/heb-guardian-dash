@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { DashboardGreeting } from "@/components/dashboard/DashboardGreeting";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Users, CheckCircle2, Eye } from "lucide-react";
+import { Plus, Users, CheckCircle2, Eye, User } from "lucide-react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -96,15 +97,27 @@ const Index = () => {
               <div className="flex items-center gap-3">
                 <span className="text-sm text-muted-foreground">מציג נתונים עבור:</span>
                 <Select value={selectedChildId} onValueChange={setSelectedChildId}>
-                  <SelectTrigger className="w-auto min-w-[120px] h-9 px-4 rounded-full bg-card border-border/50 text-sm font-medium">
-                    <SelectValue>
-                      {selectedChild.name} ({selectedChild.age})*
-                    </SelectValue>
+                  <SelectTrigger className="w-auto min-w-[140px] h-9 px-3 rounded-full bg-card border-border/50 text-sm font-medium">
+                    <div className="flex items-center gap-2">
+                      <Avatar className="w-6 h-6">
+                        <AvatarFallback className="bg-muted">
+                          <User className="w-3.5 h-3.5 text-muted-foreground" />
+                        </AvatarFallback>
+                      </Avatar>
+                      <span>{selectedChild.name} ({selectedChild.age})*</span>
+                    </div>
                   </SelectTrigger>
                   <SelectContent className="bg-popover border-border z-50">
                     {mockChildren.map((child) => (
                       <SelectItem key={child.id} value={child.id} className="text-sm">
-                        {child.name} ({child.age})*
+                        <div className="flex items-center gap-2">
+                          <Avatar className="w-6 h-6">
+                            <AvatarFallback className="bg-muted">
+                              <User className="w-3.5 h-3.5 text-muted-foreground" />
+                            </AvatarFallback>
+                          </Avatar>
+                          <span>{child.name} ({child.age})*</span>
+                        </div>
                       </SelectItem>
                     ))}
                   </SelectContent>
