@@ -2,12 +2,19 @@ import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { User, Calendar, ChevronLeft, Smartphone, AlertTriangle } from 'lucide-react';
+import { User, Calendar, ChevronLeft, Smartphone, AlertTriangle, MoreVertical, Pencil, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { getDeviceStatus, getStatusColor, getStatusLabel, formatLastSeen } from '@/lib/deviceStatus';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
-interface Child {
+export interface Child {
   id: string;
   name: string;
   phone_number: string;
@@ -26,9 +33,11 @@ interface ChildCardProps {
   child: Child;
   style?: React.CSSProperties;
   onConnectDevice?: (childId: string, childName: string) => void;
+  onEditChild?: (child: Child) => void;
+  onDeleteChild?: (childId: string, childName: string) => void;
 }
 
-export function ChildCard({ child, style, onConnectDevice }: ChildCardProps) {
+export function ChildCard({ child, style, onConnectDevice, onEditChild, onDeleteChild }: ChildCardProps) {
   const navigate = useNavigate();
   const [device, setDevice] = useState<Device | null>(null);
   const [loadingDevice, setLoadingDevice] = useState(true);
@@ -100,33 +109,83 @@ export function ChildCard({ child, style, onConnectDevice }: ChildCardProps) {
           </div>
         )}
 
-        {/* Avatar & Name */}
-        <div className="flex items-start gap-4 mb-4">
-          <div className={cn(
-            "p-3 rounded-xl border group-hover:animate-glow-pulse",
-            device 
-              ? "bg-primary/10 border-primary/30" 
-              : "bg-orange-500/10 border-orange-500/30"
-          )}>
-            <User className={cn("w-8 h-8", device ? "text-primary" : "text-orange-400")} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="text-lg font-bold text-foreground truncate">
-              {child.name}
-            </h3>
-            <div className="flex items-center gap-2 mt-1">
-              <span className={cn(
-                "text-xs px-2 py-0.5 rounded-full border",
-                getGenderColor(child.gender)
-              )}>
-                {getGenderLabel(child.gender)}
-              </span>
-              <span className="text-muted-foreground text-sm">
-                {age} שנים
-              </span>
+        {/* Header with Actions Menu */}
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-start gap-4 flex-1 min-w-0">
+            <div className={cn(
+              "p-3 rounded-xl border group-hover:animate-glow-pulse",
+              device 
+                ? "bg-primary/10 border-primary/30" 
+                : "bg-orange-500/10 border-orange-500/30"
+            )}>
+              <User className={cn("w-8 h-8", device ? "text-primary" : "text-orange-400")} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-lg font-bold text-foreground truncate">
+                {child.name}
+              </h3>
+              <div className="flex items-center gap-2 mt-1">
+                <span className={cn(
+                  "text-xs px-2 py-0.5 rounded-full border",
+                  getGenderColor(child.gender)
+                )}>
+                  {getGenderLabel(child.gender)}
+                </span>
+                <span className="text-muted-foreground text-sm">
+                  {age} שנים
+                </span>
+              </div>
             </div>
           </div>
-          <ChevronLeft className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+
+          {/* Actions Menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MoreVertical className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-40">
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEditChild?.(child);
+                }}
+                className="gap-2"
+              >
+                <Pencil className="w-4 h-4" />
+                ערוך פרטים
+              </DropdownMenuItem>
+              {!device && (
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onConnectDevice?.(child.id, child.name);
+                  }}
+                  className="gap-2"
+                >
+                  <Smartphone className="w-4 h-4" />
+                  חבר מכשיר
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDeleteChild?.(child.id, child.name);
+                }}
+                className="gap-2 text-destructive focus:text-destructive"
+              >
+                <Trash2 className="w-4 h-4" />
+                מחק ילד
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {/* Details */}
