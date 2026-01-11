@@ -20,20 +20,8 @@ interface Child {
   id: string;
   name: string;
   parent_id: string;
+  date_of_birth: string;
 }
-
-// TODO(DATA): replace children list + selected child with real data
-interface MockChild {
-  id: string;
-  name: string;
-  age: number;
-}
-
-const mockChildren: MockChild[] = [
-  { id: "1", name: "דני", age: 8 },
-  { id: "2", name: "מיכל", age: 12 },
-  { id: "3", name: "יואב", age: 5 },
-];
 
 const Index = () => {
   const navigate = useNavigate();
@@ -42,9 +30,26 @@ const Index = () => {
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
 
-  // TODO(DATA): replace with real selected child from context/data
-  const [selectedChildId, setSelectedChildId] = useState<string>(mockChildren[0].id);
-  const selectedChild = mockChildren.find(c => c.id === selectedChildId) || mockChildren[0];
+  const [selectedChildId, setSelectedChildId] = useState<string>("");
+
+  useEffect(() => {
+    if (children.length > 0 && !selectedChildId) {
+      setSelectedChildId(children[0].id);
+    }
+  }, [children, selectedChildId]);
+
+  const selectedChild = children.find(c => c.id === selectedChildId);
+
+  const calculateAge = (dateOfBirth: string): number => {
+    const today = new Date();
+    const birthDate = new Date(dateOfBirth);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  };
 
   const fetchData = async () => {
     try {
@@ -53,7 +58,7 @@ const Index = () => {
 
       const { data: childrenData, error: childrenError } = await supabase
         .from("children")
-        .select("id, name, parent_id")
+        .select("id, name, parent_id, date_of_birth")
         .eq("parent_id", user?.id)
         .order("created_at", { ascending: false });
 
@@ -92,8 +97,7 @@ const Index = () => {
         ) : children.length > 0 ? (
           <div className="space-y-6 animate-fade-in">
             {/* Child Selector - shown only when more than 1 child */}
-            {/* TODO(DATA): replace children list + selected child with real data */}
-            {mockChildren.length > 1 && (
+            {children.length > 1 && selectedChild && (
               <div className="flex items-center gap-3">
                 <span className="text-sm text-muted-foreground">מציג נתונים עבור:</span>
                 <Select value={selectedChildId} onValueChange={setSelectedChildId}>
@@ -104,11 +108,14 @@ const Index = () => {
                           <User className="w-3.5 h-3.5 text-muted-foreground" />
                         </AvatarFallback>
                       </Avatar>
-                      <span>{selectedChild.name} ({selectedChild.age})*</span>
+                      <span>
+                        {selectedChild.name}
+                        {selectedChild.date_of_birth && ` (${calculateAge(selectedChild.date_of_birth)})`}
+                      </span>
                     </div>
                   </SelectTrigger>
                   <SelectContent className="bg-popover border-border z-50">
-                    {mockChildren.map((child) => (
+                    {children.map((child) => (
                       <SelectItem key={child.id} value={child.id} className="text-sm">
                         <div className="flex items-center gap-2">
                           <Avatar className="w-6 h-6">
@@ -116,7 +123,10 @@ const Index = () => {
                               <User className="w-3.5 h-3.5 text-muted-foreground" />
                             </AvatarFallback>
                           </Avatar>
-                          <span>{child.name} ({child.age})*</span>
+                          <span>
+                            {child.name}
+                            {child.date_of_birth && ` (${calculateAge(child.date_of_birth)})`}
+                          </span>
                         </div>
                       </SelectItem>
                     ))}
