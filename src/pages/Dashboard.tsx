@@ -68,46 +68,58 @@ const Index = () => {
           <div className="space-y-6 animate-fade-in">
             {/* Hero Card - State A: Calm Day */}
             <Card className="bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border-emerald-500/20 shadow-lg shadow-emerald-500/5 rounded-2xl">
-              <CardContent className="p-8 sm:p-10 text-center">
+              <CardContent className="p-8 sm:p-10 text-center relative">
+                {/* Small family management link - top right */}
+                <button 
+                  onClick={() => navigate("/family")}
+                  className="absolute top-4 right-4 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  ניהול משפחה
+                </button>
+                
                 <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-emerald-500/15 flex items-center justify-center">
                   <CheckCircle2 className="w-8 h-8 text-emerald-500" />
                 </div>
                 <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-3">
                   היום עבר בצורה תקינה
                 </h2>
-                <p className="text-muted-foreground text-base sm:text-lg leading-relaxed">
+                <p className="text-muted-foreground text-base sm:text-lg leading-relaxed mb-6">
                   קיפי לא זיהה מצבים שדורשים התערבות הורית
                 </p>
+                
+                {/* Subtle CTA */}
+                <button className="text-sm text-emerald-600 hover:text-emerald-700 font-medium transition-colors">
+                  לצפייה בדוח היומי ←
+                </button>
               </CardContent>
             </Card>
 
             {/* Hero Card - State B: Attention Needed (commented for reference)
             <Card className="bg-gradient-to-br from-orange-500/10 to-amber-500/5 border-orange-400/20 shadow-lg shadow-orange-500/5 rounded-2xl">
-              <CardContent className="p-8 sm:p-10 text-center">
+              <CardContent className="p-8 sm:p-10 text-center relative">
+                <button 
+                  onClick={() => navigate("/family")}
+                  className="absolute top-4 right-4 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  ניהול משפחה
+                </button>
+                
                 <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-orange-500/15 flex items-center justify-center">
                   <Eye className="w-8 h-8 text-orange-500" />
                 </div>
                 <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-3">
                   יש נושא אחד שכדאי לשים לב אליו
                 </h2>
-                <p className="text-muted-foreground text-base sm:text-lg leading-relaxed mb-4">
+                <p className="text-muted-foreground text-base sm:text-lg leading-relaxed mb-6">
                   קיפי הכין לך הסבר ברור ולא שיפוטי
                 </p>
-                <span className="text-orange-500 font-medium cursor-pointer hover:underline">
-                  לצפייה
-                </span>
+                
+                <button className="text-sm text-orange-600 hover:text-orange-700 font-medium transition-colors">
+                  לצפייה בדוח היומי ←
+                </button>
               </CardContent>
             </Card>
             */}
-
-            <Button 
-              variant="outline" 
-              className="w-full" 
-              onClick={() => navigate("/family")}
-            >
-              <Users className="w-4 h-4 ml-2" />
-              לניהול המשפחה
-            </Button>
           </div>
         ) : (
           <div className="p-8 rounded-2xl bg-card border border-border/50 text-center">
