@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { AlertCard } from "@/components/AlertCard";
 import { supabase } from "@/integrations/supabase/client";
-import { MessageCircle, Filter, RefreshCw, Trash2 } from "lucide-react";
+import { Bell, RefreshCw } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface Alert {
@@ -29,7 +29,8 @@ interface Alert {
 const AlertsPage = () => {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'urgent' | 'important' | 'attention'>('all');
+  // TODO(DATA): in_progress and closed filters are UI-only - no status field exists
+  const [filter, setFilter] = useState<'all' | 'open' | 'in_progress' | 'closed'>('all');
 
   const fetchAlerts = async () => {
     try {
@@ -56,7 +57,6 @@ const AlertsPage = () => {
           remind_at,
           children!child_id(name)
         `)
-        .is('acknowledged_at', null)
         .eq('is_processed', true)
         .order('created_at', { ascending: false });
 
@@ -71,7 +71,7 @@ const AlertsPage = () => {
       // Transform data to flatten child name
       const transformedData = filteredData.map(alert => ({
         ...alert,
-        child_name: (alert.children as any)?.name || 'לא ידוע',
+        child_name: (alert.children as any)?.name || undefined,
         children: undefined,
         sender_display: alert.sender_display ?? null
       }));
@@ -88,54 +88,6 @@ const AlertsPage = () => {
     }
   };
 
-  const deleteAlert = async (id: number) => {
-    try {
-      const { error } = await supabase
-        .from('alerts')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-
-      setAlerts(prev => prev.filter(alert => alert.id !== id));
-      toast({
-        title: "ההתראה נמחקה",
-        description: "ההתראה הוסרה בהצלחה מהמערכת",
-      });
-    } catch (err: any) {
-      toast({
-        title: "שגיאה",
-        description: err.message || "לא ניתן למחוק את ההתראה",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const deleteAllAlerts = async () => {
-    if (!confirm('האם אתה בטוח שברצונך למחוק את כל ההתראות?')) return;
-
-    try {
-      const { error } = await supabase
-        .from('alerts')
-        .delete()
-        .neq('id', 0);
-
-      if (error) throw error;
-
-      setAlerts([]);
-      toast({
-        title: "כל ההתראות נמחקו",
-        description: "כל ההתראות הוסרו בהצלחה מהמערכת",
-      });
-    } catch (err: any) {
-      toast({
-        title: "שגיאה",
-        description: err.message || "לא ניתן למחוק את ההתראות",
-        variant: "destructive",
-      });
-    }
-  };
-
   const handleAcknowledge = async (id: number) => {
     try {
       const { error } = await supabase
@@ -148,7 +100,7 @@ const AlertsPage = () => {
       setAlerts(prev => prev.filter(alert => alert.id !== id));
       toast({
         title: "תודה!",
-        description: "ההודעה סומנה כנקראה",
+        description: "ההתראה סומנה כטופלה",
       });
     } catch (err: any) {
       toast({
@@ -159,134 +111,95 @@ const AlertsPage = () => {
     }
   };
 
-  const handleRemindLater = async (id: number) => {
-    try {
-      const remindAt = new Date();
-      remindAt.setHours(remindAt.getHours() + 3);
-      
-      const { error } = await supabase
-        .from('alerts')
-        .update({ remind_at: remindAt.toISOString() })
-        .eq('id', id);
-
-      if (error) throw error;
-
-      setAlerts(prev => prev.filter(alert => alert.id !== id));
-      toast({
-        title: "תזכורת נשמרה",
-        description: "נזכיר לך בעוד 3 שעות",
-      });
-    } catch (err: any) {
-      toast({
-        title: "שגיאה",
-        description: err.message || "לא ניתן לשמור תזכורת",
-        variant: "destructive",
-      });
-    }
-  };
-
   useEffect(() => {
     fetchAlerts();
   }, []);
 
   const filteredAlerts = alerts.filter(alert => {
-    const verdict = alert.ai_verdict;
-    if (filter === 'urgent') return verdict === 'notify';
-    if (filter === 'important') return verdict === 'review';
-    if (filter === 'attention') return verdict === 'monitor';
+    if (filter === 'all') return true;
+    if (filter === 'open') return !alert.acknowledged_at;
+    // TODO(DATA): in_progress requires a status field that doesn't exist
+    if (filter === 'in_progress') return false;
+    // closed = acknowledged
+    if (filter === 'closed') return !!alert.acknowledged_at;
     return true;
   });
+
+  const filterOptions = [
+    { key: 'all', label: 'הכל' },
+    { key: 'open', label: 'פתוחות' },
+    // TODO(DATA): in_progress requires status field
+    { key: 'in_progress', label: 'בטיפול*' },
+    // TODO(DATA): closed uses acknowledged_at as proxy
+    { key: 'closed', label: 'נסגרו*' },
+  ];
 
   return (
     <DashboardLayout>
       {/* Header */}
-      <div className="mb-8">
+      <div className="mb-6">
         <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10 glow-primary">
-              <MessageCircle className="w-6 h-6 text-primary" />
-            </div>
-            <h1 className="text-2xl md:text-3xl font-bold text-foreground text-glow">
-              עדכונים מ-Kippy
-            </h1>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={fetchAlerts}
-              disabled={loading}
-              className="p-2 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary transition-all glow-primary disabled:opacity-50"
-            >
-              <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
-            </button>
-            {alerts.length > 0 && (
-              <button
-                onClick={deleteAllAlerts}
-                className="p-2 rounded-lg bg-destructive/10 hover:bg-destructive/20 text-destructive transition-all"
-              >
-                <Trash2 className="w-5 h-5" />
-              </button>
-            )}
-          </div>
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+            התראות
+          </h1>
+          <button
+            onClick={fetchAlerts}
+            disabled={loading}
+            className="p-2 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary transition-all disabled:opacity-50"
+            aria-label="רענן"
+          >
+            <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+          </button>
         </div>
-        <p className="text-muted-foreground">עדכונים חשובים על הילדים שלך</p>
+        <p className="text-muted-foreground">מה דורש תשומת לב — ומה כבר טופל</p>
       </div>
 
-      {/* Filters */}
-      <div className="flex items-center gap-3 mb-6">
-        <Filter className="w-4 h-4 text-muted-foreground" />
-        <div className="flex gap-2 flex-wrap">
-          {[
-            { key: 'all', label: 'הכל' },
-            { key: 'urgent', label: '🔴 דחוף' },
-            { key: 'important', label: '🟠 לבדיקה' },
-            { key: 'attention', label: '🟡 במעקב' },
-          ].map(item => (
-            <button
-              key={item.key}
-              onClick={() => setFilter(item.key as any)}
-              className={`px-3 py-1.5 rounded-lg text-sm transition-all ${
-                filter === item.key
-                  ? 'bg-primary/20 text-primary glow-primary border border-primary/30'
-                  : 'bg-muted/50 text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
-        <span className="text-xs text-muted-foreground mr-auto">
-          {filteredAlerts.length} עדכונים
+      {/* Filters - compact horizontal row, scrollable on mobile */}
+      <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2 -mx-1 px-1">
+        {filterOptions.map(item => (
+          <button
+            key={item.key}
+            onClick={() => setFilter(item.key as typeof filter)}
+            className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
+              filter === item.key
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
+            }`}
+          >
+            {item.label}
+          </button>
+        ))}
+        <span className="text-xs text-muted-foreground whitespace-nowrap mr-auto pr-2">
+          {filteredAlerts.length} התראות
         </span>
       </div>
 
       {/* Alerts List */}
       {loading ? (
         <div className="space-y-4">
-          {[1, 2, 3, 4].map(i => (
-            <div key={i} className="h-48 rounded-xl bg-card/50 animate-pulse border border-border/30" />
+          {[1, 2, 3].map(i => (
+            <div key={i} className="h-36 rounded-xl bg-card/50 animate-pulse border border-border/30" />
           ))}
         </div>
       ) : filteredAlerts.length > 0 ? (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {filteredAlerts.map((alert, index) => (
             <AlertCard
               key={alert.id}
               alert={alert}
               onAcknowledge={handleAcknowledge}
-              onRemindLater={handleRemindLater}
-              onDelete={deleteAlert}
               index={index}
             />
           ))}
         </div>
       ) : (
         <div className="p-12 rounded-xl bg-card border border-border/50 text-center">
-          <MessageCircle className="w-16 h-16 text-muted-foreground mx-auto mb-4 opacity-50" />
-          <p className="text-lg text-muted-foreground mb-2">
-            {filter === 'all' ? 'אין עדכונים חדשים' : 'אין עדכונים בקטגוריה זו'}
+          <Bell className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-40" />
+          <p className="text-lg text-foreground mb-2">
+            אין התראות כרגע
           </p>
-          <p className="text-sm text-muted-foreground/70">
-            עדכונים חדשים יופיעו כאן באופן אוטומטי
+          <p className="text-sm text-muted-foreground">
+            כשמשהו ידרוש תשומת לב — תראה את זה כאן
           </p>
         </div>
       )}
