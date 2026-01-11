@@ -67,7 +67,7 @@ const Index = () => {
         ) : children.length > 0 ? (
           <div className="space-y-6 animate-fade-in">
             {/* Hero Card - State A: Calm Day */}
-            <Card className="bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border-emerald-500/20 shadow-lg shadow-emerald-500/5 rounded-2xl">
+            <Card className="bg-gradient-to-br from-success/10 to-success/5 border-success/20 shadow-lg shadow-success/5 rounded-2xl">
               <CardContent className="p-8 sm:p-10 text-center relative">
                 {/* Small family management link - top right */}
                 <button 
@@ -77,20 +77,20 @@ const Index = () => {
                   ניהול משפחה
                 </button>
                 
-                <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-emerald-500/15 flex items-center justify-center">
-                  <CheckCircle2 className="w-8 h-8 text-emerald-500" />
+                <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-success/15 flex items-center justify-center">
+                  <CheckCircle2 className="w-8 h-8 text-success" />
                 </div>
                 <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-3">
-                  היום עבר בצורה תקינה
+                  היום עבר בצורה תקינה*
                 </h2>
                 <p className="text-muted-foreground text-base sm:text-lg leading-relaxed mb-6">
-                  קיפי לא זיהה מצבים שדורשים התערבות הורית
+                  קיפי לא זיהה מצבים שדורשים התערבות הורית*
                 </p>
                 
                 {/* Subtle CTA */}
                 <button 
                   onClick={() => navigate("/daily-report")}
-                  className="text-sm text-emerald-600 hover:text-emerald-700 font-medium transition-colors"
+                  className="text-sm text-primary hover:text-primary/80 font-medium transition-colors"
                 >
                   לצפייה בדוח היומי ←
                 </button>
@@ -98,7 +98,7 @@ const Index = () => {
             </Card>
 
             {/* Hero Card - State B: Attention Needed (commented for reference)
-            <Card className="bg-gradient-to-br from-orange-500/10 to-amber-500/5 border-orange-400/20 shadow-lg shadow-orange-500/5 rounded-2xl">
+            <Card className="bg-gradient-to-br from-warning/10 to-warning/5 border-warning/20 shadow-lg shadow-warning/5 rounded-2xl">
               <CardContent className="p-8 sm:p-10 text-center relative">
                 <button 
                   onClick={() => navigate("/family")}
@@ -107,19 +107,19 @@ const Index = () => {
                   ניהול משפחה
                 </button>
                 
-                <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-orange-500/15 flex items-center justify-center">
-                  <Eye className="w-8 h-8 text-orange-500" />
+                <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-warning/15 flex items-center justify-center">
+                  <Eye className="w-8 h-8 text-warning" />
                 </div>
                 <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-3">
-                  יש נושא אחד שכדאי לשים לב אליו
+                  יש נושא אחד שכדאי לשים לב אליו*
                 </h2>
                 <p className="text-muted-foreground text-base sm:text-lg leading-relaxed mb-6">
-                  קיפי הכין לך הסבר ברור ולא שיפוטי
+                  קיפי הכין לך הסבר ברור ולא שיפוטי*
                 </p>
                 
                 <button 
                   onClick={() => navigate("/daily-report")}
-                  className="text-sm text-orange-600 hover:text-orange-700 font-medium transition-colors"
+                  className="text-sm text-warning hover:text-warning/80 font-medium transition-colors"
                 >
                   לצפייה בדוח היומי ←
                 </button>
