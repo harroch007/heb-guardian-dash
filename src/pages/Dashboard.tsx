@@ -7,6 +7,13 @@ import { Plus, Users, CheckCircle2, Eye } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Child {
   id: string;
@@ -14,12 +21,29 @@ interface Child {
   parent_id: string;
 }
 
+// TODO(DATA): replace children list + selected child with real data
+interface MockChild {
+  id: string;
+  name: string;
+  age: number;
+}
+
+const mockChildren: MockChild[] = [
+  { id: "1", name: "דני", age: 8 },
+  { id: "2", name: "מיכל", age: 12 },
+  { id: "3", name: "יואב", age: 5 },
+];
+
 const Index = () => {
   const navigate = useNavigate();
   const [children, setChildren] = useState<Child[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
+
+  // TODO(DATA): replace with real selected child from context/data
+  const [selectedChildId, setSelectedChildId] = useState<string>(mockChildren[0].id);
+  const selectedChild = mockChildren.find(c => c.id === selectedChildId) || mockChildren[0];
 
   const fetchData = async () => {
     try {
@@ -66,6 +90,28 @@ const Index = () => {
           <div className="h-48 rounded-2xl bg-card/50 animate-pulse border border-border/30" />
         ) : children.length > 0 ? (
           <div className="space-y-6 animate-fade-in">
+            {/* Child Selector - shown only when more than 1 child */}
+            {/* TODO(DATA): replace children list + selected child with real data */}
+            {mockChildren.length > 1 && (
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-muted-foreground">מציג נתונים עבור:</span>
+                <Select value={selectedChildId} onValueChange={setSelectedChildId}>
+                  <SelectTrigger className="w-auto min-w-[120px] h-9 px-4 rounded-full bg-card border-border/50 text-sm font-medium">
+                    <SelectValue>
+                      {selectedChild.name} ({selectedChild.age})*
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover border-border z-50">
+                    {mockChildren.map((child) => (
+                      <SelectItem key={child.id} value={child.id} className="text-sm">
+                        {child.name} ({child.age})*
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             {/* Hero Card - State A: Calm Day */}
             <Card className="bg-gradient-to-br from-success/10 to-success/5 border-success/20 shadow-lg shadow-success/5 rounded-2xl">
               <CardContent className="p-8 sm:p-10 text-center relative">
