@@ -33,7 +33,7 @@ const DailyReport = () => {
           {/* Section A: Status Today */}
           <Card className="bg-gradient-to-br from-success/10 to-success/5 border-success/20">
             <CardHeader className="pb-2">
-              <CardTitle className="text-lg">סטטוס היום*</CardTitle>
+              <CardTitle className="text-lg">סטטוס היום</CardTitle>
             </CardHeader>
             <CardContent className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-success/15 flex items-center justify-center">
@@ -55,15 +55,15 @@ const DailyReport = () => {
             <CardContent className="space-y-3">
               <div className="flex items-center gap-3">
                 <MessageSquare className="w-5 h-5 text-primary" />
-                <span className="text-foreground">הודעות שנסרקו היום*: <span className="font-bold">142*</span></span>
+                <span className="text-foreground">הודעות שנסרקו היום: <span className="font-bold">142*</span></span>
               </div>
               <div className="flex items-center gap-3">
                 <Brain className="w-5 h-5 text-primary" />
-                <span className="text-foreground">פעמים שנשלח ל-AI*: <span className="font-bold">8*</span></span>
+                <span className="text-foreground">פעמים שנשלח ל-AI: <span className="font-bold">8*</span></span>
               </div>
               <div className="flex items-center gap-3">
                 <Bell className="w-5 h-5 text-primary" />
-                <span className="text-foreground">התרעות שנשלחו להורה*: <span className="font-bold">1*</span></span>
+                <span className="text-foreground">התרעות שנשלחו להורה: <span className="font-bold">1*</span></span>
               </div>
             </CardContent>
           </Card>
@@ -72,7 +72,7 @@ const DailyReport = () => {
           {/* Section C: Top Contacts */}
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-lg">3 אנשי הקשר הפעילים היום*</CardTitle>
+              <CardTitle className="text-lg">3 אנשי הקשר הפעילים היום</CardTitle>
             </CardHeader>
             <CardContent>
               <ul className="space-y-3">
@@ -102,7 +102,7 @@ const DailyReport = () => {
           {/* Section D: Positive Insights */}
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-lg">תובנות חיוביות*</CardTitle>
+              <CardTitle className="text-lg">תובנות חיוביות</CardTitle>
             </CardHeader>
             <CardContent>
               <ul className="space-y-2 list-disc list-inside text-foreground">
