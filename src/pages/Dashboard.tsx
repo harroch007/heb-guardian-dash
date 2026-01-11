@@ -88,7 +88,10 @@ const Index = () => {
                 </p>
                 
                 {/* Subtle CTA */}
-                <button className="text-sm text-emerald-600 hover:text-emerald-700 font-medium transition-colors">
+                <button 
+                  onClick={() => navigate("/daily-report")}
+                  className="text-sm text-emerald-600 hover:text-emerald-700 font-medium transition-colors"
+                >
                   לצפייה בדוח היומי ←
                 </button>
               </CardContent>
@@ -114,7 +117,10 @@ const Index = () => {
                   קיפי הכין לך הסבר ברור ולא שיפוטי
                 </p>
                 
-                <button className="text-sm text-orange-600 hover:text-orange-700 font-medium transition-colors">
+                <button 
+                  onClick={() => navigate("/daily-report")}
+                  className="text-sm text-orange-600 hover:text-orange-700 font-medium transition-colors"
+                >
                   לצפייה בדוח היומי ←
                 </button>
               </CardContent>

@@ -20,6 +20,7 @@ import Dashboard from "./pages/Dashboard";
 import ChildDashboard from "./pages/ChildDashboard";
 import AlertsPage from "./pages/Alerts";
 import SettingsPage from "./pages/Settings";
+import DailyReport from "./pages/DailyReport";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -86,6 +87,14 @@ const App = () => (
                     element={
                       <ProtectedRoute>
                         <SettingsPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/daily-report"
+                    element={
+                      <ProtectedRoute>
+                        <DailyReport />
                       </ProtectedRoute>
                     }
                   />
