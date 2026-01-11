@@ -1,7 +1,8 @@
 import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { User, Calendar, ChevronLeft } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { User, Calendar, ChevronLeft, Smartphone } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { getDeviceStatus, getStatusColor, getStatusLabel, formatLastSeen } from '@/lib/deviceStatus';
@@ -24,9 +25,10 @@ interface Device {
 interface ChildCardProps {
   child: Child;
   style?: React.CSSProperties;
+  onConnectDevice?: (childId: string, childName: string) => void;
 }
 
-export function ChildCard({ child, style }: ChildCardProps) {
+export function ChildCard({ child, style, onConnectDevice }: ChildCardProps) {
   const navigate = useNavigate();
   const [device, setDevice] = useState<Device | null>(null);
   const [loadingDevice, setLoadingDevice] = useState(true);
@@ -121,7 +123,7 @@ export function ChildCard({ child, style }: ChildCardProps) {
           {/* Device Status */}
           {loadingDevice ? (
             <div className="w-20 h-5 bg-muted animate-pulse rounded" />
-          ) : (
+          ) : device ? (
             <div className="flex flex-col items-end gap-0.5">
               <div className={cn(
                 "flex items-center gap-1.5 text-xs px-2 py-1 rounded-full",
@@ -131,12 +133,23 @@ export function ChildCard({ child, style }: ChildCardProps) {
                 <div className={cn('w-2 h-2 rounded-full', getStatusColor(status))} />
                 <span>{getStatusLabel(status)}</span>
               </div>
-              {device && (
-                <span className="text-xs text-muted-foreground">
-                  {formatLastSeen(device.last_seen)}
-                </span>
-              )}
+              <span className="text-xs text-muted-foreground">
+                {formatLastSeen(device.last_seen)}
+              </span>
             </div>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 text-xs border-primary/30 hover:border-primary hover:bg-primary/10"
+              onClick={(e) => {
+                e.stopPropagation();
+                onConnectDevice?.(child.id, child.name);
+              }}
+            >
+              <Smartphone className="w-3.5 h-3.5" />
+              חבר מכשיר
+            </Button>
           )}
         </div>
       </CardContent>

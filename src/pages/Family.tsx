@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { ChildCard } from '@/components/ChildCard';
 import { AddChildModal } from '@/components/AddChildModal';
+import { ReconnectChildModal } from '@/components/ReconnectChildModal';
 import { Button } from '@/components/ui/button';
 import { Plus, Users, Loader2 } from 'lucide-react';
 
@@ -22,6 +23,7 @@ export default function Family() {
   const [children, setChildren] = useState<Child[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [reconnectChild, setReconnectChild] = useState<{ id: string; name: string } | null>(null);
   const { user } = useAuth();
 
   const fetchChildren = async () => {
@@ -48,6 +50,10 @@ export default function Family() {
 
   const handleChildAdded = () => {
     fetchChildren();
+  };
+
+  const handleConnectDevice = (childId: string, childName: string) => {
+    setReconnectChild({ id: childId, name: childName });
   };
 
   return (
@@ -107,6 +113,7 @@ export default function Family() {
                 key={child.id} 
                 child={child} 
                 style={{ animationDelay: `${index * 100}ms` }}
+                onConnectDevice={handleConnectDevice}
               />
             ))}
           </div>
@@ -116,6 +123,13 @@ export default function Family() {
           open={isAddModalOpen}
           onOpenChange={setIsAddModalOpen}
           onChildAdded={handleChildAdded}
+        />
+
+        <ReconnectChildModal
+          childId={reconnectChild?.id || null}
+          childName={reconnectChild?.name || ''}
+          parentEmail={user?.email || ''}
+          onClose={() => setReconnectChild(null)}
         />
       </div>
     </DashboardLayout>
