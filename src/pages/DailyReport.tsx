@@ -11,7 +11,7 @@ const DailyReport = () => {
       <div className="max-w-2xl mx-auto relative" dir="rtl">
         {/* Back button - absolute top-right */}
         <button 
-          onClick={() => navigate("/dashboard")}
+          onClick={() => navigate(-1)}
           className="absolute top-4 right-4 flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowRight className="w-4 h-4" />
