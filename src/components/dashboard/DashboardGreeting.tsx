@@ -39,15 +39,12 @@ export const DashboardGreeting = () => {
 
   return (
     <div className="mb-6 animate-fade-in">
-      <div className="flex items-center gap-2 mb-1">
+      <div className="flex items-center gap-2">
         <Sparkles className="w-5 h-5 text-primary" />
         <h1 className="text-xl sm:text-2xl font-bold text-foreground">
           {getGreeting()}{parentName ? `, ${parentName}` : ''}! 👋
         </h1>
       </div>
-      <p className="text-sm text-muted-foreground">
-        הנה סיכום מהיר של מה שקורה עם הילדים שלך היום
-      </p>
     </div>
   );
 };
