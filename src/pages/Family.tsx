@@ -5,18 +5,16 @@ import { useAuth } from '@/contexts/AuthContext';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Child } from '@/components/ChildCard';
 import { AddChildModal } from '@/components/AddChildModal';
-import { ReconnectChildModal } from '@/components/ReconnectChildModal';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Plus, User, ChevronLeft, QrCode } from 'lucide-react';
+import { Plus, User, ChevronLeft } from 'lucide-react';
 
 export default function Family() {
   const navigate = useNavigate();
   const [children, setChildren] = useState<Child[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [reconnectChild, setReconnectChild] = useState<{ id: string; name: string } | null>(null);
   const { user } = useAuth();
 
   const fetchChildren = async () => {
@@ -108,34 +106,6 @@ export default function Family() {
             </CardContent>
           </Card>
 
-          {/* Section B: חיבור וואטסאפ */}
-          <Card className="bg-card border-border/50">
-            <CardContent className="p-6">
-              <h2 className="text-lg font-semibold text-foreground mb-2">חיבור וואטסאפ</h2>
-              <p className="text-sm text-muted-foreground mb-4">
-                התחברו למכשיר של הילד באמצעות QR
-              </p>
-              
-              <Button 
-                onClick={() => {
-                  if (children.length > 0) {
-                    setReconnectChild({ id: children[0].id, name: children[0].name });
-                  }
-                }}
-                disabled={children.length === 0}
-                className="w-full"
-              >
-                <QrCode className="w-4 h-4 ml-2" />
-                סריקת QR
-              </Button>
-              
-              {/* TODO(DATA): QR process explanation */}
-              <p className="text-xs text-muted-foreground mt-3 text-center">
-                תהליך החיבור יתבצע במכשיר של הילד*
-              </p>
-            </CardContent>
-          </Card>
-
           {/* Bottom CTA */}
           <Button 
             onClick={() => setIsAddModalOpen(true)}
@@ -151,13 +121,6 @@ export default function Family() {
           open={isAddModalOpen}
           onOpenChange={setIsAddModalOpen}
           onChildAdded={handleChildAdded}
-        />
-
-        <ReconnectChildModal
-          childId={reconnectChild?.id || null}
-          childName={reconnectChild?.name || ''}
-          parentEmail={user?.email || ''}
-          onClose={() => setReconnectChild(null)}
         />
       </div>
     </DashboardLayout>
