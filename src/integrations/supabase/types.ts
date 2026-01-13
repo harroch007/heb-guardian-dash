@@ -491,6 +491,7 @@ export type Database = {
           child_id: string | null
           created_at: string | null
           device_id: string
+          first_seen_at: string | null
           last_seen: string | null
           latitude: number | null
           longitude: number | null
@@ -501,6 +502,7 @@ export type Database = {
           child_id?: string | null
           created_at?: string | null
           device_id: string
+          first_seen_at?: string | null
           last_seen?: string | null
           latitude?: number | null
           longitude?: number | null
@@ -511,6 +513,7 @@ export type Database = {
           child_id?: string | null
           created_at?: string | null
           device_id?: string
+          first_seen_at?: string | null
           last_seen?: string | null
           latitude?: number | null
           longitude?: number | null
@@ -741,7 +744,6 @@ export type Database = {
           content: string | null
           created_at: string | null
           device_age: unknown
-          device_created_at: string | null
           device_id: string | null
           effective_threshold: number | null
           escalate: boolean | null
@@ -759,6 +761,7 @@ export type Database = {
           should_store: boolean | null
           source: string | null
           suggested_action: string | null
+          warmup_start: string | null
         }
         Relationships: [
           {
