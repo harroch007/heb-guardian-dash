@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_stack_requests: {
+        Row: {
+          chat_hash: string | null
+          chat_type: string
+          child_id: string | null
+          created_at: string
+          device_id: string
+          id: string
+          stack_size: number
+          trigger_reason: string | null
+        }
+        Insert: {
+          chat_hash?: string | null
+          chat_type?: string
+          child_id?: string | null
+          created_at?: string
+          device_id: string
+          id?: string
+          stack_size: number
+          trigger_reason?: string | null
+        }
+        Update: {
+          chat_hash?: string | null
+          chat_type?: string
+          child_id?: string | null
+          created_at?: string
+          device_id?: string
+          id?: string
+          stack_size?: number
+          trigger_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_stack_requests_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_stack_requests_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["device_id"]
+          },
+        ]
+      }
       alerts: {
         Row: {
           acknowledged_at: string | null
@@ -350,6 +398,47 @@ export type Database = {
           },
         ]
       }
+      device_daily_metrics: {
+        Row: {
+          alerts_sent: number
+          created_at: string
+          device_id: string
+          id: string
+          messages_scanned: number
+          metric_date: string
+          stacks_sent_to_ai: number
+          updated_at: string
+        }
+        Insert: {
+          alerts_sent?: number
+          created_at?: string
+          device_id: string
+          id?: string
+          messages_scanned?: number
+          metric_date?: string
+          stacks_sent_to_ai?: number
+          updated_at?: string
+        }
+        Update: {
+          alerts_sent?: number
+          created_at?: string
+          device_id?: string
+          id?: string
+          messages_scanned?: number
+          metric_date?: string
+          stacks_sent_to_ai?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_daily_metrics_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["device_id"]
+          },
+        ]
+      }
       device_events: {
         Row: {
           child_id: string | null
@@ -631,6 +720,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_daily_metrics: {
+        Args: {
+          p_ai_delta?: number
+          p_alerts_delta?: number
+          p_device_id: string
+          p_messages_delta?: number
+          p_metric_date?: string
+        }
+        Returns: Json
+      }
       check_unresponsive_devices: { Args: never; Returns: undefined }
       cleanup_old_data: { Args: never; Returns: Json }
       connect_child_device: {
@@ -685,35 +784,25 @@ export type Database = {
       export_my_data: { Args: never; Returns: Json }
       generate_new_pairing_code: { Args: { p_child_id: string }; Returns: Json }
       generate_pairing_code: { Args: { p_child_id: string }; Returns: string }
+      get_child_daily_metrics: {
+        Args: { p_child_id: string; p_date: string }
+        Returns: {
+          alerts_sent: number
+          messages_scanned: number
+          metric_date: string
+          stacks_sent_to_ai: number
+        }[]
+      }
       get_device_settings: { Args: { p_device_id: string }; Returns: Json }
       is_email_allowed: { Args: { p_email: string }; Returns: boolean }
-      pair_device:
-        | {
-            Args: { p_device_id: string; p_pairing_code: string }
-            Returns: {
-              child_id: string
-              child_name: string
-              error_message: string
-              success: boolean
-            }[]
-          }
-        | {
-            Args: {
-              p_device_id: string
-              p_device_model?: string
-              p_device_name?: string
-              p_pairing_code: string
-            }
-            Returns: Json
-          }
-      register_device: {
-        Args: {
-          p_child_id: string
-          p_device_id: string
-          p_device_model: string
-          p_device_name: string
-        }
-        Returns: Json
+      pair_device: {
+        Args: { p_device_id: string; p_pairing_code: string }
+        Returns: {
+          child_id: string
+          child_name: string
+          error_message: string
+          success: boolean
+        }[]
       }
       send_locate_to_all_devices: { Args: never; Returns: undefined }
       update_device_location: {

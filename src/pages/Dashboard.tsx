@@ -158,7 +158,7 @@ const Index = () => {
                 
                 {/* Subtle CTA */}
                 <button 
-                  onClick={() => navigate("/daily-report")}
+                  onClick={() => navigate(`/daily-report/${selectedChildId}`)}
                   className="text-sm text-primary hover:text-primary/80 font-medium transition-colors"
                 >
                   לצפייה בדוח היומי ←
@@ -187,7 +187,7 @@ const Index = () => {
                 </p>
                 
                 <button 
-                  onClick={() => navigate("/daily-report")}
+                  onClick={() => navigate(`/daily-report/${selectedChildId}`)}
                   className="text-sm text-warning hover:text-warning/80 font-medium transition-colors"
                 >
                   לצפייה בדוח היומי ←

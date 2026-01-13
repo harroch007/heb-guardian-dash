@@ -1,10 +1,76 @@
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowRight, CheckCircle2, MessageSquare, Brain, Bell, User } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ArrowRight, CheckCircle2, MessageSquare, Brain, Bell, User, Calendar } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+
+interface DailyMetrics {
+  metric_date: string;
+  messages_scanned: number;
+  stacks_sent_to_ai: number;
+  alerts_sent: number;
+}
+
+// Timezone-safe helper for Israel time
+const getIsraelISO = (offsetDays: number): string => {
+  const now = new Date();
+  const israelNow = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Jerusalem" }));
+  israelNow.setDate(israelNow.getDate() + offsetDays);
+  return israelNow.toISOString().split("T")[0];
+};
 
 const DailyReport = () => {
   const navigate = useNavigate();
+  const { childId } = useParams<{ childId: string }>();
+
+  const [selectedDate, setSelectedDate] = useState<string>(getIsraelISO(-1));
+  const [metrics, setMetrics] = useState<DailyMetrics | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchMetrics = async () => {
+    if (!childId) return;
+    
+    setLoading(true);
+    setError(null);
+
+    const { data, error: rpcError } = await supabase.rpc('get_child_daily_metrics', {
+      p_child_id: childId,
+      p_date: selectedDate
+    });
+
+    if (rpcError) {
+      console.error("Error fetching metrics:", rpcError);
+      setError("שגיאה בטעינת הנתונים");
+      setLoading(false);
+      return;
+    }
+
+    setMetrics(data && data.length > 0 ? data[0] : null);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchMetrics();
+  }, [childId, selectedDate]);
+
+  // No child guard
+  if (!childId) {
+    return (
+      <DashboardLayout>
+        <div className="max-w-2xl mx-auto p-8 text-center" dir="rtl">
+          <p className="text-muted-foreground">לא נבחר ילד</p>
+          <Button onClick={() => navigate("/dashboard")} className="mt-4">
+            חזרה לדשבורד
+          </Button>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -28,6 +94,18 @@ const DailyReport = () => {
           </p>
         </div>
 
+        {/* Date Selector */}
+        <div className="flex items-center justify-center gap-3 mb-6">
+          <Calendar className="w-5 h-5 text-muted-foreground" />
+          <Input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            max={getIsraelISO(0)}
+            className="w-auto"
+          />
+        </div>
+
         <div className="space-y-6">
           {/* TODO(DATA): daily_status_summary - replace statusSummary with real data */}
           {/* Section A: Status Today */}
@@ -46,25 +124,51 @@ const DailyReport = () => {
             </CardContent>
           </Card>
 
-          {/* TODO(DATA): daily_scanned_messages_count, daily_ai_requests_count, daily_parent_alerts_count */}
           {/* Section B: Key Metrics */}
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-lg">נתונים מרכזיים</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="flex items-center gap-3">
-                <MessageSquare className="w-5 h-5 text-primary" />
-                <span className="text-foreground">הודעות שנסרקו היום: <span className="font-bold">142*</span></span>
-              </div>
-              <div className="flex items-center gap-3">
-                <Brain className="w-5 h-5 text-primary" />
-                <span className="text-foreground">פעמים שנשלח ל-AI: <span className="font-bold">8*</span></span>
-              </div>
-              <div className="flex items-center gap-3">
-                <Bell className="w-5 h-5 text-primary" />
-                <span className="text-foreground">התרעות שנשלחו להורה: <span className="font-bold">1*</span></span>
-              </div>
+              {loading ? (
+                <div className="space-y-3">
+                  <Skeleton className="h-6 w-48" />
+                  <Skeleton className="h-6 w-40" />
+                  <Skeleton className="h-6 w-44" />
+                </div>
+              ) : error ? (
+                <div className="text-center py-4">
+                  <p className="text-destructive mb-3">{error}</p>
+                  <Button variant="outline" size="sm" onClick={fetchMetrics}>
+                    נסה שוב
+                  </Button>
+                </div>
+              ) : metrics ? (
+                <>
+                  <div className="flex items-center gap-3">
+                    <MessageSquare className="w-5 h-5 text-primary" />
+                    <span className="text-foreground">
+                      הודעות שנסרקו היום: <span className="font-bold">{metrics.messages_scanned}</span>
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Brain className="w-5 h-5 text-primary" />
+                    <span className="text-foreground">
+                      פעמים שנשלח ל-AI: <span className="font-bold">{metrics.stacks_sent_to_ai}</span>
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Bell className="w-5 h-5 text-primary" />
+                    <span className="text-foreground">
+                      התרעות שנשלחו להורה: <span className="font-bold">{metrics.alerts_sent}</span>
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <p className="text-muted-foreground text-center py-2">
+                  אין נתונים לתאריך הנבחר
+                </p>
+              )}
             </CardContent>
           </Card>
 
