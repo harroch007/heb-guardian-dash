@@ -865,25 +865,15 @@ export type Database = {
         Args: { p_device_id: string; p_settings: Json }
         Returns: Json
       }
-      update_device_status:
-        | {
-            Args: {
-              p_battery?: number
-              p_device_id: string
-              p_lat?: number
-              p_lon?: number
-            }
-            Returns: undefined
-          }
-        | {
-            Args: {
-              p_battery?: number
-              p_device_id: string
-              p_lat?: number
-              p_lon?: number
-            }
-            Returns: undefined
-          }
+      update_device_status: {
+        Args: {
+          p_battery?: number
+          p_device_id: string
+          p_lat?: number
+          p_lon?: number
+        }
+        Returns: undefined
+      }
       upsert_app_usage: {
         Args: {
           p_app_name: string
