@@ -90,9 +90,9 @@ const App = () => (
                       </ProtectedRoute>
                     }
                   />
-                  <Route
-                    path="/daily-report"
-                    element={
+              <Route
+                path="/daily-report/:childId"
+                element={
                       <ProtectedRoute>
                         <DailyReport />
                       </ProtectedRoute>
