@@ -717,7 +717,66 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      parent_alerts_effective: {
+        Row: {
+          acknowledged_at: string | null
+          ai_analysis: Json | null
+          ai_classification: Json | null
+          ai_confidence: number | null
+          ai_explanation: string | null
+          ai_explanation_short: string | null
+          ai_patterns: string[] | null
+          ai_recommendation: string | null
+          ai_recommendation_short: string | null
+          ai_risk_score: number | null
+          ai_summary: string | null
+          ai_verdict: string | null
+          analyzed_at: string | null
+          author_type: string | null
+          category: string | null
+          chat_name: string | null
+          chat_type: string | null
+          child_id: string | null
+          child_role: string | null
+          content: string | null
+          created_at: string | null
+          device_age: unknown
+          device_created_at: string | null
+          device_id: string | null
+          effective_threshold: number | null
+          escalate: boolean | null
+          expert_type: string | null
+          id: number | null
+          is_in_warmup: boolean | null
+          is_processed: boolean | null
+          message_count: number | null
+          parent_message: string | null
+          remind_at: string | null
+          risk_score: number | null
+          sender: string | null
+          sender_display: string | null
+          should_alert: boolean | null
+          should_store: boolean | null
+          source: string | null
+          suggested_action: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alerts_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alerts_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["device_id"]
+          },
+        ]
+      }
     }
     Functions: {
       add_daily_metrics: {
