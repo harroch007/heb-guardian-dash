@@ -92,15 +92,15 @@ serve(async (req) => {
     console.log('Received payload:', JSON.stringify(body, null, 2));
 
     // Handle both webhook format and direct call format
-    let content: string;
-    let isProcessed: boolean;
+    let content: string | null = null;
+    let isProcessed: boolean = false;
     let deviceId: string | null = null;
 
     if (body.type === 'INSERT' && body.record) {
       // Database webhook format (legacy - still supported for transition)
       alertId = body.record.id;
       content = body.record.content;
-      isProcessed = body.record.is_processed;
+      isProcessed = body.record.is_processed || false;
       deviceId = body.record.device_id;
     } else if (body.alert_id) {
       // Direct call format with HMAC (new secure method)
