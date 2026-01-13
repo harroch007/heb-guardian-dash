@@ -4,7 +4,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-kippy-signature',
 };
 
 const SYSTEM_PROMPT = `You are a child-safety AI analyzing Hebrew and English WhatsApp messages.
@@ -73,7 +73,87 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const rawBody = await req.text();
+  let alertId: number | undefined;
+
   try {
+    // === HMAC SIGNATURE VERIFICATION ===
+    const webhookSecret = Deno.env.get('KIPPY_WEBHOOK_SECRET');
+    if (!webhookSecret) {
+      console.error('ANALYZE_ALERT_FAIL reason=KIPPY_WEBHOOK_SECRET_NOT_CONFIGURED');
+      return new Response(
+        JSON.stringify({ error: 'Server misconfiguration' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const signature = req.headers.get('X-Kippy-Signature');
+    const body = JSON.parse(rawBody);
+    console.log('Received payload:', JSON.stringify(body, null, 2));
+
+    // Handle both webhook format and direct call format
+    let content: string;
+    let isProcessed: boolean;
+    let deviceId: string | null = null;
+
+    if (body.type === 'INSERT' && body.record) {
+      // Database webhook format (legacy - still supported for transition)
+      alertId = body.record.id;
+      content = body.record.content;
+      isProcessed = body.record.is_processed;
+      deviceId = body.record.device_id;
+    } else if (body.alert_id) {
+      // Direct call format with HMAC (new secure method)
+      alertId = body.alert_id;
+    } else {
+      console.error('ANALYZE_ALERT_FAIL reason=INVALID_REQUEST_FORMAT');
+      return new Response(
+        JSON.stringify({ error: 'Invalid request format' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // For HMAC-authenticated requests (has signature header)
+    if (signature) {
+      // Compute HMAC-SHA256 over alert_id STRING only
+      const encoder = new TextEncoder();
+      const key = await crypto.subtle.importKey(
+        'raw',
+        encoder.encode(webhookSecret),
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,
+        ['sign']
+      );
+      const alertIdString = String(alertId);
+      const signatureBytes = await crypto.subtle.sign('HMAC', key, encoder.encode(alertIdString));
+      const expectedSignature = Array.from(new Uint8Array(signatureBytes))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+
+      // Constant-time comparison
+      if (signature.length !== expectedSignature.length) {
+        console.error(`ANALYZE_ALERT_FAIL alert_id=${alertId} reason=INVALID_SIGNATURE_LENGTH`);
+        return new Response(
+          JSON.stringify({ error: 'Unauthorized' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      let mismatch = 0;
+      for (let i = 0; i < signature.length; i++) {
+        mismatch |= signature.charCodeAt(i) ^ expectedSignature.charCodeAt(i);
+      }
+      if (mismatch !== 0) {
+        console.error(`ANALYZE_ALERT_FAIL alert_id=${alertId} reason=INVALID_SIGNATURE`);
+        return new Response(
+          JSON.stringify({ error: 'Unauthorized' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      console.log(`Signature verified for alert_id=${alertId}`);
+    }
+
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -88,42 +168,22 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Parse request body
-    const body = await req.json();
-    console.log('Received payload:', JSON.stringify(body, null, 2));
-
-    // Handle both webhook format and direct call format
-    let alertId: number;
-    let content: string;
-    let isProcessed: boolean;
-    let deviceId: string | null = null;
-
-    if (body.type === 'INSERT' && body.record) {
-      // Database webhook format
-      alertId = body.record.id;
-      content = body.record.content;
-      isProcessed = body.record.is_processed;
-      deviceId = body.record.device_id; // Use device_id instead of sender
-    } else if (body.alert_id) {
-      // Direct call format (for re-analyze)
-      alertId = body.alert_id;
-      
-      // Fetch the alert from database
+    // For HMAC-authenticated requests, fetch alert from database
+    if (body.alert_id && !body.record) {
       const { data: alert, error: fetchError } = await supabase
         .from('alerts')
         .select('*')
         .eq('id', alertId)
         .single();
-      
+
       if (fetchError || !alert) {
+        console.error(`ANALYZE_ALERT_FAIL alert_id=${alertId} reason=ALERT_NOT_FOUND`);
         throw new Error(`Alert not found: ${alertId}`);
       }
-      
+
       content = alert.content;
-      deviceId = alert.device_id; // Use device_id instead of sender
-      isProcessed = false; // Force re-analysis
-    } else {
-      throw new Error('Invalid request format');
+      deviceId = alert.device_id;
+      isProcessed = alert.is_processed;
     }
 
     // Skip if already processed (only for webhooks, not re-analyze)
@@ -148,7 +208,7 @@ serve(async (req) => {
     // PRIVACY STEP 1: Fetch child info for anonymous training data (before analysis)
     let childAge: number | null = null;
     let childGender: string | null = null;
-    
+
     if (deviceId) {
       console.log(`Looking up child info for device_id: ${deviceId}`);
       const { data: deviceData, error: deviceError } = await supabase
@@ -156,7 +216,7 @@ serve(async (req) => {
         .select('child_id')
         .eq('device_id', deviceId)
         .single();
-      
+
       if (deviceError) {
         console.log(`Device lookup failed: ${deviceError.message}`);
       } else if (deviceData?.child_id) {
@@ -166,7 +226,7 @@ serve(async (req) => {
           .select('date_of_birth, gender')
           .eq('id', deviceData.child_id)
           .single();
-        
+
         if (childData) {
           // Calculate age at incident
           const birthDate = new Date(childData.date_of_birth);
@@ -240,14 +300,18 @@ serve(async (req) => {
     // Map AI output fields to database columns:
     // AI `explanation` -> DB `ai_summary`
     // AI `recommendation` -> DB `ai_recommendation`
-    // AI `risk_score` -> DB `risk_score`
+    // AI `risk_score` -> DB `ai_risk_score` (NOT `risk_score` to avoid overwriting)
+    // AI `verdict` -> DB `ai_verdict`
     // PRIVACY STEP 3: Wipe content after analysis
     const updateData = {
       ai_summary: aiResult.explanation || null,
       ai_recommendation: aiResult.recommendation || null,
-      risk_score: typeof aiResult.risk_score === 'number' ? aiResult.risk_score : null,
+      ai_risk_score: typeof aiResult.risk_score === 'number' ? aiResult.risk_score : null,
+      ai_verdict: aiResult.verdict || null,
       is_processed: true,
       content: '[CONTENT DELETED FOR PRIVACY]', // WIPE raw content!
+      analyzed_at: new Date().toISOString(),
+      source: 'edge_analyze_alert',
     };
 
     console.log(`Updating alert ${alertId} with privacy wipe:`, JSON.stringify(updateData, null, 2));
@@ -263,15 +327,16 @@ serve(async (req) => {
       throw new Error(`Failed to update alert: ${updateError.message}`);
     }
 
-    console.log(`Successfully analyzed alert ${alertId} - content wiped for privacy`);
+    console.log(`ANALYZE_ALERT_OK alert_id=${alertId}`);
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         alert_id: alertId,
         ai_summary: updateData.ai_summary,
         ai_recommendation: updateData.ai_recommendation,
-        risk_score: updateData.risk_score,
+        ai_risk_score: updateData.ai_risk_score,
+        ai_verdict: updateData.ai_verdict,
         privacy: 'content_wiped'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -279,7 +344,7 @@ serve(async (req) => {
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('Error in analyze-alert function:', errorMessage);
+    console.error(`ANALYZE_ALERT_FAIL alert_id=${alertId || 'unknown'} reason=${errorMessage}`);
     return new Response(
       JSON.stringify({ error: errorMessage }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
