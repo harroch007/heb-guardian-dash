@@ -6,10 +6,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { useDemo } from '@/contexts/DemoContext';
 import { Mail, Lock, User, ArrowLeft, Loader2 } from 'lucide-react';
 import kippyLogo from '@/assets/kippy-logo.svg';
 import { z } from 'zod';
 import { WAITLIST_MODE } from '@/config/featureFlags';
+
+// Demo credentials
+const DEMO_EMAIL = 'demo@kippyai.com';
+const DEMO_PASSWORD = 'demo123!';
 
 // Validation schemas
 const emailSchema = z.string().email('כתובת אימייל לא תקינה');
@@ -35,6 +40,7 @@ export default function Auth() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
+  const { setDemoMode } = useDemo();
 
   // Check if email is allowed and redirect if already logged in
   useEffect(() => {
@@ -109,6 +115,17 @@ export default function Auth() {
     e.preventDefault();
     
     if (!validateForm()) return;
+    
+    // Check for demo credentials first
+    if (email === DEMO_EMAIL && password === DEMO_PASSWORD) {
+      setDemoMode(true);
+      toast({
+        title: "מצב הדגמה",
+        description: "נכנסת למצב הדגמה - הנתונים אינם אמיתיים",
+      });
+      navigate('/dashboard');
+      return;
+    }
     
     setLoading(true);
 
