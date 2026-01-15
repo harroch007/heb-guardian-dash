@@ -1,115 +1,218 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { DashboardLayout } from "@/components/DashboardLayout";
-import { DashboardGreeting } from "@/components/dashboard/DashboardGreeting";
-import { DemoBanner } from "@/components/DemoBanner";
-import { Plus, Users, CheckCircle2, Eye, User } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useState } from "react";
+import { RefreshCw, BarChart3, Brain, Users, Smartphone, TrendingUp, MapPin, Battery, Clock, Mail, Bot, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DashboardLayout } from "@/components/DashboardLayout";
+import { DemoBanner } from "@/components/DemoBanner";
+import { toast } from "sonner";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { DEMO_CHILDREN } from "@/data/demoData";
+  DEMO_PARENT,
+  DEMO_CHILDREN,
+  DEMO_DAILY_STATS,
+  DEMO_AI_INSIGHTS,
+  DEMO_TOP_FRIENDS,
+  DEMO_TOP_APPS,
+  DEMO_DAILY_CONTEXT,
+  DEMO_DEVICE_STATUS,
+} from "@/data/demoData";
 
 const DemoDashboard = () => {
-  const navigate = useNavigate();
-  const [selectedChildId, setSelectedChildId] = useState<string>(DEMO_CHILDREN[0].id);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const child = DEMO_CHILDREN[0]; // רואי
 
-  const selectedChild = DEMO_CHILDREN.find(c => c.id === selectedChildId);
-
-  const calculateAge = (dateOfBirth: string): number => {
-    const today = new Date();
-    const birthDate = new Date(dateOfBirth);
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-      age--;
-    }
-    return age;
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    toast.success("הנתונים עודכנו");
+    setTimeout(() => setIsRefreshing(false), 1000);
   };
 
   return (
     <DashboardLayout>
       <DemoBanner />
-      <div className="p-4 sm:p-6 md:p-8 max-w-2xl mx-auto">
-        {/* Personalized Greeting */}
-        <DashboardGreeting />
+      
+      <div className="max-w-2xl mx-auto px-4 py-6 space-y-6" dir="rtl">
+        {/* Header */}
+        <div className="flex items-start justify-between">
+          <div className="space-y-1">
+            <h1 className="text-2xl font-bold text-foreground">תמונת מצב יומית</h1>
+            <p className="text-sm text-muted-foreground">
+              {DEMO_PARENT.name} · הורה | {child.name} · ילד
+            </p>
+            <p className="text-xs text-muted-foreground">
+              עודכן לאחרונה: {DEMO_DAILY_STATS.last_updated}
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+            רענון
+          </Button>
+        </div>
 
-        <div className="space-y-6 animate-fade-in">
-          {/* Child Selector - shown only when more than 1 child */}
-          {DEMO_CHILDREN.length > 1 && selectedChild && (
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-muted-foreground">מציג נתונים עבור:</span>
-              <Select value={selectedChildId} onValueChange={setSelectedChildId}>
-                <SelectTrigger className="w-auto min-w-[140px] h-9 px-3 rounded-full bg-card border-border/50 text-sm font-medium">
-                  <div className="flex items-center gap-2">
-                    <Avatar className="w-6 h-6">
-                      <AvatarFallback className="bg-muted">
-                        <User className="w-3.5 h-3.5 text-muted-foreground" />
-                      </AvatarFallback>
-                    </Avatar>
-                    <span>
-                      {selectedChild.name}
-                      {selectedChild.date_of_birth && ` (${calculateAge(selectedChild.date_of_birth)})`}
-                    </span>
-                  </div>
-                </SelectTrigger>
-                <SelectContent className="bg-popover border-border z-50">
-                  {DEMO_CHILDREN.map((child) => (
-                    <SelectItem key={child.id} value={child.id} className="text-sm">
-                      <div className="flex items-center gap-2">
-                        <Avatar className="w-6 h-6">
-                          <AvatarFallback className="bg-muted">
-                            <User className="w-3.5 h-3.5 text-muted-foreground" />
-                          </AvatarFallback>
-                        </Avatar>
-                        <span>
-                          {child.name}
-                          {child.date_of_birth && ` (${calculateAge(child.date_of_birth)})`}
-                        </span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          {/* Hero Card - State A: Calm Day */}
-          <Card className="bg-gradient-to-br from-success/10 to-success/5 border-success/20 shadow-lg shadow-success/5 rounded-2xl">
-            <CardContent className="p-8 sm:p-10 text-center relative">
-              {/* Small family management link - top right */}
-              <button 
-                onClick={() => navigate("/family")}
-                className="absolute top-4 right-4 text-xs text-muted-foreground hover:text-foreground transition-colors"
-              >
-                ניהול משפחה
-              </button>
-              
-              <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-success/15 flex items-center justify-center">
-                <CheckCircle2 className="w-8 h-8 text-success" />
+        {/* Card 1 - Digital Activity */}
+        <Card className="bg-card border-border">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+              <BarChart3 className="h-5 w-5 text-muted-foreground" />
+              פעילות דיגיטלית
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-3 gap-4">
+              <div className="text-center p-3 rounded-lg bg-muted/50">
+                <div className="flex items-center justify-center gap-1 mb-1">
+                  <Mail className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <div className="text-2xl font-bold text-foreground">{DEMO_DAILY_STATS.messages_scanned}</div>
+                <div className="text-xs text-muted-foreground">הודעות נסרקו</div>
               </div>
-              <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-3">
-                היום עבר בצורה תקינה
-              </h2>
-              <p className="text-muted-foreground text-base sm:text-lg leading-relaxed mb-6">
-                קיפי לא זיהה מצבים שדורשים התערבות הורית
-              </p>
-              
-              {/* Subtle CTA */}
-              <button 
-                onClick={() => navigate(`/daily-report/${selectedChildId}`)}
-                className="text-sm text-primary hover:text-primary/80 font-medium transition-colors"
-              >
-                לצפייה בדוח היומי ←
-              </button>
-            </CardContent>
-          </Card>
+              <div className="text-center p-3 rounded-lg bg-muted/50">
+                <div className="flex items-center justify-center gap-1 mb-1">
+                  <Bot className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <div className="text-2xl font-bold text-foreground">{DEMO_DAILY_STATS.messages_sent_to_ai}</div>
+                <div className="text-xs text-muted-foreground">הועברו לניתוח AI</div>
+              </div>
+              <div className="text-center p-3 rounded-lg bg-muted/50">
+                <div className="flex items-center justify-center gap-1 mb-1">
+                  <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <div className="text-2xl font-bold text-foreground">{DEMO_DAILY_STATS.alerts_sent}</div>
+                <div className="text-xs text-muted-foreground">התראה נשלחה</div>
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground text-center pt-2 border-t border-border">
+              {DEMO_DAILY_STATS.context_message}
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Card 2 - AI Insights */}
+        <Card className="bg-card border-border">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+              <Brain className="h-5 w-5 text-muted-foreground" />
+              תובנות AI
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-3">
+              {DEMO_AI_INSIGHTS.map((insight, index) => (
+                <li key={index} className="flex gap-3 text-sm text-foreground">
+                  <span className="text-muted-foreground">•</span>
+                  <span>{insight}</span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+
+        {/* Card 3 - Top Friends */}
+        <Card className="bg-card border-border">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+              <Users className="h-5 w-5 text-muted-foreground" />
+              הקשרים הפעילים ביותר היום
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2 mb-3">
+              {DEMO_TOP_FRIENDS.map((friend, index) => (
+                <span
+                  key={index}
+                  className="px-3 py-1.5 rounded-full bg-muted text-sm font-medium text-foreground"
+                >
+                  {friend}
+                </span>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              אלו החברים איתם התקיימה מרבית האינטראקציה היום.
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Card 4 - App Usage */}
+        <Card className="bg-card border-border">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+              <Smartphone className="h-5 w-5 text-muted-foreground" />
+              האפליקציות המרכזיות היום
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {DEMO_TOP_APPS.map((app, index) => (
+                <div key={index} className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs font-medium text-muted-foreground">
+                      {index + 1}
+                    </span>
+                    <span className="font-medium text-foreground">{app.name}</span>
+                  </div>
+                  <span className="text-sm text-muted-foreground">{app.usage}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Card 5 - Daily Context */}
+        <Card className="bg-card border-border">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+              <TrendingUp className="h-5 w-5 text-muted-foreground" />
+              הקשר יומי
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-foreground">{DEMO_DAILY_CONTEXT}</p>
+          </CardContent>
+        </Card>
+
+        {/* Card 6 - Device Status */}
+        <Card className="bg-muted/30 border-border">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+              <Smartphone className="h-5 w-5 text-muted-foreground" />
+              מצב המכשיר
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-center gap-3 text-sm">
+              <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+              <span className="text-foreground">מיקום אחרון: {DEMO_DEVICE_STATUS.location}</span>
+            </div>
+            <div className="flex items-center gap-3 text-sm">
+              <Battery className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+              <span className="text-foreground">סוללה: {DEMO_DEVICE_STATUS.battery}%</span>
+            </div>
+            <div className="flex items-center gap-3 text-sm">
+              <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+              <span className="text-foreground">עדכון אחרון: {DEMO_DEVICE_STATUS.last_update}</span>
+            </div>
+            <p className="text-xs text-muted-foreground pt-2 border-t border-border">
+              הנתונים משקפים את המצב האחרון שדווח מהמכשיר.
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Bottom CTA */}
+        <div className="flex justify-center pt-4 pb-8">
+          <Button
+            variant="outline"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+            רענון נתונים
+          </Button>
         </div>
       </div>
     </DashboardLayout>
