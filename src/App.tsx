@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { AccessibilityProvider } from "@/contexts/AccessibilityContext";
 import { WaitlistProvider } from "@/contexts/WaitlistContext";
+import { DemoProvider, useDemo } from "@/contexts/DemoContext";
 import { AccessibilityWrapper } from "@/components/accessibility/AccessibilityWrapper";
 import { WaitlistRouteGuard } from "@/components/WaitlistRouteGuard";
 import { WaitlistModal } from "@/components/WaitlistModal";
@@ -23,87 +24,93 @@ import SettingsPage from "./pages/Settings";
 import DailyReport from "./pages/DailyReport";
 import NotFound from "./pages/NotFound";
 
+// Demo pages
+import DemoDashboard from "./pages/demo/DemoDashboard";
+import DemoChildDashboard from "./pages/demo/DemoChildDashboard";
+import DemoAlerts from "./pages/demo/DemoAlerts";
+import DemoDailyReport from "./pages/demo/DemoDailyReport";
+import DemoFamily from "./pages/demo/DemoFamily";
+import DemoSettings from "./pages/demo/DemoSettings";
+
 const queryClient = new QueryClient();
+
+// Smart routing component that checks demo mode
+const AppRoutes = () => {
+  const { isDemoMode } = useDemo();
+
+  return (
+    <Routes>
+      <Route path="/" element={<Landing />} />
+      <Route path="/auth" element={<Auth />} />
+      <Route path="/privacy" element={<PrivacyPolicy />} />
+      <Route path="/terms" element={<TermsOfService />} />
+      
+      {/* Dashboard - demo or protected */}
+      <Route
+        path="/dashboard"
+        element={isDemoMode ? <DemoDashboard /> : <ProtectedRoute><Dashboard /></ProtectedRoute>}
+      />
+      
+      {/* Family - demo or protected */}
+      <Route
+        path="/family"
+        element={isDemoMode ? <DemoFamily /> : <ProtectedRoute><Family /></ProtectedRoute>}
+      />
+      
+      {/* Child Dashboard - demo or protected */}
+      <Route
+        path="/child/:childId"
+        element={isDemoMode ? <DemoChildDashboard /> : <ProtectedRoute><ChildDashboard /></ProtectedRoute>}
+      />
+      
+      {/* Alerts - demo or protected */}
+      <Route
+        path="/alerts"
+        element={isDemoMode ? <DemoAlerts /> : <ProtectedRoute><AlertsPage /></ProtectedRoute>}
+      />
+      
+      {/* Settings - demo or protected */}
+      <Route
+        path="/settings"
+        element={isDemoMode ? <DemoSettings /> : <ProtectedRoute><SettingsPage /></ProtectedRoute>}
+      />
+      
+      {/* Daily Report - demo or protected */}
+      <Route
+        path="/daily-report/:childId"
+        element={isDemoMode ? <DemoDailyReport /> : <ProtectedRoute><DailyReport /></ProtectedRoute>}
+      />
+      
+      {/* Onboarding - protected only (no demo version) */}
+      <Route
+        path="/onboarding"
+        element={<ProtectedRoute><Onboarding /></ProtectedRoute>}
+      />
+      
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AccessibilityProvider>
       <WaitlistProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <WaitlistModal />
-          <BrowserRouter>
-            <AccessibilityWrapper />
-            <WaitlistRouteGuard>
-              <AuthProvider>
-                <Routes>
-                  <Route path="/" element={<Landing />} />
-                  <Route path="/auth" element={<Auth />} />
-                  <Route path="/privacy" element={<PrivacyPolicy />} />
-                  <Route path="/terms" element={<TermsOfService />} />
-                  <Route
-                    path="/onboarding"
-                    element={
-                      <ProtectedRoute>
-                        <Onboarding />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/dashboard"
-                    element={
-                      <ProtectedRoute>
-                        <Dashboard />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/family"
-                    element={
-                      <ProtectedRoute>
-                        <Family />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/child/:childId"
-                    element={
-                      <ProtectedRoute>
-                        <ChildDashboard />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/alerts"
-                    element={
-                      <ProtectedRoute>
-                        <AlertsPage />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/settings"
-                    element={
-                      <ProtectedRoute>
-                        <SettingsPage />
-                      </ProtectedRoute>
-                    }
-                  />
-              <Route
-                path="/daily-report/:childId"
-                element={
-                      <ProtectedRoute>
-                        <DailyReport />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </AuthProvider>
-            </WaitlistRouteGuard>
-          </BrowserRouter>
-        </TooltipProvider>
+        <DemoProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <WaitlistModal />
+            <BrowserRouter>
+              <AccessibilityWrapper />
+              <WaitlistRouteGuard>
+                <AuthProvider>
+                  <AppRoutes />
+                </AuthProvider>
+              </WaitlistRouteGuard>
+            </BrowserRouter>
+          </TooltipProvider>
+        </DemoProvider>
       </WaitlistProvider>
     </AccessibilityProvider>
   </QueryClientProvider>

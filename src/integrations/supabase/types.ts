@@ -60,6 +60,20 @@ export type Database = {
             referencedRelation: "devices"
             referencedColumns: ["device_id"]
           },
+          {
+            foreignKeyName: "ai_stack_requests_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_daily_report"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "ai_stack_requests_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_daily_report_for_parent"
+            referencedColumns: ["device_id"]
+          },
         ]
       }
       alerts: {
@@ -192,6 +206,20 @@ export type Database = {
             referencedRelation: "devices"
             referencedColumns: ["device_id"]
           },
+          {
+            foreignKeyName: "alerts_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_daily_report"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "alerts_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_daily_report_for_parent"
+            referencedColumns: ["device_id"]
+          },
         ]
       }
       allowed_emails: {
@@ -265,6 +293,20 @@ export type Database = {
             columns: ["device_id"]
             isOneToOne: false
             referencedRelation: "devices"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "app_usage_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_daily_report"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "app_usage_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_daily_report_for_parent"
             referencedColumns: ["device_id"]
           },
         ]
@@ -352,6 +394,20 @@ export type Database = {
             referencedRelation: "devices"
             referencedColumns: ["device_id"]
           },
+          {
+            foreignKeyName: "device_commands_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_daily_report"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "device_commands_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_daily_report_for_parent"
+            referencedColumns: ["device_id"]
+          },
         ]
       }
       device_daily_health: {
@@ -396,6 +452,20 @@ export type Database = {
             referencedRelation: "devices"
             referencedColumns: ["device_id"]
           },
+          {
+            foreignKeyName: "device_daily_health_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_daily_report"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "device_daily_health_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_daily_report_for_parent"
+            referencedColumns: ["device_id"]
+          },
         ]
       }
       device_daily_metrics: {
@@ -435,6 +505,20 @@ export type Database = {
             columns: ["device_id"]
             isOneToOne: false
             referencedRelation: "devices"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "device_daily_metrics_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_daily_report"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "device_daily_metrics_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_daily_report_for_parent"
             referencedColumns: ["device_id"]
           },
         ]
@@ -480,6 +564,20 @@ export type Database = {
             columns: ["device_id"]
             isOneToOne: false
             referencedRelation: "devices"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "device_events_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_daily_report"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "device_events_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_daily_report_for_parent"
             referencedColumns: ["device_id"]
           },
         ]
@@ -641,6 +739,20 @@ export type Database = {
             referencedColumns: ["device_id"]
           },
           {
+            foreignKeyName: "settings_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_daily_report"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "settings_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_daily_report_for_parent"
+            referencedColumns: ["device_id"]
+          },
+          {
             foreignKeyName: "settings_parent_id_fkey"
             columns: ["parent_id"]
             isOneToOne: false
@@ -743,7 +855,6 @@ export type Database = {
           child_role: string | null
           content: string | null
           created_at: string | null
-          device_age: unknown
           device_id: string | null
           effective_threshold: number | null
           escalate: boolean | null
@@ -777,6 +888,74 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "devices"
             referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "alerts_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_daily_report"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "alerts_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_daily_report_for_parent"
+            referencedColumns: ["device_id"]
+          },
+        ]
+      }
+      parent_daily_report: {
+        Row: {
+          checks_responded: number | null
+          checks_sent: number | null
+          child_id: string | null
+          cnt_notify: number | null
+          cnt_notify_effective: number | null
+          cnt_review: number | null
+          cnt_safe: number | null
+          device_id: string | null
+          effective_threshold: number | null
+          is_in_warmup: boolean | null
+          last_response_at: string | null
+          report_date: string | null
+          top_apps: Json | null
+          total_usage_minutes: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "devices_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      parent_daily_report_for_parent: {
+        Row: {
+          checks_responded: number | null
+          checks_sent: number | null
+          child_id: string | null
+          cnt_notify: number | null
+          cnt_notify_effective: number | null
+          cnt_review: number | null
+          cnt_safe: number | null
+          device_id: string | null
+          effective_threshold: number | null
+          is_in_warmup: boolean | null
+          last_response_at: string | null
+          report_date: string | null
+          top_apps: Json | null
+          total_usage_minutes: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "devices_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -841,6 +1020,29 @@ export type Database = {
         }[]
       }
       get_device_settings: { Args: { p_device_id: string }; Returns: Json }
+      get_parent_daily_report_for_parent: {
+        Args: { p_report_date: string }
+        Returns: {
+          checks_responded: number
+          checks_sent: number
+          child_id: string
+          cnt_notify: number
+          cnt_notify_effective: number
+          cnt_review: number
+          cnt_safe: number
+          device_id: string
+          effective_threshold: number
+          is_in_warmup: boolean
+          last_response_at: string
+          report_date: string
+          top_apps: Json
+          total_usage_minutes: number
+        }[]
+      }
+      get_parent_daily_report_text: {
+        Args: { p_child_id: string }
+        Returns: string
+      }
       is_email_allowed: { Args: { p_email: string }; Returns: boolean }
       pair_device: {
         Args: { p_device_id: string; p_pairing_code: string }
@@ -867,10 +1069,10 @@ export type Database = {
       }
       update_device_status: {
         Args: {
-          p_battery?: number
+          p_battery: number
           p_device_id: string
-          p_lat?: number
-          p_lon?: number
+          p_lat: number
+          p_lon: number
         }
         Returns: undefined
       }
