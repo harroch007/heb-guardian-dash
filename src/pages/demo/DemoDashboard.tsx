@@ -3,11 +3,9 @@ import { RefreshCw, BarChart3, Brain, Users, Smartphone, TrendingUp, MapPin, Bat
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { DemoBanner } from "@/components/DemoBanner";
 import { toast } from "sonner";
 import {
   DEMO_PARENT,
-  DEMO_CHILDREN,
   DEMO_DAILY_STATS,
   DEMO_AI_INSIGHTS,
   DEMO_TOP_FRIENDS,
@@ -18,7 +16,6 @@ import {
 
 const DemoDashboard = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const child = DEMO_CHILDREN[0]; // רואי
 
   const handleRefresh = () => {
     setIsRefreshing(true);
@@ -28,20 +25,10 @@ const DemoDashboard = () => {
 
   return (
     <DashboardLayout>
-      <DemoBanner />
-      
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-6" dir="rtl">
         {/* Header */}
         <div className="flex items-start justify-between">
-          <div className="space-y-1">
-            <h1 className="text-2xl font-bold text-foreground">תמונת מצב יומית</h1>
-            <p className="text-sm text-muted-foreground">
-              {DEMO_PARENT.name} · הורה | {child.name} · ילד
-            </p>
-            <p className="text-xs text-muted-foreground">
-              עודכן לאחרונה: {DEMO_DAILY_STATS.last_updated}
-            </p>
-          </div>
+          <h1 className="text-2xl font-bold text-foreground">צהריים טובים, {DEMO_PARENT.name} 😎</h1>
           <Button
             variant="outline"
             size="sm"
