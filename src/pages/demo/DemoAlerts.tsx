@@ -1,111 +1,148 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { DemoBanner } from "@/components/DemoBanner";
-import { AlertCard } from "@/components/AlertCard";
-import { Bell, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { AlertTriangle, Users, Lightbulb, Heart, Bookmark } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { DEMO_ALERTS } from "@/data/demoData";
+import { DEMO_SINGLE_ALERT, DEMO_CHILDREN } from "@/data/demoData";
 
 const DemoAlerts = () => {
-  const [alerts, setAlerts] = useState(DEMO_ALERTS);
-  const [filter, setFilter] = useState<'all' | 'open' | 'in_progress' | 'closed'>('all');
+  const [acknowledged, setAcknowledged] = useState(false);
+  const child = DEMO_CHILDREN[0]; // רואי
 
-  const handleAcknowledge = async (id: number) => {
-    // Simulate acknowledge in demo mode
-    setAlerts(prev => prev.filter(alert => alert.id !== id));
+  const handleAcknowledge = () => {
+    setAcknowledged(true);
     toast({
-      title: "תודה!",
-      description: "ההתראה סומנה כטופלה (מצב הדגמה)",
+      title: "תודה",
+      description: "ההתראה נשמרה",
     });
   };
 
-  const handleRefresh = () => {
-    // Reset to original demo data
-    setAlerts(DEMO_ALERTS);
+  const handleRemind = () => {
     toast({
-      title: "רשימה עודכנה",
-      description: "מצב הדגמה - נתונים אופסו",
+      title: "נשמר",
+      description: "נזכיר לך לעקוב בהמשך",
     });
   };
 
-  const filteredAlerts = alerts.filter(alert => {
-    if (filter === 'all') return true;
-    if (filter === 'open') return !alert.acknowledged_at;
-    if (filter === 'in_progress') return false;
-    if (filter === 'closed') return !!alert.acknowledged_at;
-    return true;
-  });
-
-  const filterOptions = [
-    { key: 'all', label: 'הכל' },
-    { key: 'open', label: 'פתוחות' },
-    { key: 'in_progress', label: 'בטיפול' },
-    { key: 'closed', label: 'נסגרו' },
-  ];
-
-  return (
-    <DashboardLayout>
-      <DemoBanner />
-      {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-2">
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-            התראות
-          </h1>
-          <button
-            onClick={handleRefresh}
-            className="p-2 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary transition-all"
-            aria-label="רענן"
-          >
-            <RefreshCw className="w-5 h-5" />
-          </button>
-        </div>
-        <p className="text-muted-foreground">מה דורש תשומת לב — ומה כבר טופל</p>
-      </div>
-
-      {/* Filters - compact horizontal row, scrollable on mobile */}
-      <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2 -mx-1 px-1">
-        {filterOptions.map(item => (
-          <button
-            key={item.key}
-            onClick={() => setFilter(item.key as typeof filter)}
-            className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
-              filter === item.key
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
-            }`}
-          >
-            {item.label}
-          </button>
-        ))}
-        <span className="text-xs text-muted-foreground whitespace-nowrap mr-auto pr-2">
-          {filteredAlerts.length} התראות
-        </span>
-      </div>
-
-      {/* Alerts List */}
-      {filteredAlerts.length > 0 ? (
-        <div className="space-y-3">
-          {filteredAlerts.map((alert, index) => (
-            <AlertCard
-              key={alert.id}
-              alert={alert}
-              onAcknowledge={handleAcknowledge}
-              index={index}
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="p-12 rounded-xl bg-card border border-border/50 text-center">
-          <Bell className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-40" />
-          <p className="text-lg text-foreground mb-2">
-            אין התראות כרגע
-          </p>
-          <p className="text-sm text-muted-foreground">
+  if (acknowledged) {
+    return (
+      <DashboardLayout>
+        <div className="max-w-2xl mx-auto px-4 py-12 text-center" dir="rtl">
+          <div className="w-16 h-16 bg-success/20 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Heart className="w-8 h-8 text-success" />
+          </div>
+          <h2 className="text-xl font-semibold text-foreground mb-2">
+            אין התראות נוספות כרגע
+          </h2>
+          <p className="text-muted-foreground">
             כשמשהו ידרוש תשומת לב — תראה את זה כאן
           </p>
         </div>
-      )}
+      </DashboardLayout>
+    );
+  }
+
+  return (
+    <DashboardLayout>
+      <div className="max-w-2xl mx-auto px-4 py-6 space-y-6" dir="rtl">
+        {/* Screen Header */}
+        <div className="space-y-2">
+          <h1 className="text-2xl font-bold text-foreground">
+            התראה שדורשת תשומת לב
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            הסבר מפורט על אירוע שזוהה היום בפעילות של {child.name}
+          </p>
+        </div>
+
+        {/* Single Alert Card */}
+        <Card className="border-warning/30 bg-card">
+          {/* Card Header */}
+          <div className="p-6 pb-4 flex items-center gap-3">
+            <div className="w-10 h-10 bg-warning/20 rounded-full flex items-center justify-center flex-shrink-0">
+              <AlertTriangle className="w-5 h-5 text-warning" />
+            </div>
+            <h2 className="text-lg font-semibold text-foreground">
+              {DEMO_SINGLE_ALERT.title}
+            </h2>
+          </div>
+
+          <CardContent className="space-y-6 pt-0">
+            {/* Main Insight */}
+            <div className="space-y-2">
+              <p className="text-foreground leading-relaxed whitespace-pre-line">
+                {DEMO_SINGLE_ALERT.mainInsight}
+              </p>
+            </div>
+
+            {/* Social Context Section */}
+            <div className="bg-muted/30 rounded-lg p-4 space-y-3">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Users className="w-4 h-4" />
+                <span className="text-sm font-medium">הקשר חברתי</span>
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm text-foreground">
+                  <span className="text-muted-foreground">משתתפים מרכזיים: </span>
+                  {DEMO_SINGLE_ALERT.socialContext.participants.join("، ")}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {DEMO_SINGLE_ALERT.socialContext.note}
+                </p>
+              </div>
+            </div>
+
+            {/* Pattern & Depth Insight */}
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground whitespace-pre-line">
+                {DEMO_SINGLE_ALERT.patternInsight}
+              </p>
+              
+              {/* Meaning Block */}
+              <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <Lightbulb className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-foreground mb-1">
+                      מה המשמעות?
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {DEMO_SINGLE_ALERT.meaning}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Parental Framing */}
+            <div className="border-t border-border pt-4">
+              <p className="text-sm text-foreground/80 italic leading-relaxed">
+                {DEMO_SINGLE_ALERT.parentalGuidance}
+              </p>
+            </div>
+
+            {/* Footer Actions */}
+            <div className="flex items-center gap-3 pt-2">
+              <Button 
+                onClick={handleAcknowledge}
+                className="flex-1"
+              >
+                הבנתי, תודה
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleRemind}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <Bookmark className="w-4 h-4 ml-1" />
+                לזכור ולעקוב בהמשך
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </DashboardLayout>
   );
 };
