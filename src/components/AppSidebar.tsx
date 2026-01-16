@@ -2,6 +2,7 @@ import { Home, Bell, Settings, Users, LogOut } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
+import { useDemo } from "@/contexts/DemoContext";
 import { Button } from "@/components/ui/button";
 import kippyLogo from "@/assets/kippy-logo.svg";
 
@@ -14,9 +15,15 @@ const navItems = [
 
 export function AppSidebar() {
   const { signOut } = useAuth();
+  const { isDemoMode, exitDemoMode } = useDemo();
 
   const handleLogout = async () => {
-    await signOut();
+    if (isDemoMode) {
+      exitDemoMode();
+      window.location.href = "/";
+    } else {
+      await signOut();
+    }
   };
 
   const handleLogoClick = () => {
