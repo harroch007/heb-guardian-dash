@@ -112,6 +112,8 @@ export const DEMO_ALERTS = [
 export const DEMO_ALERTS_FULL = [
   {
     id: 1,
+    child_name: "רואי",
+    chat_type: "group",
     chat_name: "קבוצת הכיתה",
     sender_display: "דניאל",
     parent_message: "זוהה שיח טעון בקבוצה חברתית שכלל ביטויים פוגעניים",
@@ -128,6 +130,8 @@ export const DEMO_ALERTS_FULL = [
   },
   {
     id: 2,
+    child_name: "רואי",
+    chat_type: "private",
     chat_name: null,
     sender_display: "נועם",
     parent_message: "שיחה פרטית עם תוכן שמצריך תשומת לב מצד ההורה",
@@ -140,6 +144,8 @@ export const DEMO_ALERTS_FULL = [
   },
   {
     id: 3,
+    child_name: "רואי",
+    chat_type: "group",
     chat_name: "קבוצת הכדורגל",
     sender_display: null,
     parent_message: "זוהתה לשון פוגענית בקבוצת הספורט",
