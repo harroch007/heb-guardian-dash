@@ -3,10 +3,16 @@ import { useNavigate, useParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowRight, CheckCircle2, MessageSquare, Brain, Bell, User, Calendar } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface DailyMetrics {
   metric_date: string;
@@ -23,10 +29,25 @@ const getIsraelISO = (offsetDays: number): string => {
   return israelNow.toISOString().split("T")[0];
 };
 
+// Generate date options for the last 7 days
+const getDateOptions = () => {
+  const labels = ["אתמול", "לפני יומיים", "לפני 3 ימים", "לפני 4 ימים", "לפני 5 ימים", "לפני 6 ימים", "לפני שבוע"];
+  
+  return labels.map((label, index) => {
+    const date = getIsraelISO(-(index + 1));
+    const formatted = new Date(date).toLocaleDateString('he-IL');
+    return {
+      value: date,
+      label: `${label} (${formatted})`
+    };
+  });
+};
+
 const DailyReport = () => {
   const navigate = useNavigate();
   const { childId } = useParams<{ childId: string }>();
 
+  const dateOptions = getDateOptions();
   const [selectedDate, setSelectedDate] = useState<string>(getIsraelISO(-1));
   const [metrics, setMetrics] = useState<DailyMetrics | null>(null);
   const [loading, setLoading] = useState(false);
@@ -95,15 +116,22 @@ const DailyReport = () => {
         </div>
 
         {/* Date Selector */}
-        <div className="flex items-center justify-center gap-3 mb-6">
-          <Calendar className="w-5 h-5 text-muted-foreground" />
-          <Input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            max={getIsraelISO(0)}
-            className="w-auto"
-          />
+        <div className="flex items-center justify-center mb-6">
+          <Select value={selectedDate} onValueChange={setSelectedDate}>
+            <SelectTrigger className="w-auto min-w-[200px]">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4" />
+                <SelectValue placeholder="בחר תאריך" />
+              </div>
+            </SelectTrigger>
+            <SelectContent className="bg-background border">
+              {dateOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="space-y-6">
