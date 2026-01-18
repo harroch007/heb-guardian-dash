@@ -74,6 +74,13 @@ export type Database = {
             referencedRelation: "parent_daily_report_for_parent"
             referencedColumns: ["device_id"]
           },
+          {
+            foreignKeyName: "ai_stack_requests_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_home_snapshot"
+            referencedColumns: ["device_id"]
+          },
         ]
       }
       alerts: {
@@ -220,6 +227,13 @@ export type Database = {
             referencedRelation: "parent_daily_report_for_parent"
             referencedColumns: ["device_id"]
           },
+          {
+            foreignKeyName: "alerts_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_home_snapshot"
+            referencedColumns: ["device_id"]
+          },
         ]
       }
       allowed_emails: {
@@ -309,6 +323,13 @@ export type Database = {
             referencedRelation: "parent_daily_report_for_parent"
             referencedColumns: ["device_id"]
           },
+          {
+            foreignKeyName: "app_usage_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_home_snapshot"
+            referencedColumns: ["device_id"]
+          },
         ]
       }
       children: {
@@ -364,6 +385,39 @@ export type Database = {
           },
         ]
       }
+      daily_chat_stats: {
+        Row: {
+          chat_name: string
+          chat_type: string
+          child_id: string | null
+          device_id: string
+          id: string
+          message_count: number
+          stat_date: string
+          updated_at: string
+        }
+        Insert: {
+          chat_name: string
+          chat_type?: string
+          child_id?: string | null
+          device_id: string
+          id?: string
+          message_count?: number
+          stat_date: string
+          updated_at?: string
+        }
+        Update: {
+          chat_name?: string
+          chat_type?: string
+          child_id?: string | null
+          device_id?: string
+          id?: string
+          message_count?: number
+          stat_date?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       device_commands: {
         Row: {
           command_type: string
@@ -406,6 +460,13 @@ export type Database = {
             columns: ["device_id"]
             isOneToOne: false
             referencedRelation: "parent_daily_report_for_parent"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "device_commands_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_home_snapshot"
             referencedColumns: ["device_id"]
           },
         ]
@@ -466,6 +527,13 @@ export type Database = {
             referencedRelation: "parent_daily_report_for_parent"
             referencedColumns: ["device_id"]
           },
+          {
+            foreignKeyName: "device_daily_health_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_home_snapshot"
+            referencedColumns: ["device_id"]
+          },
         ]
       }
       device_daily_metrics: {
@@ -519,6 +587,13 @@ export type Database = {
             columns: ["device_id"]
             isOneToOne: false
             referencedRelation: "parent_daily_report_for_parent"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "device_daily_metrics_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_home_snapshot"
             referencedColumns: ["device_id"]
           },
         ]
@@ -578,6 +653,13 @@ export type Database = {
             columns: ["device_id"]
             isOneToOne: false
             referencedRelation: "parent_daily_report_for_parent"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "device_events_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_home_snapshot"
             referencedColumns: ["device_id"]
           },
         ]
@@ -753,6 +835,13 @@ export type Database = {
             referencedColumns: ["device_id"]
           },
           {
+            foreignKeyName: "settings_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_home_snapshot"
+            referencedColumns: ["device_id"]
+          },
+          {
             foreignKeyName: "settings_parent_id_fkey"
             columns: ["parent_id"]
             isOneToOne: false
@@ -903,6 +992,13 @@ export type Database = {
             referencedRelation: "parent_daily_report_for_parent"
             referencedColumns: ["device_id"]
           },
+          {
+            foreignKeyName: "alerts_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_home_snapshot"
+            referencedColumns: ["device_id"]
+          },
         ]
       }
       parent_daily_report: {
@@ -958,6 +1054,40 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      parent_home_snapshot: {
+        Row: {
+          address: string | null
+          alerts_sent: number | null
+          battery_level: number | null
+          child_id: string | null
+          child_name: string | null
+          device_id: string | null
+          last_seen: string | null
+          max_notify_score: number | null
+          messages_scanned: number | null
+          notify_effective_today: number | null
+          stacks_sent_to_ai: number | null
+          top_apps: Json | null
+          top_chats: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "devices_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      parent_top_chats_today: {
+        Row: {
+          device_id: string | null
+          stat_date: string | null
+          top_chats: Json | null
+        }
+        Relationships: []
       }
     }
     Functions: {
@@ -1043,6 +1173,17 @@ export type Database = {
         Args: { p_child_id: string }
         Returns: string
       }
+      increment_daily_chat_stat: {
+        Args: {
+          p_chat_name: string
+          p_chat_type: string
+          p_child_id: string
+          p_delta?: number
+          p_device_id: string
+          p_stat_date?: string
+        }
+        Returns: Json
+      }
       is_email_allowed: { Args: { p_email: string }; Returns: boolean }
       pair_device: {
         Args: { p_device_id: string; p_pairing_code: string }
@@ -1081,6 +1222,7 @@ export type Database = {
           p_app_name: string
           p_device_id: string
           p_package_name: string
+          p_usage_date?: string
           p_usage_minutes: number
         }
         Returns: undefined
