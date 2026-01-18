@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { DashboardGreeting } from "@/components/dashboard/DashboardGreeting";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Users, User, RefreshCw, BarChart3, Brain, Smartphone, TrendingUp, MapPin, Battery, Clock, Mail, Bot, AlertTriangle } from "lucide-react";
+import { Plus, Users, User, RefreshCw, BarChart3, Brain, Smartphone, TrendingUp, MapPin, Battery, Clock, Mail, Bot, AlertTriangle, Calendar, ChevronLeft } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -295,6 +295,19 @@ const Index = () => {
                     </div>
                   </CardContent>
                 </Card>
+
+                {/* Yesterday Summary Button */}
+                <Button
+                  variant="outline"
+                  className="w-full justify-between"
+                  onClick={() => navigate(`/daily-report/${selectedChildId}`)}
+                >
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    <span>צפה בסיכום של אתמול</span>
+                  </div>
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
 
                 {/* Card 2 - AI Insights (static for now) */}
                 <Card className="bg-card border-border">

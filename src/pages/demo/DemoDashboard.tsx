@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { RefreshCw, BarChart3, Brain, Users, Smartphone, TrendingUp, MapPin, Battery, Clock, Mail, Bot, AlertTriangle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { RefreshCw, BarChart3, Brain, Users, Smartphone, TrendingUp, MapPin, Battery, Clock, Mail, Bot, AlertTriangle, Calendar, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DashboardLayout } from "@/components/DashboardLayout";
@@ -15,6 +16,7 @@ import {
 } from "@/data/demoData";
 
 const DemoDashboard = () => {
+  const navigate = useNavigate();
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const handleRefresh = () => {
@@ -78,6 +80,19 @@ const DemoDashboard = () => {
             </p>
           </CardContent>
         </Card>
+
+        {/* Yesterday Summary Button */}
+        <Button
+          variant="outline"
+          className="w-full justify-between"
+          onClick={() => navigate("/demo/daily-report/demo-child-1")}
+        >
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4" />
+            <span>צפה בסיכום של אתמול</span>
+          </div>
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
 
         {/* Card 2 - AI Insights */}
         <Card className="bg-card border-border">
