@@ -11,6 +11,7 @@ import { Plus, User, ChevronLeft, Battery, Clock, Bell, Users, Smartphone, UserP
 import { motion } from 'framer-motion';
 import { formatDistanceToNow } from 'date-fns';
 import { he } from 'date-fns/locale';
+import { getDeviceStatus, getStatusLabel, getStatusBgColor, getStatusTextColor } from '@/lib/deviceStatus';
 
 interface Child {
   id: string;
@@ -148,15 +149,9 @@ export default function Family() {
     }
   };
 
-  const isDeviceConnected = (lastSeen: string | null) => {
-    if (!lastSeen) return false;
-    const lastSeenTime = new Date(lastSeen).getTime();
-    return (Date.now() - lastSeenTime) < 24 * 60 * 60 * 1000;
-  };
-
   // Calculate summary stats
   const totalChildren = children.length;
-  const connectedDevices = children.filter(c => c.device && isDeviceConnected(c.device.last_seen)).length;
+  const connectedDevices = children.filter(c => getDeviceStatus(!!c.device, c.device?.last_seen) === 'connected').length;
   const totalAlerts = children.reduce((sum, c) => sum + c.alertsCount, 0);
 
   return (
@@ -258,7 +253,7 @@ export default function Family() {
                   <div className="space-y-3">
                     {children.map((child, index) => {
                       const genderColors = getGenderColors(child.gender);
-                      const connected = child.device ? isDeviceConnected(child.device.last_seen) : false;
+                      const status = getDeviceStatus(!!child.device, child.device?.last_seen);
 
                       return (
                         <motion.div
@@ -284,19 +279,9 @@ export default function Family() {
                                   {child.name}
                                 </span>
                                 <div className="flex items-center gap-2">
-                                  {connected ? (
-                                    <span className="text-xs px-2 py-1 rounded-full bg-success/20 text-success">
-                                      מחובר
-                                    </span>
-                                  ) : child.device ? (
-                                    <span className="text-xs px-2 py-1 rounded-full bg-warning/20 text-warning">
-                                      לא פעיל
-                                    </span>
-                                  ) : (
-                                    <span className="text-xs px-2 py-1 rounded-full bg-muted text-muted-foreground">
-                                      ללא מכשיר
-                                    </span>
-                                  )}
+                                  <span className={`text-xs px-2 py-1 rounded-full ${getStatusBgColor(status)} ${getStatusTextColor(status)}`}>
+                                    {getStatusLabel(status)}
+                                  </span>
                                   <ChevronLeft className="w-4 h-4 text-muted-foreground" />
                                 </div>
                               </div>
