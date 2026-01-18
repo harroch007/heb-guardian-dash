@@ -165,6 +165,9 @@ const AlertsPage = () => {
               parent_message: selectedAlert.parent_message,
               ai_summary: selectedAlert.ai_summary,
               ai_recommendation: selectedAlert.ai_recommendation,
+              chat_type: selectedAlert.chat_type,
+              created_at: selectedAlert.created_at,
+              ai_risk_score: selectedAlert.ai_risk_score,
             }}
             onAcknowledge={handleAcknowledge}
             onBack={() => setSelectedAlertId(null)}
