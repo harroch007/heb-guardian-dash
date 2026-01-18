@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { AlertCard } from "@/components/AlertCard";
+import { AlertListView, AlertDetailView, EmptyAlertsState } from "@/components/alerts";
 import { supabase } from "@/integrations/supabase/client";
-import { Bell, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface Alert {
@@ -29,8 +29,7 @@ interface Alert {
 const AlertsPage = () => {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(true);
-  // TODO(DATA): in_progress and closed filters are UI-only - no status field exists
-  const [filter, setFilter] = useState<'all' | 'open' | 'in_progress' | 'closed'>('all');
+  const [selectedAlertId, setSelectedAlertId] = useState<number | null>(null);
 
   const fetchAlerts = async () => {
     try {
@@ -58,6 +57,7 @@ const AlertsPage = () => {
           children!child_id(name)
         `)
         .eq('is_processed', true)
+        .is('acknowledged_at', null)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -98,6 +98,7 @@ const AlertsPage = () => {
       if (error) throw error;
 
       setAlerts(prev => prev.filter(alert => alert.id !== id));
+      setSelectedAlertId(null);
       toast({
         title: "תודה!",
         description: "ההתראה סומנה כטופלה",
@@ -115,94 +116,66 @@ const AlertsPage = () => {
     fetchAlerts();
   }, []);
 
-  const filteredAlerts = alerts.filter(alert => {
-    if (filter === 'all') return true;
-    if (filter === 'open') return !alert.acknowledged_at;
-    // TODO(DATA): in_progress requires a status field that doesn't exist
-    if (filter === 'in_progress') return false;
-    // closed = acknowledged
-    if (filter === 'closed') return !!alert.acknowledged_at;
-    return true;
-  });
-
-  const filterOptions = [
-    { key: 'all', label: 'הכל' },
-    { key: 'open', label: 'פתוחות' },
-    // TODO(DATA): in_progress requires status field
-    { key: 'in_progress', label: 'בטיפול*' },
-    // TODO(DATA): closed uses acknowledged_at as proxy
-    { key: 'closed', label: 'נסגרו*' },
-  ];
+  const selectedAlert = selectedAlertId 
+    ? alerts.find(a => a.id === selectedAlertId) 
+    : null;
 
   return (
     <DashboardLayout>
-      {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-2">
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-            התראות
-          </h1>
-          <button
-            onClick={fetchAlerts}
-            disabled={loading}
-            className="p-2 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary transition-all disabled:opacity-50"
-            aria-label="רענן"
-          >
-            <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
-          </button>
-        </div>
-        <p className="text-muted-foreground">מה דורש תשומת לב — ומה כבר טופל</p>
-      </div>
-
-      {/* Filters - compact horizontal row, scrollable on mobile */}
-      <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2 -mx-1 px-1">
-        {filterOptions.map(item => (
-          <button
-            key={item.key}
-            onClick={() => setFilter(item.key as typeof filter)}
-            className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
-              filter === item.key
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
-            }`}
-          >
-            {item.label}
-          </button>
-        ))}
-        <span className="text-xs text-muted-foreground whitespace-nowrap mr-auto pr-2">
-          {filteredAlerts.length} התראות
-        </span>
-      </div>
-
-      {/* Alerts List */}
-      {loading ? (
-        <div className="space-y-4">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="h-36 rounded-xl bg-card/50 animate-pulse border border-border/30" />
-          ))}
-        </div>
-      ) : filteredAlerts.length > 0 ? (
-        <div className="space-y-3">
-          {filteredAlerts.map((alert, index) => (
-            <AlertCard
-              key={alert.id}
-              alert={alert}
-              onAcknowledge={handleAcknowledge}
-              index={index}
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="p-12 rounded-xl bg-card border border-border/50 text-center">
-          <Bell className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-40" />
-          <p className="text-lg text-foreground mb-2">
-            אין התראות כרגע
-          </p>
+      <div className="max-w-2xl mx-auto" dir="rtl">
+        {/* Header */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-2">
+            <h1 className="text-2xl font-bold text-foreground">
+              התראות
+            </h1>
+            <button
+              onClick={fetchAlerts}
+              disabled={loading}
+              className="p-2 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary transition-all disabled:opacity-50"
+              aria-label="רענן"
+            >
+              <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
           <p className="text-sm text-muted-foreground">
-            כשמשהו ידרוש תשומת לב — תראה את זה כאן
+            {alerts.length > 0 
+              ? `${alerts.length} התראות שדורשות תשומת לב`
+              : 'מה דורש תשומת לב — ומה כבר טופל'
+            }
           </p>
         </div>
-      )}
+
+        {/* Content */}
+        {loading ? (
+          <div className="space-y-4">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="h-20 rounded-xl bg-card/50 animate-pulse border border-border/30" />
+            ))}
+          </div>
+        ) : selectedAlert ? (
+          <AlertDetailView
+            alert={{
+              id: selectedAlert.id,
+              chat_name: selectedAlert.chat_name,
+              sender_display: selectedAlert.sender_display,
+              parent_message: selectedAlert.parent_message,
+              ai_summary: selectedAlert.ai_summary,
+              ai_recommendation: selectedAlert.ai_recommendation,
+            }}
+            onAcknowledge={handleAcknowledge}
+            onBack={() => setSelectedAlertId(null)}
+            showBackButton={alerts.length > 1}
+          />
+        ) : alerts.length > 0 ? (
+          <AlertListView
+            alerts={alerts}
+            onSelect={setSelectedAlertId}
+          />
+        ) : (
+          <EmptyAlertsState />
+        )}
+      </div>
     </DashboardLayout>
   );
 };
