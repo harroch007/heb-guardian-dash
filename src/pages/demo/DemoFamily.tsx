@@ -9,6 +9,7 @@ import { DEMO_CHILDREN, DEMO_DEVICE, DEMO_ALERTS_FULL } from '@/data/demoData';
 import { motion } from 'framer-motion';
 import { formatDistanceToNow } from 'date-fns';
 import { he } from 'date-fns/locale';
+import { getDeviceStatus, getStatusLabel, getStatusBgColor, getStatusTextColor } from '@/lib/deviceStatus';
 
 // Demo device data for each child
 const DEMO_DEVICES_MAP: Record<string, { battery_level: number; last_seen: string; latitude: number; longitude: number }> = {
@@ -44,10 +45,9 @@ export default function DemoFamily() {
 
   // Calculate summary stats
   const totalChildren = DEMO_CHILDREN.length;
-  const connectedDevices = Object.values(DEMO_DEVICES_MAP).filter(d => {
-    const lastSeenTime = new Date(d.last_seen).getTime();
-    return (Date.now() - lastSeenTime) < 24 * 60 * 60 * 1000;
-  }).length;
+  const connectedDevices = Object.values(DEMO_DEVICES_MAP).filter(d => 
+    getDeviceStatus(true, d.last_seen) === 'connected'
+  ).length;
   const totalAlerts = Object.values(DEMO_ALERTS_COUNT).reduce((sum, count) => sum + count, 0);
 
   const getGenderColors = (gender: string) => {
@@ -77,11 +77,6 @@ export default function DemoFamily() {
     } catch {
       return 'לא ידוע';
     }
-  };
-
-  const isDeviceConnected = (lastSeen: string) => {
-    const lastSeenTime = new Date(lastSeen).getTime();
-    return (Date.now() - lastSeenTime) < 24 * 60 * 60 * 1000;
   };
 
   return (
@@ -156,7 +151,7 @@ export default function DemoFamily() {
                     const device = DEMO_DEVICES_MAP[child.id];
                     const alertsCount = DEMO_ALERTS_COUNT[child.id] || 0;
                     const genderColors = getGenderColors(child.gender);
-                    const connected = device ? isDeviceConnected(device.last_seen) : false;
+                    const status = getDeviceStatus(!!device, device?.last_seen);
 
                     return (
                       <motion.div
@@ -182,20 +177,14 @@ export default function DemoFamily() {
                                 {child.name}
                               </span>
                               <div className="flex items-center gap-2">
-                                {connected ? (
-                                  <span className="text-xs px-2 py-1 rounded-full bg-success/20 text-success">
-                                    מחובר
-                                  </span>
-                                ) : (
-                                  <span className="text-xs px-2 py-1 rounded-full bg-muted text-muted-foreground">
-                                    לא מחובר
-                                  </span>
-                                )}
+                                <span className={`text-xs px-2 py-1 rounded-full ${getStatusBgColor(status)} ${getStatusTextColor(status)}`}>
+                                  {getStatusLabel(status)}
+                                </span>
                                 <ChevronLeft className="w-4 h-4 text-muted-foreground" />
                               </div>
                             </div>
                             
-                            {device && connected && (
+                            {device && status !== 'not_connected' && (
                               <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                                 <div className="flex items-center gap-1">
                                   <Battery className={`w-4 h-4 ${getBatteryColor(device.battery_level)}`} />

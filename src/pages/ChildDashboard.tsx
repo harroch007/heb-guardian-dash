@@ -123,7 +123,7 @@ export default function ChildDashboard() {
     return "text-success";
   };
 
-  const status = getDeviceStatus(device !== null);
+  const status = getDeviceStatus(device !== null, device?.last_seen);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -454,6 +454,7 @@ export default function ChildDashboard() {
                 variant="secondary"
                 className={cn(
                   status === "connected" && "bg-success/20 text-success",
+                  status === "inactive" && "bg-warning/20 text-warning",
                   status === "not_connected" && "bg-destructive/20 text-destructive",
                 )}
               >
