@@ -29,12 +29,12 @@ const getIsraelISO = (offsetDays: number): string => {
   return israelNow.toISOString().split("T")[0];
 };
 
-// Generate date options for the last 7 days
+// Generate date options for today and the last 7 days
 const getDateOptions = () => {
-  const labels = ["אתמול", "לפני יומיים", "לפני 3 ימים", "לפני 4 ימים", "לפני 5 ימים", "לפני 6 ימים", "לפני שבוע"];
+  const labels = ["היום", "אתמול", "לפני יומיים", "לפני 3 ימים", "לפני 4 ימים", "לפני 5 ימים", "לפני 6 ימים", "לפני שבוע"];
   
   return labels.map((label, index) => {
-    const date = getIsraelISO(-(index + 1));
+    const date = getIsraelISO(-index);
     const formatted = new Date(date).toLocaleDateString('he-IL');
     return {
       value: date,
