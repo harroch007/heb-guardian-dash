@@ -3,11 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { DashboardGreeting } from "@/components/dashboard/DashboardGreeting";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Users, CheckCircle2, Eye, User } from "lucide-react";
+import { Plus, Users, User, RefreshCw, BarChart3, Brain, Smartphone, TrendingUp, MapPin, Battery, Clock, Mail, Bot, AlertTriangle } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { toast } from "sonner";
 
 interface Child {
   id: string;
@@ -22,6 +23,57 @@ interface Child {
   parent_id: string;
   date_of_birth: string;
 }
+
+interface TopApp {
+  app_name: string;
+  usage_minutes: number;
+}
+
+interface TopChat {
+  chat_name: string;
+  message_count: number;
+}
+
+interface HomeSnapshot {
+  child_id: string;
+  child_name: string;
+  device_id: string;
+  messages_scanned: number | null;
+  stacks_sent_to_ai: number | null;
+  alerts_sent: number | null;
+  notify_effective_today: number | null;
+  top_apps: TopApp[] | null;
+  top_chats: TopChat[] | null;
+  address: string | null;
+  battery_level: number | null;
+  last_seen: string | null;
+}
+
+// Format minutes to readable format
+const formatMinutes = (minutes: number): string => {
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  if (hours > 0) {
+    return `${hours}:${mins.toString().padStart(2, '0')} שעות`;
+  }
+  return `${mins} דקות`;
+};
+
+// Format last_seen timestamp to relative time
+const formatLastSeen = (timestamp: string | null): string => {
+  if (!timestamp) return "לא זמין";
+  
+  const now = new Date();
+  const seen = new Date(timestamp);
+  const diffMinutes = Math.floor((now.getTime() - seen.getTime()) / 60000);
+  
+  if (diffMinutes < 1) return "עכשיו";
+  if (diffMinutes < 60) return `לפני ${diffMinutes} דקות`;
+  const hours = Math.floor(diffMinutes / 60);
+  if (hours < 24) return `לפני ${hours} שעות`;
+  const days = Math.floor(hours / 24);
+  return `לפני ${days} ימים`;
+};
 
 const Index = () => {
   const navigate = useNavigate();
@@ -31,6 +83,9 @@ const Index = () => {
   const { user } = useAuth();
 
   const [selectedChildId, setSelectedChildId] = useState<string>("");
+  const [snapshot, setSnapshot] = useState<HomeSnapshot | null>(null);
+  const [snapshotLoading, setSnapshotLoading] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     if (children.length > 0 && !selectedChildId) {
@@ -51,7 +106,7 @@ const Index = () => {
     return age;
   };
 
-  const fetchData = async () => {
+  const fetchChildren = async () => {
     try {
       setLoading(true);
       setError(null);
@@ -65,24 +120,87 @@ const Index = () => {
       if (childrenError) throw childrenError;
       setChildren(childrenData || []);
     } catch (err: any) {
-      console.error("Error fetching data:", err);
+      console.error("Error fetching children:", err);
       setError(err.message || "שגיאה בטעינת נתונים");
     } finally {
       setLoading(false);
     }
   };
 
+  const fetchSnapshot = async () => {
+    if (!selectedChildId) return;
+    
+    try {
+      setSnapshotLoading(true);
+
+      const { data, error: snapshotError } = await supabase
+        .from("parent_home_snapshot")
+        .select("*")
+        .eq("child_id", selectedChildId)
+        .maybeSingle();
+
+      if (snapshotError) throw snapshotError;
+      
+      // Cast the data to our interface, handling the JSON fields
+      if (data) {
+        setSnapshot({
+          ...data,
+          top_apps: data.top_apps as unknown as TopApp[] | null,
+          top_chats: data.top_chats as unknown as TopChat[] | null,
+        });
+      } else {
+        setSnapshot(null);
+      }
+    } catch (err: any) {
+      console.error("Error fetching snapshot:", err);
+      // Don't set error for snapshot - just show no data
+    } finally {
+      setSnapshotLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (user?.id) {
-      fetchData();
+      fetchChildren();
     }
   }, [user?.id]);
 
+  useEffect(() => {
+    if (selectedChildId) {
+      fetchSnapshot();
+    }
+  }, [selectedChildId]);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await fetchSnapshot();
+    toast.success("הנתונים עודכנו");
+    setTimeout(() => setIsRefreshing(false), 500);
+  };
+
+  // Derived data from snapshot
+  const topApps = snapshot?.top_apps?.slice(0, 3) || [];
+  const topChats = snapshot?.top_chats?.slice(0, 3) || [];
+
   return (
     <DashboardLayout>
-      <div className="p-4 sm:p-6 md:p-8 max-w-2xl mx-auto">
-        {/* Personalized Greeting */}
-        <DashboardGreeting />
+      <div className="max-w-2xl mx-auto px-4 py-6 space-y-6" dir="rtl">
+        {/* Header with refresh */}
+        <div className="flex items-start justify-between">
+          <DashboardGreeting />
+          {children.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={isRefreshing || snapshotLoading}
+              className="gap-2"
+            >
+              <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+              רענון
+            </Button>
+          )}
+        </div>
 
         {/* Error State */}
         {error && (
@@ -135,66 +253,195 @@ const Index = () => {
               </div>
             )}
 
-            {/* Hero Card - State A: Calm Day */}
-            <Card className="bg-gradient-to-br from-success/10 to-success/5 border-success/20 shadow-lg shadow-success/5 rounded-2xl">
-              <CardContent className="p-8 sm:p-10 text-center relative">
-                {/* Small family management link - top right */}
-                <button 
-                  onClick={() => navigate("/family")}
-                  className="absolute top-4 right-4 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  ניהול משפחה
-                </button>
-                
-                <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-success/15 flex items-center justify-center">
-                  <CheckCircle2 className="w-8 h-8 text-success" />
-                </div>
-                <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-3">
-                  היום עבר בצורה תקינה*
-                </h2>
-                <p className="text-muted-foreground text-base sm:text-lg leading-relaxed mb-6">
-                  קיפי לא זיהה מצבים שדורשים התערבות הורית*
-                </p>
-                
-                {/* Subtle CTA */}
-                <button 
-                  onClick={() => navigate(`/daily-report/${selectedChildId}`)}
-                  className="text-sm text-primary hover:text-primary/80 font-medium transition-colors"
-                >
-                  לצפייה בדוח היומי ←
-                </button>
-              </CardContent>
-            </Card>
+            {snapshotLoading ? (
+              <div className="space-y-4">
+                <div className="h-32 rounded-xl bg-card/50 animate-pulse border border-border/30" />
+                <div className="h-24 rounded-xl bg-card/50 animate-pulse border border-border/30" />
+                <div className="h-24 rounded-xl bg-card/50 animate-pulse border border-border/30" />
+              </div>
+            ) : snapshot ? (
+              <>
+                {/* Card 1 - Digital Activity */}
+                <Card className="bg-card border-border">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+                      <BarChart3 className="h-5 w-5 text-muted-foreground" />
+                      פעילות דיגיטלית
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="text-center p-3 rounded-lg bg-muted/50">
+                        <div className="flex items-center justify-center gap-1 mb-1">
+                          <Mail className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <div className="text-2xl font-bold text-foreground">{snapshot.messages_scanned ?? 0}</div>
+                        <div className="text-xs text-muted-foreground">הודעות נסרקו</div>
+                      </div>
+                      <div className="text-center p-3 rounded-lg bg-muted/50">
+                        <div className="flex items-center justify-center gap-1 mb-1">
+                          <Bot className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <div className="text-2xl font-bold text-foreground">{snapshot.stacks_sent_to_ai ?? 0}</div>
+                        <div className="text-xs text-muted-foreground">הועברו לניתוח AI</div>
+                      </div>
+                      <div className="text-center p-3 rounded-lg bg-muted/50">
+                        <div className="flex items-center justify-center gap-1 mb-1">
+                          <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <div className="text-2xl font-bold text-foreground">{snapshot.notify_effective_today ?? 0}</div>
+                        <div className="text-xs text-muted-foreground">התראות נשלחו</div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-            {/* Hero Card - State B: Attention Needed (commented for reference)
-            <Card className="bg-gradient-to-br from-warning/10 to-warning/5 border-warning/20 shadow-lg shadow-warning/5 rounded-2xl">
-              <CardContent className="p-8 sm:p-10 text-center relative">
-                <button 
-                  onClick={() => navigate("/family")}
-                  className="absolute top-4 right-4 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  ניהול משפחה
-                </button>
-                
-                <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-warning/15 flex items-center justify-center">
-                  <Eye className="w-8 h-8 text-warning" />
+                {/* Card 2 - AI Insights (static for now) */}
+                <Card className="bg-card border-border">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+                      <Brain className="h-5 w-5 text-muted-foreground" />
+                      תובנות AI
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground text-center py-2">
+                      התובנות יופיעו כאן בקרוב
+                    </p>
+                  </CardContent>
+                </Card>
+
+                {/* Card 3 - Top Friends/Chats */}
+                <Card className="bg-card border-border">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+                      <Users className="h-5 w-5 text-muted-foreground" />
+                      הקשרים הפעילים ביותר היום
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {topChats.length > 0 ? (
+                      <>
+                        <div className="flex flex-wrap gap-2 mb-3">
+                          {topChats.map((chat, index) => (
+                            <span
+                              key={index}
+                              className="px-3 py-1.5 rounded-full bg-muted text-sm font-medium text-foreground"
+                            >
+                              {chat.chat_name}
+                            </span>
+                          ))}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          אלו הקשרים איתם התקיימה מרבית האינטראקציה היום.
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-sm text-muted-foreground text-center py-2">
+                        אין נתונים להיום
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Card 4 - App Usage */}
+                <Card className="bg-card border-border">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+                      <Smartphone className="h-5 w-5 text-muted-foreground" />
+                      האפליקציות המרכזיות היום
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {topApps.length > 0 ? (
+                      <div className="space-y-3">
+                        {topApps.map((app, index) => (
+                          <div key={index} className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <span className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs font-medium text-muted-foreground">
+                                {index + 1}
+                              </span>
+                              <span className="font-medium text-foreground">{app.app_name}</span>
+                            </div>
+                            <span className="text-sm text-muted-foreground">{formatMinutes(app.usage_minutes)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground text-center py-2">
+                        אין נתונים להיום
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Card 5 - Daily Context (static for now) */}
+                <Card className="bg-card border-border">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+                      <TrendingUp className="h-5 w-5 text-muted-foreground" />
+                      הקשר יומי
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground text-center py-2">
+                      ההקשר היומי יופיע כאן בקרוב
+                    </p>
+                  </CardContent>
+                </Card>
+
+                {/* Card 6 - Device Status */}
+                <Card className="bg-muted/30 border-border">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+                      <Smartphone className="h-5 w-5 text-muted-foreground" />
+                      מצב המכשיר
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex items-center gap-3 text-sm">
+                      <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <span className="text-foreground">מיקום אחרון: {snapshot.address || "לא זמין"}</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm">
+                      <Battery className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <span className="text-foreground">סוללה: {snapshot.battery_level ?? "לא זמין"}%</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm">
+                      <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <span className="text-foreground">עדכון אחרון: {formatLastSeen(snapshot.last_seen)}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground pt-2 border-t border-border">
+                      הנתונים משקפים את המצב האחרון שדווח מהמכשיר.
+                    </p>
+                  </CardContent>
+                </Card>
+
+                {/* Bottom CTA */}
+                <div className="flex justify-center pt-4 pb-8">
+                  <Button
+                    variant="outline"
+                    onClick={handleRefresh}
+                    disabled={isRefreshing}
+                    className="gap-2"
+                  >
+                    <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+                    רענון נתונים
+                  </Button>
                 </div>
-                <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-3">
-                  יש נושא אחד שכדאי לשים לב אליו*
-                </h2>
-                <p className="text-muted-foreground text-base sm:text-lg leading-relaxed mb-6">
-                  קיפי הכין לך הסבר ברור ולא שיפוטי*
-                </p>
-                
-                <button 
-                  onClick={() => navigate(`/daily-report/${selectedChildId}`)}
-                  className="text-sm text-warning hover:text-warning/80 font-medium transition-colors"
-                >
-                  לצפייה בדוח היומי ←
-                </button>
-              </CardContent>
-            </Card>
-            */}
+              </>
+            ) : (
+              /* No snapshot data yet */
+              <Card className="bg-card border-border">
+                <CardContent className="p-8 text-center">
+                  <BarChart3 className="w-12 h-12 text-muted-foreground mx-auto mb-3 opacity-50" />
+                  <p className="text-muted-foreground mb-2">אין נתונים להיום עדיין</p>
+                  <p className="text-sm text-muted-foreground">
+                    הנתונים יופיעו כאן לאחר שהמכשיר יתחיל לשלוח מידע
+                  </p>
+                </CardContent>
+              </Card>
+            )}
           </div>
         ) : (
           <div className="p-8 rounded-2xl bg-card border border-border/50 text-center">
