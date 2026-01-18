@@ -1,9 +1,11 @@
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { Users, Bell, Shield, HelpCircle, LogOut, ChevronLeft } from "lucide-react";
+import { Bell, Shield, HelpCircle, LogOut, ChevronLeft, FileText, MessageCircle, Bug, Lightbulb } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { SettingsAlertPreview } from "@/components/SettingsAlertPreview";
+
+const WHATSAPP_NUMBER = "972548383340";
 
 const SettingsPage = () => {
   const navigate = useNavigate();
@@ -12,6 +14,12 @@ const SettingsPage = () => {
   const handleSignOut = async () => {
     await signOut();
     navigate('/');
+  };
+
+  const openWhatsApp = (message?: string) => {
+    const baseUrl = `https://wa.me/${WHATSAPP_NUMBER}`;
+    const url = message ? `${baseUrl}?text=${encodeURIComponent(message)}` : baseUrl;
+    window.open(url, '_blank');
   };
 
   return (
@@ -25,24 +33,7 @@ const SettingsPage = () => {
       </div>
 
       <div className="max-w-2xl space-y-4">
-        {/* Card 1: פרטי המשפחה */}
-        <section 
-          onClick={() => navigate('/family')}
-          className="p-6 rounded-xl bg-card border border-border/50 cursor-pointer hover:border-primary/40 transition-colors"
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Users className="w-5 h-5 text-primary" />
-              <div>
-                <h2 className="text-lg font-semibold text-foreground">פרטי המשפחה</h2>
-                <p className="text-sm text-muted-foreground">ניהול ילדים, חיבורי מכשירים והרשאות</p>
-              </div>
-            </div>
-            <ChevronLeft className="w-5 h-5 text-muted-foreground" />
-          </div>
-        </section>
-
-        {/* Card 2: התראות */}
+        {/* Card 1: התראות */}
         <section className="p-6 rounded-xl bg-card border border-border/50">
           <div 
             onClick={() => navigate('/alerts')}
@@ -67,38 +58,73 @@ const SettingsPage = () => {
           </div>
         </section>
 
-        {/* Card 3: פרטיות ושקיפות */}
+        {/* Card 2: פרטיות ושקיפות */}
         <section className="p-6 rounded-xl bg-card border border-border/50">
-          <div className="flex items-center gap-3 mb-3">
+          <div className="flex items-center gap-3 mb-4">
             <Shield className="w-5 h-5 text-success" />
             <div>
               <h2 className="text-lg font-semibold text-foreground">פרטיות ושקיפות</h2>
-              <p className="text-sm text-muted-foreground">מה נאסף, מתי נשלח ל-AI, ומה נשמר</p>
-            </div>
-          </div>
-          {/* TODO(DATA): Privacy details content */}
-          <p className="text-xs text-muted-foreground mt-4 border-t border-border/50 pt-3">
-            פרטים מלאים יופיעו כאן*
-          </p>
-        </section>
-
-        {/* Card 4: עזרה ותמיכה */}
-        <section className="p-6 rounded-xl bg-card border border-border/50">
-          <div className="flex items-center gap-3 mb-4">
-            <HelpCircle className="w-5 h-5 text-muted-foreground" />
-            <div>
-              <h2 className="text-lg font-semibold text-foreground">עזרה ותמיכה</h2>
-              <p className="text-sm text-muted-foreground">שאלות נפוצות, יצירת קשר ודיווח בעיה</p>
+              <p className="text-sm text-muted-foreground">מדיניות הפרטיות ותנאי השימוש שלנו</p>
             </div>
           </div>
           <div className="flex gap-3">
-            {/* TODO(DATA): No messaging handler */}
-            <Button variant="outline" size="sm" disabled>
-              שלחו הודעה*
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => navigate('/privacy-policy')}
+              className="gap-2"
+            >
+              <FileText className="w-4 h-4" />
+              מדיניות פרטיות
             </Button>
-            {/* TODO(DATA): No bug report handler */}
-            <Button variant="outline" size="sm" disabled>
-              דווח על תקלה*
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => navigate('/terms-of-service')}
+              className="gap-2"
+            >
+              <FileText className="w-4 h-4" />
+              תנאי שימוש
+            </Button>
+          </div>
+        </section>
+
+        {/* Card 3: עזרה ותמיכה */}
+        <section className="p-6 rounded-xl bg-card border border-border/50">
+          <div className="flex items-center gap-3 mb-4">
+            <HelpCircle className="w-5 h-5 text-primary" />
+            <div>
+              <h2 className="text-lg font-semibold text-foreground">עזרה ותמיכה</h2>
+              <p className="text-sm text-muted-foreground">יש שאלה? אנחנו כאן בשבילכם</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => openWhatsApp()}
+              className="gap-2 border-green-500/30 text-green-600 hover:bg-green-500/10 hover:text-green-600"
+            >
+              <MessageCircle className="w-4 h-4" />
+              WhatsApp
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => openWhatsApp("היי, אני רוצה לדווח על תקלה באפליקציה:\n\n")}
+              className="gap-2"
+            >
+              <Bug className="w-4 h-4" />
+              דווח על תקלה
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => openWhatsApp("היי, יש לי הצעה לשיפור:\n\n")}
+              className="gap-2"
+            >
+              <Lightbulb className="w-4 h-4" />
+              הצעה לשיפור
             </Button>
           </div>
         </section>
@@ -111,6 +137,13 @@ const SettingsPage = () => {
           <LogOut className="w-5 h-5" />
           התנתקות
         </button>
+
+        {/* Version Footer */}
+        <div className="text-center pt-4">
+          <p className="text-xs text-muted-foreground">
+            גרסה 1.0.1 • עודכן לאחרונה 04/01/26
+          </p>
+        </div>
       </div>
     </DashboardLayout>
   );
