@@ -4,6 +4,8 @@ import { DemoBanner } from "@/components/DemoBanner";
 import { useDemo } from "@/contexts/DemoContext";
 import { Users, Bell, Shield, HelpCircle, LogOut, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { SettingsAlertPreview } from "@/components/SettingsAlertPreview";
+import { DEMO_ALERTS } from "@/data/demoData";
 
 const DemoSettings = () => {
   const navigate = useNavigate();
@@ -44,11 +46,11 @@ const DemoSettings = () => {
         </section>
 
         {/* Card 2: התראות */}
-        <section 
-          onClick={() => navigate('/alerts')}
-          className="p-6 rounded-xl bg-card border border-border/50 cursor-pointer hover:border-primary/40 transition-colors"
-        >
-          <div className="flex items-center justify-between">
+        <section className="p-6 rounded-xl bg-card border border-border/50">
+          <div 
+            onClick={() => navigate('/demo/alerts')}
+            className="flex items-center justify-between cursor-pointer hover:opacity-80 transition-opacity"
+          >
             <div className="flex items-center gap-3">
               <Bell className="w-5 h-5 text-warning" />
               <div>
@@ -57,6 +59,14 @@ const DemoSettings = () => {
               </div>
             </div>
             <ChevronLeft className="w-5 h-5 text-muted-foreground" />
+          </div>
+          
+          {/* Alerts Preview */}
+          <div className="mt-4 pt-4 border-t border-border/30">
+            <SettingsAlertPreview 
+              alerts={DEMO_ALERTS}
+              onViewAll={() => navigate('/demo/alerts')}
+            />
           </div>
         </section>
 
