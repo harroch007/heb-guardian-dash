@@ -21,6 +21,9 @@ const DemoAlerts = () => {
     ? alerts.find(a => a.id === selectedAlertId) 
     : null;
 
+  // Count unique children
+  const uniqueChildren = new Set(alerts.map(a => a.child_name).filter(Boolean)).size;
+
   return (
     <DashboardLayout>
       <div className="max-w-2xl mx-auto" dir="rtl">
@@ -49,6 +52,7 @@ const DemoAlerts = () => {
           <AlertListView
             alerts={alerts}
             onSelect={setSelectedAlertId}
+            childCount={uniqueChildren}
           />
         ) : (
           <EmptyAlertsState />
