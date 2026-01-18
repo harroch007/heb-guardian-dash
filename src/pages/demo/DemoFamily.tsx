@@ -1,12 +1,36 @@
 import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/DashboardLayout';
-import { DemoBanner } from '@/components/DemoBanner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Plus, User, ChevronLeft } from 'lucide-react';
+import { Plus, User, ChevronLeft, Battery, Clock, Bell, Users, Smartphone } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { DEMO_CHILDREN } from '@/data/demoData';
+import { DEMO_CHILDREN, DEMO_DEVICE, DEMO_ALERTS_FULL } from '@/data/demoData';
+import { motion } from 'framer-motion';
+import { formatDistanceToNow } from 'date-fns';
+import { he } from 'date-fns/locale';
+
+// Demo device data for each child
+const DEMO_DEVICES_MAP: Record<string, { battery_level: number; last_seen: string; latitude: number; longitude: number }> = {
+  'demo-child-1': {
+    battery_level: 86,
+    last_seen: new Date(Date.now() - 6 * 60 * 1000).toISOString(), // 6 minutes ago
+    latitude: 32.0853,
+    longitude: 34.7818
+  },
+  'demo-child-2': {
+    battery_level: 42,
+    last_seen: new Date(Date.now() - 45 * 60 * 1000).toISOString(), // 45 minutes ago
+    latitude: 32.0741,
+    longitude: 34.7922
+  }
+};
+
+// Demo alerts count per child
+const DEMO_ALERTS_COUNT: Record<string, number> = {
+  'demo-child-1': DEMO_ALERTS_FULL.length,
+  'demo-child-2': 0
+};
 
 export default function DemoFamily() {
   const navigate = useNavigate();
@@ -18,68 +42,203 @@ export default function DemoFamily() {
     });
   };
 
+  // Calculate summary stats
+  const totalChildren = DEMO_CHILDREN.length;
+  const connectedDevices = Object.values(DEMO_DEVICES_MAP).filter(d => {
+    const lastSeenTime = new Date(d.last_seen).getTime();
+    return (Date.now() - lastSeenTime) < 24 * 60 * 60 * 1000;
+  }).length;
+  const totalAlerts = Object.values(DEMO_ALERTS_COUNT).reduce((sum, count) => sum + count, 0);
+
+  const getGenderColors = (gender: string) => {
+    if (gender === 'male') {
+      return {
+        bg: 'bg-blue-500/20',
+        text: 'text-blue-400',
+        border: 'border-blue-500/30'
+      };
+    }
+    return {
+      bg: 'bg-pink-500/20',
+      text: 'text-pink-400',
+      border: 'border-pink-500/30'
+    };
+  };
+
+  const getBatteryColor = (level: number) => {
+    if (level > 50) return 'text-success';
+    if (level > 20) return 'text-warning';
+    return 'text-destructive';
+  };
+
+  const formatLastSeen = (lastSeen: string) => {
+    try {
+      return formatDistanceToNow(new Date(lastSeen), { addSuffix: true, locale: he });
+    } catch {
+      return 'לא ידוע';
+    }
+  };
+
+  const isDeviceConnected = (lastSeen: string) => {
+    const lastSeenTime = new Date(lastSeen).getTime();
+    return (Date.now() - lastSeenTime) < 24 * 60 * 60 * 1000;
+  };
+
   return (
     <DashboardLayout>
-      <DemoBanner />
       <div className="p-6 md:p-8">
         {/* Header */}
-        <div className="mb-8">
+        <motion.div 
+          className="mb-8"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
           <h1 className="text-3xl font-bold text-foreground">
             המשפחה שלי
           </h1>
           <p className="text-muted-foreground mt-1">
             ילדים, חיבור מכשיר, וניהול הרשאות
           </p>
-        </div>
+        </motion.div>
 
         {/* Content */}
         <div className="space-y-6">
-          {/* Section A: הילדים שלי */}
-          <Card className="bg-card border-border/50">
-            <CardContent className="p-6">
-              <h2 className="text-lg font-semibold text-foreground mb-4">הילדים שלי</h2>
-              
-              <div className="space-y-3">
-                {DEMO_CHILDREN.map((child) => (
-                  <div 
-                    key={child.id}
-                    onClick={() => navigate(`/child/${child.id}`)}
-                    className="flex items-center gap-4 p-3 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
-                  >
-                    {/* Avatar */}
-                    <Avatar className="w-10 h-10">
-                      <AvatarFallback className="bg-muted">
-                        <User className="w-5 h-5 text-muted-foreground" />
-                      </AvatarFallback>
-                    </Avatar>
-                    
-                    {/* Name */}
-                    <span className="flex-1 font-medium text-foreground">
-                      {child.name}
-                    </span>
-                    
-                    {/* Connection Status */}
-                    <span className="text-xs px-2 py-1 rounded-full bg-success/20 text-success">
-                      מחובר
-                    </span>
-                    
-                    {/* Chevron */}
-                    <ChevronLeft className="w-4 h-4 text-muted-foreground" />
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Bottom CTA */}
-          <Button 
-            onClick={handleAddChild}
-            className="w-full"
-            size="lg"
+          {/* Family Summary Card */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.1 }}
           >
-            <Plus className="w-5 h-5 ml-2" />
-            הוסף ילד/ה
-          </Button>
+            <Card className="bg-card border-border/50">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-around text-center">
+                  <div className="flex flex-col items-center gap-1">
+                    <div className="flex items-center gap-2 text-primary">
+                      <Users className="w-5 h-5" />
+                      <span className="text-2xl font-bold">{totalChildren}</span>
+                    </div>
+                    <span className="text-xs text-muted-foreground">ילדים</span>
+                  </div>
+                  <div className="h-8 w-px bg-border/50" />
+                  <div className="flex flex-col items-center gap-1">
+                    <div className="flex items-center gap-2 text-success">
+                      <Smartphone className="w-5 h-5" />
+                      <span className="text-2xl font-bold">{connectedDevices}/{totalChildren}</span>
+                    </div>
+                    <span className="text-xs text-muted-foreground">מחוברים</span>
+                  </div>
+                  <div className="h-8 w-px bg-border/50" />
+                  <div className="flex flex-col items-center gap-1">
+                    <div className={`flex items-center gap-2 ${totalAlerts > 0 ? 'text-warning' : 'text-muted-foreground'}`}>
+                      <Bell className="w-5 h-5" />
+                      <span className="text-2xl font-bold">{totalAlerts}</span>
+                    </div>
+                    <span className="text-xs text-muted-foreground">התראות</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Section: הילדים שלי */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.2 }}
+          >
+            <Card className="bg-card border-border/50">
+              <CardContent className="p-6">
+                <h2 className="text-lg font-semibold text-foreground mb-4">הילדים שלי</h2>
+                
+                <div className="space-y-3">
+                  {DEMO_CHILDREN.map((child, index) => {
+                    const device = DEMO_DEVICES_MAP[child.id];
+                    const alertsCount = DEMO_ALERTS_COUNT[child.id] || 0;
+                    const genderColors = getGenderColors(child.gender);
+                    const connected = device ? isDeviceConnected(device.last_seen) : false;
+
+                    return (
+                      <motion.div
+                        key={child.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.3, delay: 0.3 + index * 0.1 }}
+                        onClick={() => navigate(`/child/${child.id}`)}
+                        className={`p-4 rounded-xl border ${genderColors.border} bg-card hover:bg-muted/30 cursor-pointer transition-all duration-200`}
+                      >
+                        <div className="flex items-start gap-4">
+                          {/* Avatar */}
+                          <Avatar className={`w-12 h-12 ${genderColors.bg}`}>
+                            <AvatarFallback className={`${genderColors.bg} ${genderColors.text}`}>
+                              <User className="w-6 h-6" />
+                            </AvatarFallback>
+                          </Avatar>
+                          
+                          {/* Info */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="font-semibold text-foreground text-lg">
+                                {child.name}
+                              </span>
+                              <div className="flex items-center gap-2">
+                                {connected ? (
+                                  <span className="text-xs px-2 py-1 rounded-full bg-success/20 text-success">
+                                    מחובר
+                                  </span>
+                                ) : (
+                                  <span className="text-xs px-2 py-1 rounded-full bg-muted text-muted-foreground">
+                                    לא מחובר
+                                  </span>
+                                )}
+                                <ChevronLeft className="w-4 h-4 text-muted-foreground" />
+                              </div>
+                            </div>
+                            
+                            {device && connected && (
+                              <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                                <div className="flex items-center gap-1">
+                                  <Battery className={`w-4 h-4 ${getBatteryColor(device.battery_level)}`} />
+                                  <span>{device.battery_level}%</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <Clock className="w-4 h-4" />
+                                  <span>{formatLastSeen(device.last_seen)}</span>
+                                </div>
+                                {alertsCount > 0 && (
+                                  <div className="flex items-center gap-1 text-warning">
+                                    <Bell className="w-4 h-4" />
+                                    <span>{alertsCount} התראות</span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Add Child Button */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.5 }}
+            className="flex justify-center"
+          >
+            <Button 
+              onClick={handleAddChild}
+              variant="outline"
+              size="default"
+            >
+              <Plus className="w-4 h-4 ml-2" />
+              הוסף ילד/ה
+            </Button>
+          </motion.div>
         </div>
       </div>
     </DashboardLayout>
