@@ -1149,6 +1149,14 @@ export type Database = {
           stacks_sent_to_ai: number
         }[]
       }
+      get_child_top_apps: {
+        Args: { p_child_id: string; p_date: string; p_limit?: number }
+        Returns: {
+          app_name: string
+          package_name: string
+          usage_minutes: number
+        }[]
+      }
       get_child_top_contacts: {
         Args: { p_child_id: string; p_date: string; p_limit?: number }
         Returns: {
