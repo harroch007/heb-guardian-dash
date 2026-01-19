@@ -21,6 +21,12 @@ interface DailyMetrics {
   alerts_sent: number;
 }
 
+interface TopContact {
+  chat_name: string;
+  chat_type: string;
+  message_count: number;
+}
+
 // Timezone-safe helper for Israel time
 const getIsraelISO = (offsetDays: number): string => {
   const now = new Date();
@@ -52,6 +58,8 @@ const DailyReport = () => {
   const [metrics, setMetrics] = useState<DailyMetrics | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [topContacts, setTopContacts] = useState<TopContact[]>([]);
+  const [contactsLoading, setContactsLoading] = useState(false);
 
   const fetchMetrics = async () => {
     if (!childId) return;
@@ -75,8 +83,30 @@ const DailyReport = () => {
     setLoading(false);
   };
 
+  const fetchTopContacts = async () => {
+    if (!childId) return;
+    
+    setContactsLoading(true);
+
+    const { data, error: rpcError } = await supabase.rpc('get_child_top_contacts', {
+      p_child_id: childId,
+      p_date: selectedDate,
+      p_limit: 3
+    });
+
+    if (!rpcError && data) {
+      setTopContacts(data);
+    } else {
+      console.error("Error fetching top contacts:", rpcError);
+      setTopContacts([]);
+    }
+    
+    setContactsLoading(false);
+  };
+
   useEffect(() => {
     fetchMetrics();
+    fetchTopContacts();
   }, [childId, selectedDate]);
 
   // No child guard
@@ -200,33 +230,37 @@ const DailyReport = () => {
             </CardContent>
           </Card>
 
-          {/* TODO(DATA): daily_top_contacts - must return name and/or phone */}
           {/* Section C: Top Contacts */}
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-lg">3 אנשי הקשר הפעילים היום</CardTitle>
             </CardHeader>
             <CardContent>
-              <ul className="space-y-3">
-                <li className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                    <User className="w-4 h-4 text-muted-foreground" />
-                  </div>
-                  <span className="text-foreground">דניאל כהן — 050-1234567*</span>
-                </li>
-                <li className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                    <User className="w-4 h-4 text-muted-foreground" />
-                  </div>
-                  <span className="text-foreground">052-9876543*</span>
-                </li>
-                <li className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                    <User className="w-4 h-4 text-muted-foreground" />
-                  </div>
-                  <span className="text-foreground">מיכל לוי — 054-5555555*</span>
-                </li>
-              </ul>
+              {contactsLoading ? (
+                <div className="space-y-3">
+                  <Skeleton className="h-8 w-48" />
+                  <Skeleton className="h-8 w-40" />
+                  <Skeleton className="h-8 w-44" />
+                </div>
+              ) : topContacts.length > 0 ? (
+                <ul className="space-y-3">
+                  {topContacts.map((contact, index) => (
+                    <li key={index} className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                        <User className="w-4 h-4 text-muted-foreground" />
+                      </div>
+                      <span className="text-foreground">
+                        {contact.chat_name}
+                        {contact.chat_type === 'GROUP' && ' (קבוצה)'}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-muted-foreground text-center py-2">
+                  אין נתונים על אנשי קשר לתאריך הנבחר
+                </p>
+              )}
             </CardContent>
           </Card>
 
