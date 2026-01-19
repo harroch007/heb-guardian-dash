@@ -228,28 +228,9 @@ const Index = () => {
   return (
     <DashboardLayout>
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-6" dir="rtl">
-        {/* Header with refresh */}
+        {/* Header */}
         <div className="flex items-start justify-between">
           <DashboardGreeting />
-          {children.length > 0 && (
-            <div className="flex flex-col items-end gap-1">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleRefresh}
-                disabled={isRefreshing || snapshotLoading}
-                className="gap-2"
-              >
-                <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
-                רענון
-              </Button>
-              {lastRefresh && (
-                <span className="text-xs text-muted-foreground">
-                  עודכן {formatLastRefresh()}
-                </span>
-              )}
-            </div>
-          )}
         </div>
 
         {/* Error State */}
@@ -523,7 +504,12 @@ const Index = () => {
             </Button>
           </div>
         )}
-      </div>
+          </div>
+
+          {/* Disclaimer */}
+          <p className="text-xs text-muted-foreground text-center mt-8">
+            הנתונים מתעדכנים אוטומטית כל ~15 דקות. התראות בטיחות מתקבלות באופן מיידי.
+          </p>
     </DashboardLayout>
   );
 };
