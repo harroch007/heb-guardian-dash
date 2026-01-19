@@ -1,9 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { DashboardGreeting } from "@/components/dashboard/DashboardGreeting";
 import { supabase } from "@/integrations/supabase/client";
 import { Plus, Users, User, RefreshCw, BarChart3, Brain, Smartphone, TrendingUp, MapPin, Battery, Clock, Mail, Bot, AlertTriangle, Calendar, ChevronLeft } from "lucide-react";
+
+// Auto-refresh interval: 2 hours in milliseconds
+const AUTO_REFRESH_INTERVAL = 2 * 60 * 60 * 1000;
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { getAppIconInfo } from "@/lib/appIcons";
 import { useAuth } from "@/contexts/AuthContext";
@@ -88,6 +91,8 @@ const Index = () => {
   const [snapshot, setSnapshot] = useState<HomeSnapshot | null>(null);
   const [snapshotLoading, setSnapshotLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
+  const autoRefreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (children.length > 0 && !selectedChildId) {
@@ -129,11 +134,13 @@ const Index = () => {
     }
   };
 
-  const fetchSnapshot = async () => {
+  const fetchSnapshot = useCallback(async (showLoadingState = true) => {
     if (!selectedChildId) return;
     
     try {
-      setSnapshotLoading(true);
+      if (showLoadingState) {
+        setSnapshotLoading(true);
+      }
 
       const { data, error: snapshotError } = await supabase
         .from("parent_home_snapshot")
@@ -153,13 +160,18 @@ const Index = () => {
       } else {
         setSnapshot(null);
       }
+      
+      // Update last refresh time
+      setLastRefresh(new Date());
     } catch (err: any) {
       console.error("Error fetching snapshot:", err);
       // Don't set error for snapshot - just show no data
     } finally {
-      setSnapshotLoading(false);
+      if (showLoadingState) {
+        setSnapshotLoading(false);
+      }
     }
-  };
+  }, [selectedChildId]);
 
   useEffect(() => {
     if (user?.id) {
@@ -171,13 +183,42 @@ const Index = () => {
     if (selectedChildId) {
       fetchSnapshot();
     }
-  }, [selectedChildId]);
+  }, [selectedChildId, fetchSnapshot]);
+
+  // Auto-refresh every 2 hours
+  useEffect(() => {
+    if (!selectedChildId) return;
+    
+    // Clear any existing interval
+    if (autoRefreshIntervalRef.current) {
+      clearInterval(autoRefreshIntervalRef.current);
+    }
+    
+    // Set up new interval
+    autoRefreshIntervalRef.current = setInterval(() => {
+      console.log("Auto-refreshing dashboard data...");
+      fetchSnapshot(false); // Don't show loading state for auto-refresh
+    }, AUTO_REFRESH_INTERVAL);
+    
+    // Cleanup on unmount or when child changes
+    return () => {
+      if (autoRefreshIntervalRef.current) {
+        clearInterval(autoRefreshIntervalRef.current);
+      }
+    };
+  }, [selectedChildId, fetchSnapshot]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await fetchSnapshot();
+    await fetchSnapshot(false); // Don't show full loading state
     toast.success("הנתונים עודכנו");
     setTimeout(() => setIsRefreshing(false), 500);
+  };
+
+  // Format last refresh time
+  const formatLastRefresh = (): string => {
+    if (!lastRefresh) return "";
+    return formatLastSeen(lastRefresh.toISOString());
   };
 
   // Derived data from snapshot
@@ -191,16 +232,23 @@ const Index = () => {
         <div className="flex items-start justify-between">
           <DashboardGreeting />
           {children.length > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRefresh}
-              disabled={isRefreshing || snapshotLoading}
-              className="gap-2"
-            >
-              <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
-              רענון
-            </Button>
+            <div className="flex flex-col items-end gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefresh}
+                disabled={isRefreshing || snapshotLoading}
+                className="gap-2"
+              >
+                <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+                רענון
+              </Button>
+              {lastRefresh && (
+                <span className="text-xs text-muted-foreground">
+                  עודכן {formatLastRefresh()}
+                </span>
+              )}
+            </div>
           )}
         </div>
 
