@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowRight, BarChart3, Brain, Users, Smartphone, TrendingUp, Calendar, Mail, Bot, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { getAppIconInfo } from "@/lib/appIcons";
 import {
   Select,
   SelectContent,
@@ -326,17 +327,24 @@ const DailyReport = () => {
               </div>
             ) : topApps.length > 0 ? (
               <div className="space-y-3">
-                {topApps.map((app, index) => (
-                  <div key={index} className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <span className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs font-medium text-muted-foreground">
-                        {index + 1}
-                      </span>
-                      <span className="font-medium text-foreground">{app.app_name}</span>
+                {topApps.map((app, index) => {
+                  const iconInfo = getAppIconInfo(app.package_name);
+                  const IconComponent = iconInfo.icon;
+                  return (
+                    <div key={index} className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span 
+                          className="w-7 h-7 rounded-full flex items-center justify-center"
+                          style={{ backgroundColor: iconInfo.bgColor }}
+                        >
+                          <IconComponent className="w-4 h-4" style={{ color: iconInfo.color }} />
+                        </span>
+                        <span className="font-medium text-foreground">{app.app_name}</span>
+                      </div>
+                      <span className="text-sm text-muted-foreground">{formatMinutes(app.usage_minutes)}</span>
                     </div>
-                    <span className="text-sm text-muted-foreground">{formatMinutes(app.usage_minutes)}</span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <p className="text-sm text-muted-foreground text-center py-2">
