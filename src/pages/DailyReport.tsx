@@ -4,7 +4,7 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowRight, CheckCircle2, MessageSquare, Brain, Bell, User, Calendar } from "lucide-react";
+import { ArrowRight, BarChart3, Brain, Users, Smartphone, TrendingUp, Calendar, Mail, Bot, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Select,
@@ -25,6 +25,12 @@ interface TopContact {
   chat_name: string;
   chat_type: string;
   message_count: number;
+}
+
+interface TopApp {
+  app_name: string;
+  package_name: string;
+  usage_minutes: number;
 }
 
 // Timezone-safe helper for Israel time
@@ -49,6 +55,16 @@ const getDateOptions = () => {
   });
 };
 
+// Format minutes to readable format (same as Dashboard)
+const formatMinutes = (minutes: number): string => {
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  if (hours > 0) {
+    return `${hours}:${mins.toString().padStart(2, '0')} שעות`;
+  }
+  return `${mins} דקות`;
+};
+
 const DailyReport = () => {
   const navigate = useNavigate();
   const { childId } = useParams<{ childId: string }>();
@@ -60,6 +76,8 @@ const DailyReport = () => {
   const [error, setError] = useState<string | null>(null);
   const [topContacts, setTopContacts] = useState<TopContact[]>([]);
   const [contactsLoading, setContactsLoading] = useState(false);
+  const [topApps, setTopApps] = useState<TopApp[]>([]);
+  const [appsLoading, setAppsLoading] = useState(false);
 
   const fetchMetrics = async () => {
     if (!childId) return;
@@ -104,9 +122,31 @@ const DailyReport = () => {
     setContactsLoading(false);
   };
 
+  const fetchTopApps = async () => {
+    if (!childId) return;
+    
+    setAppsLoading(true);
+
+    const { data, error: rpcError } = await supabase.rpc('get_child_top_apps', {
+      p_child_id: childId,
+      p_date: selectedDate,
+      p_limit: 3
+    });
+
+    if (!rpcError && data) {
+      setTopApps(data);
+    } else {
+      console.error("Error fetching top apps:", rpcError);
+      setTopApps([]);
+    }
+    
+    setAppsLoading(false);
+  };
+
   useEffect(() => {
     fetchMetrics();
     fetchTopContacts();
+    fetchTopApps();
   }, [childId, selectedDate]);
 
   // No child guard
@@ -125,38 +165,39 @@ const DailyReport = () => {
 
   return (
     <DashboardLayout>
-      <div className="max-w-2xl mx-auto relative" dir="rtl">
-        {/* Back button - absolute top-right */}
-        <button 
-          onClick={() => navigate(-1)}
-          className="absolute top-4 right-4 flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowRight className="w-4 h-4" />
-          חזרה
-        </button>
-
-        {/* Page Title */}
-        <div className="mb-8 text-center pt-12">
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">
-            הדוח היומי
-          </h1>
-          <p className="text-muted-foreground">
-            סיכום פעילות ל-24 השעות האחרונות
-          </p>
+      <div className="max-w-2xl mx-auto px-4 py-6 space-y-6" dir="rtl">
+        {/* Header with back button */}
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-1">
+              הדוח היומי
+            </h1>
+            <p className="text-muted-foreground text-sm">
+              סיכום פעילות לתאריך הנבחר
+            </p>
+          </div>
+          <button 
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowRight className="w-4 h-4" />
+            חזרה
+          </button>
         </div>
 
         {/* Date Selector */}
-        <div className="flex items-center justify-center mb-6">
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-muted-foreground">מציג נתונים עבור:</span>
           <Select value={selectedDate} onValueChange={setSelectedDate}>
-            <SelectTrigger className="w-auto min-w-[200px]">
+            <SelectTrigger className="w-auto min-w-[200px] h-9 px-3 rounded-full bg-card border-border/50 text-sm font-medium">
               <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
                 <SelectValue placeholder="בחר תאריך" />
               </div>
             </SelectTrigger>
-            <SelectContent className="bg-background border">
+            <SelectContent className="bg-popover border-border z-50">
               {dateOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
+                <SelectItem key={option.value} value={option.value} className="text-sm">
                   {option.label}
                 </SelectItem>
               ))}
@@ -164,121 +205,161 @@ const DailyReport = () => {
           </Select>
         </div>
 
-        <div className="space-y-6">
-          {/* TODO(DATA): daily_status_summary - replace statusSummary with real data */}
-          {/* Section A: Status Today */}
-          <Card className="bg-gradient-to-br from-success/10 to-success/5 border-success/20">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">סטטוס היום</CardTitle>
-            </CardHeader>
-            <CardContent className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-success/15 flex items-center justify-center">
-                <CheckCircle2 className="w-5 h-5 text-success" />
+        {/* Card 1 - Digital Activity (same as Dashboard) */}
+        <Card className="bg-card border-border">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+              <BarChart3 className="h-5 w-5 text-muted-foreground" />
+              פעילות דיגיטלית
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {loading ? (
+              <div className="grid grid-cols-3 gap-4">
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-20 rounded-lg" />
+                ))}
               </div>
-              <div>
-                <p className="font-medium text-foreground">היום עבר בצורה תקינה*</p>
-                <p className="text-sm text-muted-foreground">קיפי לא זיהה מצבים שדורשים התערבות הורית*</p>
+            ) : error ? (
+              <div className="text-center py-4">
+                <p className="text-destructive mb-3">{error}</p>
+                <Button variant="outline" size="sm" onClick={fetchMetrics}>
+                  נסה שוב
+                </Button>
               </div>
-            </CardContent>
-          </Card>
+            ) : (
+              <div className="grid grid-cols-3 gap-4">
+                <div className="text-center p-3 rounded-lg bg-muted/50">
+                  <div className="flex items-center justify-center gap-1 mb-1">
+                    <Mail className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <div className="text-2xl font-bold text-foreground">{metrics?.messages_scanned ?? 0}</div>
+                  <div className="text-xs text-muted-foreground">הודעות נסרקו</div>
+                </div>
+                <div className="text-center p-3 rounded-lg bg-muted/50">
+                  <div className="flex items-center justify-center gap-1 mb-1">
+                    <Bot className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <div className="text-2xl font-bold text-foreground">{metrics?.stacks_sent_to_ai ?? 0}</div>
+                  <div className="text-xs text-muted-foreground">הועברו לניתוח AI</div>
+                </div>
+                <div className="text-center p-3 rounded-lg bg-muted/50">
+                  <div className="flex items-center justify-center gap-1 mb-1">
+                    <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <div className="text-2xl font-bold text-foreground">{metrics?.alerts_sent ?? 0}</div>
+                  <div className="text-xs text-muted-foreground">התראות נשלחו</div>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-          {/* Section B: Key Metrics */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">נתונים מרכזיים</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {loading ? (
-                <div className="space-y-3">
-                  <Skeleton className="h-6 w-48" />
-                  <Skeleton className="h-6 w-40" />
-                  <Skeleton className="h-6 w-44" />
-                </div>
-              ) : error ? (
-                <div className="text-center py-4">
-                  <p className="text-destructive mb-3">{error}</p>
-                  <Button variant="outline" size="sm" onClick={fetchMetrics}>
-                    נסה שוב
-                  </Button>
-                </div>
-              ) : metrics ? (
-                <>
-                  <div className="flex items-center gap-3">
-                    <MessageSquare className="w-5 h-5 text-primary" />
-                    <span className="text-foreground">
-                      הודעות שנסרקו היום: <span className="font-bold">{metrics.messages_scanned}</span>
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Brain className="w-5 h-5 text-primary" />
-                    <span className="text-foreground">
-                      פעמים שנשלח ל-AI: <span className="font-bold">{metrics.stacks_sent_to_ai}</span>
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Bell className="w-5 h-5 text-primary" />
-                    <span className="text-foreground">
-                      התרעות שנשלחו להורה: <span className="font-bold">{metrics.alerts_sent}</span>
-                    </span>
-                  </div>
-                </>
-              ) : (
-                <p className="text-muted-foreground text-center py-2">
-                  אין נתונים לתאריך הנבחר
-                </p>
-              )}
-            </CardContent>
-          </Card>
+        {/* Card 2 - AI Insights (same as Dashboard placeholder) */}
+        <Card className="bg-card border-border">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+              <Brain className="h-5 w-5 text-muted-foreground" />
+              תובנות AI
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground text-center py-2">
+              התובנות יופיעו כאן בקרוב
+            </p>
+          </CardContent>
+        </Card>
 
-          {/* Section C: Top Contacts */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">3 אנשי הקשר הפעילים היום</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {contactsLoading ? (
-                <div className="space-y-3">
-                  <Skeleton className="h-8 w-48" />
-                  <Skeleton className="h-8 w-40" />
-                  <Skeleton className="h-8 w-44" />
-                </div>
-              ) : topContacts.length > 0 ? (
-                <ul className="space-y-3">
+        {/* Card 3 - Top Friends/Chats (same as Dashboard) */}
+        <Card className="bg-card border-border">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+              <Users className="h-5 w-5 text-muted-foreground" />
+              הקשרים הפעילים ביותר היום
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {contactsLoading ? (
+              <div className="flex flex-wrap gap-2">
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-8 w-24 rounded-full" />
+                ))}
+              </div>
+            ) : topContacts.length > 0 ? (
+              <>
+                <div className="flex flex-wrap gap-2 mb-3">
                   {topContacts.map((contact, index) => (
-                    <li key={index} className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                        <User className="w-4 h-4 text-muted-foreground" />
-                      </div>
-                      <span className="text-foreground">
-                        {contact.chat_name}
-                        {contact.chat_type === 'GROUP' && ' (קבוצה)'}
-                      </span>
-                    </li>
+                    <span
+                      key={index}
+                      className="px-3 py-1.5 rounded-full bg-muted text-sm font-medium text-foreground"
+                    >
+                      {contact.chat_name}
+                    </span>
                   ))}
-                </ul>
-              ) : (
-                <p className="text-muted-foreground text-center py-2">
-                  אין נתונים על אנשי קשר לתאריך הנבחר
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  אלו הקשרים איתם התקיימה מרבית האינטראקציה ביום זה.
                 </p>
-              )}
-            </CardContent>
-          </Card>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-2">
+                אין נתונים להיום
+              </p>
+            )}
+          </CardContent>
+        </Card>
 
-          {/* TODO(DATA): daily_positive_insights - replace with real data */}
-          {/* Section D: Positive Insights */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">תובנות חיוביות</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2 list-disc list-inside text-foreground">
-                <li>שיחות עם חברים קרובים בטון חיובי*</li>
-                <li>שימוש מאוזן במסכים לאורך היום*</li>
-                <li>תקשורת פתוחה ובריאה*</li>
-              </ul>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Card 4 - App Usage (same as Dashboard) */}
+        <Card className="bg-card border-border">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+              <Smartphone className="h-5 w-5 text-muted-foreground" />
+              האפליקציות המרכזיות היום
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {appsLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-8 w-full" />
+                ))}
+              </div>
+            ) : topApps.length > 0 ? (
+              <div className="space-y-3">
+                {topApps.map((app, index) => (
+                  <div key={index} className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs font-medium text-muted-foreground">
+                        {index + 1}
+                      </span>
+                      <span className="font-medium text-foreground">{app.app_name}</span>
+                    </div>
+                    <span className="text-sm text-muted-foreground">{formatMinutes(app.usage_minutes)}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-2">
+                אין נתונים להיום
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Card 5 - Daily Context (same as Dashboard placeholder) */}
+        <Card className="bg-card border-border">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+              <TrendingUp className="h-5 w-5 text-muted-foreground" />
+              הקשר יומי
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground text-center py-2">
+              ההקשר היומי יופיע כאן בקרוב
+            </p>
+          </CardContent>
+        </Card>
       </div>
     </DashboardLayout>
   );
