@@ -142,19 +142,16 @@ export default function ChildDashboard() {
 
       setDevice(deviceData);
 
-      if (deviceData) {
-        const today = new Intl.DateTimeFormat('en-CA', { 
-          timeZone: 'Asia/Jerusalem' 
-        }).format(new Date());
-        const { data: usageData } = await supabase
-          .from("app_usage")
-          .select("app_name, package_name, usage_minutes")
-          .eq("child_id", childId)
-          .eq("usage_date", today)
-          .order("usage_minutes", { ascending: false })
-          .limit(10);
+      // Fetch app usage from parent_home_snapshot (same source as Dashboard)
+      const { data: snapshotData } = await supabase
+        .from("parent_home_snapshot")
+        .select("top_apps")
+        .eq("child_id", childId)
+        .maybeSingle();
 
-        setAppUsage(usageData || []);
+      if (snapshotData?.top_apps && Array.isArray(snapshotData.top_apps)) {
+        const topApps = snapshotData.top_apps as unknown as AppUsage[];
+        setAppUsage(topApps);
       }
 
       const { data: settingsData } = await supabase
