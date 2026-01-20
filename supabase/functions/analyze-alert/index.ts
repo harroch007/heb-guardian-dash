@@ -328,27 +328,55 @@ serve(async (req) => {
       console.log('Successfully copied to anonymous training_dataset');
     }
 
-    // Fetch the alert record to get chat_name for building the title
+    // Fetch the alert record to get chat_name AND chat_type for building the title
     const { data: alertRecord } = await supabase
       .from('alerts')
-      .select('chat_name')
+      .select('chat_name, chat_type')
       .eq('id', alertId)
       .single();
 
     const chatName = alertRecord?.chat_name || 'איש קשר';
+    const chatType = alertRecord?.chat_type; // "PRIVATE" or "GROUP" from database
 
-    // Build the full title using AI prefix + real chat_name
+    // Use REAL chat_type from database, NOT AI's guess
+    const isGroupChat = chatType === 'GROUP';
+
+    // Build the full title using AI prefix + real chat_name + REAL chat_type
     let finalTitle: string;
     const titlePrefix = aiResult.title_prefix || 'שיחה';
-    const isGroupChat = aiResult.is_group_chat === true;
 
     if (isGroupChat) {
       finalTitle = `${titlePrefix} בקבוצה ${chatName}`;
     } else {
-      finalTitle = `${titlePrefix} עם ${chatName}`;
+      // Private chat - always use "שיחה פרטית עם"
+      finalTitle = `שיחה פרטית עם ${chatName}`;
     }
 
-    console.log(`Built title: "${finalTitle}" from prefix: "${titlePrefix}", isGroup: ${isGroupChat}, chatName: "${chatName}"`);
+    console.log(`Built title: "${finalTitle}" from prefix: "${titlePrefix}", chatType: ${chatType}, isGroup: ${isGroupChat}, chatName: "${chatName}"`);
+
+    // Clean social_context: nullify for private chats, filter placeholders for groups
+    let cleanedSocialContext = aiResult.social_context;
+
+    if (!isGroupChat) {
+      // Private chats should never have social_context
+      cleanedSocialContext = null;
+    } else if (cleanedSocialContext?.participants) {
+      // Clean placeholders from group chat participants
+      cleanedSocialContext.participants = cleanedSocialContext.participants
+        .filter((p: string) => 
+          p && 
+          typeof p === 'string' &&
+          !p.includes('<') && 
+          !p.includes('>') && 
+          p.toUpperCase() !== 'ME' &&
+          p.toUpperCase() !== 'NAME'
+        );
+      
+      // If no valid participants left, null out the whole thing
+      if (cleanedSocialContext.participants.length === 0) {
+        cleanedSocialContext = null;
+      }
+    }
 
     // Map AI output fields to database columns:
     // AI `summary` -> DB `ai_summary`
@@ -368,7 +396,7 @@ serve(async (req) => {
       ai_title: finalTitle, // Use built title with real name
       ai_context: aiResult.context || null,
       ai_meaning: aiResult.meaning || null,
-      ai_social_context: aiResult.social_context || null,
+      ai_social_context: cleanedSocialContext, // Cleaned, not raw AI output
       is_processed: true,
       content: '[CONTENT DELETED FOR PRIVACY]', // WIPE raw content!
       analyzed_at: new Date().toISOString(),
