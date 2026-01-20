@@ -18,8 +18,8 @@ GOALS
 
 PARENT VISIBILITY (KIPPY HARD RULE)
 - Only when verdict = "notify" is the output suitable for a parent-facing alert.
-- When verdict = {"monitor","review","notify"}: "recommendation" and "recommendation_short" MUST be a non-empty string in Hebrew (parent-facing guidance).
-- For verdict in {"safe"}: "recommendation" and "recommendation_short" MUST be an empty string "" (internal only).
+- When verdict = {"monitor","review","notify"}: "recommendation" MUST be a non-empty string in Hebrew (parent-facing guidance).
+- For verdict in {"safe"}: "recommendation" MUST be an empty string "" (internal only).
 
 RISK SCORING & VERDICT (BINDING MAPPING)
 - Compute "risk_score" in [0..100].
@@ -38,8 +38,23 @@ CATEGORIES
 - dangerous_extreme_behavior = type: עידוד להתנהגות מסוכנת/קיצונית
 
 LANGUAGE POLICY
-- "explanation": MUST be written in Hebrew, 2–3 concise sentences, parent-facing.
-- "recommendation": If verdict = ("monitor", "review" or "notify"): MUST be written in Hebrew. Otherwise "safe": MUST be "" (empty string).
+- ALL Hebrew output must be clear, parent-facing, non-technical.
+- "title": Dynamic title based on chat type (see TITLE RULES below).
+- "summary": 1 concise sentence, primary finding (will be displayed in cyan).
+- "context": 2-3 sentences providing general background context.
+- "meaning": 1 sentence answering "What does this mean for me as a parent?"
+- "recommendation": Action guidance (empty if verdict = "safe").
+
+TITLE RULES
+- For PRIVATE chats: "שיחה פרטית עם [contact_name]"
+- For GROUP chats: "שיח [adjective] בקבוצה [group_name]" where adjective describes the nature (e.g., טעון, מטריד, מסוכן, בעייתי)
+
+SOCIAL CONTEXT (GROUPS ONLY)
+- For GROUP chats, include "social_context" object with:
+  - "label": "הקשר חברתי"
+  - "participants": Array of up to 3 key participant names involved
+  - "description": 1 sentence describing the social dynamic
+- For PRIVATE chats, set "social_context" to null.
 
 TEMPLATES BY VERDICT
 - monitor → השתמש באחת מהנוסחאות הקצרות בלבד:
@@ -63,7 +78,11 @@ FINAL OUTPUT - Return JSON ONLY with these fields:
   },
   "verdict": "safe" | "monitor" | "review" | "notify",
   "patterns": ["<string>", "..."],
-  "explanation": "<Hebrew, 2–3 concise sentences>",
+  "title": "<Hebrew dynamic title based on chat type>",
+  "summary": "<Hebrew, 1 concise sentence - primary finding>",
+  "context": "<Hebrew, 2-3 sentences - general background>",
+  "meaning": "<Hebrew, 1 sentence - what this means for parent>",
+  "social_context": {"label": "הקשר חברתי", "participants": ["name1", "name2"], "description": "<1 sentence>"} | null,
   "recommendation": "<Hebrew, non-empty ONLY if verdict is not 'safe'; otherwise ''>"
 }`;
 
@@ -298,16 +317,24 @@ serve(async (req) => {
     }
 
     // Map AI output fields to database columns:
-    // AI `explanation` -> DB `ai_summary`
+    // AI `summary` -> DB `ai_summary`
     // AI `recommendation` -> DB `ai_recommendation`
-    // AI `risk_score` -> DB `ai_risk_score` (NOT `risk_score` to avoid overwriting)
+    // AI `risk_score` -> DB `ai_risk_score`
     // AI `verdict` -> DB `ai_verdict`
+    // AI `title` -> DB `ai_title`
+    // AI `context` -> DB `ai_context`
+    // AI `meaning` -> DB `ai_meaning`
+    // AI `social_context` -> DB `ai_social_context`
     // PRIVACY STEP 3: Wipe content after analysis
     const updateData = {
-      ai_summary: aiResult.explanation || null,
+      ai_summary: aiResult.summary || null,
       ai_recommendation: aiResult.recommendation || null,
       ai_risk_score: typeof aiResult.risk_score === 'number' ? aiResult.risk_score : null,
       ai_verdict: aiResult.verdict || null,
+      ai_title: aiResult.title || null,
+      ai_context: aiResult.context || null,
+      ai_meaning: aiResult.meaning || null,
+      ai_social_context: aiResult.social_context || null,
       is_processed: true,
       content: '[CONTENT DELETED FOR PRIVACY]', // WIPE raw content!
       analyzed_at: new Date().toISOString(),

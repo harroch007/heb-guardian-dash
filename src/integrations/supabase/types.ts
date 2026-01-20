@@ -89,13 +89,17 @@ export type Database = {
           ai_analysis: Json | null
           ai_classification: Json | null
           ai_confidence: number | null
+          ai_context: string | null
           ai_explanation: string | null
           ai_explanation_short: string | null
+          ai_meaning: string | null
           ai_patterns: string[] | null
           ai_recommendation: string | null
           ai_recommendation_short: string | null
           ai_risk_score: number | null
+          ai_social_context: Json | null
           ai_summary: string | null
+          ai_title: string | null
           ai_verdict: string | null
           analyzed_at: string | null
           author_type: string | null
@@ -128,13 +132,17 @@ export type Database = {
           ai_analysis?: Json | null
           ai_classification?: Json | null
           ai_confidence?: number | null
+          ai_context?: string | null
           ai_explanation?: string | null
           ai_explanation_short?: string | null
+          ai_meaning?: string | null
           ai_patterns?: string[] | null
           ai_recommendation?: string | null
           ai_recommendation_short?: string | null
           ai_risk_score?: number | null
+          ai_social_context?: Json | null
           ai_summary?: string | null
+          ai_title?: string | null
           ai_verdict?: string | null
           analyzed_at?: string | null
           author_type?: string | null
@@ -167,13 +175,17 @@ export type Database = {
           ai_analysis?: Json | null
           ai_classification?: Json | null
           ai_confidence?: number | null
+          ai_context?: string | null
           ai_explanation?: string | null
           ai_explanation_short?: string | null
+          ai_meaning?: string | null
           ai_patterns?: string[] | null
           ai_recommendation?: string | null
           ai_recommendation_short?: string | null
           ai_risk_score?: number | null
+          ai_social_context?: Json | null
           ai_summary?: string | null
+          ai_title?: string | null
           ai_verdict?: string | null
           analyzed_at?: string | null
           author_type?: string | null

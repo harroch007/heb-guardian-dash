@@ -5,6 +5,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { RefreshCw } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
+interface SocialContext {
+  label: string;
+  participants: string[];
+  description: string;
+}
+
 interface Alert {
   id: number;
   child_id: string | null;
@@ -20,6 +26,10 @@ interface Alert {
   ai_verdict: string | null;
   ai_summary: string | null;
   ai_recommendation: string | null;
+  ai_title: string | null;
+  ai_context: string | null;
+  ai_meaning: string | null;
+  ai_social_context: SocialContext | null;
   created_at: string;
   is_processed: boolean;
   acknowledged_at?: string | null;
@@ -54,6 +64,10 @@ const AlertsPage = () => {
           ai_verdict,
           ai_summary,
           ai_recommendation,
+          ai_title,
+          ai_context,
+          ai_meaning,
+          ai_social_context,
           created_at,
           is_processed,
           acknowledged_at,
@@ -85,6 +99,10 @@ const AlertsPage = () => {
           ai_verdict,
           ai_summary,
           ai_recommendation,
+          ai_title,
+          ai_context,
+          ai_meaning,
+          ai_social_context,
           created_at,
           is_processed,
           acknowledged_at,
@@ -104,14 +122,15 @@ const AlertsPage = () => {
       const filterRemindAt = (data: typeof newData) => 
         data?.filter(alert => !alert.remind_at || new Date(alert.remind_at) < now) || [];
       
-      // Transform data to flatten child name
+      // Transform data to flatten child name and cast ai_social_context
       const transformData = (data: typeof newData) => 
         filterRemindAt(data).map(alert => ({
           ...alert,
           child_name: (alert.children as any)?.name || undefined,
           children: undefined,
-          sender_display: alert.sender_display ?? null
-        }));
+          sender_display: alert.sender_display ?? null,
+          ai_social_context: (alert.ai_social_context as unknown) as SocialContext | null
+        })) as Alert[];
       
       setAlerts(transformData(newData));
       setSavedAlerts(transformData(savedData));
