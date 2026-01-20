@@ -21,9 +21,7 @@ import {
   Smartphone,
   X,
   QrCode,
-  Bell,
   User,
-  ChevronLeft,
   Trash2,
   Pencil,
   Unplug,
@@ -70,15 +68,6 @@ interface AppUsage {
   usage_minutes: number;
 }
 
-interface RecentAlert {
-  id: number;
-  parent_message: string | null;
-  sender_display: string | null;
-  sender: string | null;
-  category: string | null;
-  created_at: string;
-}
-
 type LocateStatus = "idle" | "locating" | "success" | "failed";
 
 export default function ChildDashboard() {
@@ -90,7 +79,6 @@ export default function ChildDashboard() {
   const [child, setChild] = useState<Child | null>(null);
   const [device, setDevice] = useState<Device | null>(null);
   const [appUsage, setAppUsage] = useState<AppUsage[]>([]);
-  const [recentAlerts, setRecentAlerts] = useState<RecentAlert[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
   const [showMap, setShowMap] = useState(false);
@@ -155,7 +143,9 @@ export default function ChildDashboard() {
       setDevice(deviceData);
 
       if (deviceData) {
-        const today = new Date().toISOString().split("T")[0];
+        const today = new Intl.DateTimeFormat('en-CA', { 
+          timeZone: 'Asia/Jerusalem' 
+        }).format(new Date());
         const { data: usageData } = await supabase
           .from("app_usage")
           .select("app_name, package_name, usage_minutes")
@@ -166,18 +156,6 @@ export default function ChildDashboard() {
 
         setAppUsage(usageData || []);
       }
-
-      const { data: alertsData } = await supabase
-        .from("alerts")
-        .select("id, parent_message, sender_display, sender, category, created_at")
-        .eq("child_id", childId)
-        .eq("is_processed", true)
-        .not("parent_message", "is", null)
-        .is("acknowledged_at", null)
-        .order("created_at", { ascending: false })
-        .limit(3);
-
-      setRecentAlerts(alertsData || []);
 
       const { data: settingsData } = await supabase
         .from("settings")
@@ -380,16 +358,6 @@ export default function ChildDashboard() {
 
     setDevice(null);
     setDisconnecting(false);
-  };
-
-  const formatTimeAgo = (dateString: string) => {
-    const diff = new Date().getTime() - new Date(dateString).getTime();
-    const mins = Math.floor(diff / 60000);
-    if (mins < 1) return "עכשיו";
-    if (mins < 60) return `לפני ${mins} ד'`;
-    const hours = Math.floor(mins / 60);
-    if (hours < 24) return `לפני ${hours} ש'`;
-    return `לפני ${Math.floor(hours / 24)} ימים`;
   };
 
   const getLocateButtonContent = () => {
@@ -683,55 +651,6 @@ export default function ChildDashboard() {
               screenTimeLimit={screenTimeLimit}
               onSettingsClick={() => setShowScreenTimeLimitModal(true)}
             />
-
-            <Card>
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Bell className="w-4 h-4 text-warning" />
-                    התראות פתוחות
-                  </CardTitle>
-                  {recentAlerts.length > 0 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => navigate("/alerts")}
-                      className="text-muted-foreground"
-                    >
-                      ראה הכל
-                      <ChevronLeft className="w-4 h-4 mr-1" />
-                    </Button>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent>
-                {recentAlerts.length > 0 ? (
-                  <div className="space-y-2">
-                    {recentAlerts.map((alert) => (
-                      <div
-                        key={alert.id}
-                        className="p-3 rounded-lg bg-warning/5 border border-warning/20 cursor-pointer hover:bg-warning/10 transition-colors"
-                        onClick={() => navigate("/alerts")}
-                      >
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-sm font-medium text-foreground">
-                            {alert.sender_display || alert.sender || "לא ידוע"}
-                          </span>
-                          <span className="text-xs text-muted-foreground">{formatTimeAgo(alert.created_at)}</span>
-                        </div>
-                        {alert.parent_message && (
-                          <p className="text-xs text-muted-foreground truncate">
-                            {alert.parent_message.slice(0, 60)}...
-                          </p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground text-sm text-center py-4">אין התראות אחרונות - מצוין! ✅</p>
-                )}
-              </CardContent>
-            </Card>
           </div>
         )}
 
