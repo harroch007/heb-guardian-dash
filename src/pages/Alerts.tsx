@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { AlertListView, AlertDetailView, EmptyAlertsState } from "@/components/alerts";
+import { AlertCardStack, AlertTabs, EmptyAlertsState, EmptySavedState } from "@/components/alerts";
 import { supabase } from "@/integrations/supabase/client";
 import { RefreshCw } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
@@ -24,17 +24,21 @@ interface Alert {
   is_processed: boolean;
   acknowledged_at?: string | null;
   remind_at?: string | null;
+  saved_at?: string | null;
 }
 
 const AlertsPage = () => {
   const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [savedAlerts, setSavedAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedAlertId, setSelectedAlertId] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState<'new' | 'saved'>('new');
 
   const fetchAlerts = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      
+      // Fetch new alerts (not acknowledged, not saved)
+      const { data: newData, error: newError } = await supabase
         .from('alerts')
         .select(`
           id,
@@ -54,29 +58,63 @@ const AlertsPage = () => {
           is_processed,
           acknowledged_at,
           remind_at,
+          saved_at,
           children!child_id(name)
         `)
         .eq('is_processed', true)
         .is('acknowledged_at', null)
+        .is('saved_at', null)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (newError) throw newError;
       
-      // Filter remind_at in JavaScript (PostgREST doesn't support now())
+      // Fetch saved alerts (has saved_at, not acknowledged)
+      const { data: savedData, error: savedError } = await supabase
+        .from('alerts')
+        .select(`
+          id,
+          child_id,
+          sender,
+          sender_display,
+          chat_name,
+          chat_type,
+          parent_message,
+          suggested_action,
+          category,
+          ai_risk_score,
+          ai_verdict,
+          ai_summary,
+          ai_recommendation,
+          created_at,
+          is_processed,
+          acknowledged_at,
+          remind_at,
+          saved_at,
+          children!child_id(name)
+        `)
+        .eq('is_processed', true)
+        .is('acknowledged_at', null)
+        .not('saved_at', 'is', null)
+        .order('saved_at', { ascending: false });
+
+      if (savedError) throw savedError;
+      
+      // Filter remind_at in JavaScript
       const now = new Date();
-      const filteredData = data?.filter(alert => 
-        !alert.remind_at || new Date(alert.remind_at) < now
-      ) || [];
+      const filterRemindAt = (data: typeof newData) => 
+        data?.filter(alert => !alert.remind_at || new Date(alert.remind_at) < now) || [];
       
       // Transform data to flatten child name
-      const transformedData = filteredData.map(alert => ({
-        ...alert,
-        child_name: (alert.children as any)?.name || undefined,
-        children: undefined,
-        sender_display: alert.sender_display ?? null
-      }));
+      const transformData = (data: typeof newData) => 
+        filterRemindAt(data).map(alert => ({
+          ...alert,
+          child_name: (alert.children as any)?.name || undefined,
+          children: undefined,
+          sender_display: alert.sender_display ?? null
+        }));
       
-      setAlerts(transformedData);
+      setAlerts(transformData(newData));
+      setSavedAlerts(transformData(savedData));
     } catch (err: any) {
       toast({
         title: "שגיאה",
@@ -97,8 +135,10 @@ const AlertsPage = () => {
 
       if (error) throw error;
 
+      // Remove from both lists
       setAlerts(prev => prev.filter(alert => alert.id !== id));
-      setSelectedAlertId(null);
+      setSavedAlerts(prev => prev.filter(alert => alert.id !== id));
+      
       toast({
         title: "תודה!",
         description: "ההתראה סומנה כטופלה",
@@ -112,22 +152,46 @@ const AlertsPage = () => {
     }
   };
 
+  const handleSave = async (id: number) => {
+    try {
+      const { error } = await supabase
+        .from('alerts')
+        .update({ saved_at: new Date().toISOString() })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      // Move from alerts to savedAlerts
+      const alertToSave = alerts.find(a => a.id === id);
+      if (alertToSave) {
+        setAlerts(prev => prev.filter(a => a.id !== id));
+        setSavedAlerts(prev => [{ ...alertToSave, saved_at: new Date().toISOString() }, ...prev]);
+      }
+      
+      toast({
+        title: "נשמר!",
+        description: "ההתראה נשמרה לעיון מאוחר",
+      });
+    } catch (err: any) {
+      toast({
+        title: "שגיאה",
+        description: err.message || "לא ניתן לשמור את ההתראה",
+        variant: "destructive",
+      });
+    }
+  };
+
   useEffect(() => {
     fetchAlerts();
   }, []);
 
-  const selectedAlert = selectedAlertId 
-    ? alerts.find(a => a.id === selectedAlertId) 
-    : null;
-
-  // Count unique children
-  const uniqueChildren = new Set(alerts.map(a => a.child_id).filter(Boolean)).size;
+  const currentAlerts = activeTab === 'new' ? alerts : savedAlerts;
 
   return (
     <DashboardLayout>
       <div className="max-w-2xl mx-auto" dir="rtl">
         {/* Header */}
-        <div className="mb-6">
+        <div className="mb-4">
           <div className="flex items-center justify-between mb-2">
             <h1 className="text-2xl font-bold text-foreground">
               התראות
@@ -141,12 +205,16 @@ const AlertsPage = () => {
               <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
             </button>
           </div>
-          <p className="text-sm text-muted-foreground">
-            {alerts.length > 0 
-              ? `${alerts.length} התראות שדורשות תשומת לב`
-              : 'מה דורש תשומת לב — ומה כבר טופל'
-            }
-          </p>
+        </div>
+
+        {/* Tabs */}
+        <div className="mb-4">
+          <AlertTabs
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            newCount={alerts.length}
+            savedCount={savedAlerts.length}
+          />
         </div>
 
         {/* Content */}
@@ -156,31 +224,17 @@ const AlertsPage = () => {
               <div key={i} className="h-20 rounded-xl bg-card/50 animate-pulse border border-border/30" />
             ))}
           </div>
-        ) : selectedAlert ? (
-          <AlertDetailView
-            alert={{
-              id: selectedAlert.id,
-              chat_name: selectedAlert.chat_name,
-              sender_display: selectedAlert.sender_display,
-              parent_message: selectedAlert.parent_message,
-              ai_summary: selectedAlert.ai_summary,
-              ai_recommendation: selectedAlert.ai_recommendation,
-              chat_type: selectedAlert.chat_type,
-              created_at: selectedAlert.created_at,
-              ai_risk_score: selectedAlert.ai_risk_score,
-            }}
+        ) : currentAlerts.length > 0 ? (
+          <AlertCardStack
+            alerts={currentAlerts}
             onAcknowledge={handleAcknowledge}
-            onBack={() => setSelectedAlertId(null)}
-            showBackButton={alerts.length > 1}
+            onSave={handleSave}
+            isSavedView={activeTab === 'saved'}
           />
-        ) : alerts.length > 0 ? (
-          <AlertListView
-            alerts={alerts}
-            onSelect={setSelectedAlertId}
-            childCount={uniqueChildren}
-          />
-        ) : (
+        ) : activeTab === 'new' ? (
           <EmptyAlertsState />
+        ) : (
+          <EmptySavedState />
         )}
       </div>
     </DashboardLayout>
