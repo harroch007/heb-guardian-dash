@@ -63,6 +63,24 @@ interface DailyInsights {
   data_quality: "good" | "partial" | "insufficient";
 }
 
+interface CachedInsights {
+  signature: string;
+  generatedAt: number;
+  insights: DailyInsights;
+}
+
+// Build a signature from snapshot metrics for cache invalidation
+const buildInsightsSignature = (snapshot: HomeSnapshot | null): string => {
+  if (!snapshot) return "no-data";
+  const m = snapshot.messages_scanned ?? 0;
+  const a = snapshot.notify_effective_today ?? 0;
+  const s = snapshot.stacks_sent_to_ai ?? 0;
+  return `${m}-${a}-${s}`;
+};
+
+// TTL for insights cache: 4 hours
+const INSIGHTS_TTL_MS = 4 * 60 * 60 * 1000;
+
 // Format minutes to readable format
 const formatMinutes = (minutes: number): string => {
   const hours = Math.floor(minutes / 60);
@@ -213,25 +231,42 @@ const Index = () => {
     }
   }, [selectedChildId, fetchSnapshot]);
 
-  const fetchInsights = useCallback(async () => {
+  const fetchInsights = useCallback(async (forceRefresh = false) => {
     if (!selectedChildId) return;
     
     const todayDate = getIsraelISODate();
     const cacheKey = `daily-insights-${selectedChildId}-${todayDate}`;
+    const currentSignature = buildInsightsSignature(snapshot);
     
-    // Check cache first
-    const cached = sessionStorage.getItem(cacheKey);
-    if (cached) {
-      try {
-        console.log("[AI Insights] cache hit:", cacheKey);
-        setInsights(JSON.parse(cached));
-        return;
-      } catch (e) {
-        sessionStorage.removeItem(cacheKey);
+    // Check cache with signature validation
+    if (!forceRefresh) {
+      const cachedRaw = sessionStorage.getItem(cacheKey);
+      if (cachedRaw) {
+        try {
+          const cached: CachedInsights = JSON.parse(cachedRaw);
+          const now = Date.now();
+          const age = now - cached.generatedAt;
+          
+          // Cache is valid if: same signature AND within TTL
+          if (cached.signature === currentSignature && age < INSIGHTS_TTL_MS) {
+            console.log("[AI Insights] cache hit - signature match:", currentSignature);
+            setInsights(cached.insights);
+            return;
+          }
+          
+          // Log reason for invalidation
+          if (cached.signature !== currentSignature) {
+            console.log("[AI Insights] cache invalidated - signature changed:", cached.signature, "→", currentSignature);
+          } else {
+            console.log("[AI Insights] cache invalidated - TTL expired:", Math.round(age / 60000), "min old");
+          }
+        } catch (e) {
+          sessionStorage.removeItem(cacheKey);
+        }
       }
     }
     
-    console.log("[AI Insights] cache miss:", cacheKey);
+    console.log("[AI Insights] fetching fresh insights for signature:", currentSignature);
     setInsightsLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke(
@@ -243,7 +278,13 @@ const Index = () => {
       
       if (data) {
         setInsights(data);
-        sessionStorage.setItem(cacheKey, JSON.stringify(data));
+        // Store with signature and timestamp
+        const cacheData: CachedInsights = {
+          signature: currentSignature,
+          generatedAt: Date.now(),
+          insights: data
+        };
+        sessionStorage.setItem(cacheKey, JSON.stringify(cacheData));
       }
     } catch (err) {
       console.error("[AI Insights] Error:", err);
@@ -251,13 +292,26 @@ const Index = () => {
     } finally {
       setInsightsLoading(false);
     }
-  }, [selectedChildId]);
+  }, [selectedChildId, snapshot]);
 
   useEffect(() => {
     if (selectedChildId) {
       fetchInsights();
     }
   }, [selectedChildId, fetchInsights]);
+
+  // Re-evaluate insights when snapshot changes (signature-based check happens inside fetchInsights)
+  const prevSnapshotSignatureRef = useRef<string>("");
+  useEffect(() => {
+    if (!snapshot || !selectedChildId) return;
+    
+    const newSignature = buildInsightsSignature(snapshot);
+    if (prevSnapshotSignatureRef.current && prevSnapshotSignatureRef.current !== newSignature) {
+      console.log("[AI Insights] snapshot changed, re-evaluating insights");
+      fetchInsights();
+    }
+    prevSnapshotSignatureRef.current = newSignature;
+  }, [snapshot, selectedChildId, fetchInsights]);
 
   // Auto-refresh every 2 hours
   useEffect(() => {
