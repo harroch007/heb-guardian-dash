@@ -39,15 +39,26 @@ CATEGORIES
 
 LANGUAGE POLICY
 - ALL Hebrew output must be clear, parent-facing, non-technical.
-- "title": Dynamic title based on chat type (see TITLE RULES below).
+- "title_prefix": A short Hebrew prefix describing the chat nature (see TITLE RULES below).
+- "is_group_chat": Boolean indicating if this is a group chat (inferred from content/context).
 - "summary": 1 concise sentence, primary finding (will be displayed in cyan).
 - "context": 2-3 sentences providing general background context.
 - "meaning": 1 sentence answering "What does this mean for me as a parent?"
 - "recommendation": Action guidance (empty if verdict = "safe").
 
-TITLE RULES
-- For PRIVATE chats: "שיחה פרטית עם [contact_name]"
-- For GROUP chats: "שיח [adjective] בקבוצה [group_name]" where adjective describes the nature (e.g., טעון, מטריד, מסוכן, בעייתי)
+TITLE RULES - CRITICAL
+- NEVER include actual names, placeholders like <NAME>, [name], or contact names in title_prefix.
+- For PRIVATE chats: title_prefix = "שיחה פרטית" (we will append the real name in code)
+- For GROUP chats: title_prefix = "שיח [adjective]" where adjective describes the nature (e.g., טעון, מטריד, מסוכן, בעייתי, רגיל)
+  Examples: "שיח טעון", "שיח מטריד", "שיח רגיל"
+- The code will build the full title like: "שיחה פרטית עם [real_name]" or "שיח טעון בקבוצה [real_group_name]"
+
+DETECTING CHAT TYPE
+- Look at the messages content to determine if this is a group chat:
+  - Multiple distinct senders = likely GROUP
+  - Mentions of group dynamics = likely GROUP
+  - Single sender/recipient pattern = likely PRIVATE
+- Return is_group_chat: true/false based on your analysis.
 
 SOCIAL CONTEXT (GROUPS ONLY)
 - For GROUP chats, include "social_context" object with:
@@ -78,7 +89,8 @@ FINAL OUTPUT - Return JSON ONLY with these fields:
   },
   "verdict": "safe" | "monitor" | "review" | "notify",
   "patterns": ["<string>", "..."],
-  "title": "<Hebrew dynamic title based on chat type>",
+  "title_prefix": "<Hebrew prefix only, NO names>",
+  "is_group_chat": true | false,
   "summary": "<Hebrew, 1 concise sentence - primary finding>",
   "context": "<Hebrew, 2-3 sentences - general background>",
   "meaning": "<Hebrew, 1 sentence - what this means for parent>",
@@ -316,12 +328,34 @@ serve(async (req) => {
       console.log('Successfully copied to anonymous training_dataset');
     }
 
+    // Fetch the alert record to get chat_name for building the title
+    const { data: alertRecord } = await supabase
+      .from('alerts')
+      .select('chat_name')
+      .eq('id', alertId)
+      .single();
+
+    const chatName = alertRecord?.chat_name || 'איש קשר';
+
+    // Build the full title using AI prefix + real chat_name
+    let finalTitle: string;
+    const titlePrefix = aiResult.title_prefix || 'שיחה';
+    const isGroupChat = aiResult.is_group_chat === true;
+
+    if (isGroupChat) {
+      finalTitle = `${titlePrefix} בקבוצה ${chatName}`;
+    } else {
+      finalTitle = `${titlePrefix} עם ${chatName}`;
+    }
+
+    console.log(`Built title: "${finalTitle}" from prefix: "${titlePrefix}", isGroup: ${isGroupChat}, chatName: "${chatName}"`);
+
     // Map AI output fields to database columns:
     // AI `summary` -> DB `ai_summary`
     // AI `recommendation` -> DB `ai_recommendation`
     // AI `risk_score` -> DB `ai_risk_score`
     // AI `verdict` -> DB `ai_verdict`
-    // AI `title` -> DB `ai_title`
+    // Built `finalTitle` -> DB `ai_title`
     // AI `context` -> DB `ai_context`
     // AI `meaning` -> DB `ai_meaning`
     // AI `social_context` -> DB `ai_social_context`
@@ -331,7 +365,7 @@ serve(async (req) => {
       ai_recommendation: aiResult.recommendation || null,
       ai_risk_score: typeof aiResult.risk_score === 'number' ? aiResult.risk_score : null,
       ai_verdict: aiResult.verdict || null,
-      ai_title: aiResult.title || null,
+      ai_title: finalTitle, // Use built title with real name
       ai_context: aiResult.context || null,
       ai_meaning: aiResult.meaning || null,
       ai_social_context: aiResult.social_context || null,
