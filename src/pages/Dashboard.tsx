@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { DashboardGreeting } from "@/components/dashboard/DashboardGreeting";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Users, User, RefreshCw, BarChart3, Brain, Smartphone, TrendingUp, MapPin, Battery, Clock, Mail, Bot, AlertTriangle, Calendar, ChevronLeft } from "lucide-react";
+import { Plus, Users, User, RefreshCw, BarChart3, Brain, Smartphone, MapPin, Battery, Clock, Mail, Bot, AlertTriangle, Calendar, ChevronLeft } from "lucide-react";
 
 // Auto-refresh interval: 2 hours in milliseconds
 const AUTO_REFRESH_INTERVAL = 2 * 60 * 60 * 1000;
@@ -535,22 +535,7 @@ const Index = () => {
                   </CardContent>
                 </Card>
 
-                {/* Card 5 - Daily Context (static for now) */}
-                <Card className="bg-card border-border">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-                      <TrendingUp className="h-5 w-5 text-muted-foreground" />
-                      הקשר יומי
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground text-center py-2">
-                      ההקשר היומי יופיע כאן בקרוב
-                    </p>
-                  </CardContent>
-                </Card>
-
-                {/* Card 6 - Device Status */}
+                {/* Card 5 - Device Status */}
                 <Card className="bg-muted/30 border-border">
                   <CardHeader className="pb-3">
                     <CardTitle className="flex items-center gap-2 text-lg font-semibold">
