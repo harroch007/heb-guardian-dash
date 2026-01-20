@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, BarChart3, Brain, Users, Smartphone, TrendingUp, Calendar, Mail, Bot, AlertTriangle } from "lucide-react";
+import { ArrowRight, BarChart3, Brain, Users, Smartphone, Calendar, Mail, Bot, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getAppIconInfo } from "@/lib/appIcons";
 import {
@@ -440,20 +440,6 @@ const DailyReport = () => {
           </CardContent>
         </Card>
 
-        {/* Card 5 - Daily Context (same as Dashboard placeholder) */}
-        <Card className="bg-card border-border">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-              <TrendingUp className="h-5 w-5 text-muted-foreground" />
-              הקשר יומי
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground text-center py-2">
-              ההקשר היומי יופיע כאן בקרוב
-            </p>
-          </CardContent>
-        </Card>
       </div>
     </DashboardLayout>
   );
