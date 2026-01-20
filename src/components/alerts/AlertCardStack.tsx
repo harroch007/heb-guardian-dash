@@ -99,9 +99,9 @@ export function AlertCardStack({ alerts, onAcknowledge, onSave, isSavedView = fa
   }
 
   return (
-    <div className="relative" dir="rtl">
+    <div className="flex flex-col justify-center min-h-[calc(100vh-200px)] sm:min-h-0" dir="rtl">
       {/* Card Stack Container */}
-      <div className="relative h-[480px] sm:h-[520px]">
+      <div className="relative h-[720px] sm:h-[520px]">
         {/* Background cards (depth effect) */}
         {alerts.slice(currentIndex + 1, currentIndex + 3).map((_, idx) => (
           <div
