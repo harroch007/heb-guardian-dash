@@ -17,6 +17,38 @@ interface ScreenTimeCardProps {
   onSettingsClick?: () => void;
 }
 
+// System apps to filter out (not real user apps)
+const SYSTEM_APPS_TO_FILTER = [
+  'com.google.android.permissioncontroller',
+  'com.android.systemui',
+  'com.android.settings',
+  'com.google.android.gms',
+  'com.google.android.gsf',
+  'com.android.providers',
+  'com.samsung.android.app.routines',
+  'com.sec.android.app.launcher',
+  'com.miui.home',
+  'com.android.launcher',
+  'com.android.packageinstaller',
+  'com.android.bluetooth',
+  'com.android.nfc',
+  'com.samsung.android.lool',
+  'com.facebook.appmanager',
+  'com.android.vending',
+  'com.google.android.packageinstaller',
+];
+
+// Check if app is a system app that should be filtered
+const isSystemApp = (packageName: string): boolean => {
+  const pkg = packageName.toLowerCase();
+  return SYSTEM_APPS_TO_FILTER.some(systemPkg => pkg.startsWith(systemPkg.toLowerCase())) ||
+    pkg.includes('lool') ||
+    pkg.includes('devicecare') ||
+    pkg.includes('maintenance') ||
+    pkg.includes('devicehealth') ||
+    pkg.includes('systemui');
+};
+
 // Category colors using design system colors
 const CATEGORY_COLORS = {
   games: 'hsl(280, 100%, 60%)', // accent
@@ -63,10 +95,13 @@ const getCategoryEmoji = (packageName: string): string => {
 };
 
 export function ScreenTimeCard({ appUsage, showChart = true, screenTimeLimit, onSettingsClick }: ScreenTimeCardProps) {
-  const totalMinutes = appUsage.reduce((sum, app) => sum + (app.usage_minutes || 0), 0);
+  // Filter out system apps
+  const filteredApps = appUsage.filter(app => !isSystemApp(app.package_name));
+  
+  const totalMinutes = filteredApps.reduce((sum, app) => sum + (app.usage_minutes || 0), 0);
   
   // Prepare data for pie chart - group by category
-  const categoryData = appUsage.reduce((acc, app) => {
+  const categoryData = filteredApps.reduce((acc, app) => {
     const category = getAppCategory(app.package_name);
     const existing = acc.find(c => c.name === category.name);
     if (existing) {
@@ -84,8 +119,8 @@ export function ScreenTimeCard({ appUsage, showChart = true, screenTimeLimit, on
   // Sort by usage
   categoryData.sort((a, b) => b.value - a.value);
 
-  // Top apps for list
-  const topApps = appUsage.slice(0, 5);
+  // Top apps for list (filtered)
+  const topApps = filteredApps.slice(0, 5);
 
   if (appUsage.length === 0) {
     return (
@@ -112,11 +147,6 @@ export function ScreenTimeCard({ appUsage, showChart = true, screenTimeLimit, on
         <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
           <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-primary flex-shrink-0" />
           <span className="truncate">זמן מסך</span>
-          {screenTimeLimit && (
-            <Badge variant="outline" className="text-xs font-normal">
-              מגבלה: {Math.floor(screenTimeLimit / 60)}ש' {screenTimeLimit % 60 > 0 ? `${screenTimeLimit % 60}ד'` : ''}
-            </Badge>
-          )}
         </CardTitle>
         <div className="flex items-center gap-2">
           <div className="text-lg sm:text-xl font-bold text-primary flex-shrink-0">
