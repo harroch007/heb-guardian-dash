@@ -71,7 +71,16 @@ const DailyReport = () => {
   const { childId } = useParams<{ childId: string }>();
 
   const dateOptions = getDateOptions();
+  const todayDate = getIsraelISO(0);
   const [selectedDate, setSelectedDate] = useState<string>(getIsraelISO(-1));
+
+  const handleDateChange = (newDate: string) => {
+    if (newDate === todayDate) {
+      navigate('/dashboard');
+    } else {
+      setSelectedDate(newDate);
+    }
+  };
   const [metrics, setMetrics] = useState<DailyMetrics | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -189,7 +198,7 @@ const DailyReport = () => {
         {/* Date Selector */}
         <div className="flex items-center gap-3">
           <span className="text-sm text-muted-foreground">מציג נתונים עבור:</span>
-          <Select value={selectedDate} onValueChange={setSelectedDate}>
+          <Select value={selectedDate} onValueChange={handleDateChange}>
             <SelectTrigger className="w-auto min-w-[200px] h-9 px-3 rounded-full bg-card border-border/50 text-sm font-medium">
               <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4" />

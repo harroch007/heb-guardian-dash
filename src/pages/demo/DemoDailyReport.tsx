@@ -41,8 +41,17 @@ const DemoDailyReport = () => {
   const { childId } = useParams<{ childId: string }>();
 
   const dateOptions = getDateOptions();
+  const todayDate = getIsraelISO(0);
   const [selectedDate, setSelectedDate] = useState<string>(getIsraelISO(-1));
   const metrics = DEMO_DAILY_METRICS;
+
+  const handleDateChange = (newDate: string) => {
+    if (newDate === todayDate) {
+      navigate('/demo/dashboard');
+    } else {
+      setSelectedDate(newDate);
+    }
+  };
 
   // No child guard
   if (!childId) {
@@ -84,7 +93,7 @@ const DemoDailyReport = () => {
 
         {/* Date Selector */}
         <div className="flex items-center justify-center mb-6">
-          <Select value={selectedDate} onValueChange={setSelectedDate}>
+          <Select value={selectedDate} onValueChange={handleDateChange}>
             <SelectTrigger className="w-auto min-w-[200px]">
               <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
