@@ -4,6 +4,7 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { DemoBanner } from "@/components/DemoBanner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { ArrowRight, CheckCircle2, MessageSquare, Brain, Bell, User, Calendar } from "lucide-react";
 import { DEMO_DAILY_METRICS } from "@/data/demoData";
 import {
@@ -13,6 +14,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+
+interface DailyInsights {
+  headline: string;
+  insights: string[];
+  suggested_action: string;
+  severity_band: 'calm' | 'watch' | 'intense';
+  data_quality: 'good' | 'partial' | 'insufficient';
+}
+
+const DEMO_INSIGHTS: DailyInsights = {
+  headline: "יום תקשורתי פעיל ושגרתי, ללא חריגות משמעותיות.",
+  insights: [
+    "רוב הפעילות התרכזה במספר צ'אטים קבועים.",
+    "עיקר זמן המסך התחלק בין תקשורת ותוכן.",
+    "נשלחו בדיקות נקודתיות ללא התראות."
+  ],
+  suggested_action: "אם תרצה, אפשר להציץ בתובנות ולשמור על שיחה פתוחה ורגועה בבית.",
+  severity_band: "calm",
+  data_quality: "good"
+};
 
 // Timezone-safe helper for Israel time
 const getIsraelISO = (offsetDays: number): string => {
@@ -183,17 +204,41 @@ const DemoDailyReport = () => {
             </CardContent>
           </Card>
 
-          {/* Section D: Positive Insights */}
+          {/* Section D: AI Insights */}
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-lg">תובנות חיוביות</CardTitle>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Brain className="h-5 w-5 text-muted-foreground" />
+                תובנות AI
+                <Badge 
+                  variant={
+                    DEMO_INSIGHTS.severity_band === 'calm' ? 'default' :
+                    DEMO_INSIGHTS.severity_band === 'watch' ? 'secondary' : 'destructive'
+                  }
+                  className="mr-2"
+                >
+                  {DEMO_INSIGHTS.severity_band === 'calm' ? 'שקט' :
+                   DEMO_INSIGHTS.severity_band === 'watch' ? 'מעקב' : 'אינטנסיבי'}
+                </Badge>
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <ul className="space-y-2 list-disc list-inside text-foreground">
-                <li>שיחות עם חברים קרובים בטון חיובי</li>
-                <li>שימוש מאוזן במסכים לאורך היום</li>
-                <li>תקשורת פתוחה ובריאה</li>
-              </ul>
+              <div className="space-y-3">
+                <p className="font-medium text-foreground">{DEMO_INSIGHTS.headline}</p>
+                <ul className="space-y-1.5 text-sm text-muted-foreground">
+                  {DEMO_INSIGHTS.insights.map((insight, i) => (
+                    <li key={i} className="flex items-start gap-2">
+                      <span className="text-primary mt-0.5">•</span>
+                      {insight}
+                    </li>
+                  ))}
+                </ul>
+                {DEMO_INSIGHTS.suggested_action && (
+                  <p className="text-xs text-muted-foreground/80 border-t border-border/50 pt-2 mt-3">
+                    {DEMO_INSIGHTS.suggested_action}
+                  </p>
+                )}
+              </div>
             </CardContent>
           </Card>
         </div>

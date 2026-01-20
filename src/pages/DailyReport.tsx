@@ -4,6 +4,7 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 import { ArrowRight, BarChart3, Brain, Users, Smartphone, TrendingUp, Calendar, Mail, Bot, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getAppIconInfo } from "@/lib/appIcons";
@@ -32,6 +33,14 @@ interface TopApp {
   app_name: string;
   package_name: string;
   usage_minutes: number;
+}
+
+interface DailyInsights {
+  headline: string;
+  insights: string[];
+  suggested_action: string;
+  severity_band: 'calm' | 'watch' | 'intense';
+  data_quality: 'good' | 'partial' | 'insufficient';
 }
 
 // Timezone-safe helper for Israel time
@@ -88,6 +97,8 @@ const DailyReport = () => {
   const [contactsLoading, setContactsLoading] = useState(false);
   const [topApps, setTopApps] = useState<TopApp[]>([]);
   const [appsLoading, setAppsLoading] = useState(false);
+  const [insights, setInsights] = useState<DailyInsights | null>(null);
+  const [insightsLoading, setInsightsLoading] = useState(false);
 
   const fetchMetrics = async () => {
     if (!childId) return;
@@ -153,10 +164,39 @@ const DailyReport = () => {
     setAppsLoading(false);
   };
 
+  const fetchInsights = async () => {
+    if (!childId) return;
+    
+    const cacheKey = `daily-insights-${childId}-${selectedDate}`;
+    const cached = sessionStorage.getItem(cacheKey);
+    if (cached) {
+      console.log('Daily insights: cache hit for', cacheKey);
+      setInsights(JSON.parse(cached));
+      return;
+    }
+    
+    console.log('Daily insights: cache miss, fetching from API for', cacheKey);
+    setInsightsLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-daily-insights', {
+        body: { child_id: childId, date: selectedDate }
+      });
+      
+      if (!error && data) {
+        setInsights(data);
+        sessionStorage.setItem(cacheKey, JSON.stringify(data));
+      }
+    } catch (err) {
+      console.error('Error fetching insights:', err);
+    }
+    setInsightsLoading(false);
+  };
+
   useEffect(() => {
     fetchMetrics();
     fetchTopContacts();
     fetchTopApps();
+    fetchInsights();
   }, [childId, selectedDate]);
 
   // No child guard
@@ -265,18 +305,55 @@ const DailyReport = () => {
           </CardContent>
         </Card>
 
-        {/* Card 2 - AI Insights (same as Dashboard placeholder) */}
+        {/* Card 2 - AI Insights */}
         <Card className="bg-card border-border">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-lg font-semibold">
               <Brain className="h-5 w-5 text-muted-foreground" />
               תובנות AI
+              {insights?.severity_band && (
+                <Badge 
+                  variant={
+                    insights.severity_band === 'calm' ? 'default' :
+                    insights.severity_band === 'watch' ? 'secondary' : 'destructive'
+                  }
+                  className="mr-2"
+                >
+                  {insights.severity_band === 'calm' ? 'שקט' :
+                   insights.severity_band === 'watch' ? 'מעקב' : 'אינטנסיבי'}
+                </Badge>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground text-center py-2">
-              התובנות יופיעו כאן בקרוב
-            </p>
+            {insightsLoading ? (
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-3 w-full" />
+                <Skeleton className="h-3 w-5/6" />
+              </div>
+            ) : insights ? (
+              <div className="space-y-3">
+                <p className="font-medium text-foreground">{insights.headline}</p>
+                <ul className="space-y-1.5 text-sm text-muted-foreground">
+                  {insights.insights.map((insight, i) => (
+                    <li key={i} className="flex items-start gap-2">
+                      <span className="text-primary mt-0.5">•</span>
+                      {insight}
+                    </li>
+                  ))}
+                </ul>
+                {insights.suggested_action && (
+                  <p className="text-xs text-muted-foreground/80 border-t border-border/50 pt-2 mt-3">
+                    {insights.suggested_action}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-2">
+                אין מספיק נתונים לתובנות
+              </p>
+            )}
           </CardContent>
         </Card>
 
