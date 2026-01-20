@@ -12,6 +12,7 @@ import { getAppIconInfo } from "@/lib/appIcons";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -54,6 +55,14 @@ interface HomeSnapshot {
   last_seen: string | null;
 }
 
+interface DailyInsights {
+  headline: string;
+  insights: string[];
+  suggested_action: string;
+  severity_band: "calm" | "watch" | "intense";
+  data_quality: "good" | "partial" | "insufficient";
+}
+
 // Format minutes to readable format
 const formatMinutes = (minutes: number): string => {
   const hours = Math.floor(minutes / 60);
@@ -80,6 +89,23 @@ const formatLastSeen = (timestamp: string | null): string => {
   return `לפני ${days} ימים`;
 };
 
+// Get Israel date in ISO format (YYYY-MM-DD)
+const getIsraelISODate = (): string => {
+  return new Intl.DateTimeFormat('en-CA', { 
+    timeZone: 'Asia/Jerusalem' 
+  }).format(new Date());
+};
+
+// Map severity_band to Hebrew label
+const getSeverityLabel = (band: string): string => {
+  switch (band) {
+    case "calm": return "שקט";
+    case "watch": return "מעקב";
+    case "intense": return "אינטנסיבי";
+    default: return band;
+  }
+};
+
 const Index = () => {
   const navigate = useNavigate();
   const [children, setChildren] = useState<Child[]>([]);
@@ -93,6 +119,8 @@ const Index = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   const autoRefreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [insights, setInsights] = useState<DailyInsights | null>(null);
+  const [insightsLoading, setInsightsLoading] = useState(false);
 
   useEffect(() => {
     if (children.length > 0 && !selectedChildId) {
@@ -184,6 +212,52 @@ const Index = () => {
       fetchSnapshot();
     }
   }, [selectedChildId, fetchSnapshot]);
+
+  const fetchInsights = useCallback(async () => {
+    if (!selectedChildId) return;
+    
+    const todayDate = getIsraelISODate();
+    const cacheKey = `daily-insights-${selectedChildId}-${todayDate}`;
+    
+    // Check cache first
+    const cached = sessionStorage.getItem(cacheKey);
+    if (cached) {
+      try {
+        console.log("[AI Insights] cache hit:", cacheKey);
+        setInsights(JSON.parse(cached));
+        return;
+      } catch (e) {
+        sessionStorage.removeItem(cacheKey);
+      }
+    }
+    
+    console.log("[AI Insights] cache miss:", cacheKey);
+    setInsightsLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        'generate-daily-insights',
+        { body: { child_id: selectedChildId, date: todayDate } }
+      );
+      
+      if (error) throw error;
+      
+      if (data) {
+        setInsights(data);
+        sessionStorage.setItem(cacheKey, JSON.stringify(data));
+      }
+    } catch (err) {
+      console.error("[AI Insights] Error:", err);
+      setInsights(null);
+    } finally {
+      setInsightsLoading(false);
+    }
+  }, [selectedChildId]);
+
+  useEffect(() => {
+    if (selectedChildId) {
+      fetchInsights();
+    }
+  }, [selectedChildId, fetchInsights]);
 
   // Auto-refresh every 2 hours
   useEffect(() => {
@@ -340,18 +414,53 @@ const Index = () => {
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
 
-                {/* Card 2 - AI Insights (static for now) */}
+                {/* Card 2 - AI Insights */}
                 <Card className="bg-card border-border">
                   <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-                      <Brain className="h-5 w-5 text-muted-foreground" />
-                      תובנות AI
+                    <CardTitle className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-lg font-semibold">
+                        <Brain className="h-5 w-5 text-muted-foreground" />
+                        תובנות AI
+                      </div>
+                      {insights?.severity_band && (
+                        <Badge variant="secondary">
+                          {getSeverityLabel(insights.severity_band)}
+                        </Badge>
+                      )}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm text-muted-foreground text-center py-2">
-                      התובנות יופיעו כאן בקרוב
-                    </p>
+                    {insightsLoading ? (
+                      <div className="space-y-2">
+                        <div className="h-5 bg-muted/50 rounded animate-pulse w-3/4" />
+                        <div className="h-4 bg-muted/50 rounded animate-pulse w-full" />
+                        <div className="h-4 bg-muted/50 rounded animate-pulse w-5/6" />
+                      </div>
+                    ) : insights ? (
+                      <div className="space-y-3">
+                        <p className="font-medium text-foreground">{insights.headline}</p>
+                        <ul className="space-y-1.5">
+                          {insights.insights.map((insight, idx) => (
+                            <li key={idx} className="text-sm text-muted-foreground flex items-start gap-2">
+                              <span className="text-primary mt-1">•</span>
+                              <span>{insight}</span>
+                            </li>
+                          ))}
+                        </ul>
+                        {insights.suggested_action && (
+                          <p className="text-sm text-muted-foreground/80 pt-2 border-t border-border">
+                            {insights.suggested_action}
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-center py-2">
+                        <p className="font-medium text-muted-foreground">אין מספיק נתונים לתובנות להיום</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          המערכת תציג תובנות לאחר הצטברות פעילות מספקת.
+                        </p>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
 
