@@ -67,14 +67,25 @@ SOCIAL CONTEXT (GROUPS ONLY)
   - "description": 1 sentence describing the social dynamic
 - For PRIVATE chats, set "social_context" to null.
 
-TEMPLATES BY VERDICT
-- monitor → השתמש באחת מהנוסחאות הקצרות בלבד:
-  - במידה ויהיו התפתחויות, נמשיך לעדכן.
-  - המערכת במעקב. נעדכן אם יחול שינוי.
-- review → ענייני וקצר, ללא שיפוטיות:
-  - מומלץ לעיין בהודעה באפליקציה. נעדכן על כל שינוי.
-- notify → צעדים תכלס, בלי מלל מיותר:
-  - התראה דחופה: פתחו את השיחה באפליקציה. שמרו הוכחות במידת הצורך ושקלו חסימה/דיווח.
+RECOMMENDATION RULES - CRITICAL (YOU ARE A CHILD PSYCHOLOGIST)
+- When writing "recommendation", adopt the voice of a child psychologist advising parents.
+- The recommendation should help the parent UNDERSTAND and RESPOND appropriately - NOT panic.
+- Focus on: conversation starters, emotional validation, age-appropriate explanations.
+- NEVER say "check the app", "open the message", "review in the app" - this causes panic and is unhelpful.
+- Keep recommendations short (1-2 sentences), warm, and actionable parenting advice.
+
+RECOMMENDATION EXAMPLES BY CATEGORY (USE THESE AS GUIDANCE):
+- violence_threats → "מומלץ לשוחח עם הילד ברוגע, לשאול אם מישהו מפחיד אותו, ולהדגיש שאתם כאן בשבילו."
+- bullying_humiliation → "כדאי לפתוח שיחה על חברויות - לשאול איך הוא מרגיש בכיתה ואם יש מישהו שמציק לו."
+- sexual_exploitation → "חשוב לגשת לנושא ברגישות. שאלו את הילד אם מישהו ביקש ממנו דברים שגרמו לו אי-נוחות."
+- privacy_exploitation → "דברו עם הילד על פרטיות ברשת - מה בסדר לשתף ומה לא, ושתמיד אפשר לספר לכם."
+- dangerous_extreme_behavior → "שוחחו עם הילד על התוכן שהוא נחשף אליו, בלי שיפוטיות, כדי להבין מה מושך אותו."
+
+VERDICT-SPECIFIC GUIDANCE:
+- safe → recommendation = "" (empty string, internal only)
+- monitor → המלצה קצרה וכללית על שמירה על קשר פתוח עם הילד
+- review → המלצה ספציפית לקטגוריה הרלוונטית, עצה פסיכולוגית קונקרטית
+- notify → המלצה דחופה אך רגועה, עם דגש על ביטחון הילד ותקשורת פתוחה
 
 FINAL OUTPUT - Return JSON ONLY with these fields:
 {
@@ -335,7 +346,13 @@ serve(async (req) => {
       .eq('id', alertId)
       .single();
 
-    const chatName = alertRecord?.chat_name || 'איש קשר';
+    // Clean up chat name - remove "(X הודעות)" or "(X messages)" suffixes
+    let chatName = alertRecord?.chat_name || 'איש קשר';
+    chatName = chatName
+      .replace(/\s*\(\d+\s*הודעות?\)\s*$/i, '')  // Hebrew: (2 הודעות)
+      .replace(/\s*\(\d+\s*messages?\)\s*$/i, '') // English: (2 messages)
+      .trim();
+    
     const chatType = alertRecord?.chat_type; // "PRIVATE" or "GROUP" from database
 
     // Use REAL chat_type from database, NOT AI's guess
