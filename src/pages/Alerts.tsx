@@ -78,6 +78,7 @@ const AlertsPage = () => {
         .eq('is_processed', true)
         .is('acknowledged_at', null)
         .is('saved_at', null)
+        .not('parent_message', 'is', null)
         .order('created_at', { ascending: false });
 
       if (newError) throw newError;
@@ -113,6 +114,7 @@ const AlertsPage = () => {
         .eq('is_processed', true)
         .is('acknowledged_at', null)
         .not('saved_at', 'is', null)
+        .not('parent_message', 'is', null)
         .order('saved_at', { ascending: false });
 
       if (savedError) throw savedError;
