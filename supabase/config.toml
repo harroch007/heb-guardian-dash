@@ -11,3 +11,9 @@ verify_jwt = false
 
 [functions.generate-daily-insights]
 verify_jwt = true
+
+[functions.send-push-notification]
+verify_jwt = false
+
+[functions.set-user-password]
+verify_jwt = false

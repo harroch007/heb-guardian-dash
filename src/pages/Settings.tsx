@@ -1,14 +1,17 @@
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { Bell, Shield, HelpCircle, LogOut, ChevronLeft, FileText, MessageCircle, Bug, Lightbulb } from "lucide-react";
+import { Bell, Shield, HelpCircle, LogOut, ChevronLeft, FileText, MessageCircle, Bug, Lightbulb, BellRing } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { SettingsAlertPreview } from "@/components/SettingsAlertPreview";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 
 const WHATSAPP_NUMBER = "972548383340";
 
 const SettingsPage = () => {
   const navigate = useNavigate();
+  const { isSupported, isSubscribed, isLoading: pushLoading, permission, subscribe, unsubscribe } = usePushNotifications();
   const { signOut } = useAuth();
 
   const handleSignOut = async () => {
@@ -58,7 +61,38 @@ const SettingsPage = () => {
           </div>
         </section>
 
-        {/* Card 2: פרטיות ושקיפות */}
+        {/* Card 2: Push Notifications */}
+        {isSupported && (
+          <section className="p-6 rounded-xl bg-card border border-border/50">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <BellRing className="w-5 h-5 text-primary" />
+                <div>
+                  <h2 className="text-lg font-semibold text-foreground">התראות Push</h2>
+                  <p className="text-sm text-muted-foreground">
+                    קבל התראות בזמן אמת גם כשהאפליקציה סגורה
+                  </p>
+                </div>
+              </div>
+              {permission === 'denied' ? (
+                <span className="text-xs text-destructive">חסום בדפדפן</span>
+              ) : (
+                <Switch
+                  checked={isSubscribed}
+                  disabled={pushLoading}
+                  onCheckedChange={(checked) => checked ? subscribe() : unsubscribe()}
+                />
+              )}
+            </div>
+            {permission === 'denied' && (
+              <p className="mt-3 text-xs text-muted-foreground">
+                ההתראות חסומות. יש לאפשר אותן בהגדרות הדפדפן.
+              </p>
+            )}
+          </section>
+        )}
+
+        {/* Card 3: פרטיות ושקיפות */}
         <section className="p-6 rounded-xl bg-card border border-border/50">
           <div className="flex items-center gap-3 mb-4">
             <Shield className="w-5 h-5 text-success" />

@@ -747,6 +747,39 @@ export type Database = {
         }
         Relationships: []
       }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string | null
+          endpoint: string
+          id: string
+          p256dh: string
+          parent_id: string
+          updated_at: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          auth: string
+          created_at?: string | null
+          endpoint: string
+          id?: string
+          p256dh: string
+          parent_id: string
+          updated_at?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          auth?: string
+          created_at?: string | null
+          endpoint?: string
+          id?: string
+          p256dh?: string
+          parent_id?: string
+          updated_at?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       settings: {
         Row: {
           accessibility_service_enabled: boolean | null
