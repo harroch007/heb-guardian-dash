@@ -1,22 +1,50 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { Bell, Shield, HelpCircle, LogOut, ChevronLeft, FileText, MessageCircle, Bug, Lightbulb, BellRing } from "lucide-react";
+import { Bell, Shield, HelpCircle, LogOut, ChevronLeft, FileText, MessageCircle, Bug, Lightbulb, BellRing, Send, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { SettingsAlertPreview } from "@/components/SettingsAlertPreview";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const WHATSAPP_NUMBER = "972548383340";
 
 const SettingsPage = () => {
   const navigate = useNavigate();
+  const [isSendingTest, setIsSendingTest] = useState(false);
   const { isSupported, isSubscribed, isLoading: pushLoading, permission, subscribe, unsubscribe } = usePushNotifications();
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
 
   const handleSignOut = async () => {
     await signOut();
     navigate('/');
+  };
+
+  const handleTestNotification = async () => {
+    if (!user || !isSubscribed) return;
+    
+    setIsSendingTest(true);
+    try {
+      const { error } = await supabase.functions.invoke('send-push-notification', {
+        body: {
+          parent_id: user.id,
+          title: '🎉 התראת בדיקה',
+          body: 'מעולה! ההתראות עובדות כמו שצריך.',
+          url: '/settings'
+        }
+      });
+      
+      if (error) throw error;
+      toast.success('התראת בדיקה נשלחה בהצלחה');
+    } catch (error) {
+      console.error('Failed to send test notification:', error);
+      toast.error('שגיאה בשליחת התראה');
+    } finally {
+      setIsSendingTest(false);
+    }
   };
 
   const openWhatsApp = (message?: string) => {
@@ -90,6 +118,24 @@ const SettingsPage = () => {
               <p className="mt-3 text-xs text-muted-foreground">
                 ההתראות חסומות. יש לאפשר אותן בהגדרות הדפדפן.
               </p>
+            )}
+            {isSubscribed && (
+              <div className="mt-4 pt-4 border-t border-border/30">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleTestNotification}
+                  disabled={isSendingTest}
+                  className="gap-2"
+                >
+                  {isSendingTest ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Send className="w-4 h-4" />
+                  )}
+                  שלח התראת בדיקה
+                </Button>
+              </div>
             )}
           </section>
         )}
