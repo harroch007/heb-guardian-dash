@@ -125,21 +125,50 @@ serve(async (req) => {
 
           console.log(`Push sent successfully to ${sub.endpoint.substring(0, 50)}...`);
           return { success: true, id: sub.id };
-        } catch (error) {
-          // Log full error details for debugging
+        } catch (error: unknown) {
+          // Extract and log full FCM response details for debugging
+          let responseStatus = 'unknown';
+          let responseBody = 'unknown';
+          let responseHeaders: Record<string, string> = {};
+          
+          // The @negrel/webpush library attaches the Response object to the error
+          if (error && typeof error === 'object' && 'response' in error) {
+            const response = (error as { response: Response }).response;
+            responseStatus = `${response.status} ${response.statusText}`;
+            responseHeaders = Object.fromEntries(response.headers.entries());
+            
+            // Read the response body for detailed error message
+            try {
+              responseBody = await response.text();
+            } catch {
+              responseBody = '(could not read response body)';
+            }
+          }
+          
           console.error(`Push error for subscription ${sub.id}:`, {
-            error,
             message: error instanceof Error ? error.message : String(error),
             name: error instanceof Error ? error.name : 'Unknown',
-            stack: error instanceof Error ? error.stack : undefined,
+            responseStatus,
+            responseBody,
+            responseHeaders,
+            endpoint: sub.endpoint,
           });
           
-          const errorString = String(error);
+          const errorString = String(error) + responseBody;
           
-          // Check for expired subscription errors
-          if (errorString.includes("410") || errorString.includes("404") || errorString.includes("Gone")) {
+          // Check for expired subscription errors (404, 410)
+          if (errorString.includes("410") || errorString.includes("404") || errorString.includes("Gone") || errorString.includes("NotRegistered")) {
             console.log(`Subscription expired: ${sub.endpoint}`);
             return { success: false, id: sub.id, expired: true };
+          }
+          
+          // Check for 403 specifically - VAPID/senderId mismatch
+          if (responseStatus.includes("403")) {
+            console.error(`VAPID authentication failed (403 Forbidden). FCM response: ${responseBody}`);
+            console.error(`This usually means the subscription was created with a different VAPID key.`);
+            console.error(`Expected VAPID public key: ${vapidPublicKeyBase64}`);
+            // Mark as expired so it gets cleaned up and user re-subscribes
+            return { success: false, id: sub.id, expired: true, vapidMismatch: true };
           }
           
           return { success: false, id: sub.id };
@@ -147,10 +176,12 @@ serve(async (req) => {
       })
     );
 
-    // Clean up expired subscriptions
+    // Clean up expired/mismatched subscriptions
     const expiredIds = results.filter((r) => r.expired).map((r) => r.id);
+    const vapidMismatchCount = results.filter((r) => (r as any).vapidMismatch).length;
+    
     if (expiredIds.length > 0) {
-      console.log(`Cleaning up ${expiredIds.length} expired subscriptions`);
+      console.log(`Cleaning up ${expiredIds.length} expired/invalid subscriptions (${vapidMismatchCount} VAPID mismatches)`);
       await supabase.from("push_subscriptions").delete().in("id", expiredIds);
     }
 
@@ -163,6 +194,7 @@ serve(async (req) => {
         sent: successCount,
         total: subscriptions.length,
         expired_cleaned: expiredIds.length,
+        vapid_mismatches: vapidMismatchCount,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
