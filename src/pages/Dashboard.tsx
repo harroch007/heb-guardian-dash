@@ -54,6 +54,7 @@ interface HomeSnapshot {
   address: string | null;
   battery_level: number | null;
   last_seen: string | null;
+  total_usage_minutes: number | null;
 }
 
 interface DailyInsights {
