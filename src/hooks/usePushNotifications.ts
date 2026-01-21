@@ -2,8 +2,11 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
-// VAPID public key - this is safe to expose in client code
-const VAPID_PUBLIC_KEY = 'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U';
+// VAPID public key (base64url encoded) - derived from JWK
+// x: t1b0xINBsWZcVCkn_ZJfO-z11SdCTgxrA-nCjKZtyWQ
+// y: 6kdfcz8jn3A_tIpfr2QPvxZRFjdDznln8Me_owX9efA
+// Format: 0x04 || x || y (uncompressed point)
+const VAPID_PUBLIC_KEY = 'BLdW9MSDQbFmXFQpJ_2SXzvs9dUnQk4MawPpwoymbbFk6kdfcz8jn3A_tIpfr2QPvxZRFjdDznln8Me_owX9efA';
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
