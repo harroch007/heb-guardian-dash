@@ -106,8 +106,12 @@ export function AccessibilityPanel() {
         aria-modal="true"
         aria-labelledby="accessibility-panel-title"
         className={cn(
-          "fixed bottom-4 left-20",
-          "z-[9999] w-[90vw] max-w-md max-h-[70vh]",
+          "fixed z-[9999]",
+          // Mobile: centered, almost full width with safe margins
+          "inset-x-4 bottom-4 sm:inset-auto",
+          // Desktop: fixed position from left
+          "sm:bottom-4 sm:left-20",
+          "w-auto sm:w-[90vw] max-w-md max-h-[70vh]",
           "bg-card border border-border rounded-lg shadow-xl",
           "overflow-hidden flex flex-col",
           "animate-fade-in"
