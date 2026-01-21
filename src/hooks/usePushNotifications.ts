@@ -3,7 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
 // VAPID public key (base64url encoded) - exported from JWK via crypto.subtle.exportKey("raw")
-// This must match the VAPID_KEYS_JWK secret in the edge function
+// This MUST match the VAPID_KEYS_JWK secret in the edge function
+// Key updated: 2026-01-21
 const VAPID_PUBLIC_KEY = 'BLdW9MSDQbFmXFQpJ_2SXzvs9dUnQk4MawPpwoymbclk6kdfcz8jn3A_tIpfr2QPvxZRFjdDznln8Me_owX9efA';
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
