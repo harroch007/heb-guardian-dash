@@ -43,10 +43,20 @@ serve(async (req) => {
 
     // Parse and import VAPID keys (JWK format from generate-vapid-keys script)
     let vapidKeys: Awaited<ReturnType<typeof webpush.importVapidKeys>>;
+    let vapidPublicKeyBase64: string;
     try {
       const exportedKeys = JSON.parse(vapidKeysJson);
-      vapidKeys = await webpush.importVapidKeys(exportedKeys, { extractable: false });
+      vapidKeys = await webpush.importVapidKeys(exportedKeys, { extractable: true });
+      
+      // Export the public key in the correct format for the frontend
+      const publicKeyRaw = await crypto.subtle.exportKey("raw", vapidKeys.publicKey);
+      const publicKeyBytes = new Uint8Array(publicKeyRaw);
+      // Convert to base64url
+      const base64 = btoa(String.fromCharCode(...publicKeyBytes));
+      vapidPublicKeyBase64 = base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+      
       console.log("VAPID keys imported successfully");
+      console.log("VAPID public key for frontend:", vapidPublicKeyBase64);
     } catch (error) {
       console.error("Failed to import VAPID keys:", error);
       throw new Error("Invalid VAPID keys format");
@@ -116,11 +126,18 @@ serve(async (req) => {
           console.log(`Push sent successfully to ${sub.endpoint.substring(0, 50)}...`);
           return { success: true, id: sub.id };
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : String(error);
-          console.error(`Push error for subscription ${sub.id}:`, errorMessage);
+          // Log full error details for debugging
+          console.error(`Push error for subscription ${sub.id}:`, {
+            error,
+            message: error instanceof Error ? error.message : String(error),
+            name: error instanceof Error ? error.name : 'Unknown',
+            stack: error instanceof Error ? error.stack : undefined,
+          });
+          
+          const errorString = String(error);
           
           // Check for expired subscription errors
-          if (errorMessage.includes("410") || errorMessage.includes("404")) {
+          if (errorString.includes("410") || errorString.includes("404") || errorString.includes("Gone")) {
             console.log(`Subscription expired: ${sub.endpoint}`);
             return { success: false, id: sub.id, expired: true };
           }

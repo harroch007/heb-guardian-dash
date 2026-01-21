@@ -2,11 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
-// VAPID public key (base64url encoded) - derived from JWK
-// x: t1b0xINBsWZcVCkn_ZJfO-z11SdCTgxrA-nCjKZtyWQ
-// y: 6kdfcz8jn3A_tIpfr2QPvxZRFjdDznln8Me_owX9efA
-// Format: 0x04 || x || y (uncompressed point)
-const VAPID_PUBLIC_KEY = 'BLdW9MSDQbFmXFQpJ_2SXzvs9dUnQk4MawPpwoymbbFk6kdfcz8jn3A_tIpfr2QPvxZRFjdDznln8Me_owX9efA';
+// VAPID public key (base64url encoded) - exported from JWK via crypto.subtle.exportKey("raw")
+// This must match the VAPID_KEYS_JWK secret in the edge function
+const VAPID_PUBLIC_KEY = 'BLdW9MSDQbFmXFQpJ_2SXzvs9dUnQk4MawPpwoymbclk6kdfcz8jn3A_tIpfr2QPvxZRFjdDznln8Me_owX9efA';
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
