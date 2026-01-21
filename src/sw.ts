@@ -68,27 +68,38 @@ self.addEventListener('notificationclick', (event) => {
     return;
   }
   
-  // Get the URL to open
-  const url = event.notification.data?.url || '/alerts';
+  // Get the relative URL path from notification data
+  const urlPath = event.notification.data?.url || '/alerts';
+  
+  // Build full URL within the PWA scope - this helps open in the installed app
+  const scope = self.registration.scope;
+  const fullUrl = new URL(urlPath, scope).href;
+  
+  console.log('[SW] Opening URL:', fullUrl);
   
   // Open the app or focus existing window
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then((clientList) => {
-        // Check if there's already a window open
+        // First, try to find an existing PWA window and focus it
         for (const client of clientList) {
-          if (client.url.includes(self.registration.scope) && 'focus' in client) {
-            client.focus();
-            // Navigate to the alert URL
-            if ('navigate' in client) {
-              (client as WindowClient).navigate(url);
-            }
-            return;
+          // Check if this client is within our app's scope
+          if (client.url.startsWith(scope) && 'focus' in client) {
+            console.log('[SW] Found existing window, focusing and navigating');
+            return client.focus().then((focusedClient) => {
+              // Navigate to the alert URL within the existing window
+              if (focusedClient && 'navigate' in focusedClient) {
+                return (focusedClient as WindowClient).navigate(fullUrl);
+              }
+            });
           }
         }
-        // If no window is open, open a new one
+        
+        // No existing window found - open a new one
+        // Using the full URL within scope helps browsers open the installed PWA
+        console.log('[SW] No existing window, opening new one');
         if (self.clients.openWindow) {
-          return self.clients.openWindow(url);
+          return self.clients.openWindow(fullUrl);
         }
       })
   );
