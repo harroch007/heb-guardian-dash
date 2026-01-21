@@ -77,11 +77,13 @@ const SettingsPage = () => {
               {permission === 'denied' ? (
                 <span className="text-xs text-destructive">חסום בדפדפן</span>
               ) : (
-                <Switch
-                  checked={isSubscribed}
-                  disabled={pushLoading}
-                  onCheckedChange={(checked) => checked ? subscribe() : unsubscribe()}
-                />
+                <div dir="ltr">
+                  <Switch
+                    checked={isSubscribed}
+                    disabled={pushLoading}
+                    onCheckedChange={(checked) => checked ? subscribe() : unsubscribe()}
+                  />
+                </div>
               )}
             </div>
             {permission === 'denied' && (
