@@ -11,6 +11,7 @@ import { AccessibilityWrapper } from "@/components/accessibility/AccessibilityWr
 import { WaitlistRouteGuard } from "@/components/WaitlistRouteGuard";
 import { WaitlistModal } from "@/components/WaitlistModal";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { ServiceWorkerUpdatePrompt } from "@/components/ServiceWorkerUpdatePrompt";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
@@ -103,6 +104,7 @@ const App = () => (
             <Toaster />
             <Sonner />
             <WaitlistModal />
+            <ServiceWorkerUpdatePrompt />
             <BrowserRouter>
               <AccessibilityWrapper />
               <WaitlistRouteGuard>
