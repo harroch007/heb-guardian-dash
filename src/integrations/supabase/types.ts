@@ -1118,6 +1118,7 @@ export type Database = {
           stacks_sent_to_ai: number | null
           top_apps: Json | null
           top_chats: Json | null
+          total_usage_minutes: number | null
         }
         Relationships: [
           {
