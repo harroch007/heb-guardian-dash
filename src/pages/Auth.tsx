@@ -7,7 +7,8 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDemo } from '@/contexts/DemoContext';
-import { Mail, Lock, User, ArrowLeft, Loader2 } from 'lucide-react';
+import { usePWAInstall } from '@/hooks/usePWAInstall';
+import { Mail, Lock, User, ArrowLeft, Loader2, Download } from 'lucide-react';
 import kippyLogo from '@/assets/kippy-logo.svg';
 import { z } from 'zod';
 import { WAITLIST_MODE } from '@/config/featureFlags';
@@ -41,6 +42,7 @@ export default function Auth() {
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
   const { setDemoMode } = useDemo();
+  const { isInstalled, isInstallable, install } = usePWAInstall();
 
   // Check if email is allowed and redirect if already logged in
   useEffect(() => {
@@ -514,6 +516,29 @@ export default function Auth() {
                   הצטרף לרשימת ההמתנה
                 </Link>
               </p>
+            )}
+            
+            {/* PWA Install button - only show if not installed */}
+            {!isInstalled && (
+              <div className="mt-6 pt-6 border-t border-border">
+                {isInstallable ? (
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={install}
+                  >
+                    <Download className="h-4 w-4 ml-2" />
+                    התקן את Kippy למסך הבית
+                  </Button>
+                ) : (
+                  <Link to="/install" className="block">
+                    <Button variant="ghost" className="w-full text-muted-foreground">
+                      <Download className="h-4 w-4 ml-2" />
+                      איך להתקין את האפליקציה?
+                    </Button>
+                  </Link>
+                )}
+              </div>
             )}
           </div>
         </div>
