@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { DashboardGreeting } from "@/components/dashboard/DashboardGreeting";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Users, User, RefreshCw, BarChart3, Brain, Smartphone, MapPin, Battery, Clock, Mail, Bot, AlertTriangle, Calendar, ChevronLeft } from "lucide-react";
+import { Plus, Users, User, RefreshCw, BarChart3, Brain, Smartphone, MapPin, Battery, Clock, Mail, Bot, AlertTriangle, Calendar, ChevronLeft, Bell, X } from "lucide-react";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 
 // Auto-refresh interval: 2 hours in milliseconds
 const AUTO_REFRESH_INTERVAL = 2 * 60 * 60 * 1000;
@@ -122,6 +123,62 @@ const getSeverityLabel = (band: string): string => {
     case "intense": return "אינטנסיבי";
     default: return band;
   }
+};
+
+// Push Notification Enrollment Banner Component
+const PushNotificationBanner = () => {
+  const { isSupported, isSubscribed, isLoading, permission, subscribe } = usePushNotifications();
+  const [isDismissed, setIsDismissed] = useState(false);
+  const [isSubscribing, setIsSubscribing] = useState(false);
+
+  // Don't show if: not supported, already subscribed, permission denied, loading, or dismissed
+  if (!isSupported || isSubscribed || permission === 'denied' || isLoading || isDismissed) {
+    return null;
+  }
+
+  // Only show for first-time users (permission === 'default')
+  if (permission !== 'default') {
+    return null;
+  }
+
+  const handleSubscribe = async () => {
+    setIsSubscribing(true);
+    try {
+      await subscribe();
+    } finally {
+      setIsSubscribing(false);
+    }
+  };
+
+  return (
+    <div className="relative p-4 rounded-xl bg-primary/10 border border-primary/20 animate-fade-in">
+      <button
+        onClick={() => setIsDismissed(true)}
+        className="absolute top-2 left-2 p-1.5 rounded-full hover:bg-primary/10 transition-colors"
+        aria-label="סגור"
+      >
+        <X className="h-4 w-4 text-muted-foreground" />
+      </button>
+      <div className="flex items-start gap-3 pr-1">
+        <div className="p-2 rounded-full bg-primary/20">
+          <Bell className="h-5 w-5 text-primary" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-medium text-foreground text-sm">הפעל התראות Push</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            קבל התראות בזמן אמת גם כשהאפליקציה סגורה
+          </p>
+          <button
+            onClick={handleSubscribe}
+            disabled={isSubscribing}
+            className="mt-2 px-4 py-1.5 text-xs font-medium rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
+          >
+            {isSubscribing ? 'מפעיל...' : 'הפעל עכשיו'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 const Index = () => {
@@ -368,6 +425,9 @@ const Index = () => {
             <p className="text-sm opacity-80">{error}</p>
           </div>
         )}
+
+        {/* Push Notification Enrollment Banner */}
+        <PushNotificationBanner />
 
         {loading ? (
           <div className="h-48 rounded-2xl bg-card/50 animate-pulse border border-border/30" />
