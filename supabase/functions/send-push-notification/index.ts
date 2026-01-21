@@ -70,13 +70,20 @@ async function sendPushToEndpoint(
   try {
     const payloadStr = JSON.stringify(payload);
     
-    // For now, send unencrypted payload (most push services accept this)
-    // Full encryption would require implementing the RFC 8291 protocol
+    // Generate VAPID authorization header
+    const { authorization } = await generateVapidAuth(
+      subscription.endpoint,
+      vapidPublicKey,
+      vapidPrivateKey,
+      subject
+    );
+    
     const response = await fetch(subscription.endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'TTL': '86400', // 24 hours
+        'Authorization': authorization,
+        'TTL': '86400',
         'Urgency': 'high',
       },
       body: payloadStr,
