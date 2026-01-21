@@ -435,6 +435,57 @@ serve(async (req) => {
 
     console.log(`ANALYZE_ALERT_OK alert_id=${alertId}`);
 
+    // Send push notification if verdict is notify or review
+    if (aiResult.verdict === 'notify' || aiResult.verdict === 'review') {
+      try {
+        // Get child_id from the alert we already fetched
+        const { data: alertData } = await supabase
+          .from('alerts')
+          .select('child_id')
+          .eq('id', alertId)
+          .single();
+
+        if (alertData?.child_id) {
+          // Get parent_id and child name
+          const { data: childData } = await supabase
+            .from('children')
+            .select('parent_id, name')
+            .eq('id', alertData.child_id)
+            .single();
+
+          if (childData?.parent_id) {
+            console.log(`Sending push notification to parent ${childData.parent_id}`);
+            
+            // Call the send-push-notification function
+            const pushResponse = await fetch(
+              `${supabaseUrl}/functions/v1/send-push-notification`,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${supabaseServiceKey}`,
+                },
+                body: JSON.stringify({
+                  parent_id: childData.parent_id,
+                  title: updateData.ai_title || 'התראה חדשה מ-Kippy',
+                  body: updateData.ai_summary || 'נמצא תוכן שדורש את תשומת לבך',
+                  url: '/alerts',
+                  alert_id: alertId,
+                  child_name: childData.name,
+                }),
+              }
+            );
+
+            const pushResult = await pushResponse.json();
+            console.log('Push notification result:', pushResult);
+          }
+        }
+      } catch (pushError) {
+        // Don't fail the whole analysis if push fails
+        console.error('Push notification error (non-fatal):', pushError);
+      }
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
