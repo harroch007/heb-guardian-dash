@@ -1,43 +1,53 @@
 
-# תיקון שמירת ה-Session אחרי Login/Refresh
+# תיקון: PWA לא זוכר את ההתחברות בפתיחה מחדש
 
 ## הבעיה
-אחרי התחברות, רענון הדף לא שומר את ה-session. זה קורה כי:
-1. חסר `detectSessionInUrl: true` בהגדרות ה-Supabase client
-2. ה-OAuth redirect הולך ישירות ל-`/dashboard` במקום להעביר דרך `/auth`
+כשסוגרים את ה-PWA ופותחים מחדש, המשתמש רואה את דף הבית במקום להיכנס ישירות ל-Dashboard.
 
-## השינויים הנדרשים
+## הסיבה
+שתי בעיות משולבות:
 
-### שינוי 1: עדכון Supabase Client
-**קובץ:** `src/integrations/supabase/client.ts`
+1. **`start_url: '/'`** - ה-PWA תמיד נפתח בדף Landing
+2. **`WAITLIST_MODE = true`** - כש-Waitlist mode פעיל, דף ה-Landing לא מפנה משתמשים מחוברים ל-Dashboard
+
+## הפתרון
+
+### שינוי 1: עדכון `start_url` ב-PWA
+**קובץ:** `vite.config.ts` (שורה 32)
 
 ```typescript
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  auth: {
-    storage: localStorage,
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true,  // ← הוספה
+start_url: '/dashboard',  // ← שינוי מ-'/'
+```
+
+**למה?** כשמשתמש מחובר פותח את ה-PWA, הוא צריך להגיע ישירות ל-Dashboard. אם הוא לא מחובר, ה-ProtectedRoute יפנה אותו לדף ההתחברות.
+
+### שינוי 2: Landing page צריך להפנות גם ב-Waitlist mode
+**קובץ:** `src/pages/Landing.tsx` (שורות 27-42)
+
+```typescript
+useEffect(() => {
+  // Redirect to dashboard if user is logged in
+  // (works in both waitlist mode and regular mode)
+  if (!loading && user) {
+    navigate('/dashboard', { replace: true });
   }
-});
+}, [user, loading, navigate]);
+
+// Show nothing while checking auth
+if (loading) {
+  return null;
+}
+
+// If user is logged in, they'll be redirected
+if (user) {
+  return null;
+}
 ```
 
-### שינוי 2: תיקון OAuth Redirect
-**קובץ:** `src/pages/Auth.tsx` (שורה 243)
-
-```typescript
-const handleGoogleAuth = async () => {
-  const { error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
-    options: {
-      redirectTo: `${window.location.origin}/auth`,  // ← שינוי מ-/dashboard ל-/auth
-    },
-  });
-};
-```
-
-**למה `/auth`?** כי שם יש את הלוגיקה שבודקת את ה-session ומפנה ל-dashboard. אם נפנה ישירות ל-dashboard, ה-tokens מה-URL לא מעובדים נכון.
+**למה?** גם כש-Waitlist mode פעיל, משתמש שכבר עבר את הבדיקה ומחובר צריך להיות מופנה ל-Dashboard.
 
 ## סיכום
-- שורה אחת להוספה ב-client.ts
-- שורה אחת לשינוי ב-Auth.tsx
+| קובץ | שינוי |
+|------|-------|
+| `vite.config.ts` | `start_url: '/dashboard'` |
+| `src/pages/Landing.tsx` | הסרת התנאי `!WAITLIST_MODE` מההפניה ל-Dashboard |
