@@ -1,94 +1,43 @@
 
+# תיקון שמירת ה-Session אחרי Login/Refresh
 
-# Fix Push Notifications - Missing VAPID Authorization
+## הבעיה
+אחרי התחברות, רענון הדף לא שומר את ה-session. זה קורה כי:
+1. חסר `detectSessionInUrl: true` בהגדרות ה-Supabase client
+2. ה-OAuth redirect הולך ישירות ל-`/dashboard` במקום להעביר דרך `/auth`
 
-## Problem Identified
+## השינויים הנדרשים
 
-The push notifications fail with a **401 Unauthorized** error because the edge function generates VAPID authentication but **never uses it**. The `generateVapidAuth` function exists but is not called when sending to the push endpoint.
+### שינוי 1: עדכון Supabase Client
+**קובץ:** `src/integrations/supabase/client.ts`
 
-## Root Cause
-
-In `supabase/functions/send-push-notification/index.ts`:
-- Lines 10-61: `generateVapidAuth()` function is defined correctly
-- Lines 75-83: The fetch request does NOT include the Authorization header
-- The VAPID parameters are passed to `sendPushToEndpoint` but never used
-
-## Solution
-
-### Step 1: Fix the sendPushToEndpoint function
-
-Update the function to call `generateVapidAuth` and include the Authorization header:
-
-```text
-File: supabase/functions/send-push-notification/index.ts
-
-REPLACE the sendPushToEndpoint function (lines 63-101) with:
-
-async function sendPushToEndpoint(
-  subscription: { endpoint: string; p256dh: string; auth: string },
-  payload: object,
-  vapidPublicKey: string,
-  vapidPrivateKey: string,
-  subject: string
-): Promise<{ success: boolean; status?: number; expired?: boolean }> {
-  try {
-    const payloadStr = JSON.stringify(payload);
-    
-    // Generate VAPID authorization header
-    const { authorization } = await generateVapidAuth(
-      subscription.endpoint,
-      vapidPublicKey,
-      vapidPrivateKey,
-      subject
-    );
-    
-    const response = await fetch(subscription.endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': authorization,  // <-- This was missing!
-        'TTL': '86400',
-        'Urgency': 'high',
-      },
-      body: payloadStr,
-    });
-    
-    if (response.status === 201 || response.status === 200) {
-      return { success: true, status: response.status };
-    }
-    
-    if (response.status === 404 || response.status === 410) {
-      console.log(`Subscription expired: ${subscription.endpoint}`);
-      return { success: false, status: response.status, expired: true };
-    }
-    
-    console.error(`Push failed with status ${response.status}: ${await response.text()}`);
-    return { success: false, status: response.status };
-  } catch (error) {
-    console.error('Push send error:', error);
-    return { success: false };
+```typescript
+export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  auth: {
+    storage: localStorage,
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,  // ← הוספה
   }
-}
+});
 ```
 
-### Step 2: Deploy and Test
+### שינוי 2: תיקון OAuth Redirect
+**קובץ:** `src/pages/Auth.tsx` (שורה 243)
 
-After deployment:
-1. Go to Settings
-2. Click "Send test notification" button
-3. You should receive the push notification
+```typescript
+const handleGoogleAuth = async () => {
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: `${window.location.origin}/auth`,  // ← שינוי מ-/dashboard ל-/auth
+    },
+  });
+};
+```
 
-## Technical Notes
+**למה `/auth`?** כי שם יש את הלוגיקה שבודקת את ה-session ומפנה ל-dashboard. אם נפנה ישירות ל-dashboard, ה-tokens מה-URL לא מעובדים נכון.
 
-- The VAPID keys are already configured in Supabase secrets
-- The `generateVapidAuth` function correctly creates a signed JWT
-- The push services (FCM for Chrome, Mozilla for Firefox) require this Authorization header
-- Full payload encryption (RFC 8291) would be ideal but many push services accept unencrypted JSON with valid VAPID auth
-
-## Expected Outcome
-
-After this fix:
-- Push notifications will be delivered successfully
-- The logs will show "Push notification sent: 1/1 successful" instead of 0/1
-- Both test notifications and real alert notifications will work
-
+## סיכום
+- שורה אחת להוספה ב-client.ts
+- שורה אחת לשינוי ב-Auth.tsx
