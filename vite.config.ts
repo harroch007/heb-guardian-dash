@@ -29,7 +29,7 @@ export default defineConfig(({ mode }) => ({
         display: 'standalone',
         dir: 'rtl',
         lang: 'he',
-        start_url: '/',
+        start_url: '/dashboard',
         icons: [
           {
             src: '/pwa-192x192.png',

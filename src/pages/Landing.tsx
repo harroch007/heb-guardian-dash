@@ -25,19 +25,20 @@ export default function Landing() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Only redirect to dashboard if NOT in waitlist mode
-    if (!WAITLIST_MODE && !loading && user) {
+    // Redirect to dashboard if user is logged in
+    // (works in both waitlist mode and regular mode)
+    if (!loading && user) {
       navigate('/dashboard', { replace: true });
     }
   }, [user, loading, navigate]);
 
-  // Show nothing while checking auth (only when not in waitlist mode)
-  if (!WAITLIST_MODE && loading) {
+  // Show nothing while checking auth
+  if (loading) {
     return null;
   }
 
-  // If user is logged in and not in waitlist mode, they'll be redirected
-  if (!WAITLIST_MODE && user) {
+  // If user is logged in, they'll be redirected
+  if (user) {
     return null;
   }
   return (
