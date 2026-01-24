@@ -72,12 +72,14 @@ export default function Family() {
       .select('device_id, child_id, battery_level, last_seen')
       .in('child_id', childIds);
 
-    // Fetch alerts count for each child
+    // Fetch alerts count for each child (only real actionable alerts)
     const { data: alertsData } = await supabase
       .from('alerts')
       .select('child_id')
       .in('child_id', childIds)
-      .is('acknowledged_at', null);
+      .is('acknowledged_at', null)
+      .eq('is_processed', true)      // Only AI-processed alerts
+      .is('parent_message', null);   // Only real alerts (not system messages)
 
     // Map devices to children
     const devicesMap: Record<string, DeviceInfo> = {};
