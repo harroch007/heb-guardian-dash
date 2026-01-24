@@ -65,23 +65,15 @@ interface DailyInsights {
   data_quality: "good" | "partial" | "insufficient";
 }
 
-interface CachedInsights {
-  signature: string;
-  generatedAt: number;
-  insights: DailyInsights;
+// Cached dashboard data - keyed by last_seen timestamp
+interface CachedDashboardData {
+  lastSeen: string;
+  snapshot: HomeSnapshot;
+  insights: DailyInsights | null;
+  cachedAt: number;
 }
 
-// Build a signature from snapshot metrics for cache invalidation
-const buildInsightsSignature = (snapshot: HomeSnapshot | null): string => {
-  if (!snapshot) return "no-data";
-  const m = snapshot.messages_scanned ?? 0;
-  const a = snapshot.notify_effective_today ?? 0;
-  const s = snapshot.stacks_sent_to_ai ?? 0;
-  return `${m}-${a}-${s}`;
-};
-
-// TTL for insights cache: 4 hours
-const INSIGHTS_TTL_MS = 4 * 60 * 60 * 1000;
+const DASHBOARD_CACHE_PREFIX = 'dashboard-cache-';
 
 // Format minutes to readable format
 const formatMinutes = (minutes: number): string => {
@@ -193,7 +185,6 @@ const Index = () => {
   const [snapshot, setSnapshot] = useState<HomeSnapshot | null>(null);
   const [snapshotLoading, setSnapshotLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   const autoRefreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [insights, setInsights] = useState<DailyInsights | null>(null);
   const [insightsLoading, setInsightsLoading] = useState(false);
@@ -238,15 +229,74 @@ const Index = () => {
     }
   };
 
-  const fetchSnapshot = useCallback(async (showLoadingState = true) => {
-    if (!selectedChildId) return;
+  // Fetch fresh AI insights (no caching logic here - just calls the API)
+  const fetchFreshInsights = useCallback(async (childId: string): Promise<DailyInsights | null> => {
+    const todayDate = getIsraelISODate();
+    console.log("[AI Insights] Fetching fresh insights for child:", childId);
     
     try {
+      const { data, error } = await supabase.functions.invoke(
+        'generate-daily-insights',
+        { body: { child_id: childId, date: todayDate } }
+      );
+      
+      if (error) throw error;
+      return data;
+    } catch (err) {
+      console.error("[AI Insights] Error:", err);
+      return null;
+    }
+  }, []);
+
+  // Main fetch function - checks last_seen before fetching all data
+  const fetchSnapshot = useCallback(async (showLoadingState = true, forceRefresh = false) => {
+    if (!selectedChildId) return;
+    
+    const cacheKey = `${DASHBOARD_CACHE_PREFIX}${selectedChildId}`;
+    
+    try {
+      // Step 1: Fetch only last_seen to check if data changed
+      const { data: currentData, error: checkError } = await supabase
+        .from("parent_home_snapshot")
+        .select("last_seen")
+        .eq("child_id", selectedChildId)
+        .maybeSingle();
+      
+      if (checkError) throw checkError;
+      
+      const currentLastSeen = currentData?.last_seen;
+      
+      // Step 2: Check cache
+      if (!forceRefresh) {
+        const cachedRaw = localStorage.getItem(cacheKey);
+        if (cachedRaw && currentLastSeen) {
+          try {
+            const cached: CachedDashboardData = JSON.parse(cachedRaw);
+            
+            // If last_seen hasn't changed - use cache!
+            if (cached.lastSeen === currentLastSeen) {
+              console.log("[Dashboard] Cache hit - last_seen unchanged:", currentLastSeen);
+              setSnapshot(cached.snapshot);
+              setInsights(cached.insights);
+              return { fromCache: true, hasNewData: false };
+            }
+            
+            console.log("[Dashboard] Cache invalidated - last_seen changed:", 
+              cached.lastSeen, "→", currentLastSeen);
+          } catch (e) {
+            console.error("[Dashboard] Cache parse error:", e);
+            localStorage.removeItem(cacheKey);
+          }
+        }
+      }
+      
+      // Step 3: last_seen changed (or no cache) - fetch full data
       if (showLoadingState) {
         setSnapshotLoading(true);
+        setInsightsLoading(true);
       }
 
-      const { data, error: snapshotError } = await supabase
+      const { data: fullData, error: snapshotError } = await supabase
         .from("parent_home_snapshot")
         .select("*")
         .eq("child_id", selectedChildId)
@@ -254,28 +304,47 @@ const Index = () => {
 
       if (snapshotError) throw snapshotError;
       
-      // Cast the data to our interface, handling the JSON fields
-      if (data) {
-        setSnapshot({
-          ...data,
-          top_apps: data.top_apps as unknown as TopApp[] | null,
-          top_chats: data.top_chats as unknown as TopChat[] | null,
-        });
+      if (fullData) {
+        const snapshotData: HomeSnapshot = {
+          ...fullData,
+          top_apps: fullData.top_apps as unknown as TopApp[] | null,
+          top_chats: fullData.top_chats as unknown as TopChat[] | null,
+        };
+        setSnapshot(snapshotData);
+        
+        // Step 4: Fetch fresh AI insights (only when last_seen changed)
+        console.log("[Dashboard] Fetching fresh AI insights...");
+        const freshInsights = await fetchFreshInsights(selectedChildId);
+        setInsights(freshInsights);
+        
+        // Step 5: Save to cache
+        if (fullData.last_seen) {
+          const cacheData: CachedDashboardData = {
+            lastSeen: fullData.last_seen,
+            snapshot: snapshotData,
+            insights: freshInsights,
+            cachedAt: Date.now()
+          };
+          localStorage.setItem(cacheKey, JSON.stringify(cacheData));
+          console.log("[Dashboard] Cached new data with last_seen:", fullData.last_seen);
+        }
+        
+        return { fromCache: false, hasNewData: true };
       } else {
         setSnapshot(null);
+        setInsights(null);
+        return { fromCache: false, hasNewData: false };
       }
-      
-      // Update last refresh time
-      setLastRefresh(new Date());
     } catch (err: any) {
       console.error("Error fetching snapshot:", err);
-      // Don't set error for snapshot - just show no data
+      return { fromCache: false, hasNewData: false, error: err };
     } finally {
       if (showLoadingState) {
         setSnapshotLoading(false);
+        setInsightsLoading(false);
       }
     }
-  }, [selectedChildId]);
+  }, [selectedChildId, fetchFreshInsights]);
 
   useEffect(() => {
     if (user?.id) {
@@ -289,88 +358,6 @@ const Index = () => {
     }
   }, [selectedChildId, fetchSnapshot]);
 
-  const fetchInsights = useCallback(async (forceRefresh = false) => {
-    if (!selectedChildId) return;
-    
-    const todayDate = getIsraelISODate();
-    const cacheKey = `daily-insights-${selectedChildId}-${todayDate}`;
-    const currentSignature = buildInsightsSignature(snapshot);
-    
-    // Check cache with signature validation
-    if (!forceRefresh) {
-      const cachedRaw = sessionStorage.getItem(cacheKey);
-      if (cachedRaw) {
-        try {
-          const cached: CachedInsights = JSON.parse(cachedRaw);
-          const now = Date.now();
-          const age = now - cached.generatedAt;
-          
-          // Cache is valid if: same signature AND within TTL
-          if (cached.signature === currentSignature && age < INSIGHTS_TTL_MS) {
-            console.log("[AI Insights] cache hit - signature match:", currentSignature);
-            setInsights(cached.insights);
-            return;
-          }
-          
-          // Log reason for invalidation
-          if (cached.signature !== currentSignature) {
-            console.log("[AI Insights] cache invalidated - signature changed:", cached.signature, "→", currentSignature);
-          } else {
-            console.log("[AI Insights] cache invalidated - TTL expired:", Math.round(age / 60000), "min old");
-          }
-        } catch (e) {
-          sessionStorage.removeItem(cacheKey);
-        }
-      }
-    }
-    
-    console.log("[AI Insights] fetching fresh insights for signature:", currentSignature);
-    setInsightsLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke(
-        'generate-daily-insights',
-        { body: { child_id: selectedChildId, date: todayDate } }
-      );
-      
-      if (error) throw error;
-      
-      if (data) {
-        setInsights(data);
-        // Store with signature and timestamp
-        const cacheData: CachedInsights = {
-          signature: currentSignature,
-          generatedAt: Date.now(),
-          insights: data
-        };
-        sessionStorage.setItem(cacheKey, JSON.stringify(cacheData));
-      }
-    } catch (err) {
-      console.error("[AI Insights] Error:", err);
-      setInsights(null);
-    } finally {
-      setInsightsLoading(false);
-    }
-  }, [selectedChildId, snapshot]);
-
-  useEffect(() => {
-    if (selectedChildId) {
-      fetchInsights();
-    }
-  }, [selectedChildId, fetchInsights]);
-
-  // Re-evaluate insights when snapshot changes (signature-based check happens inside fetchInsights)
-  const prevSnapshotSignatureRef = useRef<string>("");
-  useEffect(() => {
-    if (!snapshot || !selectedChildId) return;
-    
-    const newSignature = buildInsightsSignature(snapshot);
-    if (prevSnapshotSignatureRef.current && prevSnapshotSignatureRef.current !== newSignature) {
-      console.log("[AI Insights] snapshot changed, re-evaluating insights");
-      fetchInsights();
-    }
-    prevSnapshotSignatureRef.current = newSignature;
-  }, [snapshot, selectedChildId, fetchInsights]);
-
   // Auto-refresh every 2 hours
   useEffect(() => {
     if (!selectedChildId) return;
@@ -382,7 +369,7 @@ const Index = () => {
     
     // Set up new interval
     autoRefreshIntervalRef.current = setInterval(() => {
-      console.log("Auto-refreshing dashboard data...");
+      console.log("[Dashboard] Auto-refreshing...");
       fetchSnapshot(false); // Don't show loading state for auto-refresh
     }, AUTO_REFRESH_INTERVAL);
     
@@ -396,15 +383,18 @@ const Index = () => {
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await fetchSnapshot(false); // Don't show full loading state
-    toast.success("הנתונים עודכנו");
+    
+    const result = await fetchSnapshot(false, false); // Check cache first
+    
+    if (result?.fromCache) {
+      toast.info("אין עדכונים חדשים מהמכשיר");
+    } else if (result?.hasNewData) {
+      toast.success("הנתונים עודכנו");
+    } else {
+      toast.info("אין נתונים זמינים");
+    }
+    
     setTimeout(() => setIsRefreshing(false), 500);
-  };
-
-  // Format last refresh time
-  const formatLastRefresh = (): string => {
-    if (!lastRefresh) return "";
-    return formatLastSeen(lastRefresh.toISOString());
   };
 
   // Derived data from snapshot
