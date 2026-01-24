@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { LocationMap } from "@/components/LocationMap";
 import { QRCodeDisplay } from "@/components/QRCodeDisplay";
 import { EditChildModal } from "@/components/EditChildModal";
-import { ScreenTimeLimitModal } from "@/components/ScreenTimeLimitModal";
+
 import { ReconnectChildModal } from "@/components/ReconnectChildModal";
 import {
   ArrowRight,
@@ -85,8 +85,6 @@ export default function ChildDashboard() {
   const [showQRModal, setShowQRModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
-  const [showScreenTimeLimitModal, setShowScreenTimeLimitModal] = useState(false);
-  const [screenTimeLimit, setScreenTimeLimit] = useState<number | null>(null);
   const [showReconnectModal, setShowReconnectModal] = useState(false);
 
   const [locateStatus, setLocateStatus] = useState<LocateStatus>("idle");
@@ -154,15 +152,6 @@ export default function ChildDashboard() {
         setAppUsage(topApps);
       }
 
-      const { data: settingsData } = await supabase
-        .from("settings")
-        .select("daily_screen_time_limit_minutes")
-        .eq("child_id", childId)
-        .maybeSingle();
-
-      if (settingsData) {
-        setScreenTimeLimit(settingsData.daily_screen_time_limit_minutes);
-      }
 
       setLoading(false);
     };
@@ -645,8 +634,6 @@ export default function ChildDashboard() {
             <ScreenTimeCard
               appUsage={appUsage}
               showChart={true}
-              screenTimeLimit={screenTimeLimit}
-              onSettingsClick={() => setShowScreenTimeLimitModal(true)}
             />
           </div>
         )}
@@ -674,16 +661,6 @@ export default function ChildDashboard() {
           />
         )}
 
-        {child && (
-          <ScreenTimeLimitModal
-            childId={child.id}
-            childName={child.name}
-            open={showScreenTimeLimitModal}
-            onOpenChange={setShowScreenTimeLimitModal}
-            currentLimit={screenTimeLimit}
-            onUpdated={setScreenTimeLimit}
-          />
-        )}
 
         {child && user?.email && (
           <ReconnectChildModal
