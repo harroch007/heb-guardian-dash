@@ -153,7 +153,7 @@ const SettingsPage = () => {
             <Button 
               variant="outline" 
               size="sm"
-              onClick={() => navigate('/privacy-policy')}
+              onClick={() => navigate('/privacy')}
               className="gap-2"
             >
               <FileText className="w-4 h-4" />
@@ -162,7 +162,7 @@ const SettingsPage = () => {
             <Button 
               variant="outline" 
               size="sm"
-              onClick={() => navigate('/terms-of-service')}
+              onClick={() => navigate('/terms')}
               className="gap-2"
             >
               <FileText className="w-4 h-4" />
