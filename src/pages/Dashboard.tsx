@@ -183,15 +183,31 @@ const Index = () => {
 
   const [selectedChildId, setSelectedChildId] = useState<string>("");
   const [snapshot, setSnapshot] = useState<HomeSnapshot | null>(null);
-  const [snapshotLoading, setSnapshotLoading] = useState(false);
+  const [snapshotLoading, setSnapshotLoading] = useState(true); // Start with loading to prevent flash
   const [isRefreshing, setIsRefreshing] = useState(false);
   const autoRefreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [insights, setInsights] = useState<DailyInsights | null>(null);
   const [insightsLoading, setInsightsLoading] = useState(false);
 
+  // When child is selected, immediately try to load from cache (sync)
   useEffect(() => {
     if (children.length > 0 && !selectedChildId) {
-      setSelectedChildId(children[0].id);
+      const firstChildId = children[0].id;
+      setSelectedChildId(firstChildId);
+      
+      // Synchronously load cache to prevent flash
+      const cacheKey = `${DASHBOARD_CACHE_PREFIX}${firstChildId}`;
+      const cachedRaw = localStorage.getItem(cacheKey);
+      if (cachedRaw) {
+        try {
+          const cached: CachedDashboardData = JSON.parse(cachedRaw);
+          setSnapshot(cached.snapshot);
+          setInsights(cached.insights);
+          setSnapshotLoading(false);
+        } catch (e) {
+          // Continue with normal loading
+        }
+      }
     }
   }, [children, selectedChildId]);
 
@@ -224,6 +240,7 @@ const Index = () => {
     } catch (err: any) {
       console.error("Error fetching children:", err);
       setError(err.message || "שגיאה בטעינת נתונים");
+      setSnapshotLoading(false); // No children = no snapshot loading
     } finally {
       setLoading(false);
     }
@@ -354,6 +371,20 @@ const Index = () => {
 
   useEffect(() => {
     if (selectedChildId) {
+      // Try to load from cache synchronously first
+      const cacheKey = `${DASHBOARD_CACHE_PREFIX}${selectedChildId}`;
+      const cachedRaw = localStorage.getItem(cacheKey);
+      if (cachedRaw) {
+        try {
+          const cached: CachedDashboardData = JSON.parse(cachedRaw);
+          setSnapshot(cached.snapshot);
+          setInsights(cached.insights);
+          setSnapshotLoading(false);
+        } catch (e) {
+          // Continue with normal loading
+        }
+      }
+      // Then fetch to check for updates in background
       fetchSnapshot();
     }
   }, [selectedChildId, fetchSnapshot]);
