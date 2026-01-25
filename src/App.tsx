@@ -11,6 +11,7 @@ import { AccessibilityWrapper } from "@/components/accessibility/AccessibilityWr
 import { WaitlistRouteGuard } from "@/components/WaitlistRouteGuard";
 import { WaitlistModal } from "@/components/WaitlistModal";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { AdminRoute } from "@/components/AdminRoute";
 import { ServiceWorkerUpdatePrompt } from "@/components/ServiceWorkerUpdatePrompt";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
@@ -25,6 +26,8 @@ import SettingsPage from "./pages/Settings";
 import DailyReport from "./pages/DailyReport";
 import Install from "./pages/Install";
 import NotFound from "./pages/NotFound";
+import AdminLogin from "./pages/AdminLogin";
+import Admin from "./pages/Admin";
 
 // Demo pages
 import DemoDashboard from "./pages/demo/DemoDashboard";
@@ -107,11 +110,20 @@ const App = () => (
             <ServiceWorkerUpdatePrompt />
             <BrowserRouter>
               <AccessibilityWrapper />
-              <WaitlistRouteGuard>
-                <AuthProvider>
-                  <AppRoutes />
-                </AuthProvider>
-              </WaitlistRouteGuard>
+              <Routes>
+                {/* Admin routes - completely separate from main app */}
+                <Route path="/admin-login" element={<AdminLogin />} />
+                <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
+                
+                {/* Main app routes */}
+                <Route path="/*" element={
+                  <WaitlistRouteGuard>
+                    <AuthProvider>
+                      <AppRoutes />
+                    </AuthProvider>
+                  </WaitlistRouteGuard>
+                } />
+              </Routes>
             </BrowserRouter>
           </TooltipProvider>
         </DemoProvider>
