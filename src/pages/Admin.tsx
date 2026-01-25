@@ -1,12 +1,15 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Loader2, LogOut, Shield, Users, BarChart3, TrendingUp, AlertTriangle } from "lucide-react";
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Loader2, LogOut, Shield, LayoutDashboard, Users, UserPlus, Database } from "lucide-react";
 import kippyLogo from "@/assets/kippy-logo.svg";
+import { AdminOverview } from "./admin/AdminOverview";
+import { AdminUsers } from "./admin/AdminUsers";
+import { AdminWaitlist } from "./admin/AdminWaitlist";
+import { AdminTraining } from "./admin/AdminTraining";
+import { format, subDays } from "date-fns";
 
 interface TrainingRecord {
   id: string;
@@ -28,13 +31,51 @@ interface TrainingRecord {
   created_at: string;
 }
 
-interface Stats {
+interface TrainingStats {
   total: number;
   byGender: { name: string; value: number }[];
   byAge: { age: string; count: number }[];
   byVerdict: { name: string; value: number; color: string }[];
   byRiskLevel: { level: string; count: number }[];
   classificationCounts: { name: string; count: number }[];
+}
+
+interface OverviewStats {
+  totalParents: number;
+  totalWaitlist: number;
+  totalDevices: number;
+  totalAlertsToday: number;
+  criticalAlertsToday: number;
+  activeUsersToday: number;
+  conversionRate: number;
+  alertsByVerdict: { name: string; value: number; color: string }[];
+  alertsTrend: { date: string; safe: number; review: number; notify: number }[];
+  funnel: { stage: string; count: number }[];
+}
+
+interface UserData {
+  id: string;
+  full_name: string;
+  email: string | null;
+  phone: string | null;
+  created_at: string;
+  children: { id: string; name: string; gender: string }[];
+  devices: { device_id: string; last_seen: string | null; battery_level: number | null }[];
+  device_status: 'online' | 'today' | 'offline' | 'no_device';
+  last_activity: string | null;
+}
+
+interface WaitlistEntry {
+  id: string;
+  parent_name: string;
+  email: string;
+  phone: string;
+  child_age: number;
+  device_os: string;
+  region: string | null;
+  referral_source: string | null;
+  status: string | null;
+  created_at: string;
 }
 
 const VERDICT_COLORS: Record<string, string> = {
@@ -52,14 +93,219 @@ const GENDER_LABELS: Record<string, string> = {
 
 export default function Admin() {
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState<Stats | null>(null);
+  const [overviewStats, setOverviewStats] = useState<OverviewStats | null>(null);
+  const [users, setUsers] = useState<UserData[]>([]);
+  const [waitlist, setWaitlist] = useState<WaitlistEntry[]>([]);
+  const [trainingStats, setTrainingStats] = useState<TrainingStats | null>(null);
+  const [activeTab, setActiveTab] = useState("overview");
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchStats();
+    fetchAllData();
   }, []);
 
-  const fetchStats = async () => {
+  const fetchAllData = async () => {
+    setLoading(true);
+    await Promise.all([
+      fetchOverviewStats(),
+      fetchUsers(),
+      fetchWaitlist(),
+      fetchTrainingStats(),
+    ]);
+    setLoading(false);
+  };
+
+  const fetchOverviewStats = async () => {
+    try {
+      // Fetch parents count
+      const { count: parentsCount } = await supabase
+        .from("parents")
+        .select("*", { count: "exact", head: true });
+
+      // Fetch waitlist count
+      const { count: waitlistCount } = await supabase
+        .from("waitlist_signups")
+        .select("*", { count: "exact", head: true });
+
+      // Fetch devices count
+      const { count: devicesCount } = await supabase
+        .from("devices")
+        .select("*", { count: "exact", head: true })
+        .not("child_id", "is", null);
+
+      // Fetch today's alerts
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const { data: alertsToday } = await supabase
+        .from("alerts")
+        .select("ai_verdict, ai_risk_score")
+        .gte("created_at", today.toISOString());
+
+      const totalAlertsToday = alertsToday?.length || 0;
+      const criticalAlertsToday = alertsToday?.filter(a => a.ai_verdict === 'notify').length || 0;
+
+      // Count active users (devices with last_seen in last 24 hours)
+      const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const { count: activeCount } = await supabase
+        .from("devices")
+        .select("*", { count: "exact", head: true })
+        .gte("last_seen", yesterday.toISOString());
+
+      // Alerts by verdict
+      const verdictCounts: Record<string, number> = { safe: 0, review: 0, notify: 0 };
+      alertsToday?.forEach(alert => {
+        if (alert.ai_verdict && verdictCounts[alert.ai_verdict] !== undefined) {
+          verdictCounts[alert.ai_verdict]++;
+        }
+      });
+
+      // Fetch alerts trend (last 7 days)
+      const alertsTrend: { date: string; safe: number; review: number; notify: number }[] = [];
+      for (let i = 6; i >= 0; i--) {
+        const date = subDays(new Date(), i);
+        const startOfDay = new Date(date);
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(date);
+        endOfDay.setHours(23, 59, 59, 999);
+
+        const { data: dayAlerts } = await supabase
+          .from("alerts")
+          .select("ai_verdict")
+          .gte("created_at", startOfDay.toISOString())
+          .lte("created_at", endOfDay.toISOString());
+
+        alertsTrend.push({
+          date: format(date, "dd/MM"),
+          safe: dayAlerts?.filter(a => a.ai_verdict === 'safe').length || 0,
+          review: dayAlerts?.filter(a => a.ai_verdict === 'review').length || 0,
+          notify: dayAlerts?.filter(a => a.ai_verdict === 'notify').length || 0,
+        });
+      }
+
+      // Children count
+      const { count: childrenCount } = await supabase
+        .from("children")
+        .select("*", { count: "exact", head: true });
+
+      setOverviewStats({
+        totalParents: parentsCount || 0,
+        totalWaitlist: waitlistCount || 0,
+        totalDevices: devicesCount || 0,
+        totalAlertsToday,
+        criticalAlertsToday,
+        activeUsersToday: activeCount || 0,
+        conversionRate: waitlistCount && parentsCount ? (parentsCount / waitlistCount) * 100 : 0,
+        alertsByVerdict: Object.entries(verdictCounts).map(([name, value]) => ({
+          name,
+          value,
+          color: VERDICT_COLORS[name] || "#6b7280",
+        })),
+        alertsTrend,
+        funnel: [
+          { stage: "Waitlist", count: waitlistCount || 0 },
+          { stage: "נרשמו", count: parentsCount || 0 },
+          { stage: "הוסיפו ילד", count: childrenCount || 0 },
+          { stage: "חיברו מכשיר", count: devicesCount || 0 },
+          { stage: "פעילים היום", count: activeCount || 0 },
+        ],
+      });
+    } catch (error) {
+      console.error("Error fetching overview stats:", error);
+    }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      // Fetch parents
+      const { data: parents, error: parentsError } = await supabase
+        .from("parents")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (parentsError) throw parentsError;
+
+      // Fetch children
+      const { data: children } = await supabase
+        .from("children")
+        .select("id, name, gender, parent_id");
+
+      // Fetch devices
+      const { data: devices } = await supabase
+        .from("devices")
+        .select("device_id, child_id, last_seen, battery_level");
+
+      const now = new Date();
+      const fifteenMinsAgo = new Date(now.getTime() - 15 * 60 * 1000);
+      const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+      const usersData: UserData[] = (parents || []).map(parent => {
+        const parentChildren = children?.filter(c => c.parent_id === parent.id) || [];
+        const childIds = parentChildren.map(c => c.id);
+        const parentDevices = devices?.filter(d => d.child_id && childIds.includes(d.child_id)) || [];
+        
+        let deviceStatus: 'online' | 'today' | 'offline' | 'no_device' = 'no_device';
+        let lastActivity: string | null = null;
+
+        if (parentDevices.length > 0) {
+          const latestDevice = parentDevices.reduce((latest, device) => {
+            if (!device.last_seen) return latest;
+            if (!latest.last_seen) return device;
+            return new Date(device.last_seen) > new Date(latest.last_seen) ? device : latest;
+          }, parentDevices[0]);
+
+          lastActivity = latestDevice.last_seen;
+
+          if (lastActivity) {
+            const lastSeenDate = new Date(lastActivity);
+            if (lastSeenDate >= fifteenMinsAgo) {
+              deviceStatus = 'online';
+            } else if (lastSeenDate >= twentyFourHoursAgo) {
+              deviceStatus = 'today';
+            } else {
+              deviceStatus = 'offline';
+            }
+          }
+        }
+
+        return {
+          id: parent.id,
+          full_name: parent.full_name,
+          email: parent.email,
+          phone: parent.phone,
+          created_at: parent.created_at,
+          children: parentChildren.map(c => ({ id: c.id, name: c.name, gender: c.gender })),
+          devices: parentDevices.map(d => ({
+            device_id: d.device_id,
+            last_seen: d.last_seen,
+            battery_level: d.battery_level,
+          })),
+          device_status: deviceStatus,
+          last_activity: lastActivity,
+        };
+      });
+
+      setUsers(usersData);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    }
+  };
+
+  const fetchWaitlist = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("waitlist_signups")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setWaitlist(data || []);
+    } catch (error) {
+      console.error("Error fetching waitlist:", error);
+    }
+  };
+
+  const fetchTrainingStats = async () => {
     try {
       const { data, error } = await supabase
         .from("training_dataset")
@@ -72,7 +318,6 @@ export default function Admin() {
 
       const records = data as TrainingRecord[];
       
-      // Process statistics
       const genderCounts: Record<string, number> = {};
       const ageCounts: Record<string, number> = {};
       const verdictCounts: Record<string, number> = {};
@@ -87,29 +332,24 @@ export default function Admin() {
       };
 
       records.forEach((record) => {
-        // Gender
         const gender = record.gender || "unknown";
         genderCounts[gender] = (genderCounts[gender] || 0) + 1;
 
-        // Age groups
         if (record.age_at_incident) {
           const ageGroup = getAgeGroup(record.age_at_incident);
           ageCounts[ageGroup] = (ageCounts[ageGroup] || 0) + 1;
         }
 
-        // Verdict
         if (record.ai_verdict?.verdict) {
           const verdict = record.ai_verdict.verdict;
           verdictCounts[verdict] = (verdictCounts[verdict] || 0) + 1;
         }
 
-        // Risk level
         if (record.ai_verdict?.risk_score !== undefined) {
           const level = getRiskLevel(record.ai_verdict.risk_score);
           riskLevelCounts[level]++;
         }
 
-        // Classifications
         if (record.ai_verdict?.classification) {
           const cls = record.ai_verdict.classification;
           Object.entries(cls).forEach(([key, value]) => {
@@ -120,7 +360,7 @@ export default function Admin() {
         }
       });
 
-      setStats({
+      setTrainingStats({
         total: records.length,
         byGender: Object.entries(genderCounts).map(([name, value]) => ({
           name: GENDER_LABELS[name] || name,
@@ -144,9 +384,7 @@ export default function Admin() {
           .map(([name, count]) => ({ name: getClassificationLabel(name), count })),
       });
     } catch (err) {
-      console.error("Error processing stats:", err);
-    } finally {
-      setLoading(false);
+      console.error("Error processing training stats:", err);
     }
   };
 
@@ -194,7 +432,7 @@ export default function Admin() {
   return (
     <div dir="rtl" className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 p-4 md:p-8">
       {/* Header */}
-      <header className="flex items-center justify-between mb-8">
+      <header className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
             <img src={kippyLogo} alt="Kippy" className="w-8 h-8" />
@@ -204,7 +442,7 @@ export default function Admin() {
               <Shield className="w-6 h-6 text-primary" />
               דשבורד ניהול
             </h1>
-            <p className="text-sm text-muted-foreground">סטטיסטיקות Training Dataset</p>
+            <p className="text-sm text-muted-foreground">מרכז שליטה למנכ"ל</p>
           </div>
         </div>
         <Button variant="outline" onClick={handleLogout} className="gap-2">
@@ -213,173 +451,43 @@ export default function Admin() {
         </Button>
       </header>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <Card className="border-primary/20">
-          <CardHeader className="pb-2">
-            <CardDescription className="flex items-center gap-2">
-              <BarChart3 className="w-4 h-4" />
-              סה"כ רשומות
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">{stats?.total || 0}</p>
-          </CardContent>
-        </Card>
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-flex">
+          <TabsTrigger value="overview" className="gap-2">
+            <LayoutDashboard className="w-4 h-4" />
+            <span className="hidden sm:inline">סקירה כללית</span>
+          </TabsTrigger>
+          <TabsTrigger value="users" className="gap-2">
+            <Users className="w-4 h-4" />
+            <span className="hidden sm:inline">משתמשים</span>
+          </TabsTrigger>
+          <TabsTrigger value="waitlist" className="gap-2">
+            <UserPlus className="w-4 h-4" />
+            <span className="hidden sm:inline">רשימת המתנה</span>
+          </TabsTrigger>
+          <TabsTrigger value="training" className="gap-2">
+            <Database className="w-4 h-4" />
+            <span className="hidden sm:inline">Training</span>
+          </TabsTrigger>
+        </TabsList>
 
-        <Card className="border-primary/20">
-          <CardHeader className="pb-2">
-            <CardDescription className="flex items-center gap-2">
-              <Users className="w-4 h-4" />
-              התפלגות מגדר
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex gap-2 flex-wrap">
-            {stats?.byGender.map((g) => (
-              <Badge key={g.name} variant="secondary">
-                {g.name}: {g.value}
-              </Badge>
-            ))}
-          </CardContent>
-        </Card>
+        <TabsContent value="overview">
+          <AdminOverview stats={overviewStats} loading={loading} />
+        </TabsContent>
 
-        <Card className="border-primary/20">
-          <CardHeader className="pb-2">
-            <CardDescription className="flex items-center gap-2">
-              <TrendingUp className="w-4 h-4" />
-              ממוצע גילאים
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex gap-2 flex-wrap">
-            {stats?.byAge.slice(0, 3).map((a) => (
-              <Badge key={a.age} variant="outline">
-                {a.age}: {a.count}
-              </Badge>
-            ))}
-          </CardContent>
-        </Card>
+        <TabsContent value="users">
+          <AdminUsers users={users} loading={loading} />
+        </TabsContent>
 
-        <Card className="border-primary/20">
-          <CardHeader className="pb-2">
-            <CardDescription className="flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4" />
-              סוגי סיכון
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex gap-2 flex-wrap">
-            {stats?.classificationCounts.slice(0, 3).map((c) => (
-              <Badge key={c.name} variant="destructive">
-                {c.name}: {c.count}
-              </Badge>
-            ))}
-          </CardContent>
-        </Card>
-      </div>
+        <TabsContent value="waitlist">
+          <AdminWaitlist entries={waitlist} loading={loading} onRefresh={fetchWaitlist} />
+        </TabsContent>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Verdict Distribution */}
-        <Card className="border-primary/20">
-          <CardHeader>
-            <CardTitle className="text-lg">התפלגות לפי Verdict</CardTitle>
-            <CardDescription>safe / review / notify / monitor</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={stats?.byVerdict || []}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                    outerRadius={100}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {stats?.byVerdict.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Age Distribution */}
-        <Card className="border-primary/20">
-          <CardHeader>
-            <CardTitle className="text-lg">התפלגות לפי גיל</CardTitle>
-            <CardDescription>קבוצות גיל של ילדים</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={stats?.byAge || []}>
-                  <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                  <XAxis dataKey="age" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Risk Classifications */}
-        <Card className="border-primary/20 lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="text-lg">סוגי סיכון מזוהים</CardTitle>
-            <CardDescription>התפלגות לפי סוג איום (ציון מעל 50)</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={stats?.classificationCounts || []} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                  <XAxis type="number" />
-                  <YAxis dataKey="name" type="category" width={80} />
-                  <Tooltip />
-                  <Bar dataKey="count" fill="hsl(var(--destructive))" radius={[0, 4, 4, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Risk Levels */}
-        <Card className="border-primary/20 lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="text-lg">רמות סיכון</CardTitle>
-            <CardDescription>התפלגות לפי Risk Score</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-4 gap-4">
-              {stats?.byRiskLevel.map((level) => (
-                <div
-                  key={level.level}
-                  className={`p-4 rounded-lg text-center ${
-                    level.level === "low"
-                      ? "bg-green-500/10 border border-green-500/20"
-                      : level.level === "medium"
-                      ? "bg-yellow-500/10 border border-yellow-500/20"
-                      : level.level === "high"
-                      ? "bg-orange-500/10 border border-orange-500/20"
-                      : "bg-red-500/10 border border-red-500/20"
-                  }`}
-                >
-                  <p className="text-2xl font-bold">{level.count}</p>
-                  <p className="text-sm text-muted-foreground capitalize">{level.level}</p>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+        <TabsContent value="training">
+          <AdminTraining stats={trainingStats} loading={loading} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
