@@ -255,6 +255,14 @@ OUTPUT FORMAT:
 
     const parsed = JSON.parse(content);
     
+    // Validate insights is an array (AI sometimes returns string instead)
+    if (!Array.isArray(parsed.insights)) {
+      console.error('AI returned insights as non-array:', typeof parsed.insights);
+      parsed.insights = parsed.insights 
+        ? [String(parsed.insights)] 
+        : ["לא ניתן היה לייצר תובנות מפורטות"];
+    }
+    
     // Ensure severity_band and data_quality are not modified by AI
     parsed.severity_band = severity_band;
     parsed.data_quality = data_quality;
