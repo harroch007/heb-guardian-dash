@@ -226,7 +226,7 @@ const DemoDailyReport = () => {
               <div className="space-y-3">
                 <p className="font-medium text-foreground">{DEMO_INSIGHTS.headline}</p>
                 <ul className="space-y-1.5 text-sm text-muted-foreground">
-                  {DEMO_INSIGHTS.insights.map((insight, i) => (
+                  {Array.isArray(DEMO_INSIGHTS.insights) && DEMO_INSIGHTS.insights.map((insight, i) => (
                     <li key={i} className="flex items-start gap-2">
                       <span className="text-primary mt-0.5">•</span>
                       {insight}

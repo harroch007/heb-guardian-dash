@@ -170,9 +170,21 @@ const DailyReport = () => {
     const cacheKey = `daily-insights-${childId}-${selectedDate}`;
     const cached = sessionStorage.getItem(cacheKey);
     if (cached) {
-      console.log('Daily insights: cache hit for', cacheKey);
-      setInsights(JSON.parse(cached));
-      return;
+      try {
+        const parsedCache = JSON.parse(cached);
+        // Validate cached data has proper insights array
+        if (parsedCache && Array.isArray(parsedCache.insights)) {
+          console.log('Daily insights: cache hit for', cacheKey);
+          setInsights(parsedCache);
+          return;
+        } else {
+          console.log('Daily insights: clearing corrupted cache for', cacheKey);
+          sessionStorage.removeItem(cacheKey);
+        }
+      } catch {
+        console.log('Daily insights: clearing invalid cache for', cacheKey);
+        sessionStorage.removeItem(cacheKey);
+      }
     }
     
     console.log('Daily insights: cache miss, fetching from API for', cacheKey);
@@ -183,6 +195,10 @@ const DailyReport = () => {
       });
       
       if (!error && data) {
+        // Validate insights is an array before using
+        if (data.insights && !Array.isArray(data.insights)) {
+          data.insights = [String(data.insights)];
+        }
         setInsights(data);
         sessionStorage.setItem(cacheKey, JSON.stringify(data));
       }
@@ -336,7 +352,7 @@ const DailyReport = () => {
               <div className="space-y-3">
                 <p className="font-medium text-foreground">{insights.headline}</p>
                 <ul className="space-y-1.5 text-sm text-muted-foreground">
-                  {insights.insights.map((insight, i) => (
+                  {Array.isArray(insights.insights) && insights.insights.map((insight, i) => (
                     <li key={i} className="flex items-start gap-2">
                       <span className="text-primary mt-0.5">•</span>
                       {insight}
