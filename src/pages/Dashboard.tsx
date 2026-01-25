@@ -101,12 +101,8 @@ const formatLastSeen = (timestamp: string | null): string => {
   return `לפני ${days} ימים`;
 };
 
-// Get Israel date in ISO format (YYYY-MM-DD)
-const getIsraelISODate = (): string => {
-  return new Intl.DateTimeFormat('en-CA', { 
-    timeZone: 'Asia/Jerusalem' 
-  }).format(new Date());
-};
+// Import from utils for consistent timezone handling
+import { getIsraelDate } from "@/lib/utils";
 
 // Map severity_band to Hebrew label
 const getSeverityLabel = (band: string): string => {
@@ -248,7 +244,7 @@ const Index = () => {
 
   // Fetch fresh AI insights (no caching logic here - just calls the API)
   const fetchFreshInsights = useCallback(async (childId: string): Promise<DailyInsights | null> => {
-    const todayDate = getIsraelISODate();
+    const todayDate = getIsraelDate();
     console.log("[AI Insights] Fetching fresh insights for child:", childId);
     
     try {
