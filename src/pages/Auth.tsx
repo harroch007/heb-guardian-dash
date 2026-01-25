@@ -73,7 +73,14 @@ export default function Auth() {
             return;
           }
         }
-        navigate('/dashboard');
+        
+        // Check if user is admin and redirect accordingly
+        const { data: isAdmin } = await supabase.rpc('is_admin');
+        if (isAdmin) {
+          navigate('/admin');
+        } else {
+          navigate('/dashboard');
+        }
       }
     };
     
