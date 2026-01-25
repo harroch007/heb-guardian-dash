@@ -3,6 +3,7 @@ import { Clock, Smartphone, MessageCircle, Play, Music, Camera, Gamepad2, Shoppi
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
+import { getIsraelDate } from "@/lib/utils";
 
 // System apps to filter out from screen time display
 const SYSTEM_APPS_TO_FILTER = [
@@ -118,7 +119,8 @@ export const ScreenTimeCard = ({ childId, deviceId, screenTimeLimit }: ScreenTim
       if (!childId) return;
       
       setLoading(true);
-      const today = new Date().toISOString().split('T')[0];
+      // Use Israel timezone for consistent date calculation (screen time resets at 00:00 Israel time)
+      const today = getIsraelDate();
       
       const { data } = await supabase
         .from('app_usage')
