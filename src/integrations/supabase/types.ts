@@ -347,6 +347,53 @@ export type Database = {
           },
         ]
       }
+      child_daily_insights: {
+        Row: {
+          child_id: string
+          created_at: string | null
+          data_quality: string
+          day_of_week: number
+          headline: string
+          id: string
+          insight_date: string
+          insights: string[]
+          severity_band: string
+          suggested_action: string | null
+        }
+        Insert: {
+          child_id: string
+          created_at?: string | null
+          data_quality: string
+          day_of_week: number
+          headline: string
+          id?: string
+          insight_date: string
+          insights: string[]
+          severity_band: string
+          suggested_action?: string | null
+        }
+        Update: {
+          child_id?: string
+          created_at?: string | null
+          data_quality?: string
+          day_of_week?: number
+          headline?: string
+          id?: string
+          insight_date?: string
+          insights?: string[]
+          severity_band?: string
+          suggested_action?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "child_daily_insights_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       children: {
         Row: {
           city: string | null

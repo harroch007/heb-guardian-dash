@@ -5,6 +5,14 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+interface InsightResponse {
+  headline: string;
+  insights: string[];
+  suggested_action: string;
+  severity_band: 'calm' | 'watch' | 'intense';
+  data_quality: 'good' | 'partial' | 'insufficient';
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -50,7 +58,47 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 3. Fetch data
+    // 3. Calculate day_of_week from date (0 = Sunday, 6 = Saturday)
+    const dateObj = new Date(date + 'T00:00:00Z');
+    const dayOfWeek = dateObj.getUTCDay();
+
+    // 4. Check for existing cached insight with matching date
+    // Use service role client for DB operations (RLS bypass for insert/update)
+    const serviceClient = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    );
+
+    const { data: cachedInsight, error: cacheError } = await serviceClient
+      .from('child_daily_insights')
+      .select('*')
+      .eq('child_id', child_id)
+      .eq('day_of_week', dayOfWeek)
+      .eq('insight_date', date)
+      .maybeSingle();
+
+    if (cacheError) {
+      console.error('Cache lookup error:', cacheError.message);
+    }
+
+    // If we have a valid cached insight for this exact date, return it
+    if (cachedInsight) {
+      console.log('Returning cached insight for child:', child_id, 'date:', date);
+      return new Response(JSON.stringify({
+        headline: cachedInsight.headline,
+        insights: cachedInsight.insights,
+        suggested_action: cachedInsight.suggested_action,
+        severity_band: cachedInsight.severity_band,
+        data_quality: cachedInsight.data_quality,
+        cached: true
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // 5. No cache hit - fetch data and generate new insight
+    console.log('No cache hit, generating new insight for child:', child_id, 'date:', date);
+
     const { data: metricsData } = await supabase.rpc('get_child_daily_metrics', {
       p_child_id: child_id, 
       p_date: date
@@ -85,13 +133,13 @@ Deno.serve(async (req) => {
       lastSeenMinutesAgo = Math.floor((now.getTime() - lastSeenDate.getTime()) / 60000);
     }
 
-    // 4. Compute severity_band (server-side only)
+    // 6. Compute severity_band (server-side only)
     const alerts_sent = metrics?.alerts_sent ?? 0;
     severity_band = alerts_sent === 0 ? 'calm' 
       : alerts_sent <= 3 ? 'watch' 
       : 'intense';
 
-    // 5. Compute data_quality (server-side only)
+    // 7. Compute data_quality (server-side only)
     const metricsExist = metrics && (
       metrics.messages_scanned > 0 || 
       metrics.stacks_sent_to_ai > 0 || 
@@ -103,12 +151,12 @@ Deno.serve(async (req) => {
       : !hasTopData ? 'partial'
       : 'good';
 
-    // 6. Build payload (exact structure)
+    // 8. Build payload (exact structure)
     const payload = {
       window: { date, timezone: 'Asia/Jerusalem' },
       metrics: {
         messages_scanned: metrics?.messages_scanned ?? 0,
-        ai_sent: metrics?.stacks_sent_to_ai ?? 0,  // mapped from stacks_sent_to_ai
+        ai_sent: metrics?.stacks_sent_to_ai ?? 0,
         alerts_sent: metrics?.alerts_sent ?? 0
       },
       top_chats: topChats?.slice(0, 5) ?? [],
@@ -121,7 +169,7 @@ Deno.serve(async (req) => {
       data_quality
     };
 
-    // 7. Call OpenAI with DAILY_INSIGHT_AI_KEY
+    // 9. Call OpenAI with DAILY_INSIGHT_AI_KEY
     const DAILY_INSIGHT_AI_KEY = Deno.env.get('DAILY_INSIGHT_AI_KEY');
     if (!DAILY_INSIGHT_AI_KEY) {
       console.error('DAILY_INSIGHT_AI_KEY not configured');
@@ -253,7 +301,7 @@ OUTPUT FORMAT:
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    const parsed = JSON.parse(content);
+    const parsed = JSON.parse(content) as InsightResponse;
     
     // Validate insights is an array (AI sometimes returns string instead)
     if (!Array.isArray(parsed.insights)) {
@@ -267,9 +315,33 @@ OUTPUT FORMAT:
     parsed.severity_band = severity_band;
     parsed.data_quality = data_quality;
 
-    console.log('Generated insights successfully for child:', child_id, 'date:', date);
+    // 10. Save to database (UPSERT - will overwrite old day_of_week entry)
+    const { error: upsertError } = await serviceClient
+      .from('child_daily_insights')
+      .upsert({
+        child_id,
+        day_of_week: dayOfWeek,
+        insight_date: date,
+        headline: parsed.headline,
+        insights: parsed.insights,
+        suggested_action: parsed.suggested_action || '',
+        severity_band: parsed.severity_band,
+        data_quality: parsed.data_quality
+      }, {
+        onConflict: 'child_id,day_of_week'
+      });
 
-    return new Response(JSON.stringify(parsed), {
+    if (upsertError) {
+      console.error('Failed to cache insight:', upsertError.message);
+      // Continue anyway - return the insight even if caching failed
+    } else {
+      console.log('Cached new insight for child:', child_id, 'date:', date, 'dow:', dayOfWeek);
+    }
+
+    return new Response(JSON.stringify({
+      ...parsed,
+      cached: false
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
