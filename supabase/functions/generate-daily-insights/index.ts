@@ -62,7 +62,12 @@ Deno.serve(async (req) => {
     const dateObj = new Date(date + 'T00:00:00Z');
     const dayOfWeek = dateObj.getUTCDay();
 
-    // 4. Check for existing cached insight with matching date
+    // 4. Compute "today" in Israel timezone
+    const israelNow = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Jerusalem" }));
+    const todayIsrael = israelNow.toISOString().split("T")[0];
+    const isToday = (date === todayIsrael);
+
+    // 5. Check for existing cached insight with matching date
     // Use service role client for DB operations (RLS bypass for insert/update)
     const serviceClient = createClient(
       Deno.env.get('SUPABASE_URL')!,
@@ -81,19 +86,67 @@ Deno.serve(async (req) => {
       console.error('Cache lookup error:', cacheError.message);
     }
 
-    // If we have a valid cached insight for this exact date, return it
+    // 6. Decision logic: return cached or regenerate
+    let shouldRegenerate = true;
+
     if (cachedInsight) {
-      console.log('Returning cached insight for child:', child_id, 'date:', date);
-      return new Response(JSON.stringify({
-        headline: cachedInsight.headline,
-        insights: cachedInsight.insights,
-        suggested_action: cachedInsight.suggested_action,
-        severity_band: cachedInsight.severity_band,
-        data_quality: cachedInsight.data_quality,
-        cached: true
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      if (!isToday) {
+        // PAST DATE: return if conclusive, otherwise regenerate
+        if (cachedInsight.is_conclusive) {
+          console.log('Returning conclusive cached insight for child:', child_id, 'date:', date);
+          return new Response(JSON.stringify({
+            headline: cachedInsight.headline,
+            insights: cachedInsight.insights,
+            suggested_action: cachedInsight.suggested_action,
+            severity_band: cachedInsight.severity_band,
+            data_quality: cachedInsight.data_quality,
+            is_conclusive: true,
+            cached: true
+          }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+        // Partial insight for past date -> regenerate as conclusive
+        console.log('Upgrading partial insight to conclusive for child:', child_id, 'date:', date);
+        shouldRegenerate = true;
+      } else {
+        // TODAY: check time-based rules
+        const createdAt = new Date(cachedInsight.created_at);
+        const hoursSinceCreation = (Date.now() - createdAt.getTime()) / 3600000;
+        
+        // Get creation time in Israel timezone
+        const createdInIsrael = new Date(createdAt.toLocaleString("en-US", { timeZone: "Asia/Jerusalem" }));
+        const createdHour = createdInIsrael.getHours();
+        const createdMinute = createdInIsrael.getMinutes();
+        
+        if (hoursSinceCreation < 1) {
+          // Too recent - return cached
+          console.log('Returning recent cached insight (< 1hr) for child:', child_id, 'date:', date);
+          shouldRegenerate = false;
+        } else if (createdHour >= 23 && createdMinute >= 55) {
+          // Created very late (23:55+) - don't regenerate before midnight
+          console.log('Returning late-night cached insight for child:', child_id, 'date:', date);
+          shouldRegenerate = false;
+        } else {
+          // More than 1 hour old and not late-night - regenerate
+          console.log('Regenerating insight (> 1hr old) for child:', child_id, 'date:', date);
+          shouldRegenerate = true;
+        }
+        
+        if (!shouldRegenerate) {
+          return new Response(JSON.stringify({
+            headline: cachedInsight.headline,
+            insights: cachedInsight.insights,
+            suggested_action: cachedInsight.suggested_action,
+            severity_band: cachedInsight.severity_band,
+            data_quality: cachedInsight.data_quality,
+            is_conclusive: false,
+            cached: true
+          }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+      }
     }
 
     // 5. No cache hit - fetch data and generate new insight
@@ -315,6 +368,9 @@ OUTPUT FORMAT:
     parsed.severity_band = severity_band;
     parsed.data_quality = data_quality;
 
+    // Determine if this insight is conclusive (past date = true, today = false)
+    const isConclusive = !isToday;
+
     // 10. Save to database (UPSERT - will overwrite old day_of_week entry)
     const { error: upsertError } = await serviceClient
       .from('child_daily_insights')
@@ -322,6 +378,7 @@ OUTPUT FORMAT:
         child_id,
         day_of_week: dayOfWeek,
         insight_date: date,
+        is_conclusive: isConclusive,
         headline: parsed.headline,
         insights: parsed.insights,
         suggested_action: parsed.suggested_action || '',
@@ -340,6 +397,7 @@ OUTPUT FORMAT:
 
     return new Response(JSON.stringify({
       ...parsed,
+      is_conclusive: isConclusive,
       cached: false
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
