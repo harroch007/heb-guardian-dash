@@ -1,124 +1,234 @@
 
 
-# תוכנית: שמירת תובנות AI יומיות בטבלה מחזורית
+# תוכנית: תובנות יומיות - Partial vs Conclusive
 
-## סקירת הבעיה
+## הבנת הבעיה
 
-כרגע, בכל כניסה לדוח היומי:
-1. נשלחת קריאה ל-OpenAI (עלות כספית גבוהה)
-2. הטקסט משתנה בכל רענון (temperature: 0.7)
-3. ה-cache ב-sessionStorage נמחק בסגירת הטאב
+המימוש הנוכחי מחזיר תמיד את התובנה השמורה אם קיימת, ללא בדיקה:
+- האם עבר זמן מספיק מאז יצירתה (עבור היום)
+- האם מדובר בתובנה חלקית שנוצרה לפני חצות (עבור ימים קודמים)
 
-## הפתרון: טבלה מחזורית לפי יום בשבוע
+## ארכיטקטורת הפתרון
 
-### עיקרון הפעולה
-
-יצירת טבלה `child_daily_insights` עם partition לוגי לפי `day_of_week` (0-6):
-- כל ילד יכול להחזיק עד 7 רשומות (אחת לכל יום בשבוע)
-- כשמגיע יום חדש, הרשומה מתעדכנת אוטומטית (UPSERT)
-- אין צורך ב-cron, retention logic או מחיקת נתונים ישנים
+### עקרונות מנחים
 
 ```text
-+----------+-----+------------+-----------+---------------------+
-| child_id | dow | date       | insights  | created_at          |
-+----------+-----+------------+-----------+---------------------+
-| abc123   |  0  | 2026-01-26 | {...}     | 2026-01-26 08:00:00 |
-| abc123   |  1  | 2026-01-27 | {...}     | 2026-01-27 08:00:00 |
-| abc123   |  2  | 2026-01-28 | {...}     | 2026-01-28 08:00:00 |
-| ...      | ... | ...        | ...       | ...                 |
-+----------+-----+------------+-----------+---------------------+
+┌─────────────────────────────────────────────────────────────────┐
+│                    REQUEST FOR DATE X                            │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  IS DATE X == TODAY?                                            │
+│  ├── YES ─────────────────────────────────────────────────────► │
+│  │        ┌─ No existing insight → CREATE NEW                   │
+│  │        │                                                      │
+│  │        └─ Insight exists:                                    │
+│  │             • created_at < 1 hour ago → RETURN CACHED        │
+│  │             • created_at >= 1 hour ago → CREATE NEW          │
+│  │             • created_at after 23:55 → RETURN CACHED         │
+│  │                                                               │
+│  └── NO (PAST DATE) ──────────────────────────────────────────► │
+│           ┌─ No existing insight → CREATE CONCLUSIVE            │
+│           │                                                      │
+│           └─ Insight exists:                                    │
+│                • is_conclusive = TRUE → RETURN CACHED           │
+│                • is_conclusive = FALSE → CREATE CONCLUSIVE      │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-## שינויים טכניים
+### שינויי סכמה
 
-### 1. טבלת Supabase חדשה: `child_daily_insights`
+הוספת עמודה חדשה לטבלה `child_daily_insights`:
 
 ```sql
-CREATE TABLE public.child_daily_insights (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  child_id uuid NOT NULL REFERENCES children(id) ON DELETE CASCADE,
-  day_of_week smallint NOT NULL CHECK (day_of_week BETWEEN 0 AND 6),
-  insight_date date NOT NULL,
-  headline text NOT NULL,
-  insights text[] NOT NULL,
-  suggested_action text,
-  severity_band text NOT NULL CHECK (severity_band IN ('calm', 'watch', 'intense')),
-  data_quality text NOT NULL CHECK (data_quality IN ('good', 'partial', 'insufficient')),
-  created_at timestamptz DEFAULT now(),
+ALTER TABLE child_daily_insights
+ADD COLUMN is_conclusive boolean NOT NULL DEFAULT false;
+```
+
+**משמעות:**
+- `is_conclusive = false` → תובנה חלקית (נוצרה במהלך היום)
+- `is_conclusive = true` → תובנה סופית (מכסה את כל היום 00:00-24:00)
+
+### לוגיקה חדשה ב-Edge Function
+
+```text
+INPUT: child_id, date, current_time (Israel TZ)
+
+1. COMPUTE:
+   - today = current Israel date
+   - is_today = (date == today)
+   - day_of_week = date.getUTCDay()
+
+2. FETCH existing insight:
+   SELECT * FROM child_daily_insights
+   WHERE child_id = ? AND day_of_week = ? AND insight_date = ?
+
+3. DECISION TREE:
+
+   IF no existing insight:
+     → CREATE NEW (is_conclusive = !is_today)
+
+   ELSE IF is_today:
+     - hours_since_creation = (now - created_at) / 3600000
+     - created_hour = created_at in Israel TZ
+     
+     IF hours_since_creation < 1:
+       → RETURN CACHED
+     
+     ELSE IF created_hour >= 23 AND created_minute >= 55:
+       → RETURN CACHED (too close to midnight)
+     
+     ELSE:
+       → CREATE NEW (is_conclusive = false)
+       → UPSERT (replaces old)
+
+   ELSE (past date):
+     IF existing.is_conclusive == true:
+       → RETURN CACHED (final, never regenerate)
+     
+     ELSE:
+       → CREATE NEW (is_conclusive = true)
+       → UPSERT (upgrades to conclusive)
+```
+
+### Edge Cases מטופלים
+
+| מצב | התנהגות |
+|-----|---------|
+| בקשה ל"היום" ללא תובנה קיימת | יצירת תובנה חלקית חדשה |
+| בקשה ל"היום" כשעבר פחות משעה | החזרת cached |
+| בקשה ל"היום" כשעברה שעה+ | יצירת תובנה חדשה (מחליפה) |
+| בקשה ל"היום" כשנוצר ב-23:55+ | החזרת cached (לא מייצרים לפני חצות) |
+| בקשה ל"אתמול" ללא תובנה | יצירת תובנה סופית |
+| בקשה ל"אתמול" עם תובנה חלקית | יצירת תובנה סופית (מחליפה) |
+| בקשה ל"אתמול" עם תובנה סופית | החזרת cached (לעולם לא מתחלף) |
+| מעבר חצות - בקשה ראשונה ליום הקודם | יצירת תובנה סופית |
+
+### שינויים בקבצים
+
+#### 1. Migration חדשה
+
+```sql
+-- הוספת עמודה is_conclusive
+ALTER TABLE public.child_daily_insights
+ADD COLUMN is_conclusive boolean NOT NULL DEFAULT false;
+
+-- סימון כל התובנות הקיימות כסופיות (הן עבור ימים שעברו)
+UPDATE public.child_daily_insights
+SET is_conclusive = true
+WHERE insight_date < CURRENT_DATE;
+```
+
+#### 2. עדכון Edge Function: `generate-daily-insights/index.ts`
+
+**שינויים עיקריים:**
+
+א. **חישוב זמן נוכחי באזור זמן ישראל:**
+```typescript
+const israelNow = new Date(new Date().toLocaleString("en-US", { 
+  timeZone: "Asia/Jerusalem" 
+}));
+const todayIsrael = israelNow.toISOString().split("T")[0];
+const isToday = (date === todayIsrael);
+```
+
+ב. **לוגיקת החלטה חדשה:**
+```typescript
+if (cachedInsight) {
+  const isConclusive = cachedInsight.is_conclusive;
   
-  UNIQUE (child_id, day_of_week)
-);
-
--- RLS: הורים יכולים לראות רק את התובנות של הילדים שלהם
-ALTER TABLE child_daily_insights ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Parents can view their children insights"
-  ON child_daily_insights FOR SELECT
-  USING (child_id IN (SELECT id FROM children WHERE parent_id = auth.uid()));
+  if (!isToday) {
+    // Past date - return if conclusive, otherwise regenerate
+    if (isConclusive) {
+      return cached;
+    }
+    // Fall through to regenerate as conclusive
+  } else {
+    // Today - check time since creation
+    const hoursSinceCreation = (Date.now() - new Date(cachedInsight.created_at).getTime()) / 3600000;
+    const createdInIsrael = new Date(cachedInsight.created_at).toLocaleString("en-US", { 
+      timeZone: "Asia/Jerusalem" 
+    });
+    const createdHour = new Date(createdInIsrael).getHours();
+    const createdMinute = new Date(createdInIsrael).getMinutes();
+    
+    if (hoursSinceCreation < 1) {
+      return cached; // Too recent
+    }
+    
+    if (createdHour >= 23 && createdMinute >= 55) {
+      return cached; // Created very late, don't regenerate
+    }
+    
+    // Fall through to regenerate
+  }
+}
 ```
 
-### 2. עדכון Edge Function: `generate-daily-insights`
+ג. **שמירה עם דגל `is_conclusive`:**
+```typescript
+const isConclusive = !isToday;
 
-לוגיקה חדשה:
+await serviceClient.from('child_daily_insights').upsert({
+  child_id,
+  day_of_week: dayOfWeek,
+  insight_date: date,
+  is_conclusive: isConclusive,
+  headline: parsed.headline,
+  insights: parsed.insights,
+  // ...
+}, { onConflict: 'child_id,day_of_week' });
+```
+
+### 3. אין שינוי ב-Frontend
+
+ה-Frontend ממשיך לקרוא ל-Edge Function באותו אופן - הלוגיקה החדשה שקופה לצד הלקוח.
+
+### תרשים זרימה מעודכן
+
 ```text
-1. קבל child_id + date
-2. חשב day_of_week מהתאריך
-3. בדוק האם קיימת רשומה עם אותו child_id + day_of_week + insight_date
-   - אם כן: החזר את הרשומה הקיימת (ללא קריאה ל-OpenAI)
-   - אם לא: קרא ל-OpenAI, שמור בטבלה (UPSERT), והחזר
+[Frontend] ───────────────────────────────────────────────►
+              │
+              │ POST { child_id, date }
+              ▼
+┌─────────────────────────────────────────────────────────┐
+│           generate-daily-insights                        │
+├─────────────────────────────────────────────────────────┤
+│                                                          │
+│  1. Compute: todayIsrael, isToday                       │
+│                                                          │
+│  2. Query DB for existing insight                       │
+│                                                          │
+│  3. Decision:                                           │
+│     ├── PAST + conclusive → return cached               │
+│     ├── PAST + partial → regenerate as conclusive       │
+│     ├── TODAY + < 1hr ago → return cached               │
+│     ├── TODAY + created 23:55+ → return cached          │
+│     └── TODAY + >= 1hr ago → regenerate as partial      │
+│                                                          │
+│  4. If regenerate:                                      │
+│     ├── Call OpenAI                                     │
+│     ├── UPSERT to DB (is_conclusive = !isToday)         │
+│     └── Return new insight                              │
+│                                                          │
+└─────────────────────────────────────────────────────────┘
+              │
+              ▼
+[Response: { headline, insights, cached, is_conclusive }]
 ```
 
-### 3. עדכון Frontend: `DailyReport.tsx`
+### תוצאות צפויות
 
-- הסרת לוגיקת ה-sessionStorage cache
-- פשוט לקרוא ל-Edge Function שמטפל בכל הלוגיקה
+| מדד | לפני | אחרי |
+|-----|------|------|
+| קריאות AI ליום/ילד | עד N (כל רענון) | מקסימום 24 (שעה אחת) |
+| קריאות AI לימים קודמים | 1 לכל רענון ראשון | 1 בלבד (סופית) |
+| עקביות טקסט | משתנה בכל רענון | יציב תוך שעה, סופי ליום קודם |
+| עלות OpenAI | גבוהה | מופחתת דרמטית |
 
-### 4. עדכון Frontend: `Dashboard.tsx`
+### סדר ביצוע
 
-- עדכון ה-localStorage cache לעבוד יחד עם הלוגיקה החדשה
-- ללא שינוי מהותי - ה-Edge Function מחזיר cached data כשזמין
-
-## יתרונות הפתרון
-
-| לפני | אחרי |
-|------|------|
-| קריאה ל-OpenAI בכל רענון | קריאה אחת ליום לילד |
-| טקסט משתנה באותו יום | טקסט עקבי לכל התאריך |
-| cache נמחק בסגירת טאב | נתונים שמורים בDB |
-| אין שיתוף בין מכשירים | כל המכשירים רואים אותו דבר |
-| עלות AI גבוהה | הפחתה דרמטית בעלות |
-
-## זרימת נתונים
-
-```text
-[Frontend] -> [Edge Function: generate-daily-insights]
-                    |
-                    v
-            [Check DB for existing insight]
-                    |
-        +-----------+-----------+
-        |                       |
-   [Found & same date]    [Not found OR different date]
-        |                       |
-        v                       v
-   [Return cached]        [Call OpenAI]
-                                |
-                                v
-                          [UPSERT to DB]
-                                |
-                                v
-                          [Return new insight]
-```
-
-## קבצים שישתנו
-
-1. **Migration חדשה**: יצירת טבלה `child_daily_insights`
-2. **`supabase/functions/generate-daily-insights/index.ts`**: הוספת לוגיקת cache בDB
-3. **`src/pages/DailyReport.tsx`**: הסרת sessionStorage cache (אופציונלי - לפשט את הקוד)
-
-## הערות נוספות
-
-- הפתרון לא דורש cron jobs או pg_cron
-- המחזוריות לפי day_of_week מבטיחה retention אוטומטי של 7 ימים
-- אפשר להוסיף בעתיד TTL-based invalidation אם צריך לייצר insights חדשים באותו יום
+1. **Migration** - הוספת `is_conclusive` + עדכון רשומות קיימות
+2. **Edge Function** - עדכון לוגיקת ההחלטה
+3. **בדיקה** - וידוא התנהגות תקינה בשני התרחישים (היום / עבר)
 
