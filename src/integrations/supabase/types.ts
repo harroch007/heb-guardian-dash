@@ -357,6 +357,7 @@ export type Database = {
           id: string
           insight_date: string
           insights: string[]
+          is_conclusive: boolean
           severity_band: string
           suggested_action: string | null
         }
@@ -369,6 +370,7 @@ export type Database = {
           id?: string
           insight_date: string
           insights: string[]
+          is_conclusive?: boolean
           severity_band: string
           suggested_action?: string | null
         }
@@ -381,6 +383,7 @@ export type Database = {
           id?: string
           insight_date?: string
           insights?: string[]
+          is_conclusive?: boolean
           severity_band?: string
           suggested_action?: string | null
         }
