@@ -86,6 +86,20 @@ Deno.serve(async (req) => {
       console.error('Cache lookup error:', cacheError.message);
     }
 
+    // Helper function to log insight requests
+    const logInsightRequest = async (requestType: string) => {
+      try {
+        await serviceClient.from('insight_logs').insert({
+          child_id,
+          insight_date: date,
+          request_type: requestType,
+          is_today: isToday
+        });
+      } catch (e) {
+        console.error('Failed to log insight request:', e);
+      }
+    };
+
     // 6. Decision logic: return cached or regenerate
     let shouldRegenerate = true;
 
@@ -94,6 +108,7 @@ Deno.serve(async (req) => {
         // PAST DATE: return if conclusive, otherwise regenerate
         if (cachedInsight.is_conclusive) {
           console.log('Returning conclusive cached insight for child:', child_id, 'date:', date);
+          await logInsightRequest('cached_conclusive');
           return new Response(JSON.stringify({
             headline: cachedInsight.headline,
             insights: cachedInsight.insights,
@@ -122,10 +137,12 @@ Deno.serve(async (req) => {
         if (hoursSinceCreation < 1) {
           // Too recent - return cached
           console.log('Returning recent cached insight (< 1hr) for child:', child_id, 'date:', date);
+          await logInsightRequest('cached_recent');
           shouldRegenerate = false;
         } else if (createdHour >= 23 && createdMinute >= 55) {
           // Created very late (23:55+) - don't regenerate before midnight
           console.log('Returning late-night cached insight for child:', child_id, 'date:', date);
+          await logInsightRequest('cached_late_night');
           shouldRegenerate = false;
         } else {
           // More than 1 hour old and not late-night - regenerate
@@ -149,8 +166,10 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 5. No cache hit - fetch data and generate new insight
-    console.log('No cache hit, generating new insight for child:', child_id, 'date:', date);
+    // Log new generation or upgrade
+    const generationType = cachedInsight ? 'generated_upgrade' : 'generated_new';
+    console.log(`${generationType} for child:`, child_id, 'date:', date);
+    await logInsightRequest(generationType);
 
     const { data: metricsData } = await supabase.rpc('get_child_daily_metrics', {
       p_child_id: child_id, 

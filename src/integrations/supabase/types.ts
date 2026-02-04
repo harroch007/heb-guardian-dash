@@ -773,6 +773,41 @@ export type Database = {
           },
         ]
       }
+      insight_logs: {
+        Row: {
+          child_id: string
+          created_at: string
+          id: string
+          insight_date: string
+          is_today: boolean
+          request_type: string
+        }
+        Insert: {
+          child_id: string
+          created_at?: string
+          id?: string
+          insight_date: string
+          is_today?: boolean
+          request_type: string
+        }
+        Update: {
+          child_id?: string
+          created_at?: string
+          id?: string
+          insight_date?: string
+          is_today?: boolean
+          request_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "insight_logs_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       parents: {
         Row: {
           created_at: string

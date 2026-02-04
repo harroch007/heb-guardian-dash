@@ -3,12 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, LogOut, Shield, LayoutDashboard, Users, UserPlus, Database } from "lucide-react";
+import { Loader2, LogOut, Shield, LayoutDashboard, Users, UserPlus, Database, Brain } from "lucide-react";
 import kippyLogo from "@/assets/kippy-logo.svg";
 import { AdminOverview } from "./admin/AdminOverview";
 import { AdminUsers } from "./admin/AdminUsers";
 import { AdminWaitlist } from "./admin/AdminWaitlist";
 import { AdminTraining } from "./admin/AdminTraining";
+import { AdminInsightStats } from "./admin/AdminInsightStats";
 import { format, subDays } from "date-fns";
 
 interface TrainingRecord {
@@ -453,7 +454,7 @@ export default function Admin() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-flex">
+        <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-flex">
           <TabsTrigger value="overview" className="gap-2">
             <LayoutDashboard className="w-4 h-4" />
             <span className="hidden sm:inline">סקירה כללית</span>
@@ -465,6 +466,10 @@ export default function Admin() {
           <TabsTrigger value="waitlist" className="gap-2">
             <UserPlus className="w-4 h-4" />
             <span className="hidden sm:inline">רשימת המתנה</span>
+          </TabsTrigger>
+          <TabsTrigger value="insights" className="gap-2">
+            <Brain className="w-4 h-4" />
+            <span className="hidden sm:inline">AI Insights</span>
           </TabsTrigger>
           <TabsTrigger value="training" className="gap-2">
             <Database className="w-4 h-4" />
@@ -482,6 +487,10 @@ export default function Admin() {
 
         <TabsContent value="waitlist">
           <AdminWaitlist entries={waitlist} loading={loading} onRefresh={fetchWaitlist} />
+        </TabsContent>
+
+        <TabsContent value="insights">
+          <AdminInsightStats />
         </TabsContent>
 
         <TabsContent value="training">
