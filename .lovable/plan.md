@@ -1,115 +1,234 @@
 
 
-# MVP-A Stability: Protection Status Banner + Alert Preview on Dashboard
+# תוכנית: תובנות יומיות - Partial vs Conclusive
 
-## What Changes
+## הבנת הבעיה
 
-Two focused additions to the parent Dashboard, using only existing data -- no new tables, edge functions, or API calls.
+המימוש הנוכחי מחזיר תמיד את התובנה השמורה אם קיימת, ללא בדיקה:
+- האם עבר זמן מספיק מאז יצירתה (עבור היום)
+- האם מדובר בתובנה חלקית שנוצרה לפני חצות (עבור ימים קודמים)
 
----
+## ארכיטקטורת הפתרון
 
-## Addition A: Protection Status Banner
-
-A compact banner placed at the top of the Dashboard (between PushNotificationBanner and Card 1) showing whether monitoring is actively running.
-
-### States
-
-| Condition | Icon | Text | Color |
-|-----------|------|------|-------|
-| `last_seen` < 1 hour | ShieldCheck | ההגנה פעילה | Green |
-| `last_seen` 1-24 hours | ShieldAlert | ההגנה פעילה (עיכוב) | Yellow |
-| `last_seen` > 24 hours | ShieldOff | ההגנה לא פעילה | Red |
-| No device (no snapshot) | ShieldOff | אין מכשיר מחובר | Gray/Muted |
-
-Each state shows "עדכון אחרון: לפני X דקות/שעות" using the existing `formatLastSeen` function already in Dashboard.tsx.
-
-### New File
-
-`src/components/dashboard/ProtectionStatusBanner.tsx`
-- Props: `lastSeen: string | null`, `hasDevice: boolean`
-- Pure presentational component, ~60 lines
-- Uses existing `lucide-react` Shield icons
-- RTL layout with `dir="rtl"`
-
-### Integration in Dashboard.tsx
-
-Insert between `<PushNotificationBanner />` (line 448) and the child selector section (line 453):
+### עקרונות מנחים
 
 ```text
-{snapshot !== null && (
-  <ProtectionStatusBanner 
-    lastSeen={snapshot.last_seen} 
-    hasDevice={!!snapshot.device_id} 
-  />
-)}
+┌─────────────────────────────────────────────────────────────────┐
+│                    REQUEST FOR DATE X                            │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  IS DATE X == TODAY?                                            │
+│  ├── YES ─────────────────────────────────────────────────────► │
+│  │        ┌─ No existing insight → CREATE NEW                   │
+│  │        │                                                      │
+│  │        └─ Insight exists:                                    │
+│  │             • created_at < 1 hour ago → RETURN CACHED        │
+│  │             • created_at >= 1 hour ago → CREATE NEW          │
+│  │             • created_at after 23:55 → RETURN CACHED         │
+│  │                                                               │
+│  └── NO (PAST DATE) ──────────────────────────────────────────► │
+│           ┌─ No existing insight → CREATE CONCLUSIVE            │
+│           │                                                      │
+│           └─ Insight exists:                                    │
+│                • is_conclusive = TRUE → RETURN CACHED           │
+│                • is_conclusive = FALSE → CREATE CONCLUSIVE      │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-When `snapshot` is null (no data yet), the banner is hidden -- the existing "אין נתונים להיום עדיין" card already handles that case.
+### שינויי סכמה
 
----
+הוספת עמודה חדשה לטבלה `child_daily_insights`:
 
-## Addition B: Alert Preview Card on Dashboard
+```sql
+ALTER TABLE child_daily_insights
+ADD COLUMN is_conclusive boolean NOT NULL DEFAULT false;
+```
 
-### What Parents See
+**משמעות:**
+- `is_conclusive = false` → תובנה חלקית (נוצרה במהלך היום)
+- `is_conclusive = true` → תובנה סופית (מכסה את כל היום 00:00-24:00)
 
-The existing `AlertsCard` component (`src/components/dashboard/AlertsCard.tsx`) is already built and ready. It shows:
-- Up to 3 recent alerts with risk-level color dots
-- "הבנתי" button to acknowledge inline
-- "הכל" link to navigate to the full Alerts page
-- "הכל בסדר!" empty state when no open alerts
-
-### What Needs to Change in AlertsCard
-
-The current `AlertsCard` uses `parent_message` for display text, but per the filtering rules, actionable alerts have `parent_message = NULL` and use `ai_title` / `ai_summary` instead. The component needs a minor update:
-
-- Change the Alert interface to include `ai_title` and `ai_summary`
-- Display `ai_title || ai_summary || 'התראה חדשה'` instead of `parent_message`
-
-### Integration in Dashboard.tsx
-
-1. **Fetch open alerts** for the selected child alongside the existing snapshot fetch:
+### לוגיקה חדשה ב-Edge Function
 
 ```text
-const { data: alertsData } = await supabase
-  .from('alerts')
-  .select('id, ai_risk_score, ai_title, ai_summary, created_at, child_id')
-  .eq('child_id', selectedChildId)
-  .eq('is_processed', true)
-  .is('acknowledged_at', null)
-  .is('saved_at', null)
-  .is('parent_message', null)
-  .order('created_at', { ascending: false })
-  .limit(5);
+INPUT: child_id, date, current_time (Israel TZ)
+
+1. COMPUTE:
+   - today = current Israel date
+   - is_today = (date == today)
+   - day_of_week = date.getUTCDay()
+
+2. FETCH existing insight:
+   SELECT * FROM child_daily_insights
+   WHERE child_id = ? AND day_of_week = ? AND insight_date = ?
+
+3. DECISION TREE:
+
+   IF no existing insight:
+     → CREATE NEW (is_conclusive = !is_today)
+
+   ELSE IF is_today:
+     - hours_since_creation = (now - created_at) / 3600000
+     - created_hour = created_at in Israel TZ
+     
+     IF hours_since_creation < 1:
+       → RETURN CACHED
+     
+     ELSE IF created_hour >= 23 AND created_minute >= 55:
+       → RETURN CACHED (too close to midnight)
+     
+     ELSE:
+       → CREATE NEW (is_conclusive = false)
+       → UPSERT (replaces old)
+
+   ELSE (past date):
+     IF existing.is_conclusive == true:
+       → RETURN CACHED (final, never regenerate)
+     
+     ELSE:
+       → CREATE NEW (is_conclusive = true)
+       → UPSERT (upgrades to conclusive)
 ```
 
-2. **Store in state**: `const [openAlerts, setOpenAlerts] = useState<Alert[]>([])`
+### Edge Cases מטופלים
 
-3. **Render between Card 1 (Digital Activity) and the "Yesterday" button** (around line 536):
+| מצב | התנהגות |
+|-----|---------|
+| בקשה ל"היום" ללא תובנה קיימת | יצירת תובנה חלקית חדשה |
+| בקשה ל"היום" כשעבר פחות משעה | החזרת cached |
+| בקשה ל"היום" כשעברה שעה+ | יצירת תובנה חדשה (מחליפה) |
+| בקשה ל"היום" כשנוצר ב-23:55+ | החזרת cached (לא מייצרים לפני חצות) |
+| בקשה ל"אתמול" ללא תובנה | יצירת תובנה סופית |
+| בקשה ל"אתמול" עם תובנה חלקית | יצירת תובנה סופית (מחליפה) |
+| בקשה ל"אתמול" עם תובנה סופית | החזרת cached (לעולם לא מתחלף) |
+| מעבר חצות - בקשה ראשונה ליום הקודם | יצירת תובנה סופית |
+
+### שינויים בקבצים
+
+#### 1. Migration חדשה
+
+```sql
+-- הוספת עמודה is_conclusive
+ALTER TABLE public.child_daily_insights
+ADD COLUMN is_conclusive boolean NOT NULL DEFAULT false;
+
+-- סימון כל התובנות הקיימות כסופיות (הן עבור ימים שעברו)
+UPDATE public.child_daily_insights
+SET is_conclusive = true
+WHERE insight_date < CURRENT_DATE;
+```
+
+#### 2. עדכון Edge Function: `generate-daily-insights/index.ts`
+
+**שינויים עיקריים:**
+
+א. **חישוב זמן נוכחי באזור זמן ישראל:**
+```typescript
+const israelNow = new Date(new Date().toLocaleString("en-US", { 
+  timeZone: "Asia/Jerusalem" 
+}));
+const todayIsrael = israelNow.toISOString().split("T")[0];
+const isToday = (date === todayIsrael);
+```
+
+ב. **לוגיקת החלטה חדשה:**
+```typescript
+if (cachedInsight) {
+  const isConclusive = cachedInsight.is_conclusive;
+  
+  if (!isToday) {
+    // Past date - return if conclusive, otherwise regenerate
+    if (isConclusive) {
+      return cached;
+    }
+    // Fall through to regenerate as conclusive
+  } else {
+    // Today - check time since creation
+    const hoursSinceCreation = (Date.now() - new Date(cachedInsight.created_at).getTime()) / 3600000;
+    const createdInIsrael = new Date(cachedInsight.created_at).toLocaleString("en-US", { 
+      timeZone: "Asia/Jerusalem" 
+    });
+    const createdHour = new Date(createdInIsrael).getHours();
+    const createdMinute = new Date(createdInIsrael).getMinutes();
+    
+    if (hoursSinceCreation < 1) {
+      return cached; // Too recent
+    }
+    
+    if (createdHour >= 23 && createdMinute >= 55) {
+      return cached; // Created very late, don't regenerate
+    }
+    
+    // Fall through to regenerate
+  }
+}
+```
+
+ג. **שמירה עם דגל `is_conclusive`:**
+```typescript
+const isConclusive = !isToday;
+
+await serviceClient.from('child_daily_insights').upsert({
+  child_id,
+  day_of_week: dayOfWeek,
+  insight_date: date,
+  is_conclusive: isConclusive,
+  headline: parsed.headline,
+  insights: parsed.insights,
+  // ...
+}, { onConflict: 'child_id,day_of_week' });
+```
+
+### 3. אין שינוי ב-Frontend
+
+ה-Frontend ממשיך לקרוא ל-Edge Function באותו אופן - הלוגיקה החדשה שקופה לצד הלקוח.
+
+### תרשים זרימה מעודכן
 
 ```text
-<AlertsCard 
-  alerts={openAlerts} 
-  onAlertAcknowledged={() => fetchAlerts()} 
-/>
+[Frontend] ───────────────────────────────────────────────►
+              │
+              │ POST { child_id, date }
+              ▼
+┌─────────────────────────────────────────────────────────┐
+│           generate-daily-insights                        │
+├─────────────────────────────────────────────────────────┤
+│                                                          │
+│  1. Compute: todayIsrael, isToday                       │
+│                                                          │
+│  2. Query DB for existing insight                       │
+│                                                          │
+│  3. Decision:                                           │
+│     ├── PAST + conclusive → return cached               │
+│     ├── PAST + partial → regenerate as conclusive       │
+│     ├── TODAY + < 1hr ago → return cached               │
+│     ├── TODAY + created 23:55+ → return cached          │
+│     └── TODAY + >= 1hr ago → regenerate as partial      │
+│                                                          │
+│  4. If regenerate:                                      │
+│     ├── Call OpenAI                                     │
+│     ├── UPSERT to DB (is_conclusive = !isToday)         │
+│     └── Return new insight                              │
+│                                                          │
+└─────────────────────────────────────────────────────────┘
+              │
+              ▼
+[Response: { headline, insights, cached, is_conclusive }]
 ```
 
-4. **Refresh callback**: Re-fetch alerts when one is acknowledged.
+### תוצאות צפויות
 
----
+| מדד | לפני | אחרי |
+|-----|------|------|
+| קריאות AI ליום/ילד | עד N (כל רענון) | מקסימום 24 (שעה אחת) |
+| קריאות AI לימים קודמים | 1 לכל רענון ראשון | 1 בלבד (סופית) |
+| עקביות טקסט | משתנה בכל רענון | יציב תוך שעה, סופי ליום קודם |
+| עלות OpenAI | גבוהה | מופחתת דרמטית |
 
-## Files Summary
+### סדר ביצוע
 
-| File | Action | Description |
-|------|--------|-------------|
-| `src/components/dashboard/ProtectionStatusBanner.tsx` | Create | New banner component (~60 lines) |
-| `src/components/dashboard/AlertsCard.tsx` | Edit | Update Alert interface to use `ai_title`/`ai_summary` instead of `parent_message` for display |
-| `src/pages/Dashboard.tsx` | Edit | Import banner + AlertsCard, add alert fetch query, render both components |
-
-## What This Does NOT Change
-
-- No new database tables or columns
-- No new edge functions
-- No changes to the Alerts page or alert generation
-- No changes to notification system
-- Alert grouping (anti-spam) is deferred to a follow-up task
+1. **Migration** - הוספת `is_conclusive` + עדכון רשומות קיימות
+2. **Edge Function** - עדכון לוגיקת ההחלטה
+3. **בדיקה** - וידוא התנהגות תקינה בשני התרחישים (היום / עבר)
 
