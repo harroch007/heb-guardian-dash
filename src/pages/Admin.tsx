@@ -179,7 +179,9 @@ export default function Admin() {
       const systemAlertsToday = alertsToday?.filter(a => a.is_processed === true && a.analyzed_at === null).length || 0;
       const alertsCreatedToday = totalAlertsToday;
       const alertsAnalyzedToday = alertsToday?.filter(a => a.is_processed === true && a.analyzed_at !== null).length || 0;
-      const alertsNotifiedToday = alertsToday?.filter(a => a.processing_status === 'notified').length || 0;
+      const alertsNotifiedToday = alertsToday?.filter(a => 
+        a.processing_status === 'notified'
+      ).length || 0;
 
       // Queue health - fetch full details
       const { data: queueData } = await supabase
