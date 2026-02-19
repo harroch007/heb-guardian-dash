@@ -68,6 +68,7 @@ interface OverviewStats {
   queuePending: number;
   queueFailed: number;
   oldestPendingMinutes: number;
+  pendingAlerts: { id: string; alert_id: number; status: string; attempt: number; created_at: string; last_error: string | null; is_processed: boolean }[];
 }
 
 interface UserData {
@@ -178,11 +179,12 @@ export default function Admin() {
       const alertsAnalyzedToday = alertsToday?.filter(a => a.is_processed === true).length || 0;
       const alertsNotifiedToday = alertsToday?.filter(a => a.processing_status === 'notified').length || 0;
 
-      // Queue health
+      // Queue health - fetch full details
       const { data: queueData } = await supabase
         .from("alert_events_queue")
-        .select("status, created_at")
-        .in("status", ["pending", "failed"]);
+        .select("id, alert_id, status, attempt, created_at, last_error")
+        .in("status", ["pending", "failed", "processing"])
+        .order("created_at", { ascending: true });
 
       const queuePending = queueData?.filter(q => q.status === 'pending').length || 0;
       const queueFailed = queueData?.filter(q => q.status === 'failed').length || 0;
@@ -192,6 +194,23 @@ export default function Admin() {
       const oldestPendingMinutes = oldestPending
         ? Math.round((Date.now() - new Date(oldestPending.created_at).getTime()) / 60000)
         : 0;
+
+      // Check which alerts in queue are already processed
+      const queueAlertIds = [...new Set(queueData?.map(q => q.alert_id) || [])];
+      let processedAlertIds = new Set<number>();
+      if (queueAlertIds.length > 0) {
+        const { data: processedAlerts } = await supabase
+          .from("alerts")
+          .select("id")
+          .in("id", queueAlertIds)
+          .eq("is_processed", true);
+        processedAlertIds = new Set(processedAlerts?.map(a => a.id) || []);
+      }
+
+      const pendingAlerts = (queueData || []).map(q => ({
+        ...q,
+        is_processed: processedAlertIds.has(q.alert_id),
+      }));
 
       // Count active users (devices with last_seen in last 24 hours)
       const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
@@ -353,6 +372,7 @@ export default function Admin() {
         queuePending,
         queueFailed,
         oldestPendingMinutes,
+        pendingAlerts,
       });
     } catch (error) {
       console.error("Error fetching overview stats:", error);
@@ -634,7 +654,7 @@ export default function Admin() {
         </TabsList>
 
         <TabsContent value="overview">
-          <AdminOverview stats={overviewStats} loading={loading} onNavigate={handleOverviewNavigate} />
+          <AdminOverview stats={overviewStats} loading={loading} onNavigate={handleOverviewNavigate} onRefresh={fetchOverviewStats} />
         </TabsContent>
 
         <TabsContent value="users">

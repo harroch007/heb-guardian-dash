@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.create-admin-user]
 verify_jwt = false
+
+[functions.cleanup-stale-queue]
+verify_jwt = false
