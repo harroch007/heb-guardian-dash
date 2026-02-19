@@ -109,6 +109,21 @@ FINAL OUTPUT - Return JSON ONLY with these fields:
   "recommendation": "<Hebrew, non-empty ONLY if verdict is not 'safe'; otherwise ''>"
 }`;
 
+// ─── PII Redaction ──────────────────────────────────────────────────────────
+const HEBREW_NAMES = ["אורי","נועה","דניאל","עידו","מאיה","אייל","שירה","רון","יואב","תמר","איתי","מיכל","ליה","אדם","עמית"];
+
+function redactPII(text: string): string {
+  // Phone numbers: Israeli format
+  let result = text.replace(/(?:\+972|0)(?:[-\s]?\d){8,9}/g, '[REDACTED_PHONE]');
+  // Emails
+  result = result.replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '[REDACTED_EMAIL]');
+  // Hebrew first names
+  for (const name of HEBREW_NAMES) {
+    result = result.replace(new RegExp(`(?<=^|\\s|[^א-ת])${name}(?=$|\\s|[^א-ת])`, 'g'), '[REDACTED_NAME]');
+  }
+  return result;
+}
+
 // ─── Shared analysis pipeline ───────────────────────────────────────────────
 // Used by both queue mode and legacy/HMAC modes.
 // Fetches the alert, runs OpenAI, updates DB, sends push notification.
@@ -146,6 +161,7 @@ async function processAlert(
   }
 
   console.log(`Analyzing alert ${alertId} with content:`, content.substring(0, 200));
+  console.log("PII Redaction applied");
 
   // 2. Fetch child info for anonymous training data
   let childAge: number | null = null;
@@ -188,7 +204,7 @@ async function processAlert(
       model: 'gpt-4o-mini',
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: `Analyze this message content:\n\n${content}` }
+        { role: 'user', content: `Analyze this message content:\n\n${redactPII(content)}` }
       ],
       response_format: { type: 'json_object' },
       temperature: 0.3,
