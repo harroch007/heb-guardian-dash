@@ -14,6 +14,7 @@ import { format, subDays } from "date-fns";
 
 interface TrainingRecord {
   id: string;
+  alert_id: number | null;
   raw_text: string;
   age_at_incident: number | null;
   gender: string | null;
@@ -106,6 +107,7 @@ export default function Admin() {
   const [users, setUsers] = useState<UserData[]>([]);
   const [waitlist, setWaitlist] = useState<WaitlistEntry[]>([]);
   const [trainingStats, setTrainingStats] = useState<TrainingStats | null>(null);
+  const [trainingRecords, setTrainingRecords] = useState<TrainingRecord[]>([]);
   const [activeTab, setActiveTab] = useState("overview");
   const navigate = useNavigate();
 
@@ -415,6 +417,7 @@ export default function Admin() {
       }
 
       const records = data as TrainingRecord[];
+      setTrainingRecords(records);
       
       const genderCounts: Record<string, number> = {};
       const ageCounts: Record<string, number> = {};
@@ -591,7 +594,7 @@ export default function Admin() {
         </TabsContent>
 
         <TabsContent value="training">
-          <AdminTraining stats={trainingStats} loading={loading} />
+          <AdminTraining stats={trainingStats} records={trainingRecords} loading={loading} />
         </TabsContent>
       </Tabs>
     </div>

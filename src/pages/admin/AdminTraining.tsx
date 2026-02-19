@@ -1,7 +1,10 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { BarChart3, Users, TrendingUp, AlertTriangle } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { BarChart3, Users, TrendingUp, AlertTriangle, ExternalLink } from "lucide-react";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { format } from "date-fns";
+import { useState } from "react";
 
 interface TrainingStats {
   total: number;
@@ -12,12 +15,35 @@ interface TrainingStats {
   classificationCounts: { name: string; count: number }[];
 }
 
+interface TrainingRecord {
+  id: string;
+  alert_id: number | null;
+  raw_text: string;
+  age_at_incident: number | null;
+  gender: string | null;
+  ai_verdict: {
+    verdict?: string;
+    risk_score?: number;
+  } | null;
+  created_at: string;
+}
+
 interface AdminTrainingProps {
   stats: TrainingStats | null;
+  records: TrainingRecord[];
   loading: boolean;
 }
 
-export function AdminTraining({ stats, loading }: AdminTrainingProps) {
+const VERDICT_BADGE: Record<string, string> = {
+  safe: "bg-green-500/10 text-green-500 border-green-500/20",
+  monitor: "bg-purple-500/10 text-purple-500 border-purple-500/20",
+  review: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
+  notify: "bg-red-500/10 text-red-500 border-red-500/20",
+};
+
+export function AdminTraining({ stats, records, loading }: AdminTrainingProps) {
+  const [showAll, setShowAll] = useState(false);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -25,6 +51,9 @@ export function AdminTraining({ stats, loading }: AdminTrainingProps) {
       </div>
     );
   }
+
+  const sortedRecords = [...records].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  const displayRecords = showAll ? sortedRecords : sortedRecords.slice(0, 50);
 
   return (
     <div className="space-y-6">
@@ -91,9 +120,80 @@ export function AdminTraining({ stats, loading }: AdminTrainingProps) {
         </Card>
       </div>
 
+      {/* Records Table */}
+      <Card className="border-primary/20">
+        <CardHeader>
+          <CardTitle className="text-lg">רשומות אימון</CardTitle>
+          <CardDescription>
+            {sortedRecords.length} רשומות • {sortedRecords.filter(r => r.alert_id).length} עם קישור להתראה
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-md border overflow-auto max-h-[500px]">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-right w-[80px]">Alert ID</TableHead>
+                  <TableHead className="text-right">טקסט (קיצור)</TableHead>
+                  <TableHead className="text-right w-[60px]">גיל</TableHead>
+                  <TableHead className="text-right w-[60px]">מגדר</TableHead>
+                  <TableHead className="text-right w-[80px]">Verdict</TableHead>
+                  <TableHead className="text-right w-[60px]">Score</TableHead>
+                  <TableHead className="text-right w-[120px]">תאריך</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {displayRecords.map((record) => (
+                  <TableRow key={record.id}>
+                    <TableCell>
+                      {record.alert_id ? (
+                        <a
+                          href={`/alerts?highlight=${record.alert_id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-primary hover:underline font-mono text-xs"
+                        >
+                          {record.alert_id}
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="max-w-[300px] truncate text-xs" title={record.raw_text}>
+                      {record.raw_text.substring(0, 80)}{record.raw_text.length > 80 ? '…' : ''}
+                    </TableCell>
+                    <TableCell className="text-xs">{record.age_at_incident ?? '—'}</TableCell>
+                    <TableCell className="text-xs">{record.gender === 'male' ? 'ז' : record.gender === 'female' ? 'נ' : '—'}</TableCell>
+                    <TableCell>
+                      {record.ai_verdict?.verdict ? (
+                        <span className={`inline-flex px-2 py-0.5 rounded text-xs border ${VERDICT_BADGE[record.ai_verdict.verdict] || ''}`}>
+                          {record.ai_verdict.verdict}
+                        </span>
+                      ) : '—'}
+                    </TableCell>
+                    <TableCell className="text-xs font-mono">{record.ai_verdict?.risk_score ?? '—'}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {format(new Date(record.created_at), 'dd/MM HH:mm')}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          {sortedRecords.length > 50 && !showAll && (
+            <button
+              onClick={() => setShowAll(true)}
+              className="mt-3 text-sm text-primary hover:underline"
+            >
+              הצג את כל {sortedRecords.length} הרשומות
+            </button>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Verdict Distribution */}
         <Card className="border-primary/20">
           <CardHeader>
             <CardTitle className="text-lg">התפלגות לפי Verdict</CardTitle>
@@ -124,7 +224,6 @@ export function AdminTraining({ stats, loading }: AdminTrainingProps) {
           </CardContent>
         </Card>
 
-        {/* Age Distribution */}
         <Card className="border-primary/20">
           <CardHeader>
             <CardTitle className="text-lg">התפלגות לפי גיל</CardTitle>
@@ -145,7 +244,6 @@ export function AdminTraining({ stats, loading }: AdminTrainingProps) {
           </CardContent>
         </Card>
 
-        {/* Risk Classifications */}
         <Card className="border-primary/20 lg:col-span-2">
           <CardHeader>
             <CardTitle className="text-lg">סוגי סיכון מזוהים</CardTitle>
@@ -166,7 +264,6 @@ export function AdminTraining({ stats, loading }: AdminTrainingProps) {
           </CardContent>
         </Card>
 
-        {/* Risk Levels */}
         <Card className="border-primary/20 lg:col-span-2">
           <CardHeader>
             <CardTitle className="text-lg">רמות סיכון</CardTitle>
