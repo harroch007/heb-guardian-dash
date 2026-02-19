@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, Smartphone, Bell, UserPlus, TrendingUp, AlertTriangle, Activity, CheckCircle, MessageSquare, Baby, ThumbsUp, ChevronLeft, Loader2, Zap, Clock, XCircle, Cpu, Send } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Users, Smartphone, Bell, UserPlus, TrendingUp, AlertTriangle, Activity, CheckCircle, MessageSquare, Baby, ThumbsUp, ChevronLeft, Loader2, Zap, Clock, XCircle, Cpu, Send, Trash2 } from "lucide-react";
 import { PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, BarChart, Bar } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -31,12 +33,14 @@ interface OverviewStats {
   queuePending: number;
   queueFailed: number;
   oldestPendingMinutes: number;
+  pendingAlerts: { id: string; alert_id: number; status: string; attempt: number; created_at: string; last_error: string | null; is_processed: boolean }[];
 }
 
 interface AdminOverviewProps {
   stats: OverviewStats | null;
   loading: boolean;
   onNavigate: (tab: string, filter?: string) => void;
+  onRefresh?: () => void;
 }
 
 const VERDICT_COLORS: Record<string, string> = {
@@ -60,12 +64,15 @@ const FUNNEL_TAB_MAP: Record<string, { tab: string; filter?: string }> = {
   "פעילים היום": { tab: "users", filter: "online" },
 };
 
-function QueueHealthCard({ stats }: { stats: OverviewStats }) {
+function QueueHealthCard({ stats, onRefresh }: { stats: OverviewStats; onRefresh?: () => void }) {
   const [processing, setProcessing] = useState(false);
   const [processingAll, setProcessingAll] = useState(false);
+  const [processingId, setProcessingId] = useState<string | null>(null);
+  const [cleaningUp, setCleaningUp] = useState(false);
 
   const hasIssues = stats.queuePending > 0 || stats.queueFailed > 0;
   const isStuck = stats.queuePending > 0 && stats.oldestPendingMinutes > 5;
+  const staleCount = stats.pendingAlerts.filter(a => a.is_processed).length;
 
   if (!hasIssues) return null;
 
@@ -75,6 +82,7 @@ function QueueHealthCard({ stats }: { stats: OverviewStats }) {
       const { error } = await supabase.functions.invoke('analyze-alert', { body: {} });
       if (error) throw error;
       toast.success("עיבוד התראה אחת הושלם");
+      onRefresh?.();
     } catch (e: any) {
       toast.error("שגיאה בעיבוד: " + e.message);
     } finally {
@@ -85,18 +93,55 @@ function QueueHealthCard({ stats }: { stats: OverviewStats }) {
   const handleProcessAll = async () => {
     setProcessingAll(true);
     let processed = 0;
+    const realPending = stats.pendingAlerts.filter(a => !a.is_processed && a.status === 'pending').length;
     try {
-      for (let i = 0; i < stats.queuePending; i++) {
+      for (let i = 0; i < realPending; i++) {
         const { error } = await supabase.functions.invoke('analyze-alert', { body: {} });
         if (error) throw error;
         processed++;
       }
       toast.success(`עובדו ${processed} התראות בהצלחה`);
+      onRefresh?.();
     } catch (e: any) {
       toast.error(`עובדו ${processed}, שגיאה: ${e.message}`);
     } finally {
       setProcessingAll(false);
     }
+  };
+
+  const handleProcessSingle = async (alertId: number, queueId: string) => {
+    setProcessingId(queueId);
+    try {
+      const { error } = await supabase.functions.invoke('analyze-alert', {
+        body: { alert_id: alertId },
+      });
+      if (error) throw error;
+      toast.success(`התראה ${alertId} עובדה בהצלחה`);
+      onRefresh?.();
+    } catch (e: any) {
+      toast.error("שגיאה: " + e.message);
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleCleanupStale = async () => {
+    setCleaningUp(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('cleanup-stale-queue');
+      if (error) throw error;
+      toast.success(`נוקו ${data?.cleaned || 0} רשומות מיותמות`);
+      onRefresh?.();
+    } catch (e: any) {
+      toast.error("שגיאה בניקוי: " + e.message);
+    } finally {
+      setCleaningUp(false);
+    }
+  };
+
+  const formatDate = (dateStr: string) => {
+    const d = new Date(dateStr);
+    return d.toLocaleString('he-IL', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
   };
 
   return (
@@ -110,8 +155,8 @@ function QueueHealthCard({ stats }: { stats: OverviewStats }) {
           {isStuck ? 'התור תקוע! התראות ממתינות מעל 5 דקות' : 'יש פריטים בתור'}
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="flex flex-wrap items-center gap-6 mb-4">
+      <CardContent className="space-y-4">
+        <div className="flex flex-wrap items-center gap-6">
           <div className="flex items-center gap-2">
             <Clock className="w-4 h-4 text-orange-500" />
             <span className="text-sm">ממתינות: <strong className="text-orange-500">{stats.queuePending}</strong></span>
@@ -126,23 +171,83 @@ function QueueHealthCard({ stats }: { stats: OverviewStats }) {
               <span className="text-sm">הישנה ביותר: <strong>{stats.oldestPendingMinutes} דק׳</strong></span>
             </div>
           )}
+          {staleCount > 0 && (
+            <div className="flex items-center gap-2">
+              <Trash2 className="w-4 h-4 text-yellow-500" />
+              <span className="text-sm">מיותמות: <strong className="text-yellow-500">{staleCount}</strong></span>
+            </div>
+          )}
         </div>
-        <div className="flex gap-2">
+
+        <div className="flex flex-wrap gap-2">
           <Button size="sm" variant="outline" onClick={handleProcessOne} disabled={processing || processingAll || stats.queuePending === 0}>
             {processing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
             עבד התראה אחת
           </Button>
           <Button size="sm" onClick={handleProcessAll} disabled={processing || processingAll || stats.queuePending === 0}>
             {processingAll ? <Loader2 className="w-4 h-4 animate-spin" /> : <Cpu className="w-4 h-4" />}
-            עבד את כולם ({stats.queuePending})
+            עבד את כולם ({stats.queuePending - staleCount})
           </Button>
+          {staleCount > 0 && (
+            <Button size="sm" variant="secondary" onClick={handleCleanupStale} disabled={cleaningUp}>
+              {cleaningUp ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+              נקה מיותמות ({staleCount})
+            </Button>
+          )}
         </div>
+
+        {/* Detailed table */}
+        {stats.pendingAlerts.length > 0 && (
+          <div className="rounded-md border overflow-auto max-h-[400px]">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-right">Alert ID</TableHead>
+                  <TableHead className="text-right">נוצר</TableHead>
+                  <TableHead className="text-right">סטטוס</TableHead>
+                  <TableHead className="text-right">ניסיונות</TableHead>
+                  <TableHead className="text-right">שגיאה</TableHead>
+                  <TableHead className="text-right">פעולות</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {stats.pendingAlerts.map((item) => (
+                  <TableRow key={item.id} className={item.is_processed ? 'opacity-50' : ''}>
+                    <TableCell className="font-mono text-sm">{item.alert_id}</TableCell>
+                    <TableCell className="text-sm">{formatDate(item.created_at)}</TableCell>
+                    <TableCell>
+                      <Badge variant={item.status === 'failed' ? 'destructive' : item.is_processed ? 'secondary' : 'outline'}>
+                        {item.is_processed ? 'מיותמת' : item.status === 'pending' ? 'ממתינה' : item.status === 'failed' ? 'נכשלה' : 'בעיבוד'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-sm">{item.attempt}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate" title={item.last_error || ''}>
+                      {item.last_error || '—'}
+                    </TableCell>
+                    <TableCell>
+                      {!item.is_processed && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleProcessSingle(item.alert_id, item.id)}
+                          disabled={processingId === item.id || processingAll}
+                        >
+                          {processingId === item.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Zap className="w-3 h-3" />}
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
 }
 
-export function AdminOverview({ stats, loading, onNavigate }: AdminOverviewProps) {
+export function AdminOverview({ stats, loading, onNavigate, onRefresh }: AdminOverviewProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -154,7 +259,7 @@ export function AdminOverview({ stats, loading, onNavigate }: AdminOverviewProps
   return (
     <div className="space-y-6">
       {/* Queue Health - only shown when there are issues */}
-      {stats && <QueueHealthCard stats={stats} />}
+      {stats && <QueueHealthCard stats={stats} onRefresh={onRefresh} />}
 
       {/* Beta KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
