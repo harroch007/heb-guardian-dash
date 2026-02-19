@@ -1,234 +1,162 @@
 
+# Queue Worker Mode for analyze-alert Edge Function
 
-# תוכנית: תובנות יומיות - Partial vs Conclusive
+## Summary
+Add a "queue mode" to the existing `analyze-alert` Edge Function so it can claim and process pending jobs from `alert_events_queue`, without removing any existing HTTP/HMAC handling.
 
-## הבנת הבעיה
+## What Changes
 
-המימוש הנוכחי מחזיר תמיד את התובנה השמורה אם קיימת, ללא בדיקה:
-- האם עבר זמן מספיק מאז יצירתה (עבור היום)
-- האם מדובר בתובנה חלקית שנוצרה לפני חצות (עבור ימים קודמים)
+### 1. Update `supabase/functions/analyze-alert/index.ts`
 
-## ארכיטקטורת הפתרון
+Add queue mode detection at the top of the request handler, before the existing legacy/HMAC routing logic:
 
-### עקרונות מנחים
+**New flow (inserted before existing routing):**
 
-```text
-┌─────────────────────────────────────────────────────────────────┐
-│                    REQUEST FOR DATE X                            │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  IS DATE X == TODAY?                                            │
-│  ├── YES ─────────────────────────────────────────────────────► │
-│  │        ┌─ No existing insight → CREATE NEW                   │
-│  │        │                                                      │
-│  │        └─ Insight exists:                                    │
-│  │             • created_at < 1 hour ago → RETURN CACHED        │
-│  │             • created_at >= 1 hour ago → CREATE NEW          │
-│  │             • created_at after 23:55 → RETURN CACHED         │
-│  │                                                               │
-│  └── NO (PAST DATE) ──────────────────────────────────────────► │
-│           ┌─ No existing insight → CREATE CONCLUSIVE            │
-│           │                                                      │
-│           └─ Insight exists:                                    │
-│                • is_conclusive = TRUE → RETURN CACHED           │
-│                • is_conclusive = FALSE → CREATE CONCLUSIVE      │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
-```
+1. Parse the request body. If it's empty (`""` or `"{}"`) OR contains `{ "mode": "queue" }`, enter queue mode.
+2. In queue mode:
+   - Create a Supabase service-role client (using `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY`).
+   - Call `supabase.rpc('claim_alert_events', { _event_type: 'ai_analyze', _limit: 1, _lease_seconds: 60 })`.
+   - If no rows returned, respond `200 { "status": "no_jobs" }`.
+   - If a row is returned, extract `queueId = row.id` and `alertId = row.alert_id`.
+   - Fetch the alert from `alerts` table by `alertId`.
+   - Run the **existing** analysis pipeline (OpenAI call, training dataset copy, title building, DB update, push notification).
+   - On success: update `alert_events_queue` set `status = 'succeeded'`, `last_error = null`, `updated_at = now()` where `id = queueId`.
+   - On error (catch): update `alert_events_queue` set `status = 'failed'`, `last_error = error message (truncated to 400 chars)`, `updated_at = now()` where `id = queueId`. Also update `alerts` set `processing_status = 'failed'`, `last_error = error message` where `id = alertId`.
+3. Return a response with the result.
 
-### שינויי סכמה
+**Existing modes preserved exactly as-is:**
+- `body.type === 'INSERT' && body.record` -- legacy webhook (unchanged)
+- `body.alert_id` with HMAC header -- direct call (unchanged)
 
-הוספת עמודה חדשה לטבלה `child_daily_insights`:
+### 2. Refactor: Extract shared analysis logic
 
-```sql
-ALTER TABLE child_daily_insights
-ADD COLUMN is_conclusive boolean NOT NULL DEFAULT false;
-```
+To avoid duplicating the ~250 lines of analysis code, the core processing logic (from "fetch alert" through "push notification") will be extracted into an `async function processAlert(supabase, alertId, openAIApiKey, supabaseUrl, supabaseServiceKey)` helper within the same file. Both the legacy/HMAC path and the new queue path will call this shared function.
 
-**משמעות:**
-- `is_conclusive = false` → תובנה חלקית (נוצרה במהלך היום)
-- `is_conclusive = true` → תובנה סופית (מכסה את כל היום 00:00-24:00)
+### 3. Queue status column mapping (DB reality)
 
-### לוגיקה חדשה ב-Edge Function
+The actual `alert_events_queue` columns are:
+- `id` (uuid) -- job ID
+- `alert_id` (bigint) -- direct column, NOT inside a payload jsonb
+- `status` (text) -- 'pending' / 'processing' / 'succeeded' / 'failed'
+- `attempt` (integer) -- incremented by `claim_alert_events` RPC
+- `max_attempts` (integer, default 5)
+- `last_error` (text, nullable)
+- `visible_at`, `created_at`, `updated_at` (timestamps)
+
+The `claim_alert_events` RPC already handles locking and incrementing `attempt`. We only need to set final `status` and `last_error` after processing.
+
+## Technical Details
+
+### Queue mode entry point (pseudocode)
 
 ```text
-INPUT: child_id, date, current_time (Israel TZ)
+const rawBody = await req.text();
+const body = rawBody ? JSON.parse(rawBody) : {};
 
-1. COMPUTE:
-   - today = current Israel date
-   - is_today = (date == today)
-   - day_of_week = date.getUTCDay()
+// --- QUEUE MODE ---
+if (!rawBody || Object.keys(body).length === 0 || body.mode === 'queue') {
+  const supabase = createClient(url, serviceKey);
+  const { data: jobs } = await supabase.rpc('claim_alert_events', {
+    _event_type: 'ai_analyze', _limit: 1, _lease_seconds: 60
+  });
+  if (!jobs || jobs.length === 0) return respond({ status: 'no_jobs' });
 
-2. FETCH existing insight:
-   SELECT * FROM child_daily_insights
-   WHERE child_id = ? AND day_of_week = ? AND insight_date = ?
-
-3. DECISION TREE:
-
-   IF no existing insight:
-     → CREATE NEW (is_conclusive = !is_today)
-
-   ELSE IF is_today:
-     - hours_since_creation = (now - created_at) / 3600000
-     - created_hour = created_at in Israel TZ
-     
-     IF hours_since_creation < 1:
-       → RETURN CACHED
-     
-     ELSE IF created_hour >= 23 AND created_minute >= 55:
-       → RETURN CACHED (too close to midnight)
-     
-     ELSE:
-       → CREATE NEW (is_conclusive = false)
-       → UPSERT (replaces old)
-
-   ELSE (past date):
-     IF existing.is_conclusive == true:
-       → RETURN CACHED (final, never regenerate)
-     
-     ELSE:
-       → CREATE NEW (is_conclusive = true)
-       → UPSERT (upgrades to conclusive)
-```
-
-### Edge Cases מטופלים
-
-| מצב | התנהגות |
-|-----|---------|
-| בקשה ל"היום" ללא תובנה קיימת | יצירת תובנה חלקית חדשה |
-| בקשה ל"היום" כשעבר פחות משעה | החזרת cached |
-| בקשה ל"היום" כשעברה שעה+ | יצירת תובנה חדשה (מחליפה) |
-| בקשה ל"היום" כשנוצר ב-23:55+ | החזרת cached (לא מייצרים לפני חצות) |
-| בקשה ל"אתמול" ללא תובנה | יצירת תובנה סופית |
-| בקשה ל"אתמול" עם תובנה חלקית | יצירת תובנה סופית (מחליפה) |
-| בקשה ל"אתמול" עם תובנה סופית | החזרת cached (לעולם לא מתחלף) |
-| מעבר חצות - בקשה ראשונה ליום הקודם | יצירת תובנה סופית |
-
-### שינויים בקבצים
-
-#### 1. Migration חדשה
-
-```sql
--- הוספת עמודה is_conclusive
-ALTER TABLE public.child_daily_insights
-ADD COLUMN is_conclusive boolean NOT NULL DEFAULT false;
-
--- סימון כל התובנות הקיימות כסופיות (הן עבור ימים שעברו)
-UPDATE public.child_daily_insights
-SET is_conclusive = true
-WHERE insight_date < CURRENT_DATE;
-```
-
-#### 2. עדכון Edge Function: `generate-daily-insights/index.ts`
-
-**שינויים עיקריים:**
-
-א. **חישוב זמן נוכחי באזור זמן ישראל:**
-```typescript
-const israelNow = new Date(new Date().toLocaleString("en-US", { 
-  timeZone: "Asia/Jerusalem" 
-}));
-const todayIsrael = israelNow.toISOString().split("T")[0];
-const isToday = (date === todayIsrael);
-```
-
-ב. **לוגיקת החלטה חדשה:**
-```typescript
-if (cachedInsight) {
-  const isConclusive = cachedInsight.is_conclusive;
-  
-  if (!isToday) {
-    // Past date - return if conclusive, otherwise regenerate
-    if (isConclusive) {
-      return cached;
-    }
-    // Fall through to regenerate as conclusive
-  } else {
-    // Today - check time since creation
-    const hoursSinceCreation = (Date.now() - new Date(cachedInsight.created_at).getTime()) / 3600000;
-    const createdInIsrael = new Date(cachedInsight.created_at).toLocaleString("en-US", { 
-      timeZone: "Asia/Jerusalem" 
-    });
-    const createdHour = new Date(createdInIsrael).getHours();
-    const createdMinute = new Date(createdInIsrael).getMinutes();
-    
-    if (hoursSinceCreation < 1) {
-      return cached; // Too recent
-    }
-    
-    if (createdHour >= 23 && createdMinute >= 55) {
-      return cached; // Created very late, don't regenerate
-    }
-    
-    // Fall through to regenerate
+  const job = jobs[0];
+  try {
+    const result = await processAlert(supabase, job.alert_id, ...);
+    await supabase.from('alert_events_queue')
+      .update({ status: 'succeeded', last_error: null, updated_at: new Date().toISOString() })
+      .eq('id', job.id);
+    return respond({ status: 'succeeded', alert_id: job.alert_id, ...result });
+  } catch (err) {
+    await supabase.from('alert_events_queue')
+      .update({ status: 'failed', last_error: String(err).slice(0,400), updated_at: new Date().toISOString() })
+      .eq('id', job.id);
+    await supabase.from('alerts')
+      .update({ processing_status: 'failed', last_error: String(err).slice(0,400) })
+      .eq('id', job.alert_id);
+    return respond({ status: 'failed', error: String(err) }, 500);
   }
 }
+
+// --- LEGACY MODES (unchanged) ---
+// ... existing code ...
 ```
 
-ג. **שמירה עם דגל `is_conclusive`:**
-```typescript
-const isConclusive = !isToday;
+### processAlert helper
 
-await serviceClient.from('child_daily_insights').upsert({
-  child_id,
-  day_of_week: dayOfWeek,
-  insight_date: date,
-  is_conclusive: isConclusive,
-  headline: parsed.headline,
-  insights: parsed.insights,
-  // ...
-}, { onConflict: 'child_id,day_of_week' });
+Extracts the shared logic from line ~213 to ~495 of the current file into a reusable function:
+- Input: `supabase client`, `alertId`, `openAIApiKey`, `supabaseUrl`, `supabaseServiceKey`
+- Returns: `{ ai_summary, ai_verdict, ai_risk_score, ... }` on success
+- Throws on error
+
+Both the queue path and the existing HMAC/webhook path will call this function.
+
+### No database migrations needed
+
+All required tables (`alert_events_queue`) and functions (`claim_alert_events`) already exist in the live database. The `alerts` table already has `processing_status` and `last_error` columns.
+
+### RLS consideration
+
+The `alert_events_queue` table has restrictive RLS policies (all `false` for public roles). The edge function uses the **service role key**, which bypasses RLS -- so no policy changes needed.
+
+## Smoke Test Plan
+
+After deployment, you can verify the queue mode works:
+
+**Step 1 -- Check for pending queue items:**
+```sql
+SELECT id, alert_id, status, attempt, last_error, created_at
+FROM alert_events_queue
+WHERE event_type = 'ai_analyze' AND status = 'pending'
+ORDER BY created_at DESC
+LIMIT 5;
 ```
 
-### 3. אין שינוי ב-Frontend
+**Step 2 -- Invoke in queue mode:**
+Send an HTTP POST to the edge function with body `{"mode": "queue"}`:
+```
+POST https://fsedenvbdpctzoznppwo.supabase.co/functions/v1/analyze-alert
+Content-Type: application/json
 
-ה-Frontend ממשיך לקרוא ל-Edge Function באותו אופן - הלוגיקה החדשה שקופה לצד הלקוח.
-
-### תרשים זרימה מעודכן
-
-```text
-[Frontend] ───────────────────────────────────────────────►
-              │
-              │ POST { child_id, date }
-              ▼
-┌─────────────────────────────────────────────────────────┐
-│           generate-daily-insights                        │
-├─────────────────────────────────────────────────────────┤
-│                                                          │
-│  1. Compute: todayIsrael, isToday                       │
-│                                                          │
-│  2. Query DB for existing insight                       │
-│                                                          │
-│  3. Decision:                                           │
-│     ├── PAST + conclusive → return cached               │
-│     ├── PAST + partial → regenerate as conclusive       │
-│     ├── TODAY + < 1hr ago → return cached               │
-│     ├── TODAY + created 23:55+ → return cached          │
-│     └── TODAY + >= 1hr ago → regenerate as partial      │
-│                                                          │
-│  4. If regenerate:                                      │
-│     ├── Call OpenAI                                     │
-│     ├── UPSERT to DB (is_conclusive = !isToday)         │
-│     └── Return new insight                              │
-│                                                          │
-└─────────────────────────────────────────────────────────┘
-              │
-              ▼
-[Response: { headline, insights, cached, is_conclusive }]
+{"mode": "queue"}
 ```
 
-### תוצאות צפויות
+Or use `supabase.functions.invoke('analyze-alert', { body: { mode: 'queue' } })` from the app.
 
-| מדד | לפני | אחרי |
-|-----|------|------|
-| קריאות AI ליום/ילד | עד N (כל רענון) | מקסימום 24 (שעה אחת) |
-| קריאות AI לימים קודמים | 1 לכל רענון ראשון | 1 בלבד (סופית) |
-| עקביות טקסט | משתנה בכל רענון | יציב תוך שעה, סופי ליום קודם |
-| עלות OpenAI | גבוהה | מופחתת דרמטית |
+**Step 3 -- Verify results:**
+```sql
+-- Queue row should now be 'succeeded' or 'failed'
+SELECT id, alert_id, status, attempt, last_error, updated_at
+FROM alert_events_queue
+WHERE event_type = 'ai_analyze'
+ORDER BY updated_at DESC
+LIMIT 5;
 
-### סדר ביצוע
+-- Alert should have ai_* fields populated
+SELECT id, ai_verdict, ai_summary, ai_risk_score, analyzed_at, processing_status, is_processed
+FROM alerts
+WHERE id = <the_alert_id_from_above>
+```
 
-1. **Migration** - הוספת `is_conclusive` + עדכון רשומות קיימות
-2. **Edge Function** - עדכון לוגיקת ההחלטה
-3. **בדיקה** - וידוא התנהגות תקינה בשני התרחישים (היום / עבר)
+**Step 4 -- Create a fresh test alert (optional):**
+```sql
+SELECT public.create_alert(
+  'Test message for queue worker',  -- p_message
+  50,                                -- p_risk_level
+  'test-device',                     -- p_source (device_id)
+  'test-device',                     -- p_device_id
+  'PRIVATE',                         -- p_chat_type
+  1,                                 -- p_message_count
+  NULL, 0, NULL, 'UNKNOWN', 'Test Contact'
+);
+```
+This will fire the `trg_enqueue_ai_analyze` trigger, creating a pending queue row. Then invoke the function again with `{"mode": "queue"}`.
 
+## Files Modified
+
+| File | Change |
+|------|--------|
+| `supabase/functions/analyze-alert/index.ts` | Add queue mode + extract `processAlert` helper |
+
+No other files change. No new edge functions. No migrations.
