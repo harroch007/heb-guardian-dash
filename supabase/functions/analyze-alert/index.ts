@@ -291,6 +291,11 @@ async function processAlert(
   }
 
   // 7. Update alert in DB (wipe content for privacy)
+  // Determine initial processing_status based on verdict
+  const initialStatus = (aiResult.verdict === 'notify' || aiResult.verdict === 'review') 
+    ? 'analyzed' // Will be updated to 'notified', 'grouped', or 'daily_cap' below
+    : 'analyzed'; // Safe/monitor verdicts stay as 'analyzed'
+
   const updateData = {
     ai_summary: aiResult.summary || null,
     ai_recommendation: aiResult.recommendation || null,
@@ -301,6 +306,7 @@ async function processAlert(
     ai_meaning: aiResult.meaning || null,
     ai_social_context: cleanedSocialContext,
     is_processed: true,
+    processing_status: initialStatus,
     content: '[CONTENT DELETED FOR PRIVACY]',
     analyzed_at: new Date().toISOString(),
     source: 'edge_analyze_alert',
@@ -341,10 +347,11 @@ async function processAlert(
 
         if (recentSameChat && recentSameChat.length > 0) {
           console.log(`ANTI_SPAM: Grouping alert ${alertId} – same chat within 10min`);
-          await supabase
+          const { error: groupErr } = await supabase
             .from('alerts')
             .update({ processing_status: 'grouped', should_alert: false })
             .eq('id', alertId);
+          if (groupErr) console.error(`Failed to update grouped status for alert ${alertId}:`, groupErr);
 
           return {
             success: true,
@@ -368,10 +375,11 @@ async function processAlert(
 
         if ((dailyCount ?? 0) >= 10) {
           console.log(`ANTI_SPAM: Daily cap for child ${alertData.child_id}, alert ${alertId}`);
-          await supabase
+          const { error: capErr } = await supabase
             .from('alerts')
             .update({ processing_status: 'daily_cap', should_alert: false })
             .eq('id', alertId);
+          if (capErr) console.error(`Failed to update daily_cap status for alert ${alertId}:`, capErr);
 
           return {
             success: true,
@@ -392,11 +400,11 @@ async function processAlert(
         if (childData?.parent_id) {
           console.log(`Sending push notification to parent ${childData.parent_id}`);
 
-          // Mark as notified
-          await supabase
+          const { error: notifyErr } = await supabase
             .from('alerts')
             .update({ processing_status: 'notified' })
             .eq('id', alertId);
+          if (notifyErr) console.error(`Failed to update notified status for alert ${alertId}:`, notifyErr);
 
           const pushResponse = await fetch(
             `${supabaseUrl}/functions/v1/send-push-notification`,
