@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -31,11 +31,21 @@ interface UserData {
 interface AdminUsersProps {
   users: UserData[];
   loading: boolean;
+  initialStatusFilter?: string;
+  onFilterApplied?: () => void;
 }
 
-export function AdminUsers({ users, loading }: AdminUsersProps) {
+export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplied }: AdminUsersProps) {
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>(initialStatusFilter || "all");
+
+  // Apply external filter when it changes
+  useEffect(() => {
+    if (initialStatusFilter) {
+      setStatusFilter(initialStatusFilter);
+      onFilterApplied?.();
+    }
+  }, [initialStatusFilter]);
 
   const filteredUsers = users.filter((user) => {
     const matchesSearch = 
