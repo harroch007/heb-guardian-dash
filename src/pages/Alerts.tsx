@@ -4,6 +4,7 @@ import { AlertCardStack, AlertTabs, EmptyAlertsState, EmptySavedState } from "@/
 import { supabase } from "@/integrations/supabase/client";
 import { RefreshCw } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface SocialContext {
   label: string;
@@ -38,10 +39,12 @@ interface Alert {
 }
 
 const AlertsPage = () => {
+  const { parentId } = useAuth();
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [savedAlerts, setSavedAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'new' | 'saved'>('new');
+  const [feedbackMap, setFeedbackMap] = useState<Record<number, 'important' | 'not_relevant'>>({});
 
   const fetchAlerts = async () => {
     try {
@@ -136,6 +139,29 @@ const AlertsPage = () => {
       
       setAlerts(transformData(newData));
       setSavedAlerts(transformData(savedData));
+
+      // Fetch existing feedback for these alerts
+      if (parentId) {
+        const allAlertIds = [
+          ...(newData || []).map(a => a.id),
+          ...(savedData || []).map(a => a.id),
+        ];
+        if (allAlertIds.length > 0) {
+          const { data: fbData } = await supabase
+            .from('alert_feedback' as any)
+            .select('alert_id, feedback_type')
+            .eq('parent_id', parentId)
+            .in('alert_id', allAlertIds);
+          
+          if (fbData) {
+            const map: Record<number, 'important' | 'not_relevant'> = {};
+            for (const row of fbData as any[]) {
+              map[row.alert_id] = row.feedback_type;
+            }
+            setFeedbackMap(map);
+          }
+        }
+      }
     } catch (err: any) {
       toast({
         title: "שגיאה",
@@ -206,6 +232,10 @@ const AlertsPage = () => {
     fetchAlerts();
   }, []);
 
+  const handleFeedbackChange = (alertId: number, feedback: 'important' | 'not_relevant') => {
+    setFeedbackMap(prev => ({ ...prev, [alertId]: feedback }));
+  };
+
   const currentAlerts = activeTab === 'new' ? alerts : savedAlerts;
 
   return (
@@ -251,6 +281,9 @@ const AlertsPage = () => {
             onAcknowledge={handleAcknowledge}
             onSave={handleSave}
             isSavedView={activeTab === 'saved'}
+            parentId={parentId}
+            feedbackMap={feedbackMap}
+            onFeedbackChange={handleFeedbackChange}
           />
         ) : activeTab === 'new' ? (
           <EmptyAlertsState />
