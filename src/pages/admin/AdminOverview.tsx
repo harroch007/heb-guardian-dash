@@ -74,7 +74,19 @@ function QueueHealthCard({ stats, onRefresh }: { stats: OverviewStats; onRefresh
   const isStuck = stats.queuePending > 0 && stats.oldestPendingMinutes > 5;
   const staleCount = stats.pendingAlerts.filter(a => a.is_processed).length;
 
-  if (!hasIssues) return null;
+  if (!hasIssues) {
+    return (
+      <Card className="border-2 border-green-500/50 bg-green-500/5">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <CheckCircle className="w-5 h-5 text-green-500" />
+            בריאות תור עיבוד
+          </CardTitle>
+          <CardDescription>0 ממתינות — הכל תקין</CardDescription>
+        </CardHeader>
+      </Card>
+    );
+  }
 
   const handleProcessOne = async () => {
     setProcessing(true);
