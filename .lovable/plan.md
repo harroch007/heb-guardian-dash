@@ -1,35 +1,44 @@
 
 
-# תיקון Cron Job לעיבוד התור
+# תיקון תצוגת תור ההתראות בדשבורד ניהול
 
 ## הבעיה
-ה-cron job (מס' 9) קורא ל-`extensions.http_post()` אבל `pg_net` חושף את הפונקציה תחת הסכמה `net`, כלומר `net.http_post()`. לכן למרות ש-`pg_net` מופעל, העיבוד האוטומטי עדיין נכשל.
 
-## הפתרון
-עדכון ה-cron job כך שישתמש ב-`net.http_post()` במקום `extensions.http_post()`.
+שתי בעיות מונעות את הצגת נתוני התור בדשבורד:
+
+### 1. בעיית הרשאות (RLS) - קריטי
+הטבלה `alert_events_queue` מכילה מדיניות RLS מסוג **restrictive** שחוסמת גם מנהלים:
+- `no_select_for_public_roles` (restrictive) = `USING (false)` 
+- `Admins can view queue` (restrictive) = `USING (is_admin())`
+
+כשכל המדיניות הן restrictive, הן מתחברות ב-AND: `false AND true = false`. לכן גם אדמין לא יכול לקרוא מהטבלה. בלוגים של Postgres ראיתי שגיאת `permission denied for table alert_events_queue`.
+
+**פתרון**: הפיכת מדיניות האדמין ל-**permissive** (ברירת מחדל) כך שהיא תעקוף את המדיניות החוסמת.
+
+### 2. בעיית תצוגה - הכרטיסיה נעלמת כש-0
+בקוד `QueueHealthCard` (שורה 77):
+```
+if (!hasIssues) return null;
+```
+כשהתור ריק (0 ממתינות), הכרטיסיה מוסתרת לחלוטין. המשתמש מצפה לראות כרטיסיה עם "0".
+
+**פתרון**: הצגת הכרטיסיה תמיד עם מצב ירוק כשהתור ריק.
 
 ## פרטים טכניים
 
-### מיגרציה: עדכון cron job
-
-מחיקת ה-job הישן (מס' 9) ויצירת חדש עם הסינטקס הנכון:
-
+### מיגרציה 1: תיקון RLS
 ```sql
-SELECT cron.unschedule(9);
+-- מחיקת המדיניות הבעייתית
+DROP POLICY "Admins can view queue" ON alert_events_queue;
 
-SELECT cron.schedule(
-  'process-alert-queue',
-  '* * * * *',
-  $$
-  SELECT net.http_post(
-    url := 'https://fsedenvbdpctzoznppwo.supabase.co/functions/v1/analyze-alert',
-    headers := '{"Content-Type": "application/json", "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZzZWRlbnZiZHBjdHpvem5wcHdvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYyNjkxMzcsImV4cCI6MjA4MTg0NTEzN30.Lvu-qGDtzhL3-7QHdzimsRWQ2I6Wy7jJasidbfEFrVU"}'::jsonb,
-    body := '{"mode": "queue"}'::jsonb
-  ) AS request_id;
-  $$
-);
+-- יצירה מחדש כ-PERMISSIVE (ברירת מחדל)
+CREATE POLICY "Admins can view queue"
+  ON alert_events_queue FOR SELECT
+  USING (is_admin());
 ```
 
-### אין שינויים בקוד
-רק תיקון SQL ב-cron job. אחרי התיקון, התור יתחיל להתרוקן אוטומטית (התראה אחת כל דקה).
+### שינוי קוד: QueueHealthCard
+- הסרת השורה `if (!hasIssues) return null;`
+- הוספת מצב ירוק (תקין) שמציג "0 ממתינות - הכל תקין" כשהתור ריק
+- שמירת כל הפונקציונליות הקיימת (כפתורי עיבוד, טבלה) כשיש בעיות
 
