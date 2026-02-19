@@ -300,16 +300,71 @@ async function processAlert(
 
   console.log(`ANALYZE_ALERT_OK alert_id=${alertId}`);
 
-  // 8. Send push notification if verdict is notify or review
+  // 8. Send push notification if verdict is notify or review (with anti-spam)
   if (aiResult.verdict === 'notify' || aiResult.verdict === 'review') {
     try {
       const { data: alertData } = await supabase
         .from('alerts')
-        .select('child_id')
+        .select('child_id, chat_name')
         .eq('id', alertId)
         .single();
 
       if (alertData?.child_id) {
+        // ── Anti-Spam: Chat Grouping (10-minute window) ──
+        const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+        const { data: recentSameChat } = await supabase
+          .from('alerts')
+          .select('id')
+          .eq('child_id', alertData.child_id)
+          .eq('chat_name', alertData.chat_name || '')
+          .eq('should_alert', true)
+          .gte('analyzed_at', tenMinAgo)
+          .neq('id', alertId)
+          .limit(1);
+
+        if (recentSameChat && recentSameChat.length > 0) {
+          console.log(`ANTI_SPAM: Grouping alert ${alertId} – same chat within 10min`);
+          await supabase
+            .from('alerts')
+            .update({ processing_status: 'grouped', should_alert: false })
+            .eq('id', alertId);
+
+          return {
+            success: true,
+            alert_id: alertId,
+            status: 'grouped',
+            ai_verdict: updateData.ai_verdict,
+            privacy: 'content_wiped',
+          };
+        }
+
+        // ── Anti-Spam: Daily Cap (10 per child per day) ──
+        const todayStart = new Date();
+        todayStart.setUTCHours(0, 0, 0, 0);
+        const { count: dailyCount } = await supabase
+          .from('alerts')
+          .select('id', { count: 'exact', head: true })
+          .eq('child_id', alertData.child_id)
+          .eq('should_alert', true)
+          .gte('analyzed_at', todayStart.toISOString());
+
+        if ((dailyCount ?? 0) >= 10) {
+          console.log(`ANTI_SPAM: Daily cap for child ${alertData.child_id}, alert ${alertId}`);
+          await supabase
+            .from('alerts')
+            .update({ processing_status: 'daily_cap', should_alert: false })
+            .eq('id', alertId);
+
+          return {
+            success: true,
+            alert_id: alertId,
+            status: 'daily_cap',
+            ai_verdict: updateData.ai_verdict,
+            privacy: 'content_wiped',
+          };
+        }
+
+        // ── Send push notification ──
         const { data: childData } = await supabase
           .from('children')
           .select('parent_id, name')
@@ -318,6 +373,12 @@ async function processAlert(
 
         if (childData?.parent_id) {
           console.log(`Sending push notification to parent ${childData.parent_id}`);
+
+          // Mark as notified
+          await supabase
+            .from('alerts')
+            .update({ processing_status: 'notified' })
+            .eq('id', alertId);
 
           const pushResponse = await fetch(
             `${supabaseUrl}/functions/v1/send-push-notification`,
