@@ -1,6 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Users, Smartphone, Bell, UserPlus, TrendingUp, AlertTriangle, Activity, CheckCircle, MessageSquare, Baby, ThumbsUp, ThumbsDown } from "lucide-react";
+import { Users, Smartphone, Bell, UserPlus, TrendingUp, AlertTriangle, Activity, CheckCircle, MessageSquare, Baby, ThumbsUp, ChevronLeft } from "lucide-react";
 import { PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, BarChart, Bar } from "recharts";
 
 interface OverviewStats {
@@ -27,6 +26,7 @@ interface OverviewStats {
 interface AdminOverviewProps {
   stats: OverviewStats | null;
   loading: boolean;
+  onNavigate: (tab: string, filter?: string) => void;
 }
 
 const VERDICT_COLORS: Record<string, string> = {
@@ -35,7 +35,22 @@ const VERDICT_COLORS: Record<string, string> = {
   notify: "#ef4444",
 };
 
-export function AdminOverview({ stats, loading }: AdminOverviewProps) {
+const clickableCardClass = "cursor-pointer hover:shadow-md hover:border-primary/40 transition-all duration-200";
+
+function ClickableIndicator() {
+  return <ChevronLeft className="w-4 h-4 text-muted-foreground/50 absolute top-3 left-3" />;
+}
+
+// Funnel stage to tab mapping
+const FUNNEL_TAB_MAP: Record<string, { tab: string; filter?: string }> = {
+  "Waitlist": { tab: "waitlist" },
+  "נרשמו": { tab: "users" },
+  "הוסיפו ילד": { tab: "users" },
+  "חיברו מכשיר": { tab: "users", filter: "online" },
+  "פעילים היום": { tab: "users", filter: "online" },
+};
+
+export function AdminOverview({ stats, loading, onNavigate }: AdminOverviewProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -46,9 +61,10 @@ export function AdminOverview({ stats, loading }: AdminOverviewProps) {
 
   return (
     <div className="space-y-6">
-      {/* Beta KPIs - New requested cards */}
+      {/* Beta KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="border-cyan-500/20">
+        <Card className={`border-cyan-500/20 relative ${clickableCardClass}`} onClick={() => onNavigate("users", "today")}>
+          <ClickableIndicator />
           <CardHeader className="pb-2">
             <CardDescription className="flex items-center gap-2 text-xs">
               <Baby className="w-3 h-3" />
@@ -60,7 +76,8 @@ export function AdminOverview({ stats, loading }: AdminOverviewProps) {
           </CardContent>
         </Card>
 
-        <Card className="border-violet-500/20">
+        <Card className={`border-violet-500/20 relative ${clickableCardClass}`} onClick={() => onNavigate("users")}>
+          <ClickableIndicator />
           <CardHeader className="pb-2">
             <CardDescription className="flex items-center gap-2 text-xs">
               <Users className="w-3 h-3" />
@@ -72,7 +89,8 @@ export function AdminOverview({ stats, loading }: AdminOverviewProps) {
           </CardContent>
         </Card>
 
-        <Card className="border-blue-500/20">
+        <Card className={`border-blue-500/20 relative ${clickableCardClass}`} onClick={() => onNavigate("insights")}>
+          <ClickableIndicator />
           <CardHeader className="pb-2">
             <CardDescription className="flex items-center gap-2 text-xs">
               <MessageSquare className="w-3 h-3" />
@@ -84,7 +102,8 @@ export function AdminOverview({ stats, loading }: AdminOverviewProps) {
           </CardContent>
         </Card>
 
-        <Card className="border-orange-500/20">
+        <Card className={`border-orange-500/20 relative ${clickableCardClass}`} onClick={() => onNavigate("training")}>
+          <ClickableIndicator />
           <CardHeader className="pb-2">
             <CardDescription className="flex items-center gap-2 text-xs">
               <Bell className="w-3 h-3" />
@@ -112,7 +131,8 @@ export function AdminOverview({ stats, loading }: AdminOverviewProps) {
 
       {/* Existing KPIs Grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <Card className="border-primary/20">
+        <Card className={`border-primary/20 relative ${clickableCardClass}`} onClick={() => onNavigate("users")}>
+          <ClickableIndicator />
           <CardHeader className="pb-2">
             <CardDescription className="flex items-center gap-2 text-xs">
               <Users className="w-3 h-3" />
@@ -124,7 +144,8 @@ export function AdminOverview({ stats, loading }: AdminOverviewProps) {
           </CardContent>
         </Card>
 
-        <Card className="border-yellow-500/20">
+        <Card className={`border-yellow-500/20 relative ${clickableCardClass}`} onClick={() => onNavigate("waitlist")}>
+          <ClickableIndicator />
           <CardHeader className="pb-2">
             <CardDescription className="flex items-center gap-2 text-xs">
               <UserPlus className="w-3 h-3" />
@@ -136,7 +157,8 @@ export function AdminOverview({ stats, loading }: AdminOverviewProps) {
           </CardContent>
         </Card>
 
-        <Card className="border-green-500/20">
+        <Card className={`border-green-500/20 relative ${clickableCardClass}`} onClick={() => onNavigate("users", "online")}>
+          <ClickableIndicator />
           <CardHeader className="pb-2">
             <CardDescription className="flex items-center gap-2 text-xs">
               <Smartphone className="w-3 h-3" />
@@ -148,7 +170,8 @@ export function AdminOverview({ stats, loading }: AdminOverviewProps) {
           </CardContent>
         </Card>
 
-        <Card className="border-blue-500/20">
+        <Card className={`border-blue-500/20 relative ${clickableCardClass}`} onClick={() => onNavigate("training")}>
+          <ClickableIndicator />
           <CardHeader className="pb-2">
             <CardDescription className="flex items-center gap-2 text-xs">
               <Bell className="w-3 h-3" />
@@ -160,7 +183,8 @@ export function AdminOverview({ stats, loading }: AdminOverviewProps) {
           </CardContent>
         </Card>
 
-        <Card className="border-red-500/20">
+        <Card className={`border-red-500/20 relative ${clickableCardClass}`} onClick={() => onNavigate("training")}>
+          <ClickableIndicator />
           <CardHeader className="pb-2">
             <CardDescription className="flex items-center gap-2 text-xs">
               <AlertTriangle className="w-3 h-3" />
@@ -172,7 +196,8 @@ export function AdminOverview({ stats, loading }: AdminOverviewProps) {
           </CardContent>
         </Card>
 
-        <Card className="border-emerald-500/20">
+        <Card className={`border-emerald-500/20 relative ${clickableCardClass}`} onClick={() => onNavigate("users", "online")}>
+          <ClickableIndicator />
           <CardHeader className="pb-2">
             <CardDescription className="flex items-center gap-2 text-xs">
               <Activity className="w-3 h-3" />
@@ -196,26 +221,32 @@ export function AdminOverview({ stats, loading }: AdminOverviewProps) {
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-between gap-2 overflow-x-auto pb-4">
-            {stats?.funnel.map((stage, index) => (
-              <div key={stage.stage} className="flex items-center">
-                <div className="flex flex-col items-center min-w-[100px]">
-                  <div 
-                    className="w-16 h-16 rounded-full flex items-center justify-center text-lg font-bold"
-                    style={{
-                      backgroundColor: `hsl(var(--primary) / ${0.2 + (index * 0.2)})`,
-                      borderColor: `hsl(var(--primary))`,
-                      borderWidth: '2px'
-                    }}
+            {stats?.funnel.map((stage, index) => {
+              const mapping = FUNNEL_TAB_MAP[stage.stage];
+              return (
+                <div key={stage.stage} className="flex items-center">
+                  <div
+                    className={`flex flex-col items-center min-w-[100px] ${mapping ? 'cursor-pointer group' : ''}`}
+                    onClick={() => mapping && onNavigate(mapping.tab, mapping.filter)}
                   >
-                    {stage.count}
+                    <div 
+                      className={`w-16 h-16 rounded-full flex items-center justify-center text-lg font-bold transition-all duration-200 ${mapping ? 'group-hover:shadow-md group-hover:scale-105' : ''}`}
+                      style={{
+                        backgroundColor: `hsl(var(--primary) / ${0.2 + (index * 0.2)})`,
+                        borderColor: `hsl(var(--primary))`,
+                        borderWidth: '2px'
+                      }}
+                    >
+                      {stage.count}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2 text-center">{stage.stage}</p>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-2 text-center">{stage.stage}</p>
+                  {index < (stats?.funnel.length || 0) - 1 && (
+                    <div className="w-8 h-0.5 bg-primary/30 mx-2" />
+                  )}
                 </div>
-                {index < (stats?.funnel.length || 0) - 1 && (
-                  <div className="w-8 h-0.5 bg-primary/30 mx-2" />
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
           {stats && stats.funnel.length > 1 && (
             <div className="mt-4 p-3 bg-muted/50 rounded-lg">
@@ -234,7 +265,6 @@ export function AdminOverview({ stats, loading }: AdminOverviewProps) {
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Alerts by Verdict Pie Chart */}
         <Card className="border-primary/20">
           <CardHeader>
             <CardTitle className="text-lg">התפלגות התראות</CardTitle>
@@ -266,7 +296,6 @@ export function AdminOverview({ stats, loading }: AdminOverviewProps) {
           </CardContent>
         </Card>
 
-        {/* Alerts Trend Line Chart - 14 days */}
         <Card className="border-primary/20">
           <CardHeader>
             <CardTitle className="text-lg">מגמת התראות</CardTitle>
@@ -291,7 +320,7 @@ export function AdminOverview({ stats, loading }: AdminOverviewProps) {
         </Card>
       </div>
 
-      {/* Feedback Trend Chart - 14 days */}
+      {/* Feedback Trend Chart */}
       <Card className="border-primary/20">
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">

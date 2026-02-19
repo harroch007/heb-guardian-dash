@@ -110,7 +110,17 @@ export default function Admin() {
   const [trainingStats, setTrainingStats] = useState<TrainingStats | null>(null);
   const [trainingRecords, setTrainingRecords] = useState<TrainingRecord[]>([]);
   const [activeTab, setActiveTab] = useState("overview");
+  const [usersStatusFilter, setUsersStatusFilter] = useState<string | undefined>(undefined);
   const navigate = useNavigate();
+
+  const handleOverviewNavigate = (tab: string, filter?: string) => {
+    setActiveTab(tab);
+    if (tab === "users" && filter) {
+      setUsersStatusFilter(filter);
+    } else {
+      setUsersStatusFilter(undefined);
+    }
+  };
 
   useEffect(() => {
     fetchAllData();
@@ -591,11 +601,11 @@ export default function Admin() {
         </TabsList>
 
         <TabsContent value="overview">
-          <AdminOverview stats={overviewStats} loading={loading} />
+          <AdminOverview stats={overviewStats} loading={loading} onNavigate={handleOverviewNavigate} />
         </TabsContent>
 
         <TabsContent value="users">
-          <AdminUsers users={users} loading={loading} />
+          <AdminUsers users={users} loading={loading} initialStatusFilter={usersStatusFilter} onFilterApplied={() => setUsersStatusFilter(undefined)} />
         </TabsContent>
 
         <TabsContent value="waitlist">
