@@ -1,0 +1,1 @@
+DELETE FROM training_dataset WHERE raw_text = 'המכשיר לא מגיב לבדיקות';
