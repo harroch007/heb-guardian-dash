@@ -65,6 +65,7 @@ interface OverviewStats {
   alertsCreatedToday: number;
   alertsAnalyzedToday: number;
   alertsNotifiedToday: number;
+  systemAlertsToday: number;
   queuePending: number;
   queueFailed: number;
   oldestPendingMinutes: number;
@@ -175,8 +176,9 @@ export default function Admin() {
       const criticalAlertsToday = alertsToday?.filter(a => a.ai_verdict === 'notify').length || 0;
 
       // New KPIs: breakdown
+      const systemAlertsToday = alertsToday?.filter(a => a.is_processed === true && a.analyzed_at === null).length || 0;
       const alertsCreatedToday = totalAlertsToday;
-      const alertsAnalyzedToday = alertsToday?.filter(a => a.is_processed === true).length || 0;
+      const alertsAnalyzedToday = alertsToday?.filter(a => a.is_processed === true && a.analyzed_at !== null).length || 0;
       const alertsNotifiedToday = alertsToday?.filter(a => a.processing_status === 'notified').length || 0;
 
       // Queue health - fetch full details
@@ -369,6 +371,7 @@ export default function Admin() {
         alertsCreatedToday,
         alertsAnalyzedToday,
         alertsNotifiedToday,
+        systemAlertsToday,
         queuePending,
         queueFailed,
         oldestPendingMinutes,

@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Users, Smartphone, Bell, UserPlus, TrendingUp, AlertTriangle, Activity, CheckCircle, MessageSquare, Baby, ThumbsUp, ChevronLeft, Loader2, Zap, Clock, XCircle, Cpu, Send, Trash2 } from "lucide-react";
+import { Users, Smartphone, Bell, UserPlus, TrendingUp, AlertTriangle, Activity, CheckCircle, MessageSquare, Baby, ThumbsUp, ChevronLeft, Loader2, Zap, Clock, XCircle, Cpu, Send, Trash2, Shield } from "lucide-react";
 import { PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, BarChart, Bar } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -30,6 +30,7 @@ interface OverviewStats {
   alertsCreatedToday: number;
   alertsAnalyzedToday: number;
   alertsNotifiedToday: number;
+  systemAlertsToday: number;
   queuePending: number;
   queueFailed: number;
   oldestPendingMinutes: number;
@@ -314,7 +315,6 @@ export function AdminOverview({ stats, loading, onNavigate, onRefresh }: AdminOv
           </CardContent>
         </Card>
 
-        {/* Replaced single "alerts sent" with 3 separate KPIs */}
         <Card className="border-blue-400/20">
           <CardHeader className="pb-2">
             <CardDescription className="flex items-center gap-2 text-xs">
@@ -324,6 +324,16 @@ export function AdminOverview({ stats, loading, onNavigate, onRefresh }: AdminOv
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold text-blue-400">{stats?.alertsCreatedToday || 0}</p>
+            <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1">
+                <Cpu className="w-3 h-3" />
+                {stats?.alertsAnalyzedToday || 0} AI
+              </span>
+              <span className="flex items-center gap-1">
+                <Shield className="w-3 h-3" />
+                {stats?.systemAlertsToday || 0} מערכת
+              </span>
+            </div>
           </CardContent>
         </Card>
 
