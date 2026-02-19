@@ -1,6 +1,10 @@
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Smartphone, Bell, UserPlus, TrendingUp, AlertTriangle, Activity, CheckCircle, MessageSquare, Baby, ThumbsUp, ChevronLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Users, Smartphone, Bell, UserPlus, TrendingUp, AlertTriangle, Activity, CheckCircle, MessageSquare, Baby, ThumbsUp, ChevronLeft, Loader2, Zap, Clock, XCircle, Cpu, Send } from "lucide-react";
 import { PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, BarChart, Bar } from "recharts";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface OverviewStats {
   totalParents: number;
@@ -11,7 +15,7 @@ interface OverviewStats {
   activeUsersToday: number;
   conversionRate: number;
   alertsByVerdict: { name: string; value: number; color: string }[];
-  alertsTrend: { date: string; safe: number; review: number; notify: number }[];
+  alertsTrend: { date: string; safe: number; review: number; notify: number; notified: number }[];
   funnel: { stage: string; count: number }[];
   activeChildrenToday: number;
   activeParentsThisWeek: number;
@@ -21,6 +25,12 @@ interface OverviewStats {
   totalAlertsLast7Days: number;
   alertsWithFeedbackLast7Days: number;
   feedbackEngagementRate: number;
+  alertsCreatedToday: number;
+  alertsAnalyzedToday: number;
+  alertsNotifiedToday: number;
+  queuePending: number;
+  queueFailed: number;
+  oldestPendingMinutes: number;
 }
 
 interface AdminOverviewProps {
@@ -50,6 +60,88 @@ const FUNNEL_TAB_MAP: Record<string, { tab: string; filter?: string }> = {
   "פעילים היום": { tab: "users", filter: "online" },
 };
 
+function QueueHealthCard({ stats }: { stats: OverviewStats }) {
+  const [processing, setProcessing] = useState(false);
+  const [processingAll, setProcessingAll] = useState(false);
+
+  const hasIssues = stats.queuePending > 0 || stats.queueFailed > 0;
+  const isStuck = stats.queuePending > 0 && stats.oldestPendingMinutes > 5;
+
+  if (!hasIssues) return null;
+
+  const handleProcessOne = async () => {
+    setProcessing(true);
+    try {
+      const { error } = await supabase.functions.invoke('analyze-alert', { body: {} });
+      if (error) throw error;
+      toast.success("עיבוד התראה אחת הושלם");
+    } catch (e: any) {
+      toast.error("שגיאה בעיבוד: " + e.message);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleProcessAll = async () => {
+    setProcessingAll(true);
+    let processed = 0;
+    try {
+      for (let i = 0; i < stats.queuePending; i++) {
+        const { error } = await supabase.functions.invoke('analyze-alert', { body: {} });
+        if (error) throw error;
+        processed++;
+      }
+      toast.success(`עובדו ${processed} התראות בהצלחה`);
+    } catch (e: any) {
+      toast.error(`עובדו ${processed}, שגיאה: ${e.message}`);
+    } finally {
+      setProcessingAll(false);
+    }
+  };
+
+  return (
+    <Card className={`border-2 ${isStuck ? 'border-red-500/50 bg-red-500/5' : 'border-orange-500/50 bg-orange-500/5'}`}>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-lg flex items-center gap-2">
+          <AlertTriangle className={`w-5 h-5 ${isStuck ? 'text-red-500' : 'text-orange-500'}`} />
+          בריאות תור עיבוד
+        </CardTitle>
+        <CardDescription>
+          {isStuck ? 'התור תקוע! התראות ממתינות מעל 5 דקות' : 'יש פריטים בתור'}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-wrap items-center gap-6 mb-4">
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-orange-500" />
+            <span className="text-sm">ממתינות: <strong className="text-orange-500">{stats.queuePending}</strong></span>
+          </div>
+          <div className="flex items-center gap-2">
+            <XCircle className="w-4 h-4 text-red-500" />
+            <span className="text-sm">נכשלו: <strong className="text-red-500">{stats.queueFailed}</strong></span>
+          </div>
+          {stats.oldestPendingMinutes > 0 && (
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm">הישנה ביותר: <strong>{stats.oldestPendingMinutes} דק׳</strong></span>
+            </div>
+          )}
+        </div>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={handleProcessOne} disabled={processing || processingAll || stats.queuePending === 0}>
+            {processing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+            עבד התראה אחת
+          </Button>
+          <Button size="sm" onClick={handleProcessAll} disabled={processing || processingAll || stats.queuePending === 0}>
+            {processingAll ? <Loader2 className="w-4 h-4 animate-spin" /> : <Cpu className="w-4 h-4" />}
+            עבד את כולם ({stats.queuePending})
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export function AdminOverview({ stats, loading, onNavigate }: AdminOverviewProps) {
   if (loading) {
     return (
@@ -61,6 +153,9 @@ export function AdminOverview({ stats, loading, onNavigate }: AdminOverviewProps
 
   return (
     <div className="space-y-6">
+      {/* Queue Health - only shown when there are issues */}
+      {stats && <QueueHealthCard stats={stats} />}
+
       {/* Beta KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className={`border-cyan-500/20 relative ${clickableCardClass}`} onClick={() => onNavigate("users", "today")}>
@@ -102,16 +197,41 @@ export function AdminOverview({ stats, loading, onNavigate }: AdminOverviewProps
           </CardContent>
         </Card>
 
+        {/* Replaced single "alerts sent" with 3 separate KPIs */}
+        <Card className="border-blue-400/20">
+          <CardHeader className="pb-2">
+            <CardDescription className="flex items-center gap-2 text-xs">
+              <Bell className="w-3 h-3" />
+              התראות שנוצרו היום
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-blue-400">{stats?.alertsCreatedToday || 0}</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-violet-500/20">
+          <CardHeader className="pb-2">
+            <CardDescription className="flex items-center gap-2 text-xs">
+              <Cpu className="w-3 h-3" />
+              עובדו ע"י AI
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-violet-500">{stats?.alertsAnalyzedToday || 0}</p>
+          </CardContent>
+        </Card>
+
         <Card className={`border-orange-500/20 relative ${clickableCardClass}`} onClick={() => onNavigate("training")}>
           <ClickableIndicator />
           <CardHeader className="pb-2">
             <CardDescription className="flex items-center gap-2 text-xs">
-              <Bell className="w-3 h-3" />
-              התראות שנשלחו היום
+              <Send className="w-3 h-3" />
+              נשלחו להורים
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-orange-500">{stats?.alertsSentToday || 0}</p>
+            <p className="text-2xl font-bold text-orange-500">{stats?.alertsNotifiedToday || 0}</p>
           </CardContent>
         </Card>
 
@@ -313,6 +433,7 @@ export function AdminOverview({ stats, loading, onNavigate }: AdminOverviewProps
                   <Line type="monotone" dataKey="safe" stroke={VERDICT_COLORS.safe} strokeWidth={2} name="Safe" />
                   <Line type="monotone" dataKey="review" stroke={VERDICT_COLORS.review} strokeWidth={2} name="Review" />
                   <Line type="monotone" dataKey="notify" stroke={VERDICT_COLORS.notify} strokeWidth={2} name="Notify" />
+                  <Line type="monotone" dataKey="notified" stroke="#f97316" strokeWidth={2} strokeDasharray="5 5" name="נשלחו להורים" />
                 </LineChart>
               </ResponsiveContainer>
             </div>

@@ -52,7 +52,7 @@ interface OverviewStats {
   activeUsersToday: number;
   conversionRate: number;
   alertsByVerdict: { name: string; value: number; color: string }[];
-  alertsTrend: { date: string; safe: number; review: number; notify: number }[];
+  alertsTrend: { date: string; safe: number; review: number; notify: number; notified: number }[];
   funnel: { stage: string; count: number }[];
   activeChildrenToday: number;
   activeParentsThisWeek: number;
@@ -62,6 +62,12 @@ interface OverviewStats {
   totalAlertsLast7Days: number;
   alertsWithFeedbackLast7Days: number;
   feedbackEngagementRate: number;
+  alertsCreatedToday: number;
+  alertsAnalyzedToday: number;
+  alertsNotifiedToday: number;
+  queuePending: number;
+  queueFailed: number;
+  oldestPendingMinutes: number;
 }
 
 interface UserData {
@@ -161,11 +167,31 @@ export default function Admin() {
       
       const { data: alertsToday } = await supabase
         .from("alerts")
-        .select("ai_verdict, ai_risk_score")
+        .select("ai_verdict, ai_risk_score, is_processed, processing_status, analyzed_at")
         .gte("created_at", today.toISOString());
 
       const totalAlertsToday = alertsToday?.length || 0;
       const criticalAlertsToday = alertsToday?.filter(a => a.ai_verdict === 'notify').length || 0;
+
+      // New KPIs: breakdown
+      const alertsCreatedToday = totalAlertsToday;
+      const alertsAnalyzedToday = alertsToday?.filter(a => a.is_processed === true).length || 0;
+      const alertsNotifiedToday = alertsToday?.filter(a => a.processing_status === 'notified').length || 0;
+
+      // Queue health
+      const { data: queueData } = await supabase
+        .from("alert_events_queue")
+        .select("status, created_at")
+        .in("status", ["pending", "failed"]);
+
+      const queuePending = queueData?.filter(q => q.status === 'pending').length || 0;
+      const queueFailed = queueData?.filter(q => q.status === 'failed').length || 0;
+      const oldestPending = queueData
+        ?.filter(q => q.status === 'pending')
+        .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())[0];
+      const oldestPendingMinutes = oldestPending
+        ? Math.round((Date.now() - new Date(oldestPending.created_at).getTime()) / 60000)
+        : 0;
 
       // Count active users (devices with last_seen in last 24 hours)
       const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
@@ -227,7 +253,7 @@ export default function Admin() {
       const messagesScannedToday = metricsSum?.reduce((sum, m) => sum + (m.messages_scanned || 0), 0) || 0;
 
       // Fetch alerts trend (last 14 days) + feedback
-      const alertsTrend: { date: string; safe: number; review: number; notify: number }[] = [];
+      const alertsTrend: { date: string; safe: number; review: number; notify: number; notified: number }[] = [];
       const feedbackTrend: { date: string; total: number; important: number; not_relevant: number }[] = [];
       
       // Batch fetch: all alerts last 14 days
@@ -236,7 +262,7 @@ export default function Admin() {
       
       const { data: allTrendAlerts } = await supabase
         .from("alerts")
-        .select("id, ai_verdict, created_at")
+        .select("id, ai_verdict, created_at, processing_status")
         .gte("created_at", fourteenDaysAgo.toISOString())
         .order("created_at", { ascending: true });
 
@@ -263,6 +289,7 @@ export default function Admin() {
           safe: dayAlerts.filter(a => a.ai_verdict === 'safe').length,
           review: dayAlerts.filter(a => a.ai_verdict === 'review').length,
           notify: dayAlerts.filter(a => a.ai_verdict === 'notify').length,
+          notified: dayAlerts.filter(a => a.processing_status === 'notified').length,
         });
 
         const dayAlertIds = dayAlerts.map(a => a.id);
@@ -320,6 +347,12 @@ export default function Admin() {
         totalAlertsLast7Days,
         alertsWithFeedbackLast7Days,
         feedbackEngagementRate,
+        alertsCreatedToday,
+        alertsAnalyzedToday,
+        alertsNotifiedToday,
+        queuePending,
+        queueFailed,
+        oldestPendingMinutes,
       });
     } catch (error) {
       console.error("Error fetching overview stats:", error);
