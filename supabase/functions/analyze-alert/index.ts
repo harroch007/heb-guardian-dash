@@ -346,7 +346,8 @@ async function processAlert(
           .select('id', { count: 'exact', head: true })
           .eq('child_id', alertData.child_id)
           .eq('should_alert', true)
-          .gte('analyzed_at', todayStart.toISOString());
+          .gte('analyzed_at', todayStart.toISOString())
+          .neq('id', alertId);
 
         if ((dailyCount ?? 0) >= 10) {
           console.log(`ANTI_SPAM: Daily cap for child ${alertData.child_id}, alert ${alertId}`);
