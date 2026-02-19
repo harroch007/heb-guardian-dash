@@ -1,6 +1,8 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { BarChart3, Users, TrendingUp, AlertTriangle, ExternalLink } from "lucide-react";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { format } from "date-fns";
@@ -43,6 +45,7 @@ const VERDICT_BADGE: Record<string, string> = {
 
 export function AdminTraining({ stats, records, loading }: AdminTrainingProps) {
   const [showAll, setShowAll] = useState(false);
+  const [selectedRecord, setSelectedRecord] = useState<TrainingRecord | null>(null);
 
   if (loading) {
     return (
@@ -144,7 +147,7 @@ export function AdminTraining({ stats, records, loading }: AdminTrainingProps) {
               </TableHeader>
               <TableBody>
                 {displayRecords.map((record) => (
-                  <TableRow key={record.id}>
+                  <TableRow key={record.id} className="cursor-pointer hover:bg-muted/80" onClick={() => setSelectedRecord(record)}>
                     <TableCell>
                       {record.alert_id ? (
                         <a
@@ -191,6 +194,70 @@ export function AdminTraining({ stats, records, loading }: AdminTrainingProps) {
           )}
         </CardContent>
       </Card>
+
+      {/* Record Detail Dialog */}
+      <Dialog open={!!selectedRecord} onOpenChange={(open) => !open && setSelectedRecord(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col" dir="rtl">
+          <DialogHeader className="text-right">
+            <DialogTitle className="flex items-center gap-2">
+              {selectedRecord?.alert_id ? (
+                <a
+                  href={`/alerts?highlight=${selectedRecord.alert_id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 text-primary hover:underline"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  Alert #{selectedRecord.alert_id}
+                  <ExternalLink className="w-4 h-4" />
+                </a>
+              ) : (
+                <span>רשומת אימון</span>
+              )}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedRecord && format(new Date(selectedRecord.created_at), 'dd/MM/yyyy HH:mm')}
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Metadata */}
+          <div className="flex flex-wrap gap-3 text-sm">
+            {selectedRecord?.age_at_incident != null && (
+              <Badge variant="outline">גיל: {selectedRecord.age_at_incident}</Badge>
+            )}
+            {selectedRecord?.gender && (
+              <Badge variant="outline">מגדר: {selectedRecord.gender === 'male' ? 'זכר' : selectedRecord.gender === 'female' ? 'נקבה' : selectedRecord.gender}</Badge>
+            )}
+            {selectedRecord?.ai_verdict?.verdict && (
+              <span className={`inline-flex px-2 py-0.5 rounded text-xs border ${VERDICT_BADGE[selectedRecord.ai_verdict.verdict] || ''}`}>
+                {selectedRecord.ai_verdict.verdict}
+              </span>
+            )}
+            {selectedRecord?.ai_verdict?.risk_score != null && (
+              <Badge variant="secondary">Risk Score: {selectedRecord.ai_verdict.risk_score}</Badge>
+            )}
+          </div>
+
+          {/* Full text */}
+          <ScrollArea className="flex-1 min-h-0 max-h-[40vh]">
+            <div className="whitespace-pre-wrap text-sm leading-relaxed p-4 bg-muted rounded-md" dir="rtl">
+              {selectedRecord?.raw_text}
+            </div>
+          </ScrollArea>
+
+          {/* AI Verdict JSON */}
+          {selectedRecord?.ai_verdict && Object.keys(selectedRecord.ai_verdict).length > 0 && (
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">AI Verdict (JSON)</p>
+              <ScrollArea className="max-h-[150px]">
+                <pre className="text-xs bg-muted p-3 rounded-md overflow-x-auto" dir="ltr">
+                  {JSON.stringify(selectedRecord.ai_verdict, null, 2)}
+                </pre>
+              </ScrollArea>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
