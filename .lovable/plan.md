@@ -1,71 +1,35 @@
 
 
-# תוכנית: תצוגת התראות ממתינות + תיקון שורשי לעיבוד
+# תיקון Cron Job לעיבוד התור
 
 ## הבעיה
+ה-cron job (מס' 9) קורא ל-`extensions.http_post()` אבל `pg_net` חושף את הפונקציה תחת הסכמה `net`, כלומר `net.http_post()`. לכן למרות ש-`pg_net` מופעל, העיבוד האוטומטי עדיין נכשל.
 
-1. **`pg_net` לא מופעל** -- ה-cron job (מס' 9) שרץ כל דקה מנסה לקרוא ל-`net.http_post()` כדי להפעיל את `analyze-alert`, אבל הפונקציה לא קיימת כי התוסף `pg_net` לא מופעל. זו הסיבה שכל 13+ ההתראות תקועות.
-2. **אין תצוגה מפורטת** -- כרטיס בריאות התור מציג רק מספרים (כמה pending, כמה failed), אבל לא מציג את ההתראות עצמן.
-3. **רשומות מיותמות** -- חלק מהרשומות בתור (850-853) כבר עובדו (is_processed=true באלרטים) אבל סטטוס התור עדיין "pending".
-
-## מה ישתנה
-
-### 1. הפעלת pg_net (פעולה ידנית נדרשת)
-צריך להפעיל את התוסף `pg_net` בדשבורד Supabase:
-- Database -> Extensions -> חפש "pg_net" -> Enable
-
-אחרי ההפעלה, ה-cron job יתחיל לעבוד אוטומטית ויעבד התראה אחת כל דקה.
-
-### 2. תצוגת רשימת התראות ממתינות בדשבורד
-
-הוספת טבלה מפורטת מתחת לכרטיס בריאות התור שתציג:
-
-| עמודה | תיאור |
-|--------|--------|
-| Alert ID | מזהה ההתראה |
-| נוצר | תאריך ושעה |
-| סטטוס תור | pending / failed / processing |
-| ניסיונות | מספר הניסיונות |
-| שגיאה אחרונה | אם נכשל |
-| פעולות | כפתור "עבד עכשיו" להתראה בודדת |
-
-הטבלה תוצג רק כשיש פריטים בתור (pending/failed).
-
-### 3. ניקוי אוטומטי של רשומות מיותמות
-
-הוספת לוגיקה ב-`fetchOverviewStats` שמזהה רשומות תור שההתראה המקושרת כבר עובדה (`is_processed = true`) ומציגה אותן בנפרד כ"מיותמות" עם אפשרות לנקות.
-
-### 4. Fallback: עיבוד אוטומטי מהדשבורד
-
-כשאדמין נכנס לדשבורד ויש התראות pending מעל 5 דקות, הצגת כפתור בולט "הפעל עיבוד אוטומטי" שירוץ בלולאה ויעבד את כל ההתראות הממתינות (כבר קיים חלקית, נשפר).
-
----
+## הפתרון
+עדכון ה-cron job כך שישתמש ב-`net.http_post()` במקום `extensions.http_post()`.
 
 ## פרטים טכניים
 
-### שינויים בקובץ `src/pages/Admin.tsx`
+### מיגרציה: עדכון cron job
 
-1. הוספת שדה חדש ל-`OverviewStats`:
-   - `pendingAlerts: { id: string; alert_id: number; status: string; attempt: number; created_at: string; last_error: string | null }[]`
+מחיקת ה-job הישן (מס' 9) ויצירת חדש עם הסינטקס הנכון:
 
-2. עדכון `fetchOverviewStats` -- שליפת הרשימה המלאה של פריטי התור (pending + failed), לא רק ספירה:
-   - `SELECT id, alert_id, status, attempt, created_at, last_error FROM alert_events_queue WHERE status IN ('pending', 'failed') ORDER BY created_at`
+```sql
+SELECT cron.unschedule(9);
 
-### שינויים בקובץ `src/pages/admin/AdminOverview.tsx`
-
-1. הרחבת `QueueHealthCard` להציג טבלה מפורטת עם כל ההתראות הממתינות
-2. הוספת כפתור "עבד עכשיו" ליד כל שורה שקורא ל-`analyze-alert` ומרענן את הנתונים
-3. הוספת כפתור "נקה רשומות מיותמות" שקורא ל-Edge Function לניקוי
-
-### Edge Function חדשה: `cleanup-stale-queue`
-
-פונקציה קצרה שמנקה רשומות מהתור כאשר ההתראה כבר עובדה:
-```
-UPDATE alert_events_queue SET status = 'succeeded'
-WHERE alert_id IN (SELECT id FROM alerts WHERE is_processed = true)
-AND status = 'pending'
+SELECT cron.schedule(
+  'process-alert-queue',
+  '* * * * *',
+  $$
+  SELECT net.http_post(
+    url := 'https://fsedenvbdpctzoznppwo.supabase.co/functions/v1/analyze-alert',
+    headers := '{"Content-Type": "application/json", "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZzZWRlbnZiZHBjdHpvem5wcHdvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYyNjkxMzcsImV4cCI6MjA4MTg0NTEzN30.Lvu-qGDtzhL3-7QHdzimsRWQ2I6Wy7jJasidbfEFrVU"}'::jsonb,
+    body := '{"mode": "queue"}'::jsonb
+  ) AS request_id;
+  $$
+);
 ```
 
-### אין שינויי סכמה במסד הנתונים
-כל הנתונים כבר קיימים. ה-RLS policy לאדמין כבר נוצרה בשלב הקודם.
+### אין שינויים בקוד
+רק תיקון SQL ב-cron job. אחרי התיקון, התור יתחיל להתרוקן אוטומטית (התראה אחת כל דקה).
 
