@@ -19,6 +19,9 @@ interface OverviewStats {
   messagesScannedToday: number;
   alertsSentToday: number;
   feedbackTrend: { date: string; total: number; important: number; not_relevant: number }[];
+  totalAlertsLast7Days: number;
+  alertsWithFeedbackLast7Days: number;
+  feedbackEngagementRate: number;
 }
 
 interface AdminOverviewProps {
@@ -90,6 +93,19 @@ export function AdminOverview({ stats, loading }: AdminOverviewProps) {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold text-orange-500">{stats?.alertsSentToday || 0}</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-green-500/20">
+          <CardHeader className="pb-2">
+            <CardDescription className="flex items-center gap-2 text-xs">
+              <CheckCircle className="w-3 h-3" />
+              אחוז התראות עם משוב (7 ימים)
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-green-500">{stats?.feedbackEngagementRate?.toFixed(1) || '0.0'}%</p>
+            <p className="text-xs text-muted-foreground mt-1">{stats?.alertsWithFeedbackLast7Days || 0} / {stats?.totalAlertsLast7Days || 0}</p>
           </CardContent>
         </Card>
       </div>

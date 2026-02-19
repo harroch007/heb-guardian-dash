@@ -57,6 +57,9 @@ interface OverviewStats {
   messagesScannedToday: number;
   alertsSentToday: number;
   feedbackTrend: { date: string; total: number; important: number; not_relevant: number }[];
+  totalAlertsLast7Days: number;
+  alertsWithFeedbackLast7Days: number;
+  feedbackEngagementRate: number;
 }
 
 interface UserData {
@@ -258,6 +261,18 @@ export default function Admin() {
         });
       }
 
+      // Feedback engagement (last 7 days)
+      const sevenDaysAgo = subDays(new Date(), 7);
+      const alertsLast7 = allTrendAlerts?.filter(a => new Date(a.created_at) >= sevenDaysAgo) || [];
+      const totalAlertsLast7Days = alertsLast7.length;
+      const alertIdsLast7 = new Set(alertsLast7.map(a => a.id));
+      const alertsWithFeedbackLast7Days = new Set(
+        Object.keys(feedbackMap).map(Number).filter(id => alertIdsLast7.has(id))
+      ).size;
+      const feedbackEngagementRate = totalAlertsLast7Days > 0
+        ? (alertsWithFeedbackLast7Days / totalAlertsLast7Days) * 100
+        : 0;
+
       // Children count
       const { count: childrenCount } = await supabase
         .from("children")
@@ -289,6 +304,9 @@ export default function Admin() {
         messagesScannedToday,
         alertsSentToday: totalAlertsToday,
         feedbackTrend,
+        totalAlertsLast7Days,
+        alertsWithFeedbackLast7Days,
+        feedbackEngagementRate,
       });
     } catch (error) {
       console.error("Error fetching overview stats:", error);
