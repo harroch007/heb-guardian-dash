@@ -137,6 +137,52 @@ export type Database = {
           },
         ]
       }
+      alert_feedback: {
+        Row: {
+          alert_id: number
+          created_at: string
+          feedback_type: string
+          id: string
+          parent_id: string
+        }
+        Insert: {
+          alert_id: number
+          created_at?: string
+          feedback_type: string
+          id?: string
+          parent_id: string
+        }
+        Update: {
+          alert_id?: number
+          created_at?: string
+          feedback_type?: string
+          id?: string
+          parent_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alert_feedback_alert_id_fkey"
+            columns: ["alert_id"]
+            isOneToOne: false
+            referencedRelation: "alerts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alert_feedback_alert_id_fkey"
+            columns: ["alert_id"]
+            isOneToOne: false
+            referencedRelation: "parent_alerts_effective"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alert_feedback_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "parents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       alerts: {
         Row: {
           acknowledged_at: string | null

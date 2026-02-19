@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import { AlertFeedback } from "./AlertFeedback";
 
 interface SocialContext {
   label: string;
@@ -44,11 +45,14 @@ interface AlertCardStackProps {
   onAcknowledge: (id: number) => void;
   onSave?: (id: number) => void;
   isSavedView?: boolean;
+  parentId?: string | null;
+  feedbackMap?: Record<number, 'important' | 'not_relevant'>;
+  onFeedbackChange?: (alertId: number, feedback: 'important' | 'not_relevant') => void;
 }
 
 const SWIPE_THRESHOLD = 80;
 
-export function AlertCardStack({ alerts, onAcknowledge, onSave, isSavedView = false }: AlertCardStackProps) {
+export function AlertCardStack({ alerts, onAcknowledge, onSave, isSavedView = false, parentId, feedbackMap, onFeedbackChange }: AlertCardStackProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [exitDirection, setExitDirection] = useState<'up' | null>(null);
 
@@ -249,8 +253,18 @@ export function AlertCardStack({ alerts, onAcknowledge, onSave, isSavedView = fa
                   )}
                 </div>
 
-                {/* Footer with acknowledge button */}
+                {/* Footer with feedback + acknowledge button */}
                 <div className="p-4 border-t border-border/30 space-y-3">
+                  {/* Feedback buttons */}
+                  {parentId && (
+                    <AlertFeedback
+                      alertId={currentAlert.id}
+                      parentId={parentId}
+                      existingFeedback={feedbackMap?.[currentAlert.id] ?? null}
+                      onFeedbackChange={onFeedbackChange}
+                    />
+                  )}
+
                   <Button
                     onClick={handleAcknowledge}
                     className="w-full py-6 text-base font-medium bg-primary hover:bg-primary/90"
