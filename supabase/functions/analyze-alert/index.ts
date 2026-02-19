@@ -109,17 +109,372 @@ FINAL OUTPUT - Return JSON ONLY with these fields:
   "recommendation": "<Hebrew, non-empty ONLY if verdict is not 'safe'; otherwise ''>"
 }`;
 
+// ─── Shared analysis pipeline ───────────────────────────────────────────────
+// Used by both queue mode and legacy/HMAC modes.
+// Fetches the alert, runs OpenAI, updates DB, sends push notification.
+// Returns summary object on success; throws on error.
+async function processAlert(
+  supabase: ReturnType<typeof createClient>,
+  alertId: number,
+  openAIApiKey: string,
+  supabaseUrl: string,
+  supabaseServiceKey: string,
+): Promise<Record<string, unknown>> {
+  // 1. Fetch alert
+  const { data: alert, error: fetchError } = await supabase
+    .from('alerts')
+    .select('*')
+    .eq('id', alertId)
+    .single();
+
+  if (fetchError || !alert) {
+    throw new Error(`Alert not found: ${alertId}`);
+  }
+
+  const content: string | null = alert.content;
+  const deviceId: string | null = alert.device_id;
+  const isProcessed: boolean = alert.is_processed || false;
+
+  if (isProcessed) {
+    console.log(`Alert ${alertId} already processed, skipping`);
+    return { message: 'Already processed', alert_id: alertId };
+  }
+
+  if (!content) {
+    console.log(`Alert ${alertId} has no content, skipping`);
+    return { message: 'No content to analyze', alert_id: alertId };
+  }
+
+  console.log(`Analyzing alert ${alertId} with content:`, content.substring(0, 200));
+
+  // 2. Fetch child info for anonymous training data
+  let childAge: number | null = null;
+  let childGender: string | null = null;
+
+  if (deviceId) {
+    const { data: deviceData, error: deviceError } = await supabase
+      .from('devices')
+      .select('child_id')
+      .eq('device_id', deviceId)
+      .single();
+
+    if (deviceError) {
+      console.log(`Device lookup failed: ${deviceError.message}`);
+    } else if (deviceData?.child_id) {
+      const { data: childData } = await supabase
+        .from('children')
+        .select('date_of_birth, gender')
+        .eq('id', deviceData.child_id)
+        .single();
+
+      if (childData) {
+        const birthDate = new Date(childData.date_of_birth);
+        const now = new Date();
+        childAge = Math.floor((now.getTime() - birthDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25));
+        childGender = childData.gender;
+        console.log(`Child context: age=${childAge}, gender=${childGender}`);
+      }
+    }
+  }
+
+  // 3. Call OpenAI
+  const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${openAIApiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: `Analyze this message content:\n\n${content}` }
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.3,
+      max_tokens: 1500,
+    }),
+  });
+
+  if (!openAIResponse.ok) {
+    const errorText = await openAIResponse.text();
+    console.error('OpenAI API error:', openAIResponse.status, errorText);
+    throw new Error(`OpenAI API error: ${openAIResponse.status}`);
+  }
+
+  const openAIData = await openAIResponse.json();
+  const aiContent = openAIData.choices?.[0]?.message?.content;
+  if (!aiContent) {
+    throw new Error('No content in OpenAI response');
+  }
+
+  const aiResult = JSON.parse(aiContent);
+  console.log('Parsed AI result:', JSON.stringify(aiResult, null, 2));
+
+  // 4. Copy to anonymous training_dataset
+  const { error: trainingError } = await supabase
+    .from('training_dataset')
+    .insert({
+      age_at_incident: childAge,
+      gender: childGender,
+      raw_text: content,
+      ai_verdict: aiResult,
+    });
+
+  if (trainingError) {
+    console.error('Training dataset insert error:', trainingError);
+  }
+
+  // 5. Build title
+  const { data: alertRecord } = await supabase
+    .from('alerts')
+    .select('chat_name, chat_type')
+    .eq('id', alertId)
+    .single();
+
+  let chatName = alertRecord?.chat_name || 'איש קשר';
+  chatName = chatName
+    .replace(/\s*\(\d+\s*הודעות?\)\s*$/i, '')
+    .replace(/\s*\(\d+\s*messages?\)\s*$/i, '')
+    .trim();
+
+  const chatType = alertRecord?.chat_type;
+  const isGroupChat = chatType === 'GROUP';
+
+  let finalTitle: string;
+  const titlePrefix = aiResult.title_prefix || 'שיחה';
+
+  if (isGroupChat) {
+    finalTitle = `${titlePrefix} בקבוצה ${chatName}`;
+  } else {
+    finalTitle = `שיחה פרטית עם ${chatName}`;
+  }
+
+  console.log(`Built title: "${finalTitle}" from prefix: "${titlePrefix}", chatType: ${chatType}, isGroup: ${isGroupChat}, chatName: "${chatName}"`);
+
+  // 6. Clean social_context
+  let cleanedSocialContext = aiResult.social_context;
+
+  if (!isGroupChat) {
+    cleanedSocialContext = null;
+  } else if (cleanedSocialContext?.participants) {
+    cleanedSocialContext.participants = cleanedSocialContext.participants
+      .filter((p: string) =>
+        p &&
+        typeof p === 'string' &&
+        !p.includes('<') &&
+        !p.includes('>') &&
+        p.toUpperCase() !== 'ME' &&
+        p.toUpperCase() !== 'NAME'
+      );
+
+    if (cleanedSocialContext.participants.length === 0) {
+      cleanedSocialContext = null;
+    }
+  }
+
+  // 7. Update alert in DB (wipe content for privacy)
+  const updateData = {
+    ai_summary: aiResult.summary || null,
+    ai_recommendation: aiResult.recommendation || null,
+    ai_risk_score: typeof aiResult.risk_score === 'number' ? aiResult.risk_score : null,
+    ai_verdict: aiResult.verdict || null,
+    ai_title: finalTitle,
+    ai_context: aiResult.context || null,
+    ai_meaning: aiResult.meaning || null,
+    ai_social_context: cleanedSocialContext,
+    is_processed: true,
+    content: '[CONTENT DELETED FOR PRIVACY]',
+    analyzed_at: new Date().toISOString(),
+    source: 'edge_analyze_alert',
+  };
+
+  const { error: updateError } = await supabase
+    .from('alerts')
+    .update(updateData)
+    .eq('id', alertId);
+
+  if (updateError) {
+    throw new Error(`Failed to update alert: ${updateError.message}`);
+  }
+
+  console.log(`ANALYZE_ALERT_OK alert_id=${alertId}`);
+
+  // 8. Send push notification if verdict is notify or review
+  if (aiResult.verdict === 'notify' || aiResult.verdict === 'review') {
+    try {
+      const { data: alertData } = await supabase
+        .from('alerts')
+        .select('child_id')
+        .eq('id', alertId)
+        .single();
+
+      if (alertData?.child_id) {
+        const { data: childData } = await supabase
+          .from('children')
+          .select('parent_id, name')
+          .eq('id', alertData.child_id)
+          .single();
+
+        if (childData?.parent_id) {
+          console.log(`Sending push notification to parent ${childData.parent_id}`);
+
+          const pushResponse = await fetch(
+            `${supabaseUrl}/functions/v1/send-push-notification`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${supabaseServiceKey}`,
+              },
+              body: JSON.stringify({
+                parent_id: childData.parent_id,
+                title: updateData.ai_title || 'התראה חדשה מ-Kippy',
+                body: updateData.ai_summary || 'נמצא תוכן שדורש את תשומת לבך',
+                url: '/alerts',
+                alert_id: alertId,
+                child_name: childData.name,
+              }),
+            }
+          );
+
+          const pushResult = await pushResponse.json();
+          console.log('Push notification result:', pushResult);
+        }
+      }
+    } catch (pushError) {
+      console.error('Push notification error (non-fatal):', pushError);
+    }
+  }
+
+  return {
+    success: true,
+    alert_id: alertId,
+    ai_summary: updateData.ai_summary,
+    ai_recommendation: updateData.ai_recommendation,
+    ai_risk_score: updateData.ai_risk_score,
+    ai_verdict: updateData.ai_verdict,
+    privacy: 'content_wiped',
+  };
+}
+
+// ─── Main handler ───────────────────────────────────────────────────────────
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   const rawBody = await req.text();
+
+  // Parse body safely – empty body is valid (queue mode)
+  let body: Record<string, unknown> = {};
+  if (rawBody && rawBody.trim()) {
+    try {
+      body = JSON.parse(rawBody);
+    } catch {
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // QUEUE MODE – empty body, empty object, or { mode: 'queue' }
+  // ═══════════════════════════════════════════════════════════════════════════
+  const isQueueMode =
+    !rawBody ||
+    !rawBody.trim() ||
+    Object.keys(body).length === 0 ||
+    body.mode === 'queue';
+
+  if (isQueueMode) {
+    console.log('QUEUE_MODE: Entering queue worker mode');
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+
+    if (!supabaseUrl || !supabaseServiceKey || !openAIApiKey) {
+      return new Response(
+        JSON.stringify({ error: 'Server misconfiguration: missing env vars' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Claim one pending job
+    const { data: jobs, error: claimError } = await supabase.rpc('claim_alert_events', {
+      _event_type: 'ai_analyze',
+      _limit: 1,
+      _lease_seconds: 60,
+    });
+
+    if (claimError) {
+      console.error('QUEUE_MODE: claim_alert_events RPC error:', claimError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to claim job', detail: claimError.message }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!jobs || jobs.length === 0) {
+      console.log('QUEUE_MODE: No pending jobs');
+      return new Response(
+        JSON.stringify({ status: 'no_jobs' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const job = jobs[0];
+    const queueId = job.id;
+    const alertId = job.alert_id;
+    console.log(`QUEUE_MODE: Claimed job ${queueId} for alert_id=${alertId}, attempt=${job.attempt}`);
+
+    try {
+      const result = await processAlert(supabase, alertId, openAIApiKey, supabaseUrl, supabaseServiceKey);
+
+      // Mark queue job as succeeded
+      await supabase
+        .from('alert_events_queue')
+        .update({ status: 'succeeded', last_error: null, updated_at: new Date().toISOString() })
+        .eq('id', queueId);
+
+      console.log(`QUEUE_MODE: Job ${queueId} succeeded for alert_id=${alertId}`);
+      return new Response(
+        JSON.stringify({ status: 'succeeded', alert_id: alertId, ...result }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    } catch (err) {
+      const errMsg = String(err).slice(0, 400);
+      console.error(`QUEUE_MODE: Job ${queueId} failed for alert_id=${alertId}: ${errMsg}`);
+
+      // Mark queue job as failed
+      await supabase
+        .from('alert_events_queue')
+        .update({ status: 'failed', last_error: errMsg, updated_at: new Date().toISOString() })
+        .eq('id', queueId);
+
+      // Also update the alert's processing status
+      await supabase
+        .from('alerts')
+        .update({ processing_status: 'failed', last_error: errMsg })
+        .eq('id', alertId);
+
+      return new Response(
+        JSON.stringify({ status: 'failed', error: errMsg, alert_id: alertId }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // LEGACY MODES – webhook (INSERT) and direct HMAC call (alert_id)
+  // ═══════════════════════════════════════════════════════════════════════════
   let alertId: number | undefined;
 
   try {
-    // === HMAC SIGNATURE VERIFICATION ===
     const webhookSecret = Deno.env.get('KIPPY_WEBHOOK_SECRET');
     if (!webhookSecret) {
       console.error('ANALYZE_ALERT_FAIL reason=KIPPY_WEBHOOK_SECRET_NOT_CONFIGURED');
@@ -130,23 +485,21 @@ serve(async (req) => {
     }
 
     const signature = req.headers.get('X-Kippy-Signature');
-    const body = JSON.parse(rawBody);
-    console.log('Received payload:', JSON.stringify(body, null, 2));
 
-    // Handle both webhook format and direct call format
     let content: string | null = null;
-    let isProcessed: boolean = false;
+    let isProcessed = false;
     let deviceId: string | null = null;
 
     if (body.type === 'INSERT' && body.record) {
-      // Database webhook format (legacy - still supported for transition)
-      alertId = body.record.id;
-      content = body.record.content;
-      isProcessed = body.record.is_processed || false;
-      deviceId = body.record.device_id;
+      // Database webhook format (legacy)
+      const record = body.record as Record<string, unknown>;
+      alertId = record.id as number;
+      content = record.content as string | null;
+      isProcessed = (record.is_processed as boolean) || false;
+      deviceId = record.device_id as string | null;
     } else if (body.alert_id) {
-      // Direct call format with HMAC (new secure method)
-      alertId = body.alert_id;
+      // Direct call format with HMAC
+      alertId = body.alert_id as number;
     } else {
       console.error('ANALYZE_ALERT_FAIL reason=INVALID_REQUEST_FORMAT');
       return new Response(
@@ -155,9 +508,8 @@ serve(async (req) => {
       );
     }
 
-    // For HMAC-authenticated requests (has signature header)
+    // HMAC verification
     if (signature) {
-      // Compute HMAC-SHA256 over alert_id STRING only
       const encoder = new TextEncoder();
       const key = await crypto.subtle.importKey(
         'raw',
@@ -172,7 +524,6 @@ serve(async (req) => {
         .map(b => b.toString(16).padStart(2, '0'))
         .join('');
 
-      // Constant-time comparison
       if (signature.length !== expectedSignature.length) {
         console.error(`ANALYZE_ALERT_FAIL alert_id=${alertId} reason=INVALID_SIGNATURE_LENGTH`);
         return new Response(
@@ -196,39 +547,7 @@ serve(async (req) => {
       console.log(`Signature verified for alert_id=${alertId}`);
     }
 
-    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-
-    if (!openAIApiKey) {
-      throw new Error('OPENAI_API_KEY is not configured');
-    }
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      throw new Error('Supabase credentials are not configured');
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // For HMAC-authenticated requests, fetch alert from database
-    if (body.alert_id && !body.record) {
-      const { data: alert, error: fetchError } = await supabase
-        .from('alerts')
-        .select('*')
-        .eq('id', alertId)
-        .single();
-
-      if (fetchError || !alert) {
-        console.error(`ANALYZE_ALERT_FAIL alert_id=${alertId} reason=ALERT_NOT_FOUND`);
-        throw new Error(`Alert not found: ${alertId}`);
-      }
-
-      content = alert.content;
-      deviceId = alert.device_id;
-      isProcessed = alert.is_processed;
-    }
-
-    // Skip if already processed (only for webhooks, not re-analyze)
+    // For legacy webhook INSERT with already-processed check
     if (isProcessed && body.type === 'INSERT') {
       console.log(`Alert ${alertId} already processed, skipping`);
       return new Response(
@@ -237,265 +556,20 @@ serve(async (req) => {
       );
     }
 
-    if (!content) {
-      console.log(`Alert ${alertId} has no content, skipping`);
-      return new Response(
-        JSON.stringify({ message: 'No content to analyze' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-    console.log(`Analyzing alert ${alertId} with content:`, content.substring(0, 200));
+    if (!openAIApiKey) throw new Error('OPENAI_API_KEY is not configured');
+    if (!supabaseUrl || !supabaseServiceKey) throw new Error('Supabase credentials are not configured');
 
-    // PRIVACY STEP 1: Fetch child info for anonymous training data (before analysis)
-    let childAge: number | null = null;
-    let childGender: string | null = null;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    if (deviceId) {
-      console.log(`Looking up child info for device_id: ${deviceId}`);
-      const { data: deviceData, error: deviceError } = await supabase
-        .from('devices')
-        .select('child_id')
-        .eq('device_id', deviceId)
-        .single();
-
-      if (deviceError) {
-        console.log(`Device lookup failed: ${deviceError.message}`);
-      } else if (deviceData?.child_id) {
-        console.log(`Found child_id: ${deviceData.child_id}`);
-        const { data: childData } = await supabase
-          .from('children')
-          .select('date_of_birth, gender')
-          .eq('id', deviceData.child_id)
-          .single();
-
-        if (childData) {
-          // Calculate age at incident
-          const birthDate = new Date(childData.date_of_birth);
-          const now = new Date();
-          childAge = Math.floor((now.getTime() - birthDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25));
-          childGender = childData.gender;
-          console.log(`Child context: age=${childAge}, gender=${childGender}`);
-        }
-      } else {
-        console.log('No child linked to this device');
-      }
-    } else {
-      console.log('No device_id provided - child context unavailable');
-    }
-
-    // Call OpenAI API with JSON mode
-    const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
-          { role: 'user', content: `Analyze this message content:\n\n${content}` }
-        ],
-        response_format: { type: 'json_object' },
-        temperature: 0.3,
-        max_tokens: 1500,
-      }),
-    });
-
-    if (!openAIResponse.ok) {
-      const errorText = await openAIResponse.text();
-      console.error('OpenAI API error:', openAIResponse.status, errorText);
-      throw new Error(`OpenAI API error: ${openAIResponse.status}`);
-    }
-
-    const openAIData = await openAIResponse.json();
-    console.log('OpenAI response:', JSON.stringify(openAIData, null, 2));
-
-    const aiContent = openAIData.choices?.[0]?.message?.content;
-    if (!aiContent) {
-      throw new Error('No content in OpenAI response');
-    }
-
-    // Parse AI response
-    const aiResult = JSON.parse(aiContent);
-    console.log('Parsed AI result:', JSON.stringify(aiResult, null, 2));
-
-    // PRIVACY STEP 2: Copy to anonymous training_dataset BEFORE wiping
-    // This table has NO user linkage (no child_id, parent_id, device_id)
-    const { error: trainingError } = await supabase
-      .from('training_dataset')
-      .insert({
-        age_at_incident: childAge,
-        gender: childGender,
-        raw_text: content, // Store raw text only in training table
-        ai_verdict: aiResult, // Store full AI response as JSONB
-      });
-
-    if (trainingError) {
-      console.error('Training dataset insert error:', trainingError);
-      // Don't fail the whole process, just log it
-    } else {
-      console.log('Successfully copied to anonymous training_dataset');
-    }
-
-    // Fetch the alert record to get chat_name AND chat_type for building the title
-    const { data: alertRecord } = await supabase
-      .from('alerts')
-      .select('chat_name, chat_type')
-      .eq('id', alertId)
-      .single();
-
-    // Clean up chat name - remove "(X הודעות)" or "(X messages)" suffixes
-    let chatName = alertRecord?.chat_name || 'איש קשר';
-    chatName = chatName
-      .replace(/\s*\(\d+\s*הודעות?\)\s*$/i, '')  // Hebrew: (2 הודעות)
-      .replace(/\s*\(\d+\s*messages?\)\s*$/i, '') // English: (2 messages)
-      .trim();
-    
-    const chatType = alertRecord?.chat_type; // "PRIVATE" or "GROUP" from database
-
-    // Use REAL chat_type from database, NOT AI's guess
-    const isGroupChat = chatType === 'GROUP';
-
-    // Build the full title using AI prefix + real chat_name + REAL chat_type
-    let finalTitle: string;
-    const titlePrefix = aiResult.title_prefix || 'שיחה';
-
-    if (isGroupChat) {
-      finalTitle = `${titlePrefix} בקבוצה ${chatName}`;
-    } else {
-      // Private chat - always use "שיחה פרטית עם"
-      finalTitle = `שיחה פרטית עם ${chatName}`;
-    }
-
-    console.log(`Built title: "${finalTitle}" from prefix: "${titlePrefix}", chatType: ${chatType}, isGroup: ${isGroupChat}, chatName: "${chatName}"`);
-
-    // Clean social_context: nullify for private chats, filter placeholders for groups
-    let cleanedSocialContext = aiResult.social_context;
-
-    if (!isGroupChat) {
-      // Private chats should never have social_context
-      cleanedSocialContext = null;
-    } else if (cleanedSocialContext?.participants) {
-      // Clean placeholders from group chat participants
-      cleanedSocialContext.participants = cleanedSocialContext.participants
-        .filter((p: string) => 
-          p && 
-          typeof p === 'string' &&
-          !p.includes('<') && 
-          !p.includes('>') && 
-          p.toUpperCase() !== 'ME' &&
-          p.toUpperCase() !== 'NAME'
-        );
-      
-      // If no valid participants left, null out the whole thing
-      if (cleanedSocialContext.participants.length === 0) {
-        cleanedSocialContext = null;
-      }
-    }
-
-    // Map AI output fields to database columns:
-    // AI `summary` -> DB `ai_summary`
-    // AI `recommendation` -> DB `ai_recommendation`
-    // AI `risk_score` -> DB `ai_risk_score`
-    // AI `verdict` -> DB `ai_verdict`
-    // Built `finalTitle` -> DB `ai_title`
-    // AI `context` -> DB `ai_context`
-    // AI `meaning` -> DB `ai_meaning`
-    // AI `social_context` -> DB `ai_social_context`
-    // PRIVACY STEP 3: Wipe content after analysis
-    const updateData = {
-      ai_summary: aiResult.summary || null,
-      ai_recommendation: aiResult.recommendation || null,
-      ai_risk_score: typeof aiResult.risk_score === 'number' ? aiResult.risk_score : null,
-      ai_verdict: aiResult.verdict || null,
-      ai_title: finalTitle, // Use built title with real name
-      ai_context: aiResult.context || null,
-      ai_meaning: aiResult.meaning || null,
-      ai_social_context: cleanedSocialContext, // Cleaned, not raw AI output
-      is_processed: true,
-      content: '[CONTENT DELETED FOR PRIVACY]', // WIPE raw content!
-      analyzed_at: new Date().toISOString(),
-      source: 'edge_analyze_alert',
-    };
-
-    console.log(`Updating alert ${alertId} with privacy wipe:`, JSON.stringify(updateData, null, 2));
-
-    // Update the alert in database
-    const { error: updateError } = await supabase
-      .from('alerts')
-      .update(updateData)
-      .eq('id', alertId);
-
-    if (updateError) {
-      console.error('Database update error:', updateError);
-      throw new Error(`Failed to update alert: ${updateError.message}`);
-    }
-
-    console.log(`ANALYZE_ALERT_OK alert_id=${alertId}`);
-
-    // Send push notification if verdict is notify or review
-    if (aiResult.verdict === 'notify' || aiResult.verdict === 'review') {
-      try {
-        // Get child_id from the alert we already fetched
-        const { data: alertData } = await supabase
-          .from('alerts')
-          .select('child_id')
-          .eq('id', alertId)
-          .single();
-
-        if (alertData?.child_id) {
-          // Get parent_id and child name
-          const { data: childData } = await supabase
-            .from('children')
-            .select('parent_id, name')
-            .eq('id', alertData.child_id)
-            .single();
-
-          if (childData?.parent_id) {
-            console.log(`Sending push notification to parent ${childData.parent_id}`);
-            
-            // Call the send-push-notification function
-            const pushResponse = await fetch(
-              `${supabaseUrl}/functions/v1/send-push-notification`,
-              {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${supabaseServiceKey}`,
-                },
-                body: JSON.stringify({
-                  parent_id: childData.parent_id,
-                  title: updateData.ai_title || 'התראה חדשה מ-Kippy',
-                  body: updateData.ai_summary || 'נמצא תוכן שדורש את תשומת לבך',
-                  url: '/alerts',
-                  alert_id: alertId,
-                  child_name: childData.name,
-                }),
-              }
-            );
-
-            const pushResult = await pushResponse.json();
-            console.log('Push notification result:', pushResult);
-          }
-        }
-      } catch (pushError) {
-        // Don't fail the whole analysis if push fails
-        console.error('Push notification error (non-fatal):', pushError);
-      }
-    }
+    // Use the shared processAlert helper
+    const result = await processAlert(supabase, alertId!, openAIApiKey, supabaseUrl, supabaseServiceKey);
 
     return new Response(
-      JSON.stringify({
-        success: true,
-        alert_id: alertId,
-        ai_summary: updateData.ai_summary,
-        ai_recommendation: updateData.ai_recommendation,
-        ai_risk_score: updateData.ai_risk_score,
-        ai_verdict: updateData.ai_verdict,
-        privacy: 'content_wiped'
-      }),
+      JSON.stringify(result),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 

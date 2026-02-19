@@ -83,6 +83,60 @@ export type Database = {
           },
         ]
       }
+      alert_events_queue: {
+        Row: {
+          alert_id: number
+          attempt: number
+          created_at: string
+          event_type: string
+          id: string
+          last_error: string | null
+          max_attempts: number
+          status: string
+          updated_at: string
+          visible_at: string
+        }
+        Insert: {
+          alert_id: number
+          attempt?: number
+          created_at?: string
+          event_type: string
+          id?: string
+          last_error?: string | null
+          max_attempts?: number
+          status?: string
+          updated_at?: string
+          visible_at?: string
+        }
+        Update: {
+          alert_id?: number
+          attempt?: number
+          created_at?: string
+          event_type?: string
+          id?: string
+          last_error?: string | null
+          max_attempts?: number
+          status?: string
+          updated_at?: string
+          visible_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alert_events_queue_alert_id_fkey"
+            columns: ["alert_id"]
+            isOneToOne: false
+            referencedRelation: "alerts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alert_events_queue_alert_id_fkey"
+            columns: ["alert_id"]
+            isOneToOne: false
+            referencedRelation: "parent_alerts_effective"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       alerts: {
         Row: {
           acknowledged_at: string | null
@@ -115,9 +169,13 @@ export type Database = {
           expert_type: string | null
           id: number
           is_processed: boolean | null
+          last_attempt_at: string | null
+          last_error: string | null
           message_count: number | null
           parent_message: string | null
+          processing_status: string | null
           remind_at: string | null
+          retry_count: number | null
           risk_score: number | null
           saved_at: string | null
           sender: string | null
@@ -158,9 +216,13 @@ export type Database = {
           expert_type?: string | null
           id?: number
           is_processed?: boolean | null
+          last_attempt_at?: string | null
+          last_error?: string | null
           message_count?: number | null
           parent_message?: string | null
+          processing_status?: string | null
           remind_at?: string | null
+          retry_count?: number | null
           risk_score?: number | null
           saved_at?: string | null
           sender?: string | null
@@ -201,9 +263,13 @@ export type Database = {
           expert_type?: string | null
           id?: number
           is_processed?: boolean | null
+          last_attempt_at?: string | null
+          last_error?: string | null
           message_count?: number | null
           parent_message?: string | null
+          processing_status?: string | null
           remind_at?: string | null
+          retry_count?: number | null
           risk_score?: number | null
           saved_at?: string | null
           sender?: string | null
@@ -1257,6 +1323,27 @@ export type Database = {
         Returns: Json
       }
       check_unresponsive_devices: { Args: never; Returns: undefined }
+      claim_alert_events: {
+        Args: { _event_type: string; _lease_seconds?: number; _limit?: number }
+        Returns: {
+          alert_id: number
+          attempt: number
+          created_at: string
+          event_type: string
+          id: string
+          last_error: string | null
+          max_attempts: number
+          status: string
+          updated_at: string
+          visible_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "alert_events_queue"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       cleanup_old_data: { Args: never; Returns: Json }
       connect_child_device: {
         Args: {
