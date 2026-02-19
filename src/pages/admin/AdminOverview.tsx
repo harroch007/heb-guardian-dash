@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, Smartphone, Bell, UserPlus, TrendingUp, AlertTriangle, Activity, CheckCircle } from "lucide-react";
+import { Users, Smartphone, Bell, UserPlus, TrendingUp, AlertTriangle, Activity, CheckCircle, MessageSquare, Baby, ThumbsUp, ThumbsDown } from "lucide-react";
 import { PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, BarChart, Bar } from "recharts";
 
 interface OverviewStats {
@@ -14,6 +14,11 @@ interface OverviewStats {
   alertsByVerdict: { name: string; value: number; color: string }[];
   alertsTrend: { date: string; safe: number; review: number; notify: number }[];
   funnel: { stage: string; count: number }[];
+  activeChildrenToday: number;
+  activeParentsThisWeek: number;
+  messagesScannedToday: number;
+  alertsSentToday: number;
+  feedbackTrend: { date: string; total: number; important: number; not_relevant: number }[];
 }
 
 interface AdminOverviewProps {
@@ -38,7 +43,58 @@ export function AdminOverview({ stats, loading }: AdminOverviewProps) {
 
   return (
     <div className="space-y-6">
-      {/* KPIs Grid */}
+      {/* Beta KPIs - New requested cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="border-cyan-500/20">
+          <CardHeader className="pb-2">
+            <CardDescription className="flex items-center gap-2 text-xs">
+              <Baby className="w-3 h-3" />
+              ילדים פעילים היום
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-cyan-500">{stats?.activeChildrenToday || 0}</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-violet-500/20">
+          <CardHeader className="pb-2">
+            <CardDescription className="flex items-center gap-2 text-xs">
+              <Users className="w-3 h-3" />
+              הורים פעילים השבוע
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-violet-500">{stats?.activeParentsThisWeek || 0}</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-blue-500/20">
+          <CardHeader className="pb-2">
+            <CardDescription className="flex items-center gap-2 text-xs">
+              <MessageSquare className="w-3 h-3" />
+              הודעות שנסרקו היום
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-blue-500">{stats?.messagesScannedToday?.toLocaleString() || 0}</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-orange-500/20">
+          <CardHeader className="pb-2">
+            <CardDescription className="flex items-center gap-2 text-xs">
+              <Bell className="w-3 h-3" />
+              התראות שנשלחו היום
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-orange-500">{stats?.alertsSentToday || 0}</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Existing KPIs Grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <Card className="border-primary/20">
           <CardHeader className="pb-2">
@@ -194,11 +250,11 @@ export function AdminOverview({ stats, loading }: AdminOverviewProps) {
           </CardContent>
         </Card>
 
-        {/* Alerts Trend Line Chart */}
+        {/* Alerts Trend Line Chart - 14 days */}
         <Card className="border-primary/20">
           <CardHeader>
             <CardTitle className="text-lg">מגמת התראות</CardTitle>
-            <CardDescription>7 ימים אחרונים</CardDescription>
+            <CardDescription>14 ימים אחרונים</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="h-[250px]">
@@ -218,6 +274,33 @@ export function AdminOverview({ stats, loading }: AdminOverviewProps) {
           </CardContent>
         </Card>
       </div>
+
+      {/* Feedback Trend Chart - 14 days */}
+      <Card className="border-primary/20">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <ThumbsUp className="w-5 h-5" />
+            משוב הורים על התראות
+          </CardTitle>
+          <CardDescription>14 ימים אחרונים – סה"כ התראות מול משוב רלוונטי / לא רלוונטי</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={stats?.feedbackTrend || []}>
+                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                <XAxis dataKey="date" fontSize={12} />
+                <YAxis fontSize={12} />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="total" fill="hsl(var(--muted-foreground))" name="סה״כ התראות" opacity={0.3} />
+                <Bar dataKey="important" fill="#22c55e" name="רלוונטי" />
+                <Bar dataKey="not_relevant" fill="#ef4444" name="לא רלוונטי" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
