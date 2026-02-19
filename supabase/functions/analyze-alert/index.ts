@@ -231,6 +231,7 @@ async function processAlert(
   const { error: trainingError } = await supabase
     .from('training_dataset')
     .insert({
+      alert_id: alertId,
       age_at_incident: childAge,
       gender: childGender,
       raw_text: content,
