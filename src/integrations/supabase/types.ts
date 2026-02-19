@@ -1099,6 +1099,7 @@ export type Database = {
         Row: {
           age_at_incident: number | null
           ai_verdict: Json | null
+          alert_id: number | null
           created_at: string
           gender: string | null
           id: string
@@ -1107,6 +1108,7 @@ export type Database = {
         Insert: {
           age_at_incident?: number | null
           ai_verdict?: Json | null
+          alert_id?: number | null
           created_at?: string
           gender?: string | null
           id?: string
@@ -1115,12 +1117,28 @@ export type Database = {
         Update: {
           age_at_incident?: number | null
           ai_verdict?: Json | null
+          alert_id?: number | null
           created_at?: string
           gender?: string | null
           id?: string
           raw_text?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "training_dataset_alert_id_fkey"
+            columns: ["alert_id"]
+            isOneToOne: false
+            referencedRelation: "alerts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_dataset_alert_id_fkey"
+            columns: ["alert_id"]
+            isOneToOne: false
+            referencedRelation: "parent_alerts_effective"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
