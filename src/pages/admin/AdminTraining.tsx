@@ -10,6 +10,7 @@ import { useState } from "react";
 
 interface TrainingStats {
   total: number;
+  systemAlertCount: number;
   byGender: { name: string; value: number }[];
   byAge: { age: string; count: number }[];
   byVerdict: { name: string; value: number; color: string }[];
@@ -44,7 +45,6 @@ const VERDICT_BADGE: Record<string, string> = {
 };
 
 export function AdminTraining({ stats, records, loading }: AdminTrainingProps) {
-  const [showAll, setShowAll] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<TrainingRecord | null>(null);
 
   if (loading) {
@@ -55,8 +55,8 @@ export function AdminTraining({ stats, records, loading }: AdminTrainingProps) {
     );
   }
 
-  const sortedRecords = [...records].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-  const displayRecords = showAll ? sortedRecords : sortedRecords.slice(0, 50);
+  // Records already come sorted and limited to 100 from DB
+  const displayRecords = records;
 
   return (
     <div className="space-y-6">
@@ -123,12 +123,29 @@ export function AdminTraining({ stats, records, loading }: AdminTrainingProps) {
         </Card>
       </div>
 
+      {/* System Alerts Card */}
+      {(stats?.systemAlertCount ?? 0) > 0 && (
+        <Card className="border-yellow-500/30 bg-yellow-500/5">
+          <CardContent className="flex items-center gap-3 py-4">
+            <AlertTriangle className="w-5 h-5 text-yellow-500 shrink-0" />
+            <div>
+              <p className="text-sm font-medium">
+                {stats?.systemAlertCount} התראות מערכת (מכשיר לא מגיב) נמצאו בנתוני האימון
+              </p>
+              <p className="text-xs text-muted-foreground">
+                רשומות אלו סוננו מהטבלה כי הן אינן רשומות אימון אמיתיות
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Records Table */}
       <Card className="border-primary/20">
         <CardHeader>
           <CardTitle className="text-lg">רשומות אימון</CardTitle>
           <CardDescription>
-            {sortedRecords.length} רשומות • {sortedRecords.filter(r => r.alert_id).length} עם קישור להתראה
+            100 רשומות אחרונות • {displayRecords.filter(r => r.alert_id).length} עם קישור להתראה
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -184,14 +201,6 @@ export function AdminTraining({ stats, records, loading }: AdminTrainingProps) {
               </TableBody>
             </Table>
           </div>
-          {sortedRecords.length > 50 && !showAll && (
-            <button
-              onClick={() => setShowAll(true)}
-              className="mt-3 text-sm text-primary hover:underline"
-            >
-              הצג את כל {sortedRecords.length} הרשומות
-            </button>
-          )}
         </CardContent>
       </Card>
 

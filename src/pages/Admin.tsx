@@ -35,6 +35,7 @@ interface TrainingRecord {
 
 interface TrainingStats {
   total: number;
+  systemAlertCount: number;
   byGender: { name: string; value: number }[];
   byAge: { age: string; count: number }[];
   byVerdict: { name: string; value: number; color: string }[];
@@ -405,19 +406,30 @@ export default function Admin() {
     }
   };
 
+  const SYSTEM_ALERT_TEXT = 'המכשיר לא מגיב לבדיקות';
+
   const fetchTrainingStats = async () => {
     try {
-      const { data, error } = await supabase
+      const { data: allData, error: allError } = await supabase
         .from("training_dataset")
         .select("*");
 
-      if (error) {
-        console.error("Error fetching training data:", error);
+      const { data: tableData, error: tableError } = await supabase
+        .from("training_dataset")
+        .select("*")
+        .neq("raw_text", SYSTEM_ALERT_TEXT)
+        .order("created_at", { ascending: false })
+        .limit(100);
+
+      if (allError || tableError) {
+        console.error("Error fetching training data:", allError || tableError);
         return;
       }
 
-      const records = data as TrainingRecord[];
-      setTrainingRecords(records);
+      const allRecords = allData as TrainingRecord[];
+      const systemAlertCount = allRecords.filter(r => r.raw_text === SYSTEM_ALERT_TEXT).length;
+      const records = allRecords.filter(r => r.raw_text !== SYSTEM_ALERT_TEXT);
+      setTrainingRecords(tableData as TrainingRecord[]);
       
       const genderCounts: Record<string, number> = {};
       const ageCounts: Record<string, number> = {};
@@ -463,6 +475,7 @@ export default function Admin() {
 
       setTrainingStats({
         total: records.length,
+        systemAlertCount,
         byGender: Object.entries(genderCounts).map(([name, value]) => ({
           name: GENDER_LABELS[name] || name,
           value,
