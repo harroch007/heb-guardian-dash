@@ -52,6 +52,11 @@ interface OverviewStats {
   alertsByVerdict: { name: string; value: number; color: string }[];
   alertsTrend: { date: string; safe: number; review: number; notify: number }[];
   funnel: { stage: string; count: number }[];
+  activeChildrenToday: number;
+  activeParentsThisWeek: number;
+  messagesScannedToday: number;
+  alertsSentToday: number;
+  feedbackTrend: { date: string; total: number; important: number; not_relevant: number }[];
 }
 
 interface UserData {
@@ -161,26 +166,95 @@ export default function Admin() {
         }
       });
 
-      // Fetch alerts trend (last 7 days)
-      const alertsTrend: { date: string; safe: number; review: number; notify: number }[] = [];
-      for (let i = 6; i >= 0; i--) {
-        const date = subDays(new Date(), i);
-        const startOfDay = new Date(date);
-        startOfDay.setHours(0, 0, 0, 0);
-        const endOfDay = new Date(date);
-        endOfDay.setHours(23, 59, 59, 999);
+      // NEW KPIs: Active children today (distinct children in device_daily_metrics for today)
+      const todayStr = format(new Date(), "yyyy-MM-dd");
+      const { data: metricsToday } = await supabase
+        .from("device_daily_metrics")
+        .select("device_id")
+        .eq("metric_date", todayStr);
+      
+      // Get child_ids from devices for those device_ids
+      const metricDeviceIds = [...new Set(metricsToday?.map(m => m.device_id) || [])];
+      let activeChildrenToday = 0;
+      if (metricDeviceIds.length > 0) {
+        const { data: devicesWithChildren } = await supabase
+          .from("devices")
+          .select("child_id")
+          .in("device_id", metricDeviceIds)
+          .not("child_id", "is", null);
+        activeChildrenToday = new Set(devicesWithChildren?.map(d => d.child_id)).size;
+      }
 
-        const { data: dayAlerts } = await supabase
-          .from("alerts")
-          .select("ai_verdict")
-          .gte("created_at", startOfDay.toISOString())
-          .lte("created_at", endOfDay.toISOString());
+      // Active parents this week (distinct parents with alerts in last 7 days)
+      const weekAgo = subDays(new Date(), 7);
+      const { data: weekAlerts } = await supabase
+        .from("alerts")
+        .select("child_id")
+        .gte("created_at", weekAgo.toISOString())
+        .not("child_id", "is", null);
+      
+      const weekChildIds = [...new Set(weekAlerts?.map(a => a.child_id).filter(Boolean) || [])];
+      let activeParentsThisWeek = 0;
+      if (weekChildIds.length > 0) {
+        const { data: childrenOfWeek } = await supabase
+          .from("children")
+          .select("parent_id")
+          .in("id", weekChildIds);
+        activeParentsThisWeek = new Set(childrenOfWeek?.map(c => c.parent_id)).size;
+      }
+
+      // Messages scanned today
+      const { data: metricsSum } = await supabase
+        .from("device_daily_metrics")
+        .select("messages_scanned")
+        .eq("metric_date", todayStr);
+      const messagesScannedToday = metricsSum?.reduce((sum, m) => sum + (m.messages_scanned || 0), 0) || 0;
+
+      // Fetch alerts trend (last 14 days) + feedback
+      const alertsTrend: { date: string; safe: number; review: number; notify: number }[] = [];
+      const feedbackTrend: { date: string; total: number; important: number; not_relevant: number }[] = [];
+      
+      // Batch fetch: all alerts last 14 days
+      const fourteenDaysAgo = subDays(new Date(), 13);
+      fourteenDaysAgo.setHours(0, 0, 0, 0);
+      
+      const { data: allTrendAlerts } = await supabase
+        .from("alerts")
+        .select("id, ai_verdict, created_at")
+        .gte("created_at", fourteenDaysAgo.toISOString())
+        .order("created_at", { ascending: true });
+
+      // Batch fetch: all feedback for these alerts
+      const trendAlertIds = allTrendAlerts?.map(a => a.id) || [];
+      let feedbackMap: Record<number, string> = {};
+      if (trendAlertIds.length > 0) {
+        const { data: feedbackData } = await supabase
+          .from("alert_feedback")
+          .select("alert_id, feedback_type")
+          .in("alert_id", trendAlertIds);
+        feedbackData?.forEach(f => {
+          feedbackMap[f.alert_id] = f.feedback_type;
+        });
+      }
+
+      for (let i = 13; i >= 0; i--) {
+        const date = subDays(new Date(), i);
+        const dayStr = format(date, "yyyy-MM-dd");
+        const dayAlerts = allTrendAlerts?.filter(a => a.created_at.startsWith(dayStr)) || [];
 
         alertsTrend.push({
           date: format(date, "dd/MM"),
-          safe: dayAlerts?.filter(a => a.ai_verdict === 'safe').length || 0,
-          review: dayAlerts?.filter(a => a.ai_verdict === 'review').length || 0,
-          notify: dayAlerts?.filter(a => a.ai_verdict === 'notify').length || 0,
+          safe: dayAlerts.filter(a => a.ai_verdict === 'safe').length,
+          review: dayAlerts.filter(a => a.ai_verdict === 'review').length,
+          notify: dayAlerts.filter(a => a.ai_verdict === 'notify').length,
+        });
+
+        const dayAlertIds = dayAlerts.map(a => a.id);
+        feedbackTrend.push({
+          date: format(date, "dd/MM"),
+          total: dayAlerts.length,
+          important: dayAlertIds.filter(id => feedbackMap[id] === 'important').length,
+          not_relevant: dayAlertIds.filter(id => feedbackMap[id] === 'not_relevant').length,
         });
       }
 
@@ -210,6 +284,11 @@ export default function Admin() {
           { stage: "חיברו מכשיר", count: devicesCount || 0 },
           { stage: "פעילים היום", count: activeCount || 0 },
         ],
+        activeChildrenToday,
+        activeParentsThisWeek,
+        messagesScannedToday,
+        alertsSentToday: totalAlertsToday,
+        feedbackTrend,
       });
     } catch (error) {
       console.error("Error fetching overview stats:", error);
