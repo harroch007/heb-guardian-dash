@@ -1,49 +1,28 @@
 
-# אנליסט AI לדשבורד הניהול
+## העברת "משפך המרה" לטאב רשימת המתנה
 
-## מה ייבנה
-הטאב "AI Insights" יוחלף באנליסט AI חכם שמנתח את כל הנתונים במערכת ומחזיר תובנות עסקיות למנכ"ל. לחיצה על כפתור "נתח את הנתונים" תשלח את כל המטריקות ל-OpenAI ותקבל בחזרה ניתוח מפורט בעברית.
+### מה ייעשה
+הכרטיס "משפך המרה" (Conversion Funnel) יועבר מטאב "סקירה כללית" לטאב "רשימת המתנה", כי הוא קשור ישירות לנתוני ה-Waitlist ושיעור ההמרה.
 
-## איך זה עובד
+### שינויים טכניים
 
-1. **לחיצה על כפתור** - אוסף את כל הנתונים מה-DB (הנתונים שכבר נטענים בדשבורד + שאילתות נוספות)
-2. **שליחה ל-Edge Function** - מעביר את הנתונים ל-GPT-4o-mini עם System Prompt של "דאטה אנליסט למנכ"ל"
-3. **תצוגת תובנות** - מציג את התשובה בעברית, מעוצבת בכרטיסים
+**קובץ: `src/pages/admin/AdminOverview.tsx`**
+- הסרת בלוק ה-Conversion Funnel (שורות 460-511 בערך)
+- הסרת ה-import של `TrendingUp` אם לא בשימוש אחר
+- הסרת מיפוי `FUNNEL_TAB_MAP` (שורות 59-66) אם לא בשימוש אחר
 
-## אילו נתונים ינותחו
-- מספר הורים רשומים, ילדים, מכשירים מחוברים
-- שיעור המרה מרשימת המתנה
-- Funnel (waitlist -> registered -> child -> device -> active)
-- התראות היום (כמות, סוגים, קריטיות)
-- מגמת התראות 14 יום
-- Feedback engagement rate
-- בריאות תור ההתראות (pending, failed)
-- הודעות שנסרקו היום
-- משתמשים פעילים / לא פעילים
-- משתמשים ללא מכשיר מחובר
+**קובץ: `src/pages/admin/AdminWaitlist.tsx`**
+- הוספת prop חדש `funnel` מסוג `{ stage: string; count: number }[]`
+- הוספת כרטיס "משפך המרה" מעל טבלת רשימת ההמתנה (אותו עיצוב בדיוק - עיגולים עם קווים מחברים + שיעור המרה)
+- הוספת import של `TrendingUp` מ-lucide-react
 
-## פרטים טכניים
-
-### Edge Function חדשה: `supabase/functions/admin-ai-analyst/index.ts`
-- מקבלת JSON עם כל המטריקות מהקליינט
-- מוודאת שהקורא הוא אדמין (בדיקת JWT + user_roles)
-- שולחת ל-OpenAI GPT-4o-mini עם System Prompt:
-  - "אתה דאטה אנליסט בכיר בחברת סטארטאפ. תפקידך לנתח נתונים ולתת תובנות עסקיות למנכ"ל בעברית."
-  - הנחיות: זהה מגמות, חריגות, הזדמנויות, סיכונים, והמלצות לפעולה
-- מחזיר תשובה כ-JSON מובנה (כותרת ראשית, רשימת תובנות, המלצות)
-- משתמש ב-`OPENAI_API_KEY` שכבר מוגדר
-
-### קומפוננטה חדשה: `src/pages/admin/AdminAIAnalyst.tsx`
-- מחליפה את `AdminInsightStats`
-- כפתור "נתח את הנתונים" (עם אנימציית טעינה)
-- מציגה תובנות בכרטיסים מעוצבים לפי קטגוריה
-- מציגה את התשובה ב-Markdown
-- מקבלת את `overviewStats`, `users`, `waitlist` כ-props
-
-### שינויים ב-`src/pages/Admin.tsx`
-- החלפת import של `AdminInsightStats` ב-`AdminAIAnalyst`
-- העברת הנתונים הקיימים לקומפוננטה החדשה
-- שינוי שם הטאב ל-"אנליסט AI"
-
-### הוספה ל-`supabase/config.toml`
-- הגדרת `[functions.admin-ai-analyst]` עם `verify_jwt = false`
+**קובץ: `src/pages/Admin.tsx`**
+- העברת `funnel` data מ-`overviewStats` ל-`AdminWaitlist`:
+  ```
+  <AdminWaitlist
+    entries={waitlist}
+    loading={loading}
+    onRefresh={fetchWaitlist}
+    funnel={overviewStats?.funnel || []}
+  />
+  ```
