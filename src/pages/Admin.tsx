@@ -667,7 +667,7 @@ export default function Admin() {
         </TabsContent>
 
         <TabsContent value="waitlist">
-          <AdminWaitlist entries={waitlist} loading={loading} onRefresh={fetchWaitlist} />
+          <AdminWaitlist entries={waitlist} loading={loading} onRefresh={fetchWaitlist} funnel={overviewStats?.funnel || []} />
         </TabsContent>
 
         <TabsContent value="insights">

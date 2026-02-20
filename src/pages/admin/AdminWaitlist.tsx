@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UserPlus, Search, Smartphone, CheckCircle, Loader2 } from "lucide-react";
+import { UserPlus, Search, Smartphone, CheckCircle, Loader2, TrendingUp } from "lucide-react";
 import { format } from "date-fns";
 import { he } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,9 +28,10 @@ interface AdminWaitlistProps {
   entries: WaitlistEntry[];
   loading: boolean;
   onRefresh: () => void;
+  funnel?: { stage: string; count: number }[];
 }
 
-export function AdminWaitlist({ entries, loading, onRefresh }: AdminWaitlistProps) {
+export function AdminWaitlist({ entries, loading, onRefresh, funnel }: AdminWaitlistProps) {
   const [search, setSearch] = useState("");
   const [deviceFilter, setDeviceFilter] = useState<string>("all");
   const [approvingId, setApprovingId] = useState<string | null>(null);
@@ -99,6 +100,55 @@ export function AdminWaitlist({ entries, loading, onRefresh }: AdminWaitlistProp
 
   return (
     <div className="space-y-4">
+      {/* Conversion Funnel */}
+      {funnel && funnel.length > 0 && (
+        <Card className="border-primary/20">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <TrendingUp className="w-5 h-5" />
+              משפך המרה
+            </CardTitle>
+            <CardDescription>מרשימת המתנה ועד משתמש פעיל</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between gap-2 overflow-x-auto pb-4">
+              {funnel.map((stage, index) => (
+                <div key={stage.stage} className="flex items-center">
+                  <div className="flex flex-col items-center min-w-[100px]">
+                    <div 
+                      className="w-16 h-16 rounded-full flex items-center justify-center text-lg font-bold"
+                      style={{
+                        backgroundColor: `hsl(var(--primary) / ${0.2 + (index * 0.2)})`,
+                        borderColor: `hsl(var(--primary))`,
+                        borderWidth: '2px'
+                      }}
+                    >
+                      {stage.count}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2 text-center">{stage.stage}</p>
+                  </div>
+                  {index < funnel.length - 1 && (
+                    <div className="w-8 h-0.5 bg-primary/30 mx-2" />
+                  )}
+                </div>
+              ))}
+            </div>
+            {funnel.length > 1 && (
+              <div className="mt-4 p-3 bg-muted/50 rounded-lg">
+                <p className="text-sm text-muted-foreground">
+                  שיעור המרה מ-Waitlist להרשמה:{" "}
+                  <span className="font-bold text-primary">
+                    {funnel[0].count > 0 
+                      ? ((funnel[1].count / funnel[0].count) * 100).toFixed(1) 
+                      : 0}%
+                  </span>
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Stats Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="border-primary/20">
