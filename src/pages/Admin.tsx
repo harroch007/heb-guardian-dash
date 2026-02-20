@@ -9,7 +9,7 @@ import { AdminOverview } from "./admin/AdminOverview";
 import { AdminUsers } from "./admin/AdminUsers";
 import { AdminWaitlist } from "./admin/AdminWaitlist";
 import { AdminTraining } from "./admin/AdminTraining";
-import { AdminInsightStats } from "./admin/AdminInsightStats";
+import { AdminAIAnalyst } from "./admin/AdminAIAnalyst";
 import { format, subDays } from "date-fns";
 
 interface TrainingRecord {
@@ -650,7 +650,7 @@ export default function Admin() {
           </TabsTrigger>
           <TabsTrigger value="insights" className="gap-2">
             <Brain className="w-4 h-4" />
-            <span className="hidden sm:inline">AI Insights</span>
+            <span className="hidden sm:inline">אנליסט AI</span>
           </TabsTrigger>
           <TabsTrigger value="training" className="gap-2">
             <Database className="w-4 h-4" />
@@ -671,7 +671,7 @@ export default function Admin() {
         </TabsContent>
 
         <TabsContent value="insights">
-          <AdminInsightStats />
+          <AdminAIAnalyst overviewStats={overviewStats} users={users} waitlist={waitlist} />
         </TabsContent>
 
         <TabsContent value="training">
