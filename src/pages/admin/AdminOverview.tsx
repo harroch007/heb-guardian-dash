@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Users, Smartphone, Bell, UserPlus, TrendingUp, AlertTriangle, Activity, CheckCircle, MessageSquare, Baby, ThumbsUp, ChevronLeft, Loader2, Zap, Clock, XCircle, Cpu, Send, Trash2, Shield } from "lucide-react";
+import { Users, Smartphone, Bell, UserPlus, AlertTriangle, Activity, CheckCircle, MessageSquare, Baby, ThumbsUp, ChevronLeft, Loader2, Zap, Clock, XCircle, Cpu, Send, Trash2, Shield } from "lucide-react";
 import { PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, BarChart, Bar } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -56,14 +56,6 @@ function ClickableIndicator() {
   return <ChevronLeft className="w-4 h-4 text-muted-foreground/50 absolute top-3 left-3" />;
 }
 
-// Funnel stage to tab mapping
-const FUNNEL_TAB_MAP: Record<string, { tab: string; filter?: string }> = {
-  "Waitlist": { tab: "waitlist" },
-  "נרשמו": { tab: "users" },
-  "הוסיפו ילד": { tab: "users" },
-  "חיברו מכשיר": { tab: "users", filter: "online" },
-  "פעילים היום": { tab: "users", filter: "online" },
-};
 
 function QueueHealthCard({ stats, onRefresh }: { stats: OverviewStats; onRefresh?: () => void }) {
   const [processing, setProcessing] = useState(false);
@@ -456,59 +448,6 @@ export function AdminOverview({ stats, loading, onNavigate, onRefresh }: AdminOv
           </CardContent>
         </Card>
       </div>
-
-      {/* Conversion Funnel */}
-      <Card className="border-primary/20">
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <TrendingUp className="w-5 h-5" />
-            משפך המרה
-          </CardTitle>
-          <CardDescription>מרשימת המתנה ועד משתמש פעיל</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between gap-2 overflow-x-auto pb-4">
-            {stats?.funnel.map((stage, index) => {
-              const mapping = FUNNEL_TAB_MAP[stage.stage];
-              return (
-                <div key={stage.stage} className="flex items-center">
-                  <div
-                    className={`flex flex-col items-center min-w-[100px] ${mapping ? 'cursor-pointer group' : ''}`}
-                    onClick={() => mapping && onNavigate(mapping.tab, mapping.filter)}
-                  >
-                    <div 
-                      className={`w-16 h-16 rounded-full flex items-center justify-center text-lg font-bold transition-all duration-200 ${mapping ? 'group-hover:shadow-md group-hover:scale-105' : ''}`}
-                      style={{
-                        backgroundColor: `hsl(var(--primary) / ${0.2 + (index * 0.2)})`,
-                        borderColor: `hsl(var(--primary))`,
-                        borderWidth: '2px'
-                      }}
-                    >
-                      {stage.count}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-2 text-center">{stage.stage}</p>
-                  </div>
-                  {index < (stats?.funnel.length || 0) - 1 && (
-                    <div className="w-8 h-0.5 bg-primary/30 mx-2" />
-                  )}
-                </div>
-              );
-            })}
-          </div>
-          {stats && stats.funnel.length > 1 && (
-            <div className="mt-4 p-3 bg-muted/50 rounded-lg">
-              <p className="text-sm text-muted-foreground">
-                שיעור המרה מ-Waitlist להרשמה:{" "}
-                <span className="font-bold text-primary">
-                  {stats.funnel[0].count > 0 
-                    ? ((stats.funnel[1].count / stats.funnel[0].count) * 100).toFixed(1) 
-                    : 0}%
-                </span>
-              </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
