@@ -1,44 +1,49 @@
 
+# אנליסט AI לדשבורד הניהול
 
-# תיקון תצוגת תור ההתראות בדשבורד ניהול
+## מה ייבנה
+הטאב "AI Insights" יוחלף באנליסט AI חכם שמנתח את כל הנתונים במערכת ומחזיר תובנות עסקיות למנכ"ל. לחיצה על כפתור "נתח את הנתונים" תשלח את כל המטריקות ל-OpenAI ותקבל בחזרה ניתוח מפורט בעברית.
 
-## הבעיה
+## איך זה עובד
 
-שתי בעיות מונעות את הצגת נתוני התור בדשבורד:
+1. **לחיצה על כפתור** - אוסף את כל הנתונים מה-DB (הנתונים שכבר נטענים בדשבורד + שאילתות נוספות)
+2. **שליחה ל-Edge Function** - מעביר את הנתונים ל-GPT-4o-mini עם System Prompt של "דאטה אנליסט למנכ"ל"
+3. **תצוגת תובנות** - מציג את התשובה בעברית, מעוצבת בכרטיסים
 
-### 1. בעיית הרשאות (RLS) - קריטי
-הטבלה `alert_events_queue` מכילה מדיניות RLS מסוג **restrictive** שחוסמת גם מנהלים:
-- `no_select_for_public_roles` (restrictive) = `USING (false)` 
-- `Admins can view queue` (restrictive) = `USING (is_admin())`
-
-כשכל המדיניות הן restrictive, הן מתחברות ב-AND: `false AND true = false`. לכן גם אדמין לא יכול לקרוא מהטבלה. בלוגים של Postgres ראיתי שגיאת `permission denied for table alert_events_queue`.
-
-**פתרון**: הפיכת מדיניות האדמין ל-**permissive** (ברירת מחדל) כך שהיא תעקוף את המדיניות החוסמת.
-
-### 2. בעיית תצוגה - הכרטיסיה נעלמת כש-0
-בקוד `QueueHealthCard` (שורה 77):
-```
-if (!hasIssues) return null;
-```
-כשהתור ריק (0 ממתינות), הכרטיסיה מוסתרת לחלוטין. המשתמש מצפה לראות כרטיסיה עם "0".
-
-**פתרון**: הצגת הכרטיסיה תמיד עם מצב ירוק כשהתור ריק.
+## אילו נתונים ינותחו
+- מספר הורים רשומים, ילדים, מכשירים מחוברים
+- שיעור המרה מרשימת המתנה
+- Funnel (waitlist -> registered -> child -> device -> active)
+- התראות היום (כמות, סוגים, קריטיות)
+- מגמת התראות 14 יום
+- Feedback engagement rate
+- בריאות תור ההתראות (pending, failed)
+- הודעות שנסרקו היום
+- משתמשים פעילים / לא פעילים
+- משתמשים ללא מכשיר מחובר
 
 ## פרטים טכניים
 
-### מיגרציה 1: תיקון RLS
-```sql
--- מחיקת המדיניות הבעייתית
-DROP POLICY "Admins can view queue" ON alert_events_queue;
+### Edge Function חדשה: `supabase/functions/admin-ai-analyst/index.ts`
+- מקבלת JSON עם כל המטריקות מהקליינט
+- מוודאת שהקורא הוא אדמין (בדיקת JWT + user_roles)
+- שולחת ל-OpenAI GPT-4o-mini עם System Prompt:
+  - "אתה דאטה אנליסט בכיר בחברת סטארטאפ. תפקידך לנתח נתונים ולתת תובנות עסקיות למנכ"ל בעברית."
+  - הנחיות: זהה מגמות, חריגות, הזדמנויות, סיכונים, והמלצות לפעולה
+- מחזיר תשובה כ-JSON מובנה (כותרת ראשית, רשימת תובנות, המלצות)
+- משתמש ב-`OPENAI_API_KEY` שכבר מוגדר
 
--- יצירה מחדש כ-PERMISSIVE (ברירת מחדל)
-CREATE POLICY "Admins can view queue"
-  ON alert_events_queue FOR SELECT
-  USING (is_admin());
-```
+### קומפוננטה חדשה: `src/pages/admin/AdminAIAnalyst.tsx`
+- מחליפה את `AdminInsightStats`
+- כפתור "נתח את הנתונים" (עם אנימציית טעינה)
+- מציגה תובנות בכרטיסים מעוצבים לפי קטגוריה
+- מציגה את התשובה ב-Markdown
+- מקבלת את `overviewStats`, `users`, `waitlist` כ-props
 
-### שינוי קוד: QueueHealthCard
-- הסרת השורה `if (!hasIssues) return null;`
-- הוספת מצב ירוק (תקין) שמציג "0 ממתינות - הכל תקין" כשהתור ריק
-- שמירת כל הפונקציונליות הקיימת (כפתורי עיבוד, טבלה) כשיש בעיות
+### שינויים ב-`src/pages/Admin.tsx`
+- החלפת import של `AdminInsightStats` ב-`AdminAIAnalyst`
+- העברת הנתונים הקיימים לקומפוננטה החדשה
+- שינוי שם הטאב ל-"אנליסט AI"
 
+### הוספה ל-`supabase/config.toml`
+- הגדרת `[functions.admin-ai-analyst]` עם `verify_jwt = false`
