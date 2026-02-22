@@ -390,6 +390,62 @@ export type Database = {
         }
         Relationships: []
       }
+      app_alerts: {
+        Row: {
+          app_name: string | null
+          child_id: string | null
+          created_at: string
+          device_id: string
+          id: string
+          package_name: string
+        }
+        Insert: {
+          app_name?: string | null
+          child_id?: string | null
+          created_at?: string
+          device_id: string
+          id?: string
+          package_name: string
+        }
+        Update: {
+          app_name?: string | null
+          child_id?: string | null
+          created_at?: string
+          device_id?: string
+          id?: string
+          package_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_alerts_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "app_alerts_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_daily_report"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "app_alerts_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_daily_report_for_parent"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "app_alerts_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_home_snapshot"
+            referencedColumns: ["device_id"]
+          },
+        ]
+      }
       app_usage: {
         Row: {
           app_name: string | null
@@ -982,6 +1038,71 @@ export type Database = {
           },
         ]
       }
+      nightly_usage_reports: {
+        Row: {
+          child_id: string | null
+          created_at: string
+          device_id: string
+          id: string
+          report_date: string
+          top_app_minutes: number | null
+          top_app_name: string | null
+          top_app_package: string | null
+          total_minutes: number
+        }
+        Insert: {
+          child_id?: string | null
+          created_at?: string
+          device_id: string
+          id?: string
+          report_date: string
+          top_app_minutes?: number | null
+          top_app_name?: string | null
+          top_app_package?: string | null
+          total_minutes: number
+        }
+        Update: {
+          child_id?: string | null
+          created_at?: string
+          device_id?: string
+          id?: string
+          report_date?: string
+          top_app_minutes?: number | null
+          top_app_name?: string | null
+          top_app_package?: string | null
+          total_minutes?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nightly_usage_reports_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "nightly_usage_reports_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_daily_report"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "nightly_usage_reports_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_daily_report_for_parent"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "nightly_usage_reports_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_home_snapshot"
+            referencedColumns: ["device_id"]
+          },
+        ]
+      }
       parents: {
         Row: {
           created_at: string
@@ -1532,6 +1653,14 @@ export type Database = {
         }
         Returns: number
       }
+      create_app_alert: {
+        Args: {
+          p_app_name?: string
+          p_device_id: string
+          p_package_name: string
+        }
+        Returns: string
+      }
       create_permission_alert: {
         Args: {
           p_alert_message: string
@@ -1622,6 +1751,17 @@ export type Database = {
           error_message: string
           success: boolean
         }[]
+      }
+      report_nightly_usage: {
+        Args: {
+          p_device_id: string
+          p_report_date?: string
+          p_top_app_minutes?: number
+          p_top_app_name?: string
+          p_top_app_package?: string
+          p_total_minutes: number
+        }
+        Returns: string
       }
       retry_failed_queue_items: { Args: never; Returns: Json }
       send_locate_to_all_devices: { Args: never; Returns: undefined }
