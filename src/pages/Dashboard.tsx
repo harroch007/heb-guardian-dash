@@ -614,16 +614,9 @@ const Index = () => {
                 {/* Card 2 - AI Insights */}
                 <Card className="bg-card border-border">
                   <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-lg font-semibold">
-                        <Brain className="h-5 w-5 text-muted-foreground" />
-                        תובנות AI
-                      </div>
-                      {insights?.severity_band && (
-                        <Badge variant="secondary">
-                          {getSeverityLabel(insights.severity_band)}
-                        </Badge>
-                      )}
+                    <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+                      <Brain className="h-5 w-5 text-muted-foreground" />
+                      תובנות AI
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
