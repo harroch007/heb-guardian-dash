@@ -4,6 +4,8 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { DashboardGreeting } from "@/components/dashboard/DashboardGreeting";
 import { supabase } from "@/integrations/supabase/client";
 import { Plus, Users, User, RefreshCw, BarChart3, Brain, Smartphone, MapPin, Battery, Clock, Mail, Bot, AlertTriangle, Calendar, ChevronLeft, Bell, X, Shield, Star } from "lucide-react";
+import { NewAppsCard } from "@/components/dashboard/NewAppsCard";
+import { NightlyUsageCard } from "@/components/dashboard/NightlyUsageCard";
 import { motion } from "framer-motion";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -693,6 +695,10 @@ const Index = () => {
                     </Card>
                   </>
                 )}
+
+                {/* New Apps & Nightly Usage Cards - shown only when data exists */}
+                <NewAppsCard childId={selectedChildId} />
+                <NightlyUsageCard childId={selectedChildId} />
 
                 {/* Device Status - always visible, shown first for free users */}
                 <Card className="bg-muted/30 border-border">
