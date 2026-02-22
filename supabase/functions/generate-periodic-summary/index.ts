@@ -172,13 +172,12 @@ async function generateSummaryForChild(
     days_with_data: daysWithData,
   };
 
-  const dataQuality = daysWithData === 0 ? 'insufficient'
-    : daysWithData < (period_type === 'weekly' ? 3 : 10) ? 'partial'
-    : 'good';
+  const minRequired = period_type === 'weekly' ? 3 : 15;
+  const dataQuality = daysWithData < minRequired ? 'insufficient' : 'good';
 
   if (dataQuality === 'insufficient') {
-    console.log(`Insufficient data for ${child_id} ${period_type}: ${daysWithData} days`);
-    return { success: false, reason: 'insufficient_data' };
+    console.log(`Insufficient data for ${child_id} ${period_type}: ${daysWithData}/${minRequired} days`);
+    return { success: false, reason: 'insufficient_data', days_with_data: daysWithData, min_required: minRequired };
   }
 
   // Build AI payload

@@ -270,6 +270,11 @@ const PeriodicSummaryPage = () => {
                   ? `הסיכום השבועי של ${childName || 'הילד/ה'} ייווצר אוטומטית ביום חמישי הקרוב בשעה \u202A21:00\u202C`
                   : `הסיכום החודשי של ${childName || 'הילד/ה'} ייווצר אוטומטית ביום האחרון של החודש בשעה \u202A21:00\u202C`}
               </p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                {type === 'weekly'
+                  ? 'נדרשים לפחות 3 ימי נתונים בשבוע כדי לייצר סיכום'
+                  : 'נדרשים לפחות 15 ימי נתונים בחודש כדי לייצר סיכום'}
+              </p>
               <p className="text-xs text-muted-foreground">
                 הסיכום נוצר אוטומטית — אין צורך לעשות דבר 😊
               </p>
