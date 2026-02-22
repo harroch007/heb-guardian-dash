@@ -1,117 +1,93 @@
 
-# שיפור הקשר חברתי באנליזה - "Context-Aware Analysis"
+# שיפור Relationship Context -- מנתונים גולמיים במקום labels
 
-## הבעיות
+## הבעיה
 
-### באג טכני: chat_type שגוי
-Alert 884 שמור כ-PRIVATE אבל "קיפי שלנו" היא קבוצה (מופיעה כ-GROUP ב-daily_chat_stats עם 36 הודעות ב-6 ימים). המכשיר לפעמים שולח chat_type שגוי. הקוד בונה את הכותרת לפי ה-DB בלבד ומתעלם מזיהוי ה-AI.
+הגישה הנוכחית מחשבת `familiarity_level` לפי ספים קשיחים (50 הודעות + 5 ימים = "close_contact"). זה לא אמין:
+- "וועד הבניין" עם 50 הודעות ביומיים = לא חברים
+- "קיפי שלנו" עם 20 הודעות ב-10 ימים = כנראה חברים קרובים
+- קבוצת "כיתה ד2 הורים" עם 200 הודעות = קבוצת הורים, לא רלוונטי
 
-### בעיה אסטרטגית: חוסר הקשר חברתי
-כרגע ה-AI מקבל רק את ההודעות + chat_type + author_type. הוא לא יודע:
-- האם זו קבוצה של חברים קרובים (36 הודעות ב-6 ימים) או קבוצה חדשה/זרה
-- האם השולח הוא איש קשר מוכר או מספר לא ידוע
-- האם הילד מתכתב עם אדם זה באופן קבוע
+שם הצ'אט מספר יותר מכמות ההודעות.
 
-בלי המידע הזה, "אתה זבל מסריח" תמיד ייראה כמו בריונות -- גם כשזה סתם שטויות בין חברים.
+## הפתרון: תן ל-AI לפרש, לא לקוד
 
-## הפתרון: "Relationship Context Enrichment"
+במקום לחשב label בקוד ולהגיד ל-AI "זה close_contact" -- נעביר את הנתונים הגולמיים ונתן ל-AI (שמבין עברית ושמות קבוצות) להחליט מה המשמעות.
 
-### שלב 1: תיקון chat_type (Fallback חכם)
-**קובץ:** `supabase/functions/analyze-alert/index.ts`
+### שינויים בקובץ `supabase/functions/analyze-alert/index.ts`
 
-כשבונים את הכותרת, אם ה-DB אומר PRIVATE אבל ה-AI זיהה `is_group_chat: true`, נעדיף את זיהוי ה-AI. בנוסף, נבדוק ב-`daily_chat_stats` אם הצ'אט הזה רשום כ-GROUP.
+#### 1. הסרת חישוב familiarity_level מהקוד
+
+הקוד הנוכחי (שורות 239-268) מחשב `familiarityLevel` לפי ספים. נחליף את זה בהעברת הנתונים הגולמיים בלבד:
 
 ```text
-Logic:
-1. Start with DB chat_type
-2. If DB says PRIVATE but AI says is_group_chat=true -> use GROUP
-3. If still unsure, check daily_chat_stats for this chat_name
+Before:
+  if (totalMessages >= 50 && activeDays >= 5) {
+    familiarityLevel = 'close_contact';
+  } else if (totalMessages >= 10) { ... }
+
+After:
+  // Just pass raw data, let AI interpret
+  // No familiarity_level computation
 ```
 
-### שלב 2: אסוף "Relationship Signal" לפני הניתוח
-**קובץ:** `supabase/functions/analyze-alert/index.ts`
+#### 2. עדכון ה-User Message
 
-לפני קריאת ה-AI, שאילתה ל-daily_chat_stats כדי לקבל:
-- `total_messages`: כמה הודעות הוחלפו עם הצ'אט הזה מאז ומעולם
-- `active_days`: כמה ימים שונים הייתה פעילות
-- `familiarity_level`: "close_contact" (יותר מ-50 הודעות ו-5 ימים), "regular" (10+ הודעות), "new_or_rare" (פחות מ-10), "unknown" (לא נמצא בכלל)
+במקום שורת `familiarity_level=close_contact`, נעביר:
 
-### שלב 3: העשרת ה-AI Prompt עם הקשר חברתי
-**קובץ:** `supabase/functions/analyze-alert/index.ts`
+```text
+Before:
+  "Relationship context: familiarity_level=close_contact, total_messages=36, active_days=6"
 
-הוסף סקשן חדש ב-SYSTEM_PROMPT:
+After:
+  "Relationship context: total_messages=36, active_days=6, chat_type_from_stats=GROUP"
+  "Chat name: 'קיפי שלנו'"
+```
+
+שם הצ'אט כבר מועבר, אבל נוודא שהוא בולט כחלק מה-relationship context.
+
+#### 3. עדכון ה-SYSTEM_PROMPT
+
+החלפת הסקשן "SCORING ADJUSTMENT RULES" מכללים מבוססי label לכללים מבוססי הקשר:
 
 ```text
 RELATIONSHIP CONTEXT (CRITICAL FOR ACCURATE SCORING)
-You will receive a "relationship_context" field with:
-- familiarity_level: "close_contact" | "regular" | "new_or_rare" | "unknown"
-- total_messages: historical message count with this chat/contact
-- active_days: how many days this chat has been active
+You will receive raw relationship data:
+- total_messages: historical message count with this chat
+- active_days: how many different days this chat has been active
+- chat_name: the actual name of the chat/group
 
-SCORING ADJUSTMENT RULES:
-1. close_contact + group chat + playful/joking tone -> 
-   REDUCE risk_score by 30-50 points. Friends joking around is NOT bullying.
-2. new_or_rare or unknown + aggressive content -> 
-   KEEP or INCREASE risk_score. Unknown contacts with aggression = real concern.
-3. close_contact + private + aggressive -> 
-   Moderate reduction (10-20). Even friends can cross lines in private.
-4. Regular family group (chat name contains "משפחה") + banter -> 
-   Significant reduction (40-60). Family dynamics are usually safe.
+IMPORTANT: Message count alone does NOT indicate friendship.
+Use chat_name as the PRIMARY signal for relationship type:
 
-The relationship between participants is THE MOST IMPORTANT factor.
-"אתה זבל" from a best friend in a group = banter (risk ~15)
-"אתה זבל" from an unknown number in private = potential bullying (risk ~65)
+CHAT NAME PATTERNS (Hebrew):
+- Contains "משפחה"/"בית"/"אמא"/"אבא" -> Family group, very safe context
+- Contains "וועד"/"בניין"/"שכנים" -> Neighbors/building committee, NOT friends
+- Contains "כיתה"/"הורים"/"מורה" -> School/parents group, formal context
+- Contains "עבודה"/"צוות"/"משרד" -> Work group, formal context
+- Informal/playful names ("קיפי שלנו", "החבר'ה", nicknames) -> Likely friend group
+
+SCORING RULES:
+1. Friend group (informal name) + playful/joking tone -> 
+   REDUCE risk by 30-50. Friends joking is NOT bullying.
+2. Formal/institutional group + aggressive content ->
+   Still concerning but context-dependent. Reduce by 10-20 max.
+3. Unknown/new contact (total_messages < 5) + aggressive content ->
+   KEEP or INCREASE risk. Unknown contacts = real concern.
+4. Family group + banter -> Significant reduction (40-60).
+5. Private chat + high message history (50+ messages, 5+ days) ->
+   Likely established relationship. Moderate reduction (15-25).
+6. Private chat + very low history (< 5 messages) ->
+   New contact. Be more cautious.
 ```
 
-### שלב 4: שינוי ה-User Message ל-AI
-**קובץ:** `supabase/functions/analyze-alert/index.ts`
+## סיכום
 
-הוסף את ה-relationship context ל-prompt שנשלח ל-AI:
+| מה משתנה | לפני | אחרי |
+|----------|------|-------|
+| חישוב familiarity | קוד קשיח עם ספים | AI מפרש לבד |
+| סיגנל מרכזי | כמות הודעות | שם הצ'אט + כמות הודעות |
+| "וועד הבניין" 50 הודעות | close_contact (שגוי) | AI מזהה "וועד" = לא חברים |
+| "קיפי שלנו" 20 הודעות | regular (שגוי) | AI מזהה שם לא-פורמלי = חברים |
 
-```text
-Before (current):
-"Analyze this message content:
-Chat type: GROUP
-Author type: UNKNOWN
-[messages]"
-
-After (enriched):
-"Analyze this message content:
-Chat type: GROUP
-Author type: UNKNOWN
-Relationship context: familiarity_level=close_contact, total_messages=36, active_days=6
-Chat name hint: 'קיפי שלנו' (family/friend group pattern)
-[messages]"
-```
-
-### שלב 5: עדכון הכותרת וה-Verdict בהתאם
-**קובץ:** `supabase/functions/analyze-alert/index.ts`
-
-- כשה-AI מחזיר risk_score נמוך (בזכות ההקשר), הכותרת תהיה מתונה
-- כשהילד הוא bystander בקבוצה של חברים קרובים, הסיכום יבהיר: "נצפה תוכן גס בקבוצת חברים -- ככל הנראה צחוק בין חברים"
-
----
-
-## סיכום השינויים
-
-| קובץ | שינוי |
-|-------|-------|
-| `analyze-alert/index.ts` | תיקון chat_type fallback (AI > DB) |
-| `analyze-alert/index.ts` | שאילתת daily_chat_stats לפני ניתוח |
-| `analyze-alert/index.ts` | העשרת SYSTEM_PROMPT עם כללי relationship |
-| `analyze-alert/index.ts` | הוספת relationship_context ל-user message |
-
-כל השינויים בקובץ אחד. לא נדרשים שינויי DB או שינויים בצד הלקוח.
-
-## התוצאה הצפויה
-
-**לפני:**
-- "אתה זבל מסריח" בקבוצת חברים -> risk 75, verdict "review", הורה מודאג
-- "אתה זבל מסריח" מזר בפרטי -> risk 75, verdict "review", הורה מודאג
-- אותה תגובה לשני המקרים = "זאב זאב"
-
-**אחרי:**
-- "אתה זבל מסריח" בקבוצת חברים (36 הודעות, 6 ימים) -> risk ~20, verdict "safe", לא מגיע להורה
-- "אתה זבל מסריח" מזר בפרטי (0 הודעות, לא מוכר) -> risk ~70, verdict "review", הורה מקבל התראה מדויקת
-
-זה ההבדל בין חברה של מליון דולר לבין רעיון נחמד.
+הכל בקובץ אחד: `supabase/functions/analyze-alert/index.ts`. אין שינויי DB או צד לקוח.
