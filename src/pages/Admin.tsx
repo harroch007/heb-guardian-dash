@@ -3,13 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, LogOut, Shield, LayoutDashboard, Users, UserPlus, Database, Brain } from "lucide-react";
+import { Loader2, LogOut, Shield, LayoutDashboard, Users, UserPlus, Database, Brain, MessageSquare } from "lucide-react";
 import kippyLogo from "@/assets/kippy-logo.svg";
 import { AdminOverview } from "./admin/AdminOverview";
 import { AdminUsers } from "./admin/AdminUsers";
 import { AdminWaitlist } from "./admin/AdminWaitlist";
 import { AdminTraining } from "./admin/AdminTraining";
 import { AdminAIAnalyst } from "./admin/AdminAIAnalyst";
+import { AdminFeedback } from "./admin/AdminFeedback";
 import { format, subDays } from "date-fns";
 
 interface TrainingRecord {
@@ -635,7 +636,7 @@ export default function Admin() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-flex">
+        <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:inline-flex">
           <TabsTrigger value="overview" className="gap-2">
             <LayoutDashboard className="w-4 h-4" />
             <span className="hidden sm:inline">סקירה כללית</span>
@@ -647,6 +648,10 @@ export default function Admin() {
           <TabsTrigger value="waitlist" className="gap-2">
             <UserPlus className="w-4 h-4" />
             <span className="hidden sm:inline">רשימת המתנה</span>
+          </TabsTrigger>
+          <TabsTrigger value="feedback" className="gap-2">
+            <MessageSquare className="w-4 h-4" />
+            <span className="hidden sm:inline">משוב</span>
           </TabsTrigger>
           <TabsTrigger value="insights" className="gap-2">
             <Brain className="w-4 h-4" />
@@ -668,6 +673,10 @@ export default function Admin() {
 
         <TabsContent value="waitlist">
           <AdminWaitlist entries={waitlist} loading={loading} onRefresh={fetchWaitlist} funnel={overviewStats?.funnel || []} />
+        </TabsContent>
+
+        <TabsContent value="feedback">
+          <AdminFeedback />
         </TabsContent>
 
         <TabsContent value="insights">
