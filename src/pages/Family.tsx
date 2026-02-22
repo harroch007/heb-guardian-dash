@@ -85,11 +85,17 @@ export default function Family() {
     const devicesMap: Record<string, DeviceInfo> = {};
     devicesData?.forEach(device => {
       if (device.child_id) {
-        devicesMap[device.child_id] = {
-          device_id: device.device_id,
-          battery_level: device.battery_level,
-          last_seen: device.last_seen
-        };
+        const existing = devicesMap[device.child_id];
+        // Keep the device with the most recent last_seen
+        if (!existing || 
+            (device.last_seen && (!existing.last_seen || 
+             new Date(device.last_seen) > new Date(existing.last_seen)))) {
+          devicesMap[device.child_id] = {
+            device_id: device.device_id,
+            battery_level: device.battery_level,
+            last_seen: device.last_seen
+          };
+        }
       }
     });
 
