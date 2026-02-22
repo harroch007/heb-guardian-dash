@@ -43,7 +43,8 @@ LANGUAGE POLICY
 - "is_group_chat": Boolean indicating if this is a group chat (inferred from content/context).
 - "summary": 1 concise sentence, primary finding (will be displayed in cyan).
 - "context": 2-3 sentences providing general background context.
-- "meaning": 1 sentence answering "What does this mean for me as a parent?"
+- "meaning": 1 concise sentence interpreting the situation. NEVER start with "כמו הורה", "כהורה", "בתור הורה" or similar. Just state the insight directly.
+- "child_role": Determine the child's involvement: "sender" (child sent the problematic content), "target" (content was directed at the child), "bystander" (child only saw/was exposed to content in a group), "unknown".
 - "recommendation": Action guidance (empty if verdict = "safe").
 
 TITLE RULES - CRITICAL
@@ -52,6 +53,12 @@ TITLE RULES - CRITICAL
 - For GROUP chats: title_prefix = "שיח [adjective]" where adjective describes the nature (e.g., טעון, מטריד, מסוכן, בעייתי, רגיל)
   Examples: "שיח טעון", "שיח מטריד", "שיח רגיל"
 - The code will build the full title like: "שיחה פרטית עם [real_name]" or "שיח טעון בקבוצה [real_group_name]"
+- IMPORTANT: When child_role is "bystander", the title MUST be moderate/calm. Use mild adjectives like "בעייתי", "רגיש" instead of alarming words like "מסוכן", "איומים חמורים". The parent should NOT panic when the child wasn't directly involved.
+
+SUMMARY RULES FOR CHILD ROLE
+- When child_role is "bystander": The summary MUST explicitly state that the child was not directly involved. Example: "נצפה תוכן אלים בקבוצה – הילד/ה לא היה/ה מעורב/ת ישירות"
+- When child_role is "sender": Clearly state the child sent the content.
+- When child_role is "target": Clearly state the content was directed at the child.
 
 DETECTING CHAT TYPE
 - Look at the messages content to determine if this is a group chat:
@@ -104,7 +111,8 @@ FINAL OUTPUT - Return JSON ONLY with these fields:
   "is_group_chat": true | false,
   "summary": "<Hebrew, 1 concise sentence - primary finding>",
   "context": "<Hebrew, 2-3 sentences - general background>",
-  "meaning": "<Hebrew, 1 sentence - what this means for parent>",
+  "meaning": "<Hebrew, 1 sentence - direct insight, NEVER start with 'כמו הורה'/'כהורה'/'בתור הורה'>",
+  "child_role": "sender" | "target" | "bystander" | "unknown",
   "social_context": {"label": "הקשר חברתי", "participants": ["name1", "name2"], "description": "<1 sentence>"} | null,
   "recommendation": "<Hebrew, non-empty ONLY if verdict is not 'safe'; otherwise ''>"
 }
@@ -318,6 +326,7 @@ async function processAlert(
     ai_context: aiResult.context || null,
     ai_meaning: aiResult.meaning || null,
     ai_social_context: cleanedSocialContext,
+    child_role: aiResult.child_role || null,
     is_processed: true,
     processing_status: initialStatus,
     content: '[CONTENT DELETED FOR PRIVACY]',

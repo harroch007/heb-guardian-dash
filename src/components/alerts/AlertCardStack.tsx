@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence, PanInfo } from "framer-motion";
-import { Bookmark, Check, AlertTriangle, Lightbulb, Link2, Clock, Users, User, Tag } from "lucide-react";
+import { Bookmark, Check, AlertTriangle, Lightbulb, Link2, Clock, Users, User, Tag, Eye, ShieldAlert, MessageCircleWarning } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +33,7 @@ interface Alert {
   ai_context: string | null;
   ai_meaning: string | null;
   ai_social_context: SocialContext | null;
+  child_role?: string | null;
   created_at: string;
   is_processed: boolean;
   acknowledged_at?: string | null;
@@ -158,9 +159,9 @@ export function AlertCardStack({ alerts, onAcknowledge, onSave, isSavedView = fa
       : `שיחה פרטית עם ${currentAlert.sender_display || currentAlert.chat_name || 'איש קשר'}`);
 
   return (
-    <div className="flex flex-col justify-center min-h-[calc(100vh-200px)] sm:min-h-0" dir="rtl">
+    <div className="flex flex-col" dir="rtl">
       {/* Card Stack Container */}
-      <div className="relative h-[720px] sm:h-[580px]">
+      <div className="relative min-h-0">
         {/* Background cards (depth effect) */}
         {alerts.slice(currentIndex + 1, currentIndex + 3).map((_, idx) => (
           <div
@@ -178,7 +179,7 @@ export function AlertCardStack({ alerts, onAcknowledge, onSave, isSavedView = fa
         <AnimatePresence mode="wait">
           <motion.div
             key={currentAlert.id}
-            className="absolute inset-0"
+            className="relative"
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ 
               opacity: exitDirection ? 0 : 1, 
@@ -192,8 +193,8 @@ export function AlertCardStack({ alerts, onAcknowledge, onSave, isSavedView = fa
             dragElastic={0.2}
             onDragEnd={handleDragEnd}
           >
-            <Card className="h-full bg-card/95 backdrop-blur-sm border border-border/50 shadow-xl overflow-hidden">
-              <CardContent className="p-0 h-full flex flex-col">
+            <Card className="bg-card/95 backdrop-blur-sm border border-border/50 shadow-xl overflow-hidden">
+              <CardContent className="p-0 flex flex-col">
                 {/* Header with warning icon and title */}
                 <div className="flex items-center justify-between p-4 border-b border-border/30">
                   <div className="flex items-center gap-3">
@@ -251,21 +252,42 @@ export function AlertCardStack({ alerts, onAcknowledge, onSave, isSavedView = fa
                       {categoryLabels[currentAlert.category] || currentAlert.category}
                     </Badge>
                   )}
+                  {/* Child role badge */}
+                  {currentAlert.child_role === 'bystander' && (
+                    <Badge variant="secondary" className="text-xs gap-1 bg-blue-500/20 text-blue-400 border-blue-500/30">
+                      <Eye className="w-3 h-3" />
+                      הילד לא מעורב ישירות
+                    </Badge>
+                  )}
+                  {currentAlert.child_role === 'target' && (
+                    <Badge variant="secondary" className="text-xs gap-1 bg-orange-500/20 text-orange-400 border-orange-500/30">
+                      <ShieldAlert className="w-3 h-3" />
+                      הילד היה היעד
+                    </Badge>
+                  )}
+                  {currentAlert.child_role === 'sender' && (
+                    <Badge variant="secondary" className="text-xs gap-1 bg-red-500/20 text-red-400 border-red-500/30">
+                      <MessageCircleWarning className="w-3 h-3" />
+                      הילד שלח את התוכן
+                    </Badge>
+                  )}
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                  {/* Primary Summary (Cyan) */}
+                <div className="p-4 space-y-4">
+                  {/* Primary Summary */}
                   {currentAlert.ai_summary && (
                     <p className="text-primary font-medium text-base leading-relaxed">
                       {currentAlert.ai_summary}
                     </p>
                   )}
 
-                  {/* General Context */}
-                  {currentAlert.ai_context && (
+                  {/* General Context + Meaning merged */}
+                  {(currentAlert.ai_context || currentAlert.ai_meaning) && (
                     <p className="text-foreground/80 text-sm leading-relaxed">
                       {currentAlert.ai_context}
+                      {currentAlert.ai_context && currentAlert.ai_meaning && ' '}
+                      {currentAlert.ai_meaning}
                     </p>
                   )}
 
@@ -296,28 +318,16 @@ export function AlertCardStack({ alerts, onAcknowledge, onSave, isSavedView = fa
                     </>
                   )}
 
-                  <Separator className="bg-border/30" />
-
-                  {/* What does it mean? */}
-                  {currentAlert.ai_meaning && (
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Lightbulb className="w-4 h-4 text-warning" />
-                        <span className="text-sm font-medium text-warning">מה המשמעות?</span>
-                      </div>
-                      <p className="text-foreground/90 text-sm leading-relaxed">
-                        {currentAlert.ai_meaning}
-                      </p>
-                    </div>
-                  )}
-
                   {/* Recommendation */}
                   {currentAlert.ai_recommendation && (
-                    <div className="bg-primary/10 rounded-xl p-4">
-                      <p className="text-foreground/90 text-sm leading-relaxed">
-                        {currentAlert.ai_recommendation}
-                      </p>
-                    </div>
+                    <>
+                      <Separator className="bg-border/30" />
+                      <div className="bg-primary/10 rounded-xl p-4">
+                        <p className="text-foreground/90 text-sm leading-relaxed">
+                          {currentAlert.ai_recommendation}
+                        </p>
+                      </div>
+                    </>
                   )}
 
                   {/* Fallback for old alerts without new fields */}
