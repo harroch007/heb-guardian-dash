@@ -33,8 +33,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const allowlistPromiseUserId = useRef<string | null>(null);
   const deniedToastShownForUserId = useRef<string | null>(null);
 
-  const checkParentStatus = async () => {
-    if (!user) {
+  const checkParentStatus = async (currentUser?: User | null) => {
+    const u = currentUser ?? user;
+    if (!u) {
       setIsNewUser(null);
       setParentId(null);
       return;
@@ -43,7 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data, error } = await supabase
       .from('parents')
       .select('id')
-      .eq('id', user.id)
+      .eq('id', u.id)
       .maybeSingle();
 
     if (error) {
@@ -122,7 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const allowed = await enforceWaitlistAccess(sessionUser);
     if (!allowed) return;
 
-    await checkParentStatus();
+    await checkParentStatus(sessionUser);
   };
 
   useEffect(() => {

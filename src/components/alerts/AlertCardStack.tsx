@@ -346,7 +346,7 @@ export function AlertCardStack({ alerts, onAcknowledge, onSave, isSavedView = fa
                   {/* Feedback buttons */}
                   <AlertFeedback
                     alertId={currentAlert.id}
-                    parentId={parentId || ''}
+                    parentId={parentId ?? ''}
                     existingFeedback={feedbackMap?.[currentAlert.id] ?? null}
                     onFeedbackChange={onFeedbackChange}
                   />
