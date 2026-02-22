@@ -1,67 +1,38 @@
 
 
-## תיקון באג קריטי + שיפור Prompt ניתוח התראות
+## Analysis: Queue Health Card Always Shows 0
 
-### בעיה 1: Check Constraint שובר את כל ההתראות
-ה-constraint הנוכחי על `processing_status` מאפשר רק: `pending`, `analyzing`, `notifying`, `succeeded`, `failed`.
-אבל ה-Edge Function כותב: `analyzed`, `notified`, `grouped`, `daily_cap`.
-התוצאה: **כל התראה שמנותחת נכשלת** כי ה-UPDATE נדחה.
+### Root Cause
 
-### בעיה 2: Prompt לא מבחין מי אמר למי
-ה-AI לא מקבל הנחיה ברורה להבדיל בין:
-- הודעה מהילד vs ממישהו אחר בקבוצה
-- הודעה **על** הילד vs על צד שלישי
-- הקשר משפחתי רגיל vs מאיים
+The `alert_events_queue` table has conflicting RLS policies. All policies are **Restrictive** (not Permissive), and PostgreSQL requires ALL restrictive policies to pass for access.
 
-### תיקונים
+Current policies for SELECT:
+- "Admins can view queue" - `USING (is_admin())` -- Restrictive
+- "no_select_for_public_roles" - `USING (false)` -- Restrictive
 
-**1. מיגרציה - עדכון Check Constraint**
-```sql
-ALTER TABLE public.alerts DROP CONSTRAINT alerts_processing_status_check;
-ALTER TABLE public.alerts ADD CONSTRAINT alerts_processing_status_check
-  CHECK (processing_status IN (
-    'pending', 'analyzing', 'analyzed', 
-    'notifying', 'notified', 
-    'grouped', 'daily_cap',
-    'succeeded', 'failed'
-  ));
-```
+Since both are restrictive, even admins are blocked by the `USING (false)` policy. Result: the query always returns empty, so `queuePending` and `queueFailed` are always 0.
 
-**2. שיפור System Prompt ב-`supabase/functions/analyze-alert/index.ts`**
+### Fix
 
-הוספת סעיף חדש ל-SYSTEM_PROMPT שמנחה את ה-AI לשקלל author_type ונמען:
+Drop the conflicting `no_*_for_public_roles` policies on `alert_events_queue` and replace them with proper Permissive policies:
+
+1. **Database migration** to fix RLS:
+   - Drop `no_select_for_public_roles`, `no_modify_for_public_roles`, `no_update_for_public_roles`, `no_delete_for_public_roles`
+   - Change "Admins can view queue" from Restrictive to Permissive (drop and recreate)
+
+This is a single SQL migration -- no code changes needed. The UI logic is already correct; it just never receives data due to the RLS conflict.
+
+### Technical Details
 
 ```text
-AUTHOR & TARGET ANALYSIS (CRITICAL FOR SCORING)
-- Each message has an "origin" or "from" field indicating who sent it.
-- The CHILD is the person being monitored. Messages have author_type: CHILD, OTHER, or UNKNOWN.
-- When scoring risk, consider WHO said the message and WHO it targets:
-  1. Message BY the child containing dangerous content -> HIGH risk (direct involvement)
-  2. Message TO the child that is threatening/exploitative -> HIGH risk (child is target)
-  3. Message BY another person ABOUT a third party (not the child) -> LOW risk
-  4. General group banter, family chat, jokes about unrelated people -> LOW risk
-- A message like "I hope X punches Y" said by someone else about a third party
-  in a family group is NOT a reason to alert the parent about their child.
-- Only escalate when the CHILD is directly involved as sender, recipient, or target.
-- Reduce risk_score by 30-50 points when the child is neither the author nor the target.
+Current (broken):
+  Restrictive "Admins can view"  AND  Restrictive "false"
+  = is_admin() AND false = always false
+
+Fixed:
+  Permissive "Admins can view" (is_admin())
+  = is_admin() = true for admins
 ```
 
-**3. שיפור ה-user message שנשלח ל-OpenAI**
-
-הוספת `author_type` ו-`chat_type` מה-alert record לפרומפט, כדי ש-AI יקבל את ההקשר:
-
-```text
-Analyze this message content:
-Chat type: {chat_type}
-Author type of flagged message: {author_type}
-
-{redacted content}
-```
-
-### סיכום השינויים
-
-| קובץ | שינוי |
-|-------|-------|
-| מיגרציה SQL | עדכון check constraint - הוספת analyzed, notified, grouped, daily_cap |
-| `supabase/functions/analyze-alert/index.ts` | הוספת סעיף AUTHOR & TARGET ANALYSIS ל-prompt + העברת author_type ל-AI |
+No other tables are affected. The `alert_events_queue` INSERT/UPDATE/DELETE should remain denied for regular users (only the service role and DB functions like `enqueue_ai_analyze_on_alert_insert` and `claim_alert_events` operate on this table with SECURITY DEFINER).
 
