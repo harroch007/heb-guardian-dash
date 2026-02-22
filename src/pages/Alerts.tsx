@@ -31,6 +31,7 @@ interface Alert {
   ai_context: string | null;
   ai_meaning: string | null;
   ai_social_context: SocialContext | null;
+  child_role?: string | null;
   created_at: string;
   is_processed: boolean;
   acknowledged_at?: string | null;
@@ -71,6 +72,7 @@ const AlertsPage = () => {
           ai_context,
           ai_meaning,
           ai_social_context,
+          child_role,
           created_at,
           is_processed,
           acknowledged_at,
@@ -107,6 +109,7 @@ const AlertsPage = () => {
           ai_context,
           ai_meaning,
           ai_social_context,
+          child_role,
           created_at,
           is_processed,
           acknowledged_at,
