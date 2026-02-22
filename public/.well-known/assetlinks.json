@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.kippy.safety.core",
+      "sha256_cert_fingerprints": [
+        "64:E5:F4:40:35:7B:60:68:9A:AE:A4:4B:CC:BF:56:70:A8:ED:38:F7:83:A2:ED:52:B0:7A:1F:60:10:40:C6:5B"
+      ]
+    }
+  }
+]
