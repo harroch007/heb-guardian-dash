@@ -13,9 +13,10 @@ const premiumFeatures = [
 
 interface PremiumUpgradeCardProps {
   childName?: string;
+  childId?: string;
 }
 
-export function PremiumUpgradeCard({ childName }: PremiumUpgradeCardProps) {
+export function PremiumUpgradeCard({ childName, childId }: PremiumUpgradeCardProps) {
   const [showModal, setShowModal] = useState(false);
 
   return (
@@ -50,7 +51,7 @@ export function PremiumUpgradeCard({ childName }: PremiumUpgradeCardProps) {
         </CardContent>
       </Card>
 
-      <UpgradeModal open={showModal} onOpenChange={setShowModal} childName={childName} />
+      <UpgradeModal open={showModal} onOpenChange={setShowModal} childName={childName} childId={childId} />
     </>
   );
 }

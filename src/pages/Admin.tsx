@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, LogOut, Shield, LayoutDashboard, Users, UserPlus, Database, Brain, MessageSquare } from "lucide-react";
+import { Loader2, LogOut, Shield, LayoutDashboard, Users, UserPlus, Database, Brain, MessageSquare, Tag } from "lucide-react";
 import kippyLogo from "@/assets/kippy-logo.svg";
 import { AdminOverview } from "./admin/AdminOverview";
 import { AdminUsers } from "./admin/AdminUsers";
@@ -11,6 +11,7 @@ import { AdminWaitlist } from "./admin/AdminWaitlist";
 import { AdminTraining } from "./admin/AdminTraining";
 import { AdminAIAnalyst } from "./admin/AdminAIAnalyst";
 import { AdminFeedback } from "./admin/AdminFeedback";
+import { AdminPromoCodes } from "./admin/AdminPromoCodes";
 import { format, subDays } from "date-fns";
 
 interface TrainingRecord {
@@ -71,6 +72,8 @@ interface OverviewStats {
   queueFailed: number;
   oldestPendingMinutes: number;
   pendingAlerts: { id: string; alert_id: number; status: string; attempt: number; created_at: string; last_error: string | null; is_processed: boolean }[];
+  freeChildren: number;
+  premiumChildren: number;
 }
 
 interface UserData {
@@ -387,10 +390,15 @@ export default function Admin() {
         ? (alertsWithFeedbackLast7Days / totalAlertsLast7Days) * 100
         : 0;
 
-      // Children count
-      const { count: childrenCount } = await supabase
+      // Fetch free/premium children counts
+      const { data: allChildren } = await supabase
         .from("children")
-        .select("*", { count: "exact", head: true });
+        .select("subscription_tier");
+      const freeChildren = allChildren?.filter(c => !c.subscription_tier || c.subscription_tier === 'free').length || 0;
+      const premiumChildren = allChildren?.filter(c => c.subscription_tier === 'premium').length || 0;
+
+      // Children count
+      const childrenCount = allChildren?.length || 0;
 
       setOverviewStats({
         totalParents: parentsCount || 0,
@@ -429,6 +437,8 @@ export default function Admin() {
         queueFailed,
         oldestPendingMinutes,
         pendingAlerts,
+        freeChildren,
+        premiumChildren,
       });
     } catch (error) {
       console.error("Error fetching overview stats:", error);
@@ -686,7 +696,7 @@ export default function Admin() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:inline-flex">
+        <TabsList className="grid w-full grid-cols-7 lg:w-auto lg:inline-flex">
           <TabsTrigger value="overview" className="gap-2">
             <LayoutDashboard className="w-4 h-4" />
             <span className="hidden sm:inline">סקירה כללית</span>
@@ -698,6 +708,10 @@ export default function Admin() {
           <TabsTrigger value="waitlist" className="gap-2">
             <UserPlus className="w-4 h-4" />
             <span className="hidden sm:inline">רשימת המתנה</span>
+          </TabsTrigger>
+          <TabsTrigger value="promo" className="gap-2">
+            <Tag className="w-4 h-4" />
+            <span className="hidden sm:inline">פרומו קודים</span>
           </TabsTrigger>
           <TabsTrigger value="feedback" className="gap-2">
             <MessageSquare className="w-4 h-4" />
@@ -735,6 +749,10 @@ export default function Admin() {
 
         <TabsContent value="training">
           <AdminTraining stats={trainingStats} records={trainingRecords} loading={loading} />
+        </TabsContent>
+
+        <TabsContent value="promo">
+          <AdminPromoCodes />
         </TabsContent>
       </Tabs>
     </div>

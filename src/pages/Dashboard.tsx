@@ -759,7 +759,7 @@ const Index = () => {
 
                 {/* Premium Upgrade Card - free users only */}
                 {!isPremium && (
-                  <PremiumUpgradeCard childName={selectedChild?.name} />
+                  <PremiumUpgradeCard childName={selectedChild?.name} childId={selectedChildId} />
                 )}
 
                 {/* Bottom CTA */}

@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Users, Smartphone, Bell, UserPlus, AlertTriangle, Activity, CheckCircle, MessageSquare, Baby, ThumbsUp, ChevronLeft, Loader2, Zap, Clock, XCircle, Cpu, Send, Trash2, Shield } from "lucide-react";
+import { Users, Smartphone, Bell, UserPlus, AlertTriangle, Activity, CheckCircle, MessageSquare, Baby, ThumbsUp, ChevronLeft, Loader2, Zap, Clock, XCircle, Cpu, Send, Trash2, Shield, Star } from "lucide-react";
 import { PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, BarChart, Bar } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -35,6 +35,8 @@ interface OverviewStats {
   queueFailed: number;
   oldestPendingMinutes: number;
   pendingAlerts: { id: string; alert_id: number; status: string; attempt: number; created_at: string; last_error: string | null; is_processed: boolean }[];
+  freeChildren: number;
+  premiumChildren: number;
 }
 
 interface AdminOverviewProps {
@@ -387,6 +389,24 @@ export function AdminOverview({ stats, loading, onNavigate, onRefresh }: AdminOv
           <CardContent>
             <p className="text-2xl font-bold text-green-500">{stats?.feedbackEngagementRate?.toFixed(1) || '0.0'}%</p>
             <p className="text-xs text-muted-foreground mt-1">{stats?.alertsWithFeedbackLast7Days || 0} / {stats?.totalAlertsLast7Days || 0}</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-emerald-500/20">
+          <CardHeader className="pb-2">
+            <CardDescription className="flex items-center gap-2 text-xs">
+              <Star className="w-3 h-3" />
+              חינם / משלם
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-bold text-emerald-500">{stats?.premiumChildren || 0}</span>
+              <span className="text-sm text-muted-foreground">Premium</span>
+              <span className="text-muted-foreground">/</span>
+              <span className="text-lg font-semibold">{stats?.freeChildren || 0}</span>
+              <span className="text-sm text-muted-foreground">חינם</span>
+            </div>
           </CardContent>
         </Card>
       </div>
