@@ -1,17 +1,18 @@
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Bell, Bookmark } from "lucide-react";
+import { Bell, Bookmark, Star } from "lucide-react";
 
 interface AlertTabsProps {
-  activeTab: 'new' | 'saved';
-  onTabChange: (tab: 'new' | 'saved') => void;
+  activeTab: 'new' | 'saved' | 'positive';
+  onTabChange: (tab: 'new' | 'saved' | 'positive') => void;
   newCount: number;
   savedCount: number;
+  positiveCount: number;
 }
 
-export function AlertTabs({ activeTab, onTabChange, newCount, savedCount }: AlertTabsProps) {
+export function AlertTabs({ activeTab, onTabChange, newCount, savedCount, positiveCount }: AlertTabsProps) {
   return (
-    <Tabs value={activeTab} onValueChange={(v) => onTabChange(v as 'new' | 'saved')} className="w-full" dir="rtl">
-      <TabsList className="w-full grid grid-cols-2 bg-muted/50 p-1 h-12">
+    <Tabs value={activeTab} onValueChange={(v) => onTabChange(v as 'new' | 'saved' | 'positive')} className="w-full" dir="rtl">
+      <TabsList className="w-full grid grid-cols-3 bg-muted/50 p-1 h-12">
         <TabsTrigger 
           value="new" 
           className="flex items-center gap-2 data-[state=active]:bg-card data-[state=active]:shadow-sm text-sm"
@@ -21,6 +22,18 @@ export function AlertTabs({ activeTab, onTabChange, newCount, savedCount }: Aler
           {newCount > 0 && (
             <span className="bg-primary/20 text-primary text-xs px-2 py-0.5 rounded-full font-medium">
               {newCount}
+            </span>
+          )}
+        </TabsTrigger>
+        <TabsTrigger 
+          value="positive" 
+          className="flex items-center gap-2 data-[state=active]:bg-card data-[state=active]:shadow-sm text-sm"
+        >
+          <Star className="w-4 h-4" />
+          <span>חיוביות</span>
+          {positiveCount > 0 && (
+            <span className="bg-success/20 text-success text-xs px-2 py-0.5 rounded-full font-medium">
+              {positiveCount}
             </span>
           )}
         </TabsTrigger>

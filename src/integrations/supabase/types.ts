@@ -201,6 +201,7 @@ export type Database = {
           ai_summary: string | null
           ai_title: string | null
           ai_verdict: string | null
+          alert_type: string
           analyzed_at: string | null
           author_type: string | null
           category: string | null
@@ -248,6 +249,7 @@ export type Database = {
           ai_summary?: string | null
           ai_title?: string | null
           ai_verdict?: string | null
+          alert_type?: string
           analyzed_at?: string | null
           author_type?: string | null
           category?: string | null
@@ -295,6 +297,7 @@ export type Database = {
           ai_summary?: string | null
           ai_title?: string | null
           ai_verdict?: string | null
+          alert_type?: string
           analyzed_at?: string | null
           author_type?: string | null
           category?: string | null
@@ -1219,6 +1222,7 @@ export type Database = {
           ai_risk_score: number | null
           ai_summary: string | null
           ai_verdict: string | null
+          alert_type: string | null
           analyzed_at: string | null
           author_type: string | null
           category: string | null
