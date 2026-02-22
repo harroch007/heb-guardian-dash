@@ -1,28 +1,67 @@
 
-## העברת "משפך המרה" לטאב רשימת המתנה
 
-### מה ייעשה
-הכרטיס "משפך המרה" (Conversion Funnel) יועבר מטאב "סקירה כללית" לטאב "רשימת המתנה", כי הוא קשור ישירות לנתוני ה-Waitlist ושיעור ההמרה.
+## תיקון באג קריטי + שיפור Prompt ניתוח התראות
 
-### שינויים טכניים
+### בעיה 1: Check Constraint שובר את כל ההתראות
+ה-constraint הנוכחי על `processing_status` מאפשר רק: `pending`, `analyzing`, `notifying`, `succeeded`, `failed`.
+אבל ה-Edge Function כותב: `analyzed`, `notified`, `grouped`, `daily_cap`.
+התוצאה: **כל התראה שמנותחת נכשלת** כי ה-UPDATE נדחה.
 
-**קובץ: `src/pages/admin/AdminOverview.tsx`**
-- הסרת בלוק ה-Conversion Funnel (שורות 460-511 בערך)
-- הסרת ה-import של `TrendingUp` אם לא בשימוש אחר
-- הסרת מיפוי `FUNNEL_TAB_MAP` (שורות 59-66) אם לא בשימוש אחר
+### בעיה 2: Prompt לא מבחין מי אמר למי
+ה-AI לא מקבל הנחיה ברורה להבדיל בין:
+- הודעה מהילד vs ממישהו אחר בקבוצה
+- הודעה **על** הילד vs על צד שלישי
+- הקשר משפחתי רגיל vs מאיים
 
-**קובץ: `src/pages/admin/AdminWaitlist.tsx`**
-- הוספת prop חדש `funnel` מסוג `{ stage: string; count: number }[]`
-- הוספת כרטיס "משפך המרה" מעל טבלת רשימת ההמתנה (אותו עיצוב בדיוק - עיגולים עם קווים מחברים + שיעור המרה)
-- הוספת import של `TrendingUp` מ-lucide-react
+### תיקונים
 
-**קובץ: `src/pages/Admin.tsx`**
-- העברת `funnel` data מ-`overviewStats` ל-`AdminWaitlist`:
-  ```
-  <AdminWaitlist
-    entries={waitlist}
-    loading={loading}
-    onRefresh={fetchWaitlist}
-    funnel={overviewStats?.funnel || []}
-  />
-  ```
+**1. מיגרציה - עדכון Check Constraint**
+```sql
+ALTER TABLE public.alerts DROP CONSTRAINT alerts_processing_status_check;
+ALTER TABLE public.alerts ADD CONSTRAINT alerts_processing_status_check
+  CHECK (processing_status IN (
+    'pending', 'analyzing', 'analyzed', 
+    'notifying', 'notified', 
+    'grouped', 'daily_cap',
+    'succeeded', 'failed'
+  ));
+```
+
+**2. שיפור System Prompt ב-`supabase/functions/analyze-alert/index.ts`**
+
+הוספת סעיף חדש ל-SYSTEM_PROMPT שמנחה את ה-AI לשקלל author_type ונמען:
+
+```text
+AUTHOR & TARGET ANALYSIS (CRITICAL FOR SCORING)
+- Each message has an "origin" or "from" field indicating who sent it.
+- The CHILD is the person being monitored. Messages have author_type: CHILD, OTHER, or UNKNOWN.
+- When scoring risk, consider WHO said the message and WHO it targets:
+  1. Message BY the child containing dangerous content -> HIGH risk (direct involvement)
+  2. Message TO the child that is threatening/exploitative -> HIGH risk (child is target)
+  3. Message BY another person ABOUT a third party (not the child) -> LOW risk
+  4. General group banter, family chat, jokes about unrelated people -> LOW risk
+- A message like "I hope X punches Y" said by someone else about a third party
+  in a family group is NOT a reason to alert the parent about their child.
+- Only escalate when the CHILD is directly involved as sender, recipient, or target.
+- Reduce risk_score by 30-50 points when the child is neither the author nor the target.
+```
+
+**3. שיפור ה-user message שנשלח ל-OpenAI**
+
+הוספת `author_type` ו-`chat_type` מה-alert record לפרומפט, כדי ש-AI יקבל את ההקשר:
+
+```text
+Analyze this message content:
+Chat type: {chat_type}
+Author type of flagged message: {author_type}
+
+{redacted content}
+```
+
+### סיכום השינויים
+
+| קובץ | שינוי |
+|-------|-------|
+| מיגרציה SQL | עדכון check constraint - הוספת analyzed, notified, grouped, daily_cap |
+| `supabase/functions/analyze-alert/index.ts` | הוספת סעיף AUTHOR & TARGET ANALYSIS ל-prompt + העברת author_type ל-AI |
+
