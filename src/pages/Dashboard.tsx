@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { DashboardGreeting } from "@/components/dashboard/DashboardGreeting";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Users, User, RefreshCw, BarChart3, Brain, Smartphone, MapPin, Battery, Clock, Mail, Bot, AlertTriangle, Calendar, ChevronLeft, Bell, X } from "lucide-react";
+import { Plus, Users, User, RefreshCw, BarChart3, Brain, Smartphone, MapPin, Battery, Clock, Mail, Bot, AlertTriangle, Calendar, ChevronLeft, Bell, X, Shield } from "lucide-react";
+import { motion } from "framer-motion";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 
 // Auto-refresh interval: 2 hours in milliseconds
@@ -491,10 +492,26 @@ const Index = () => {
             )}
 
             {snapshotLoading ? (
-              <div className="space-y-4">
-                <div className="h-32 rounded-xl bg-card/50 animate-pulse border border-border/30" />
-                <div className="h-24 rounded-xl bg-card/50 animate-pulse border border-border/30" />
-                <div className="h-24 rounded-xl bg-card/50 animate-pulse border border-border/30" />
+              <div className="flex flex-col items-center justify-center py-16 space-y-6">
+                <motion.div
+                  animate={{ scale: [1, 1.15, 1], opacity: [0.7, 1, 0.7] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                >
+                  <Shield className="h-16 w-16 text-primary" />
+                </motion.div>
+                <div className="text-center space-y-2">
+                  <p className="text-lg font-medium text-foreground">בודק את הנתונים...</p>
+                  <p className="text-sm text-muted-foreground">עוד רגע הכל מוכן</p>
+                </div>
+                <div className="flex gap-1.5">
+                  {[0, 1, 2].map(i => (
+                    <motion.div key={i}
+                      className="w-2 h-2 rounded-full bg-primary"
+                      animate={{ y: [0, -8, 0] }}
+                      transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15 }}
+                    />
+                  ))}
+                </div>
               </div>
             ) : snapshot ? (
               <>
