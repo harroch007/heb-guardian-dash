@@ -107,7 +107,20 @@ FINAL OUTPUT - Return JSON ONLY with these fields:
   "meaning": "<Hebrew, 1 sentence - what this means for parent>",
   "social_context": {"label": "הקשר חברתי", "participants": ["name1", "name2"], "description": "<1 sentence>"} | null,
   "recommendation": "<Hebrew, non-empty ONLY if verdict is not 'safe'; otherwise ''>"
-}`;
+}
+
+AUTHOR & TARGET ANALYSIS (CRITICAL FOR SCORING)
+- Each message has an "origin" or "from" field indicating who sent it.
+- The CHILD is the person being monitored. Messages have author_type: CHILD, OTHER, or UNKNOWN.
+- When scoring risk, consider WHO said the message and WHO it targets:
+  1. Message BY the child containing dangerous content -> HIGH risk (direct involvement)
+  2. Message TO the child that is threatening/exploitative -> HIGH risk (child is target)
+  3. Message BY another person ABOUT a third party (not the child) -> LOW risk
+  4. General group banter, family chat, jokes about unrelated people -> LOW risk
+- A message like "I hope X punches Y" said by someone else about a third party
+  in a family group is NOT a reason to alert the parent about their child.
+- Only escalate when the CHILD is directly involved as sender, recipient, or target.
+- Reduce risk_score by 30-50 points when the child is neither the author nor the target.`;
 
 // ─── PII Redaction ──────────────────────────────────────────────────────────
 const HEBREW_NAMES = ["אורי","נועה","דניאל","עידו","מאיה","אייל","שירה","רון","יואב","תמר","איתי","מיכל","ליה","אדם","עמית"];
@@ -204,7 +217,7 @@ async function processAlert(
       model: 'gpt-4o-mini',
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: `Analyze this message content:\n\n${redactPII(content)}` }
+        { role: 'user', content: `Analyze this message content:\nChat type: ${alert.chat_type || 'UNKNOWN'}\nAuthor type of flagged message: ${alert.author_type || 'UNKNOWN'}\n\n${redactPII(content)}` }
       ],
       response_format: { type: 'json_object' },
       temperature: 0.3,
