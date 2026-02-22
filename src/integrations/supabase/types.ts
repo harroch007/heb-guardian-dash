@@ -512,6 +512,62 @@ export type Database = {
           },
         ]
       }
+      child_periodic_summaries: {
+        Row: {
+          child_id: string
+          created_at: string
+          data_quality: string | null
+          headline: string
+          id: string
+          insights: string[]
+          period_end: string
+          period_start: string
+          period_type: string
+          positive_highlights: string[] | null
+          severity_summary: string | null
+          stats_snapshot: Json | null
+          suggested_action: string | null
+        }
+        Insert: {
+          child_id: string
+          created_at?: string
+          data_quality?: string | null
+          headline: string
+          id?: string
+          insights?: string[]
+          period_end: string
+          period_start: string
+          period_type: string
+          positive_highlights?: string[] | null
+          severity_summary?: string | null
+          stats_snapshot?: Json | null
+          suggested_action?: string | null
+        }
+        Update: {
+          child_id?: string
+          created_at?: string
+          data_quality?: string | null
+          headline?: string
+          id?: string
+          insights?: string[]
+          period_end?: string
+          period_start?: string
+          period_type?: string
+          positive_highlights?: string[] | null
+          severity_summary?: string | null
+          stats_snapshot?: Json | null
+          suggested_action?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "child_periodic_summaries_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       children: {
         Row: {
           city: string | null
