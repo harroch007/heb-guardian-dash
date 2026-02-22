@@ -11,9 +11,10 @@ interface AlertFeedbackProps {
   parentId: string;
   existingFeedback?: FeedbackType | null;
   onFeedbackChange?: (alertId: number, feedback: FeedbackType) => void;
+  onAutoAcknowledge?: () => void;
 }
 
-export function AlertFeedback({ alertId, parentId, existingFeedback, onFeedbackChange }: AlertFeedbackProps) {
+export function AlertFeedback({ alertId, parentId, existingFeedback, onFeedbackChange, onAutoAcknowledge }: AlertFeedbackProps) {
   const [selected, setSelected] = useState<FeedbackType | null>(existingFeedback ?? null);
   const [loading, setLoading] = useState(false);
 
@@ -44,6 +45,7 @@ export function AlertFeedback({ alertId, parentId, existingFeedback, onFeedbackC
 
       if (error) throw error;
       onFeedbackChange?.(alertId, type);
+      onAutoAcknowledge?.();
     } catch (err: any) {
       // Rollback
       setSelected(prev);
