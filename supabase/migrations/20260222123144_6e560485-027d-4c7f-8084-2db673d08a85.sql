@@ -1,0 +1,1 @@
+UPDATE alert_events_queue SET status = 'pending', attempt = 0, last_error = NULL, visible_at = now(), updated_at = now() WHERE alert_id = 884;
