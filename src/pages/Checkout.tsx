@@ -55,7 +55,7 @@ function getDiscountedPrice(type: string, value: number): number {
 type CheckoutStep = "select" | "card";
 
 const ApplePayLogo = () => (
-  <svg viewBox="0 0 165 40" className="h-8" fill="currentColor">
+  <svg viewBox="0 0 165 40" className="h-12" fill="currentColor">
     <path d="M150.7 0H14.3C6.4 0 0 6.4 0 14.3v11.4C0 33.6 6.4 40 14.3 40h136.4c7.9 0 14.3-6.4 14.3-14.3V14.3C165 6.4 158.6 0 150.7 0z" fill="hsl(var(--foreground))"/>
     <path d="M43.6 13.2c1.1-1.4 1.9-3.3 1.7-5.2-1.6.1-3.6 1.1-4.7 2.4-1 1.2-1.9 3.1-1.7 4.9 1.8.2 3.6-.9 4.7-2.1zm1.6 2.6c-2.6-.2-4.8 1.5-6 1.5s-3.1-1.4-5.2-1.4c-2.7 0-5.1 1.5-6.5 3.9-2.8 4.8-.7 11.9 2 15.8 1.3 1.9 2.9 4.1 5 4 2-.1 2.8-1.3 5.2-1.3s3.1 1.3 5.2 1.2c2.2 0 3.5-1.9 4.8-3.9 1.5-2.2 2.1-4.3 2.1-4.4 0-.1-4.1-1.6-4.1-6.1 0-3.8 3.1-5.6 3.2-5.7-1.7-2.6-4.4-2.9-5.4-3-.3-.3-.2-.5-.3-.6z" fill="hsl(var(--background))"/>
     <path d="M78.4 10.1c5.1 0 8.7 3.5 8.7 8.7s-3.6 8.7-8.8 8.7h-5.7v9h-4.2V10.1h10zm-5.8 14h4.7c3.6 0 5.6-1.9 5.6-5.3s-2-5.3-5.5-5.3h-4.8v10.6zm18.4 6.7c0-3.4 2.6-5.5 7.2-5.8l5.3-.3v-1.5c0-2.2-1.5-3.4-3.9-3.4-2.3 0-3.8 1.2-4.1 3h-3.9c.2-3.7 3.3-6.5 8.2-6.5 4.8 0 7.8 2.6 7.8 6.6v13.6h-3.9v-3.3h-.1c-1.1 2.2-3.6 3.6-6.2 3.6-3.9 0-6.4-2.4-6.4-5.9zm12.5-1.8v-1.5l-4.8.3c-2.4.2-3.7 1.1-3.7 2.9 0 1.8 1.4 2.9 3.6 2.9 2.8 0 4.9-1.9 4.9-4.6zm9.4 10.8v-3.3c.3.1 1 .1 1.3.1 1.8 0 2.8-.8 3.4-2.7l.4-1.1-7.6-21h4.4l5.5 17.2h.1l5.5-17.2h4.3l-7.9 22c-1.8 5.1-3.9 6.7-8.2 6.7-.4 0-1.1 0-1.2-.1v.4z" fill="hsl(var(--background))"/>
@@ -63,7 +63,7 @@ const ApplePayLogo = () => (
 );
 
 const GooglePayLogo = () => (
-  <svg viewBox="0 0 150 40" className="h-8">
+  <svg viewBox="0 0 150 40" className="h-12">
     <rect width="150" height="40" rx="14" fill="hsl(var(--foreground))"/>
     <text x="75" y="26" textAnchor="middle" fontFamily="Arial, sans-serif" fontSize="18" fontWeight="bold" fill="hsl(var(--background))">
       Google Pay
