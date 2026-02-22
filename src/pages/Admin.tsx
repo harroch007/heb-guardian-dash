@@ -135,6 +135,56 @@ export default function Admin() {
     fetchAllData();
   }, []);
 
+  // Auto-refresh queue health every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const { data: queueData } = await supabase
+          .from("alert_events_queue")
+          .select("id, alert_id, status, attempt, created_at, last_error")
+          .in("status", ["pending", "failed", "processing"])
+          .order("created_at", { ascending: true });
+
+        const queuePending = queueData?.filter(q => q.status === 'pending').length || 0;
+        const queueFailed = queueData?.filter(q => q.status === 'failed').length || 0;
+        const oldestPending = queueData
+          ?.filter(q => q.status === 'pending')
+          .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())[0];
+        const oldestPendingMinutes = oldestPending
+          ? Math.round((Date.now() - new Date(oldestPending.created_at).getTime()) / 60000)
+          : 0;
+
+        const queueAlertIds = [...new Set(queueData?.map(q => q.alert_id) || [])];
+        let processedAlertIds = new Set<number>();
+        if (queueAlertIds.length > 0) {
+          const { data: processedAlerts } = await supabase
+            .from("alerts")
+            .select("id")
+            .in("id", queueAlertIds)
+            .eq("is_processed", true);
+          processedAlertIds = new Set(processedAlerts?.map(a => a.id) || []);
+        }
+
+        const pendingAlerts = (queueData || []).map(q => ({
+          ...q,
+          is_processed: processedAlertIds.has(q.alert_id),
+        }));
+
+        setOverviewStats(prev => prev ? {
+          ...prev,
+          queuePending,
+          queueFailed,
+          oldestPendingMinutes,
+          pendingAlerts,
+        } : prev);
+      } catch (error) {
+        console.error("Error refreshing queue health:", error);
+      }
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   const fetchAllData = async () => {
     setLoading(true);
     await Promise.all([
