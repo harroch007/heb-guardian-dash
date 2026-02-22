@@ -248,14 +248,25 @@ async function processAlert(
     } else if (deviceData?.child_id) {
       const { data: childData } = await supabase
         .from('children')
-        .select('date_of_birth, gender, subscription_tier')
+        .select('date_of_birth, gender, subscription_tier, subscription_expires_at')
         .eq('id', deviceData.child_id)
         .single();
 
       if (childData) {
-        // Check subscription tier - skip AI for free users
+        // Check subscription tier - skip AI for free users or expired premium
         const tier = childData.subscription_tier || 'free';
-        if (tier === 'free') {
+        const expiresAt = childData.subscription_expires_at;
+        const isExpired = tier === 'premium' && expiresAt && new Date(expiresAt) < new Date();
+
+        if (tier === 'free' || isExpired) {
+          // If premium expired, downgrade immediately
+          if (isExpired) {
+            console.log(`Alert ${alert.id}: premium expired for child ${deviceData.child_id}, downgrading to free`);
+            await supabase
+              .from('children')
+              .update({ subscription_tier: 'free', subscription_expires_at: null } as any)
+              .eq('id', deviceData.child_id);
+          }
           console.log(`Alert ${alert.id} skipped: child is on free tier`);
           await supabase
             .from('alerts')

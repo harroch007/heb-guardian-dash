@@ -581,6 +581,7 @@ export type Database = {
           parent_id: string
           phone_number: string
           school: string | null
+          subscription_expires_at: string | null
           subscription_tier: string | null
         }
         Insert: {
@@ -595,6 +596,7 @@ export type Database = {
           parent_id: string
           phone_number: string
           school?: string | null
+          subscription_expires_at?: string | null
           subscription_tier?: string | null
         }
         Update: {
@@ -609,6 +611,7 @@ export type Database = {
           parent_id?: string
           phone_number?: string
           school?: string | null
+          subscription_expires_at?: string | null
           subscription_tier?: string | null
         }
         Relationships: [
