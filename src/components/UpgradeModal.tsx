@@ -10,10 +10,10 @@ interface UpgradeModalProps {
 }
 
 const features = [
-  { icon: MapPin, text: "מעקב מיקום בזמן אמת" },
-  { icon: Bell, text: "התראות מיידיות על סיכונים" },
-  { icon: Shield, text: "ניתוח AI מתקדם להודעות" },
-  { icon: Zap, text: "דוחות שבועיים מפורטים" },
+  { icon: Shield, text: "ניתוח AI 24/7 לכל ההודעות" },
+  { icon: Bell, text: "התראות חכמות בזמן אמת" },
+  { icon: Zap, text: "תובנות יומיות וסיכומים" },
+  { icon: MapPin, text: "זיהוי רגעים חיוביים וקשרים פעילים" },
 ];
 
 export function UpgradeModal({ open, onOpenChange, childName }: UpgradeModalProps) {
@@ -50,7 +50,7 @@ export function UpgradeModal({ open, onOpenChange, childName }: UpgradeModalProp
         </div>
 
         <div className="bg-muted/50 rounded-lg p-4 text-center mb-4">
-          <div className="text-2xl font-bold text-foreground">₪29.90</div>
+          <div className="text-2xl font-bold text-foreground">₪19</div>
           <div className="text-sm text-muted-foreground">לחודש</div>
         </div>
 
