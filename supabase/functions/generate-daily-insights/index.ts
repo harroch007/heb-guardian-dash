@@ -199,15 +199,29 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     // Fetch alert summaries for this day (using serviceClient to bypass RLS)
-    const { data: alertsSummary } = await serviceClient
-      .from('alerts')
-      .select('ai_title, category, child_role, chat_type, ai_risk_score, expert_type')
-      .eq('child_id', child_id)
-      .gte('created_at', date + 'T00:00:00+03:00')
-      .lt('created_at', date + 'T23:59:59+03:00')
-      .not('analyzed_at', 'is', null)
-      .eq('processing_status', 'notified')
-      .limit(10);
+    const [alertsResult, positiveAlertsResult] = await Promise.all([
+      serviceClient
+        .from('alerts')
+        .select('ai_title, category, child_role, chat_type, ai_risk_score, expert_type')
+        .eq('child_id', child_id)
+        .eq('alert_type', 'warning')
+        .gte('created_at', date + 'T00:00:00+03:00')
+        .lt('created_at', date + 'T23:59:59+03:00')
+        .not('analyzed_at', 'is', null)
+        .eq('processing_status', 'notified')
+        .limit(10),
+      serviceClient
+        .from('alerts')
+        .select('ai_title, category, ai_summary')
+        .eq('child_id', child_id)
+        .eq('alert_type', 'positive')
+        .gte('created_at', date + 'T00:00:00+03:00')
+        .lt('created_at', date + 'T23:59:59+03:00')
+        .eq('is_processed', true)
+        .limit(5)
+    ]);
+    const alertsSummary = alertsResult.data;
+    const positiveAlerts = positiveAlertsResult.data;
 
     // Fetch chat type breakdown from daily_chat_stats
     const { data: chatBreakdown } = await serviceClient
@@ -273,6 +287,11 @@ Deno.serve(async (req) => {
         risk_score: a.ai_risk_score,
         expert_type: a.expert_type
       })) ?? [],
+      positive_alerts_context: positiveAlerts?.map(a => ({
+        title: a.ai_title,
+        category: a.category,
+        summary: a.ai_summary
+      })) ?? [],
       chat_type_breakdown: chatTypeBreakdown
     };
 
@@ -309,6 +328,13 @@ HOW TO USE alerts_context:
 - Use "child_role" to distinguish: "sender" = child was involved directly, "bystander" = child was a witness, "target" = child was targeted
 - Use "chat_type" to note if alerts came from GROUP or PRIVATE chats
 - Use "risk_score" to gauge severity (higher = more concerning)
+
+HOW TO USE positive_alerts_context:
+- Contains positive behaviors detected by the AI (e.g., empathy, kindness, standing up for others)
+- Each has: title, category, summary
+- If positive_alerts_context is NOT empty, you MUST mention at least one positive behavior in the insights
+- Parents want to hear good things too — give positive behaviors appropriate weight
+- Do NOT invent positive behaviors if positive_alerts_context is empty
 
 HOW TO USE chat_type_breakdown:
 - Shows message counts by type (GROUP vs PRIVATE)
