@@ -67,7 +67,7 @@ const SettingsPage = () => {
         {/* Card 1: התראות */}
         <section className="p-6 rounded-xl bg-card border border-border/50">
           <div 
-            onClick={() => navigate('/alerts')}
+            onClick={() => navigate('/notification-settings')}
             className="flex items-center justify-between cursor-pointer hover:opacity-80 transition-opacity"
           >
             <div className="flex items-center gap-3">
