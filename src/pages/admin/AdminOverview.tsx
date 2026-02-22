@@ -332,21 +332,23 @@ export function AdminOverview({ stats, loading, onNavigate, onRefresh }: AdminOv
           <CardHeader className="pb-2">
             <CardDescription className="flex items-center gap-2 text-xs">
               <Bell className="w-3 h-3" />
-              התראות שנוצרו היום
+              התראות אמיתיות היום
             </CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold text-blue-400">{stats?.alertsCreatedToday || 0}</p>
-            <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <Cpu className="w-3 h-3" />
-                {stats?.alertsAnalyzedToday || 0} AI
-              </span>
-              <span className="flex items-center gap-1">
-                <Shield className="w-3 h-3" />
-                {stats?.systemAlertsToday || 0} מערכת
-              </span>
-            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-slate-400/20">
+          <CardHeader className="pb-2">
+            <CardDescription className="flex items-center gap-2 text-xs">
+              <Shield className="w-3 h-3" />
+              התראות מערכת היום
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-slate-400">{stats?.systemAlertsToday || 0}</p>
           </CardContent>
         </Card>
 
