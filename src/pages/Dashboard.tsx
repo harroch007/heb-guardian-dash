@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { DashboardGreeting } from "@/components/dashboard/DashboardGreeting";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Users, User, RefreshCw, BarChart3, Brain, Smartphone, MapPin, Battery, Clock, Mail, Bot, AlertTriangle, Calendar, ChevronLeft, Bell, X, Shield } from "lucide-react";
+import { Plus, Users, User, RefreshCw, BarChart3, Brain, Smartphone, MapPin, Battery, Clock, Mail, Bot, AlertTriangle, Calendar, ChevronLeft, Bell, X, Shield, Star } from "lucide-react";
 import { motion } from "framer-motion";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 
@@ -185,6 +185,7 @@ const Index = () => {
   const autoRefreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [insights, setInsights] = useState<DailyInsights | null>(null);
   const [insightsLoading, setInsightsLoading] = useState(false);
+  const [positiveAlert, setPositiveAlert] = useState<{id: number; ai_title: string; ai_summary: string} | null>(null);
 
   // When child is selected, immediately try to load from cache (sync)
   useEffect(() => {
@@ -310,11 +311,32 @@ const Index = () => {
         setInsightsLoading(true);
       }
 
-      const { data: fullData, error: snapshotError } = await supabase
-        .from("parent_home_snapshot")
-        .select("*")
-        .eq("child_id", selectedChildId)
-        .maybeSingle();
+      // Fetch snapshot and positive alert in parallel
+      const [snapshotResult, positiveResult] = await Promise.all([
+        supabase
+          .from("parent_home_snapshot")
+          .select("*")
+          .eq("child_id", selectedChildId)
+          .maybeSingle(),
+        supabase
+          .from("alerts")
+          .select("id, ai_title, ai_summary")
+          .eq("child_id", selectedChildId)
+          .eq("alert_type", "positive")
+          .is("acknowledged_at", null)
+          .eq("is_processed", true)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle()
+      ]);
+
+      const { data: fullData, error: snapshotError } = snapshotResult;
+      
+      if (positiveResult.data) {
+        setPositiveAlert(positiveResult.data as any);
+      } else {
+        setPositiveAlert(null);
+      }
 
       if (snapshotError) throw snapshotError;
       
@@ -549,6 +571,32 @@ const Index = () => {
                     </div>
                   </CardContent>
                 </Card>
+
+                {/* Positive Alert Card - only shown if exists */}
+                {positiveAlert && (
+                  <Card className="border-emerald-500/30 bg-emerald-500/5">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="flex items-center gap-2 text-base font-semibold text-emerald-400">
+                        <Star className="h-5 w-5 fill-emerald-400 text-emerald-400" />
+                        רגע טוב ✨
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      <p className="font-medium text-foreground text-sm">{positiveAlert.ai_title}</p>
+                      {positiveAlert.ai_summary && (
+                        <p className="text-sm text-muted-foreground line-clamp-2">{positiveAlert.ai_summary}</p>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 p-0 h-auto"
+                        onClick={() => navigate("/alerts?tab=positive")}
+                      >
+                        ראה הכל ←
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
 
                 {/* Yesterday Summary Button */}
                 <Button
