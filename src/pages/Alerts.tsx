@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { AlertCardStack, AlertTabs, EmptyAlertsState, EmptySavedState } from "@/components/alerts";
+import { AlertCardStack, AlertTabs, EmptyAlertsState, EmptySavedState, PositiveAlertCard, EmptyPositiveState } from "@/components/alerts";
 import { supabase } from "@/integrations/supabase/client";
 import { RefreshCw } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
@@ -37,100 +37,75 @@ interface Alert {
   acknowledged_at?: string | null;
   remind_at?: string | null;
   saved_at?: string | null;
+  alert_type?: string | null;
 }
+
+const ALERT_SELECT_FIELDS = `
+  id, child_id, sender, sender_display, chat_name, chat_type,
+  parent_message, suggested_action, category, ai_risk_score,
+  ai_verdict, ai_summary, ai_recommendation, ai_title, ai_context,
+  ai_meaning, ai_social_context, child_role, created_at, is_processed,
+  acknowledged_at, remind_at, saved_at, alert_type,
+  children!child_id(name)
+`;
 
 const AlertsPage = () => {
   const { parentId } = useAuth();
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [savedAlerts, setSavedAlerts] = useState<Alert[]>([]);
+  const [positiveAlerts, setPositiveAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'new' | 'saved'>('new');
+  const [activeTab, setActiveTab] = useState<'new' | 'saved' | 'positive'>('new');
   const [feedbackMap, setFeedbackMap] = useState<Record<number, 'important' | 'not_relevant'>>({});
 
   const fetchAlerts = async () => {
     try {
       setLoading(true);
       
-      // Fetch new alerts (not acknowledged, not saved)
+      // Fetch new warning alerts (not acknowledged, not saved)
       const { data: newData, error: newError } = await supabase
         .from('alerts')
-        .select(`
-          id,
-          child_id,
-          sender,
-          sender_display,
-          chat_name,
-          chat_type,
-          parent_message,
-          suggested_action,
-          category,
-          ai_risk_score,
-          ai_verdict,
-          ai_summary,
-          ai_recommendation,
-          ai_title,
-          ai_context,
-          ai_meaning,
-          ai_social_context,
-          child_role,
-          created_at,
-          is_processed,
-          acknowledged_at,
-          remind_at,
-          saved_at,
-          children!child_id(name)
-        `)
+        .select(ALERT_SELECT_FIELDS)
         .eq('is_processed', true)
         .is('acknowledged_at', null)
         .is('saved_at', null)
         .is('parent_message', null)
+        .eq('alert_type', 'warning')
         .order('created_at', { ascending: false });
 
       if (newError) throw newError;
       
-      // Fetch saved alerts (has saved_at, not acknowledged)
+      // Fetch saved alerts
       const { data: savedData, error: savedError } = await supabase
         .from('alerts')
-        .select(`
-          id,
-          child_id,
-          sender,
-          sender_display,
-          chat_name,
-          chat_type,
-          parent_message,
-          suggested_action,
-          category,
-          ai_risk_score,
-          ai_verdict,
-          ai_summary,
-          ai_recommendation,
-          ai_title,
-          ai_context,
-          ai_meaning,
-          ai_social_context,
-          child_role,
-          created_at,
-          is_processed,
-          acknowledged_at,
-          remind_at,
-          saved_at,
-          children!child_id(name)
-        `)
+        .select(ALERT_SELECT_FIELDS)
         .eq('is_processed', true)
         .is('acknowledged_at', null)
         .not('saved_at', 'is', null)
         .is('parent_message', null)
+        .eq('alert_type', 'warning')
         .order('saved_at', { ascending: false });
 
       if (savedError) throw savedError;
+
+      // Fetch positive alerts (not acknowledged)
+      const { data: positiveData, error: positiveError } = await supabase
+        .from('alerts')
+        .select(ALERT_SELECT_FIELDS)
+        .eq('is_processed', true)
+        .is('acknowledged_at', null)
+        .is('parent_message', null)
+        .eq('alert_type', 'positive')
+        .order('created_at', { ascending: false });
+
+      if (positiveError) throw positiveError;
       
       // Filter remind_at in JavaScript
       const now = new Date();
       const filterRemindAt = (data: typeof newData) => 
         data?.filter(alert => !alert.remind_at || new Date(alert.remind_at) < now) || [];
       
-      // Transform data to flatten child name and cast ai_social_context
+      // Transform data
       const transformData = (data: typeof newData) => 
         filterRemindAt(data).map(alert => ({
           ...alert,
@@ -142,8 +117,9 @@ const AlertsPage = () => {
       
       setAlerts(transformData(newData));
       setSavedAlerts(transformData(savedData));
+      setPositiveAlerts(transformData(positiveData));
 
-      // Fetch existing feedback for these alerts
+      // Fetch existing feedback
       if (parentId) {
         const allAlertIds = [
           ...(newData || []).map(a => a.id),
@@ -185,9 +161,9 @@ const AlertsPage = () => {
 
       if (error) throw error;
 
-      // Remove from both lists
       setAlerts(prev => prev.filter(alert => alert.id !== id));
       setSavedAlerts(prev => prev.filter(alert => alert.id !== id));
+      setPositiveAlerts(prev => prev.filter(alert => alert.id !== id));
       
       toast({
         title: "תודה!",
@@ -211,7 +187,6 @@ const AlertsPage = () => {
 
       if (error) throw error;
 
-      // Move from alerts to savedAlerts
       const alertToSave = alerts.find(a => a.id === id);
       if (alertToSave) {
         setAlerts(prev => prev.filter(a => a.id !== id));
@@ -239,17 +214,13 @@ const AlertsPage = () => {
     setFeedbackMap(prev => ({ ...prev, [alertId]: feedback }));
   };
 
-  const currentAlerts = activeTab === 'new' ? alerts : savedAlerts;
-
   return (
     <DashboardLayout>
       <div className="max-w-2xl mx-auto" dir="rtl">
         {/* Header */}
         <div className="mb-4">
           <div className="flex items-center justify-between mb-2">
-            <h1 className="text-2xl font-bold text-foreground">
-              התראות
-            </h1>
+            <h1 className="text-2xl font-bold text-foreground">התראות</h1>
             <button
               onClick={fetchAlerts}
               disabled={loading}
@@ -268,6 +239,7 @@ const AlertsPage = () => {
             onTabChange={setActiveTab}
             newCount={alerts.length}
             savedCount={savedAlerts.length}
+            positiveCount={positiveAlerts.length}
           />
         </div>
 
@@ -278,20 +250,42 @@ const AlertsPage = () => {
               <div key={i} className="h-20 rounded-xl bg-card/50 animate-pulse border border-border/30" />
             ))}
           </div>
-        ) : currentAlerts.length > 0 ? (
-          <AlertCardStack
-            alerts={currentAlerts}
-            onAcknowledge={handleAcknowledge}
-            onSave={handleSave}
-            isSavedView={activeTab === 'saved'}
-            parentId={parentId}
-            feedbackMap={feedbackMap}
-            onFeedbackChange={handleFeedbackChange}
-          />
         ) : activeTab === 'new' ? (
-          <EmptyAlertsState />
+          alerts.length > 0 ? (
+            <AlertCardStack
+              alerts={alerts}
+              onAcknowledge={handleAcknowledge}
+              onSave={handleSave}
+              isSavedView={false}
+              parentId={parentId}
+              feedbackMap={feedbackMap}
+              onFeedbackChange={handleFeedbackChange}
+            />
+          ) : (
+            <EmptyAlertsState />
+          )
+        ) : activeTab === 'positive' ? (
+          positiveAlerts.length > 0 ? (
+            <PositiveAlertCard
+              alerts={positiveAlerts}
+              onAcknowledge={handleAcknowledge}
+            />
+          ) : (
+            <EmptyPositiveState />
+          )
         ) : (
-          <EmptySavedState />
+          savedAlerts.length > 0 ? (
+            <AlertCardStack
+              alerts={savedAlerts}
+              onAcknowledge={handleAcknowledge}
+              isSavedView={true}
+              parentId={parentId}
+              feedbackMap={feedbackMap}
+              onFeedbackChange={handleFeedbackChange}
+            />
+          ) : (
+            <EmptySavedState />
+          )
         )}
       </div>
     </DashboardLayout>

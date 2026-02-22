@@ -94,6 +94,21 @@ VERDICT-SPECIFIC GUIDANCE:
 - review → המלצה ספציפית לקטגוריה הרלוונטית, עצה פסיכולוגית קונקרטית
 - notify → המלצה דחופה אך רגועה, עם דגש על ביטחון הילד ותקשורת פתוחה
 
+POSITIVE BEHAVIOR DETECTION (CRITICAL NEW FEATURE)
+- In ADDITION to risk analysis, detect notable POSITIVE behaviors by the child.
+- Positive behaviors include: empathy, leadership, maturity, helpfulness, defending others, eloquent expression, supporting friends/siblings, conflict de-escalation, learning new things.
+- IMPORTANT: Only flag TRULY notable positive behavior, NOT basic politeness or routine conversation.
+- "positive_behavior" is INDEPENDENT of verdict — a child can show positive behavior even in a dangerous conversation (e.g., defending someone in a violent group chat).
+- When detected, return the "positive_behavior" object. When not detected, return null.
+
+POSITIVE BEHAVIOR TYPES:
+- "empathy" = הילד מגלה אמפתיה ותמיכה רגשית
+- "leadership" = הילד מוביל, מארגן, או לוקח אחריות
+- "maturity" = הילד מתבטא בבגרות מעבר לגילו
+- "helpfulness" = הילד עוזר לאחרים
+- "defense" = הילד מגן על מישהו או מסיט את האש
+- "expression" = הילד מתבטא בצורה יפה, עברית תקינה, או לומד דברים חדשים
+
 FINAL OUTPUT - Return JSON ONLY with these fields:
 {
   "risk_score": <number 0..100>,
@@ -114,7 +129,8 @@ FINAL OUTPUT - Return JSON ONLY with these fields:
   "meaning": "<Hebrew, 1 sentence - direct insight, NEVER start with 'כמו הורה'/'כהורה'/'בתור הורה'>",
   "child_role": "sender" | "target" | "bystander" | "unknown",
   "social_context": {"label": "הקשר חברתי", "participants": ["name1", "name2"], "description": "<1 sentence>"} | null,
-  "recommendation": "<Hebrew, non-empty ONLY if verdict is not 'safe'; otherwise ''>"
+  "recommendation": "<Hebrew, non-empty ONLY if verdict is not 'safe'; otherwise ''>",
+  "positive_behavior": {"detected": true, "type": "empathy"|"leadership"|"maturity"|"helpfulness"|"defense"|"expression", "summary": "<Hebrew, 1 sentence describing the positive behavior>", "parent_note": "<Hebrew, 1-2 sentences suggestion for parent>"} | null
 }
 
 RELATIONSHIP CONTEXT (CRITICAL FOR ACCURATE SCORING)
@@ -558,6 +574,54 @@ async function processAlert(
     }
   }
 
+  // 9. Handle positive behavior detection
+  if (aiResult.positive_behavior?.detected === true) {
+    try {
+      console.log(`POSITIVE_BEHAVIOR detected for alert ${alertId}: type=${aiResult.positive_behavior.type}`);
+      
+      // Get child_id from the alert
+      const { data: alertForPositive } = await supabase
+        .from('alerts')
+        .select('child_id, device_id, chat_name, chat_type')
+        .eq('id', alertId)
+        .single();
+
+      if (alertForPositive?.child_id) {
+        // Create a separate positive alert record
+        const positiveTitle = `כל הכבוד! ${aiResult.positive_behavior.summary}`;
+        
+        const { error: positiveError } = await supabase
+          .from('alerts')
+          .insert({
+            child_id: alertForPositive.child_id,
+            device_id: alertForPositive.device_id,
+            chat_name: alertForPositive.chat_name,
+            chat_type: alertForPositive.chat_type,
+            alert_type: 'positive',
+            ai_verdict: 'positive',
+            ai_title: positiveTitle,
+            ai_summary: aiResult.positive_behavior.summary,
+            ai_recommendation: aiResult.positive_behavior.parent_note,
+            ai_risk_score: 0,
+            is_processed: true,
+            processing_status: 'analyzed',
+            content: '[CONTENT DELETED FOR PRIVACY]',
+            analyzed_at: new Date().toISOString(),
+            source: 'edge_analyze_alert',
+            category: aiResult.positive_behavior.type,
+          });
+
+        if (positiveError) {
+          console.error(`Failed to create positive alert: ${positiveError.message}`);
+        } else {
+          console.log(`POSITIVE_ALERT_CREATED for child ${alertForPositive.child_id}`);
+        }
+      }
+    } catch (positiveErr) {
+      console.error('Positive behavior handling error (non-fatal):', positiveErr);
+    }
+  }
+
   return {
     success: true,
     alert_id: alertId,
@@ -565,6 +629,7 @@ async function processAlert(
     ai_recommendation: updateData.ai_recommendation,
     ai_risk_score: updateData.ai_risk_score,
     ai_verdict: updateData.ai_verdict,
+    positive_behavior: aiResult.positive_behavior || null,
     privacy: 'content_wiped',
   };
 }
