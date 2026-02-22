@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Check, Star, Shield, Zap, MapPin, Bell } from "lucide-react";
@@ -7,6 +8,7 @@ interface UpgradeModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   childName?: string;
+  childId?: string;
 }
 
 const features = [
@@ -16,10 +18,11 @@ const features = [
   { icon: MapPin, text: "זיהוי רגעים חיוביים וקשרים פעילים" },
 ];
 
-export function UpgradeModal({ open, onOpenChange, childName }: UpgradeModalProps) {
+export function UpgradeModal({ open, onOpenChange, childName, childId }: UpgradeModalProps) {
+  const navigate = useNavigate();
   const handleUpgrade = () => {
-    // TODO: Implement actual upgrade flow
-    window.open("https://kippy.app/upgrade", "_blank");
+    onOpenChange(false);
+    navigate(childId ? `/checkout?childId=${childId}` : "/checkout");
   };
 
   return (

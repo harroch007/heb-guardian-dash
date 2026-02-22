@@ -30,6 +30,7 @@ import Install from "./pages/Install";
 import NotFound from "./pages/NotFound";
 import AdminLogin from "./pages/AdminLogin";
 import Admin from "./pages/Admin";
+import Checkout from "./pages/Checkout";
 
 // Demo pages
 import DemoDashboard from "./pages/demo/DemoDashboard";
@@ -99,6 +100,12 @@ const AppRoutes = () => {
       <Route
         path="/notification-settings"
         element={<ProtectedRoute><NotificationSettings /></ProtectedRoute>}
+      />
+      
+      {/* Checkout - protected */}
+      <Route
+        path="/checkout"
+        element={<ProtectedRoute><Checkout /></ProtectedRoute>}
       />
       
       {/* Onboarding - protected only (no demo version) */}
