@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.admin-ai-analyst]
 verify_jwt = false
+
+[functions.generate-periodic-summary]
+verify_jwt = false

@@ -24,6 +24,7 @@ import ChildDashboard from "./pages/ChildDashboard";
 import AlertsPage from "./pages/Alerts";
 import SettingsPage from "./pages/Settings";
 import DailyReport from "./pages/DailyReport";
+import PeriodicSummary from "./pages/PeriodicSummary";
 import NotificationSettings from "./pages/NotificationSettings";
 import Install from "./pages/Install";
 import NotFound from "./pages/NotFound";
@@ -86,6 +87,12 @@ const AppRoutes = () => {
       <Route
         path="/daily-report/:childId"
         element={isDemoMode ? <DemoDailyReport /> : <ProtectedRoute><DailyReport /></ProtectedRoute>}
+      />
+      
+      {/* Periodic Summary - protected only */}
+      <Route
+        path="/summary/:childId/:type"
+        element={<ProtectedRoute><PeriodicSummary /></ProtectedRoute>}
       />
       
       {/* Notification Settings - protected only */}

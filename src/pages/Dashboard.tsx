@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { DashboardGreeting } from "@/components/dashboard/DashboardGreeting";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Users, User, RefreshCw, BarChart3, Brain, Smartphone, MapPin, Battery, Clock, Mail, Bot, AlertTriangle, Calendar, ChevronLeft, Bell, X, Shield, Star } from "lucide-react";
+import { Plus, Users, User, RefreshCw, BarChart3, Brain, Smartphone, MapPin, Battery, Clock, Mail, Bot, AlertTriangle, Calendar, ChevronLeft, Bell, X, Shield, Star, TrendingUp } from "lucide-react";
 import { motion } from "framer-motion";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 
@@ -598,18 +598,31 @@ const Index = () => {
                   </Card>
                 )}
 
-                {/* Yesterday Summary Button */}
-                <Button
-                  variant="outline"
-                  className="w-full justify-between"
-                  onClick={() => navigate(`/daily-report/${selectedChildId}`)}
-                >
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4" />
-                    <span>צפה בסיכום של אתמול</span>
-                  </div>
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
+                {/* Summary Links */}
+                <div className="flex gap-3">
+                  <Button
+                    variant="outline"
+                    className="flex-1 justify-between"
+                    onClick={() => navigate(`/daily-report/${selectedChildId}`)}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      <span>סיכום אתמול</span>
+                    </div>
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex-1 justify-between"
+                    onClick={() => navigate(`/summary/${selectedChildId}/weekly`)}
+                  >
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className="h-4 w-4" />
+                      <span>סיכום שבועי</span>
+                    </div>
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                </div>
 
                 {/* Card 2 - AI Insights */}
                 <Card className="bg-card border-border">
