@@ -50,34 +50,36 @@ export function AlertFeedback({ alertId, parentId, existingFeedback, onFeedbackC
   };
 
   return (
-    <div className="flex items-center gap-2 pt-2">
-      <span className="text-xs text-muted-foreground ml-1">המשוב שלך:</span>
-      <button
-        onClick={() => handleFeedback('important')}
-        disabled={loading}
-        className={cn(
-          "flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-all",
-          selected === 'important'
-            ? "bg-success/20 text-success"
-            : "bg-muted/50 text-muted-foreground hover:bg-muted"
-        )}
-      >
-        <ThumbsUp className="w-3.5 h-3.5" />
-        רלוונטי
-      </button>
-      <button
-        onClick={() => handleFeedback('not_relevant')}
-        disabled={loading}
-        className={cn(
-          "flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-all",
-          selected === 'not_relevant'
-            ? "bg-destructive/20 text-destructive"
-            : "bg-muted/50 text-muted-foreground hover:bg-muted"
-        )}
-      >
-        <ThumbsDown className="w-3.5 h-3.5" />
-        לא רלוונטי
-      </button>
+    <div className="space-y-2 pt-2">
+      <span className="text-sm font-medium text-muted-foreground">האם ההתראה הזו הייתה שימושית?</span>
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => handleFeedback('important')}
+          disabled={loading}
+          className={cn(
+            "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all flex-1 justify-center",
+            selected === 'important'
+              ? "bg-success/20 text-success ring-1 ring-success/40"
+              : "bg-muted/50 text-muted-foreground hover:bg-muted"
+          )}
+        >
+          <ThumbsUp className="w-4 h-4" />
+          רלוונטי
+        </button>
+        <button
+          onClick={() => handleFeedback('not_relevant')}
+          disabled={loading}
+          className={cn(
+            "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all flex-1 justify-center",
+            selected === 'not_relevant'
+              ? "bg-destructive/20 text-destructive ring-1 ring-destructive/40"
+              : "bg-muted/50 text-muted-foreground hover:bg-muted"
+          )}
+        >
+          <ThumbsDown className="w-4 h-4" />
+          לא רלוונטי
+        </button>
+      </div>
     </div>
   );
 }
