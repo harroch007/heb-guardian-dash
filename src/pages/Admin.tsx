@@ -228,7 +228,7 @@ export default function Admin() {
 
       // New KPIs: breakdown
       const systemAlertsToday = alertsToday?.filter(a => a.is_processed === true && a.analyzed_at === null).length || 0;
-      const alertsCreatedToday = totalAlertsToday;
+      const alertsCreatedToday = totalAlertsToday - systemAlertsToday;
       const alertsAnalyzedToday = alertsToday?.filter(a => a.is_processed === true && a.analyzed_at !== null).length || 0;
       const alertsNotifiedToday = alertsToday?.filter(a => 
         a.processing_status === 'notified'
