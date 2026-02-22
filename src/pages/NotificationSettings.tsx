@@ -1,23 +1,45 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { ChevronRight, Gauge, MessageSquareWarning, UserX, Shield, Loader2 } from "lucide-react";
+import { ChevronRight, UserX, Shield, Loader2, ShieldAlert, ShieldCheck, ShieldOff } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
-import { Slider } from "@/components/ui/slider";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+const SENSITIVITY_LEVELS = [
+  {
+    key: "sensitive",
+    threshold: 50,
+    label: "רגיש",
+    description: "כל חשד — גם אירועים ברמת סיכון בינונית",
+    icon: ShieldAlert,
+  },
+  {
+    key: "balanced",
+    threshold: 65,
+    label: "מאוזן",
+    description: "מומלץ — התראות על אירועים משמעותיים",
+    icon: ShieldCheck,
+    recommended: true,
+  },
+  {
+    key: "critical",
+    threshold: 85,
+    label: "רק חמור",
+    description: "רק אירועים חמורים באמת",
+    icon: ShieldOff,
+  },
+] as const;
+
 interface SettingsData {
   alert_threshold: number;
-  alert_on_trigger_words: boolean;
   alert_on_unknown_contacts: boolean;
   monitoring_enabled: boolean;
 }
 
 const DEFAULTS: SettingsData = {
-  alert_threshold: 70,
-  alert_on_trigger_words: true,
+  alert_threshold: 65,
   alert_on_unknown_contacts: true,
   monitoring_enabled: true,
 };
@@ -25,6 +47,12 @@ const DEFAULTS: SettingsData = {
 interface Child {
   id: string;
   name: string;
+}
+
+function thresholdToLevel(threshold: number): string {
+  if (threshold <= 50) return "sensitive";
+  if (threshold <= 75) return "balanced";
+  return "critical";
 }
 
 const NotificationSettings = () => {
@@ -36,7 +64,6 @@ const NotificationSettings = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // Fetch children
   useEffect(() => {
     if (!user) return;
     const fetchChildren = async () => {
@@ -53,21 +80,20 @@ const NotificationSettings = () => {
     fetchChildren();
   }, [user]);
 
-  // Fetch settings for selected child
   useEffect(() => {
     if (!selectedChildId) return;
     const fetchSettings = async () => {
       setLoading(true);
       const { data } = await supabase
         .from("settings")
-        .select("alert_threshold, alert_on_trigger_words, alert_on_unknown_contacts, monitoring_enabled")
+        .select("alert_threshold, alert_on_unknown_contacts, monitoring_enabled")
         .eq("child_id", selectedChildId)
+        .is("device_id", null)
         .maybeSingle();
 
       if (data) {
         setSettings({
           alert_threshold: data.alert_threshold ?? DEFAULTS.alert_threshold,
-          alert_on_trigger_words: data.alert_on_trigger_words ?? DEFAULTS.alert_on_trigger_words,
           alert_on_unknown_contacts: data.alert_on_unknown_contacts ?? DEFAULTS.alert_on_unknown_contacts,
           monitoring_enabled: data.monitoring_enabled ?? DEFAULTS.monitoring_enabled,
         });
@@ -82,6 +108,7 @@ const NotificationSettings = () => {
   const updateSetting = async (key: keyof SettingsData, value: number | boolean) => {
     if (!selectedChildId || !user) return;
     setSaving(true);
+    const prev = { ...settings };
     const newSettings = { ...settings, [key]: value };
     setSettings(newSettings);
 
@@ -99,13 +126,14 @@ const NotificationSettings = () => {
     if (error) {
       console.error("Failed to update setting:", error);
       toast.error("שגיאה בשמירת ההגדרה");
-      // Revert
-      setSettings(settings);
+      setSettings(prev);
     } else {
       toast.success("ההגדרה עודכנה בהצלחה");
     }
     setSaving(false);
   };
+
+  const selectedLevel = thresholdToLevel(settings.alert_threshold);
 
   if (loading && children.length === 0) {
     return (
@@ -131,7 +159,7 @@ const NotificationSettings = () => {
         <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
           הגדרות התראות
         </h1>
-        <p className="text-muted-foreground">כללים, תדירות וסוגי התרעות</p>
+        <p className="text-muted-foreground">רמת רגישות, סוגי התרעות וניטור</p>
       </div>
 
       {/* Child tabs */}
@@ -159,53 +187,38 @@ const NotificationSettings = () => {
         </div>
       ) : (
         <div className="max-w-2xl space-y-4">
-          {/* Alert Threshold */}
+          {/* Sensitivity Level */}
           <section className="p-6 rounded-xl bg-card border border-border/50">
-            <div className="flex items-center gap-3 mb-4">
-              <Gauge className="w-5 h-5 text-warning" />
-              <div>
-                <h2 className="text-lg font-semibold text-foreground">סף רגישות התראות</h2>
-                <p className="text-sm text-muted-foreground">
-                  ציון סיכון מינימלי שיגרום להתראה. ערך נמוך = יותר התראות.
-                </p>
-              </div>
-            </div>
-            <div className="px-1" dir="ltr">
-              <Slider
-                value={[settings.alert_threshold]}
-                min={0}
-                max={100}
-                step={5}
-                onValueCommit={(val) => updateSetting("alert_threshold", val[0])}
-                disabled={saving}
-              />
-            </div>
-            <div className="flex justify-between mt-2 text-xs text-muted-foreground" dir="rtl">
-              <span>רגיש מאוד (0)</span>
-              <span className="font-medium text-foreground">{settings.alert_threshold}</span>
-              <span>רק חמור (100)</span>
-            </div>
-          </section>
-
-          {/* Trigger Words */}
-          <section className="p-6 rounded-xl bg-card border border-border/50">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <MessageSquareWarning className="w-5 h-5 text-destructive" />
-                <div>
-                  <h2 className="text-lg font-semibold text-foreground">התראה על מילות טריגר</h2>
-                  <p className="text-sm text-muted-foreground">
-                    קבל התראה כשמזוהות מילים מסוכנות בשיחות
-                  </p>
-                </div>
-              </div>
-              <div dir="ltr">
-                <Switch
-                  checked={settings.alert_on_trigger_words}
-                  disabled={saving}
-                  onCheckedChange={(checked) => updateSetting("alert_on_trigger_words", checked)}
-                />
-              </div>
+            <h2 className="text-lg font-semibold text-foreground mb-1">רמת רגישות התראות</h2>
+            <p className="text-sm text-muted-foreground mb-4">
+              בחר כמה רגיש המערכת תהיה לאירועים חשודים
+            </p>
+            <div className="grid grid-cols-3 gap-3">
+              {SENSITIVITY_LEVELS.map((level) => {
+                const Icon = level.icon;
+                const isSelected = selectedLevel === level.key;
+                return (
+                  <button
+                    key={level.key}
+                    onClick={() => updateSetting("alert_threshold", level.threshold)}
+                    disabled={saving}
+                    className={`relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all text-center ${
+                      isSelected
+                        ? "border-primary bg-primary/10 text-foreground"
+                        : "border-border/50 bg-card text-muted-foreground hover:border-border hover:text-foreground"
+                    } disabled:opacity-50`}
+                  >
+                    {"recommended" in level && level.recommended && (
+                      <span className="absolute -top-2.5 text-[10px] font-medium bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
+                        מומלץ
+                      </span>
+                    )}
+                    <Icon className={`w-6 h-6 ${isSelected ? "text-primary" : ""}`} />
+                    <span className="font-semibold text-sm">{level.label}</span>
+                    <span className="text-xs leading-tight">{level.description}</span>
+                  </button>
+                );
+              })}
             </div>
           </section>
 
@@ -235,7 +248,7 @@ const NotificationSettings = () => {
           <section className="p-6 rounded-xl bg-card border border-border/50">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Shield className="w-5 h-5 text-success" />
+                <Shield className="w-5 h-5 text-emerald-500" />
                 <div>
                   <h2 className="text-lg font-semibold text-foreground">ניטור פעיל</h2>
                   <p className="text-sm text-muted-foreground">
