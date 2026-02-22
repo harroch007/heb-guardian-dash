@@ -1,57 +1,47 @@
 
-# שיפור דשבורד משוב הורים - למידה מנתוני Feedback
 
-## מצב נוכחי
-הכל מחובר ועובד:
-- כרטיסיית KPI מציגה אחוז התראות עם משוב (7 ימים)
-- גרף BarChart מציג מגמה של 14 ימים
-- RLS מאפשר למנהלים לצפות בכל המשובים
-- כפתורי משוב בכרטיס ההתראה שומרים ל-DB
+# Fix: Family tab showing wrong device status
 
-## מה חסר - כלי למידה אמיתי
-כרגע אתה רואה רק "כמה" משובים קיבלת, אבל לא "מה" הם אומרים. צריך כלים לזהות דפוסים.
+## Problem
+Child "קיפי1" has two linked devices. The Family page builds a `devicesMap` where each child maps to one device, but it uses a simple last-write-wins approach. The stale device (last seen 27 days ago) overwrites the active device (last seen today), causing the child to appear as "לא פעיל" instead of "מחובר".
 
-## שינויים מוצעים
+## Solution
+When building `devicesMap` in `Family.tsx`, keep only the device with the **most recent** `last_seen` timestamp for each child. This ensures the active device is always displayed.
 
-### 1. טאב חדש "משוב" בדשבורד הניהול (או הרחבה בטאב סקירה)
-הוספת קומפוננטה `AdminFeedbackAnalysis` שמציגה:
+## Technical Details
 
-**KPIs בראש:**
-- אחוז "לא רלוונטי" מתוך כלל המשובים (7 ימים)
-- אחוז "רלוונטי" מתוך כלל המשובים (7 ימים)
-- סה"כ משובים
+**File:** `src/pages/Family.tsx`
 
-**גרף: "לא רלוונטי" לפי קטגוריה**
-- BarChart אופקי: כל קטגוריה (אלימות, בריונות, תוכן מיני...) עם אחוז "לא רלוונטי"
-- זה מזהה קטגוריות שה-AI טועה בהן
+**Current code (problematic):**
+```typescript
+devicesData?.forEach(device => {
+  if (device.child_id) {
+    devicesMap[device.child_id] = {
+      device_id: device.device_id,
+      battery_level: device.battery_level,
+      last_seen: device.last_seen
+    };
+  }
+});
+```
 
-**גרף: משוב לפי טווח risk_score**
-- קבוצות: 0-40, 40-60, 60-80, 80-100
-- בכל קבוצה: כמה "רלוונטי" וכמה "לא רלוונטי"
-- זה מראה אם הסף שלנו מכויל נכון
+**Fixed code:**
+```typescript
+devicesData?.forEach(device => {
+  if (device.child_id) {
+    const existing = devicesMap[device.child_id];
+    // Keep the device with the most recent last_seen
+    if (!existing || 
+        (device.last_seen && (!existing.last_seen || 
+         new Date(device.last_seen) > new Date(existing.last_seen)))) {
+      devicesMap[device.child_id] = {
+        device_id: device.device_id,
+        battery_level: device.battery_level,
+        last_seen: device.last_seen
+      };
+    }
+  }
+});
+```
 
-**טבלת פירוט:**
-- רשימה של כל המשובים האחרונים (50 אחרונים)
-- עמודות: תאריך, כותרת התראה, קטגוריה, risk_score, verdict, משוב ההורה
-- סינון לפי "לא רלוונטי" בלבד (לזהות false positives)
-- לחיצה על שורה מציגה את פרטי ההתראה המלאים
-
-### 2. שינויים טכניים
-
-**קובץ חדש:** `src/pages/admin/AdminFeedback.tsx`
-- שליפת `alert_feedback` עם JOIN על `alerts` (דרך שני queries נפרדים + merge בצד קליינט)
-- הצגת KPIs, גרפים, וטבלת פירוט
-
-**שינוי ב:** `src/pages/Admin.tsx`
-- הוספת טאב "משוב" (או שילוב בתוך סקירה כללית)
-- שליפת נתוני feedback מורחבים
-
-**אין שינויי DB** - כל הנתונים כבר קיימים בטבלאות `alert_feedback` ו-`alerts`
-
-### 3. תובנות שניתן להפיק
-
-מהנתונים האלה תוכל:
-- **לכוונן את ה-AI**: אם קטגוריה מסוימת מקבלת הרבה "לא רלוונטי", לשפר את הפרומפט
-- **לכוונן ספי סיכון**: אם התראות עם score נמוך מסומנות "רלוונטי", אולי אפשר להוריד את הסף
-- **לזהות false positives חוזרים**: אם אותו סוג תוכן שוב ושוב מסומן "לא רלוונטי"
-- **למדוד שיפור לאורך זמן**: האם אחוז ה-"רלוונטי" עולה מחודש לחודש
+This is a single change in one file. After this fix, the Family tab will show the most recently active device for each child, correctly displaying "מחובר" for קיפי1.
