@@ -118,21 +118,33 @@ FINAL OUTPUT - Return JSON ONLY with these fields:
 }
 
 RELATIONSHIP CONTEXT (CRITICAL FOR ACCURATE SCORING)
-You will receive a "relationship_context" field in the user message with:
-- familiarity_level: "close_contact" | "regular" | "new_or_rare" | "unknown"
+You will receive raw relationship data in the user message:
 - total_messages: historical message count with this chat/contact
 - active_days: how many different days this chat has been active
-- stats_chat_type: the chat_type recorded in historical stats (may differ from the alert's chat_type)
+- chat_name: the actual name of the chat/group (in Hebrew or English)
 
-SCORING ADJUSTMENT RULES BASED ON RELATIONSHIP:
-1. close_contact + group chat + playful/joking tone ->
-   REDUCE risk_score by 30-50 points. Friends joking around is NOT bullying.
-2. new_or_rare or unknown + aggressive content ->
-   KEEP or INCREASE risk_score. Unknown contacts with aggression = real concern.
-3. close_contact + private chat + aggressive ->
-   Moderate reduction (10-20). Even friends can cross lines in private.
-4. Regular family group (chat name contains "משפחה" or "בית") + banter ->
-   Significant reduction (40-60). Family dynamics are usually safe.
+IMPORTANT: Message count alone does NOT indicate friendship.
+Use chat_name as the PRIMARY signal for relationship type:
+
+CHAT NAME PATTERNS (Hebrew):
+- Contains "משפחה"/"בית"/"אמא"/"אבא"/"סבא"/"סבתא" -> Family group, very safe context
+- Contains "וועד"/"בניין"/"שכנים" -> Neighbors/building committee, NOT friends
+- Contains "כיתה"/"הורים"/"מורה"/"בי״ס"/"גן" -> School/parents group, formal context
+- Contains "עבודה"/"צוות"/"משרד" -> Work group, formal context
+- Informal/playful names ("קיפי שלנו", "החבר'ה", nicknames, emojis) -> Likely friend group
+
+SCORING RULES BASED ON RELATIONSHIP:
+1. Friend group (informal name) + playful/joking tone ->
+   REDUCE risk by 30-50. Friends joking is NOT bullying.
+2. Formal/institutional group + aggressive content ->
+   Still concerning but context-dependent. Reduce by 10-20 max.
+3. Unknown/new contact (total_messages < 5) + aggressive content ->
+   KEEP or INCREASE risk. Unknown contacts = real concern.
+4. Family group + banter -> Significant reduction (40-60).
+5. Private chat + high message history (50+ messages, 5+ days) ->
+   Likely established relationship. Moderate reduction (15-25).
+6. Private chat + very low history (< 5 messages) ->
+   New contact. Be more cautious.
 
 The relationship between participants is THE MOST IMPORTANT factor after content analysis.
 "אתה זבל" from a best friend in a familiar group = banter (risk ~15)
@@ -236,7 +248,6 @@ async function processAlert(
   }
 
   // 3. Fetch relationship context from daily_chat_stats
-  let familiarityLevel = 'unknown';
   let totalMessages = 0;
   let activeDays = 0;
   let statsChatType: string | null = null;
@@ -259,14 +270,7 @@ async function processAlert(
         const groupCount = chatStats.filter((r: any) => r.chat_type === 'GROUP').length;
         statsChatType = groupCount > chatStats.length / 2 ? 'GROUP' : chatStats[0].chat_type;
 
-        if (totalMessages >= 50 && activeDays >= 5) {
-          familiarityLevel = 'close_contact';
-        } else if (totalMessages >= 10) {
-          familiarityLevel = 'regular';
-        } else {
-          familiarityLevel = 'new_or_rare';
-        }
-        console.log(`Relationship context: familiarity=${familiarityLevel}, total_messages=${totalMessages}, active_days=${activeDays}, stats_chat_type=${statsChatType}`);
+        console.log(`Relationship context: total_messages=${totalMessages}, active_days=${activeDays}, stats_chat_type=${statsChatType}`);
       } else {
         console.log(`No chat stats found for chat_name="${chatNameForLookup}", child_id="${childIdForLookup}"`);
       }
@@ -275,9 +279,9 @@ async function processAlert(
     }
   }
 
-  // Build enriched user message with relationship context
-  const relationshipLine = `Relationship context: familiarity_level=${familiarityLevel}, total_messages=${totalMessages}, active_days=${activeDays}`;
-  const chatNameHint = chatNameForLookup ? `Chat name hint: '${chatNameForLookup}'` : '';
+  // Build enriched user message with raw relationship data (let AI interpret)
+  const relationshipLine = `Relationship context: total_messages=${totalMessages}, active_days=${activeDays}${statsChatType ? `, chat_type_from_stats=${statsChatType}` : ''}`;
+  const chatNameHint = chatNameForLookup ? `Chat name: '${chatNameForLookup}'` : '';
   
   const userMessage = [
     'Analyze this message content:',
