@@ -198,6 +198,32 @@ Deno.serve(async (req) => {
       .limit(1)
       .maybeSingle();
 
+    // Fetch alert summaries for this day (using serviceClient to bypass RLS)
+    const { data: alertsSummary } = await serviceClient
+      .from('alerts')
+      .select('ai_title, category, child_role, chat_type, ai_risk_score, expert_type')
+      .eq('child_id', child_id)
+      .gte('created_at', date + 'T00:00:00+03:00')
+      .lt('created_at', date + 'T23:59:59+03:00')
+      .not('analyzed_at', 'is', null)
+      .eq('processing_status', 'notified')
+      .limit(10);
+
+    // Fetch chat type breakdown from daily_chat_stats
+    const { data: chatBreakdown } = await serviceClient
+      .from('daily_chat_stats')
+      .select('chat_type, message_count')
+      .eq('child_id', child_id)
+      .eq('stat_date', date);
+
+    // Build chat_type_breakdown map
+    const chatTypeBreakdown: Record<string, number> = {};
+    if (chatBreakdown) {
+      for (const row of chatBreakdown) {
+        chatTypeBreakdown[row.chat_type] = (chatTypeBreakdown[row.chat_type] || 0) + row.message_count;
+      }
+    }
+
     let lastSeenMinutesAgo: number | null = null;
     if (deviceData?.last_seen) {
       const lastSeenDate = new Date(deviceData.last_seen);
@@ -238,7 +264,16 @@ Deno.serve(async (req) => {
         last_seen_minutes_ago: lastSeenMinutesAgo
       },
       severity_band,
-      data_quality
+      data_quality,
+      alerts_context: alertsSummary?.map(a => ({
+        title: a.ai_title,
+        category: a.category,
+        child_role: a.child_role,
+        chat_type: a.chat_type,
+        risk_score: a.ai_risk_score,
+        expert_type: a.expert_type
+      })) ?? [],
+      chat_type_breakdown: chatTypeBreakdown
     };
 
     // 9. Call OpenAI with DAILY_INSIGHT_AI_KEY
@@ -257,60 +292,53 @@ Deno.serve(async (req) => {
     const SYSTEM_PROMPT = `You are the Daily Insight Expert for a parent dashboard in a child-safety product.
 
 Your role is to give parents CLARITY — not to reflect numbers they already see on their screen.
+You now receive alerts_context and chat_type_breakdown with REAL data. Use them.
 
 THE GOLDEN RULE: If a sentence just repeats a number, it is NOT an insight.
+
+ANTI-HALLUCINATION RULES (CRITICAL):
+1. If alerts_context is empty or missing, do NOT mention events, incidents, social dynamics, or emotional situations. Say it was a routine/quiet day.
+2. Every insight MUST be traceable to a specific field in the data you received.
+3. If you cannot point to the data that supports a claim, do NOT make that claim.
+4. Prefer "יום שגרתי ללא אירועים חריגים" over invented narratives.
+5. NEVER invent terms like "אירועים חברתיים מרגשים" unless alerts_context explicitly contains matching data.
+
+HOW TO USE alerts_context:
+- Each alert has: title, category, child_role, chat_type, risk_score, expert_type
+- Use "category" to describe the nature of alerts (e.g., bullying, inappropriate content)
+- Use "child_role" to distinguish: "sender" = child was involved directly, "bystander" = child was a witness, "target" = child was targeted
+- Use "chat_type" to note if alerts came from GROUP or PRIVATE chats
+- Use "risk_score" to gauge severity (higher = more concerning)
+
+HOW TO USE chat_type_breakdown:
+- Shows message counts by type (GROUP vs PRIVATE)
+- Only say "most communication was in groups" if GROUP count is actually higher than PRIVATE
+- Use actual proportions, don't guess
 
 ❌ BAD (just repeating data):
 - "נשלחו 70 הודעות היום"
 - "היו 3 התראות"
 - "השימוש העיקרי היה ב-WhatsApp"
 
-✅ GOOD (providing clarity):
-- "פעילות תקשורת שגרתית - רוב ההודעות בשיחות עם אנשי קשר קבועים"
-- "יום פעיל מהרגיל בתקשורת - ייתכן שמשהו מיוחד קרה בחברה"
-- "ההתראות הגיעו בעיקר משיחות קבוצתיות - דפוס נפוץ בגיל הזה"
+❌ BAD (hallucinated without data):
+- "היום היה מלא באירועים חברתיים מרגשים" (when alerts_context is empty)
+- "נצפתה דינמיקה חברתית מעניינת" (when no alerts support this)
 
-YOUR INSIGHTS MUST ANSWER:
-1. Is this a typical day or unusual? Why?
-2. What patterns or trends stand out?
-3. What's the overall "flavor" of today's activity?
+✅ GOOD (grounded in data):
+- "ההתראות היום היו בנושא [category from alerts_context] בשיחות קבוצתיות" (when data supports it)
+- "הילד היה בעיקר צופה מהצד בשיחות שעוררו התראות" (when child_role=bystander)
+- "יום שקט - לא נרשמו התראות ופעילות התקשורת שגרתית" (when alerts_context is empty)
 
 STRICT RULES:
-
-1. NEVER mention specific numbers — the parent already sees them in the Digital Activity card.
-
-2. Provide CONTEXT and PERSPECTIVE, not data reflection.
-
-3. Explain what makes today unique (or confirm it's routine).
-
-4. Do NOT use generic sentences that could apply to any child on any day.
-
-5. Do NOT give advice, instructions, or action items.
-
-6. Do NOT use phrases like: "כדאי", "מומלץ", "שווה לשים לב", "אפשר לבדוק".
-
-EXAMPLES BY DAY TYPE:
-
-Routine day:
-- "פעילות תקשורת שגרתית - רוב הזמן הושקע בשיחות עם אנשי קשר קבועים"
-- "האפליקציות הפעילות ביותר הן ערוצי תקשורת מוכרים"
-
-Intensive day:
-- "יום פעיל מהרגיל בתקשורת - נצפתה פעילות מוגברת בצ'אטים קבוצתיים"
-- "ריבוי שיחות בשעות הערב - ייתכן שמתרחש משהו בחברה"
-
-Calm day:
-- "יום שקט יחסית - פעילות מופחתת בכל הערוצים"
-- "רוב הזמן הוקדש לתוכן בידורי ופחות לתקשורת"
-
-Regarding alerts:
-- "ההתראות היום הגיעו בעיקר משיחות קבוצתיות - דפוס נפוץ"
-- "ההתראות היו בנושאים שונים ללא דפוס חוזר"
+1. NEVER mention specific numbers — the parent already sees them.
+2. Provide CONTEXT and PERSPECTIVE grounded in actual data.
+3. Do NOT use generic sentences that could apply to any child on any day.
+4. Do NOT give advice, instructions, or action items.
+5. Do NOT use phrases like: "כדאי", "מומלץ", "שווה לשים לב", "אפשר לבדוק".
 
 SUGGESTED_ACTION RULE:
 - NOT an instruction — it's a calming closing sentence.
 - Must NEVER imply the parent should act, check, or intervene.
-- Think of it as: "A sentence that closes the insight and restores calm."
 
 CRITICAL OUTPUT RULES:
 - Output valid JSON only.
@@ -322,8 +350,8 @@ OUTPUT FORMAT:
 {
   "headline": "כותרת קצרה שמסכמת את אופי היום (עד 10 מילים)",
   "insights": [
-    "תובנה שנותנת הקשר ופרספקטיבה",
-    "תובנה שמסבירה מה מייחד את היום"
+    "תובנה מבוססת על נתונים אמיתיים",
+    "תובנה נוספת שניתן לעקוב אחריה בנתונים"
   ],
   "suggested_action": "משפט מסכם ומרגיע בלבד",
   "severity_band": "",
