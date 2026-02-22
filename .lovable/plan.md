@@ -1,54 +1,72 @@
 
 
-# מסך טעינה מעוצב לדשבורד
+# דף הגדרות התראות
 
-## מה ישתנה
+## מה הבעיה
 
-בקובץ `src/pages/Dashboard.tsx`, המצב הנוכחי של טעינה (שורות 493-498) מציג בלוקים אפורים עם אנימציית pulse. נחליף את זה במסך טעינה יפה עם אנימציה ומסר בעברית.
+לחיצה על כרטיסיית "התראות" בהגדרות מנווטת ל-`/alerts` (רשימת ההתראות) במקום להציג הגדרות התראות כמו שהכותרת המשנית מבטיחה: "כללים, תדירות וסוגי התרעות".
 
-## העיצוב
+## מה נעשה
 
-מכיוון שאין ספריית Lottie מותקנת בפרויקט, נשתמש ב-**framer-motion** (כבר מותקן) ליצירת אנימציה חלקה עם:
+ניצור דף חדש `/notification-settings` שמציג את ההגדרות האמיתיות מטבלת `settings` בדאטאבייס, ונשנה את הניווט מכרטיסיית "התראות" בהגדרות לדף החדש.
 
-- אייקון מגן (Shield מ-lucide) עם אנימציית פעימה וסיבוב עדין
-- טקסט ראשי: **"בודק את הנתונים..."**
-- טקסט משני: **"עוד רגע הכל מוכן"**
-- שלוש נקודות מקפצות כאפקט טעינה
+## ההגדרות שיוצגו
+
+בטבלת `settings` כבר קיימים השדות הבאים -- נציג אותם בדף:
+
+1. **סף רגישות ההתראות** (`alert_threshold`) -- סליידר 0-100, ברירת מחדל 70
+2. **התראה על מילות טריגר** (`alert_on_trigger_words`) -- מתג Toggle
+3. **התראה על אנשי קשר לא מוכרים** (`alert_on_unknown_contacts`) -- מתג Toggle
+4. **ניטור פעיל** (`monitoring_enabled`) -- מתג Toggle
+
+כל הגדרה תוצג בכרטיסייה עם אייקון, כותרת, הסבר קצר, ומתג/סליידר.
+
+## מבנה הדף
+
+```
+[חזרה להגדרות]
+
+הגדרות התראות
+כללים, תדירות וסוגי התרעות
+
+--- בחירת ילד (אם יש יותר מילד אחד) ---
+
+[כרטיסייה: סף רגישות]
+  סליידר 0-100 + הסבר
+
+[כרטיסייה: התראה על מילות טריגר]
+  מתג + הסבר
+
+[כרטיסייה: התראה על אנשי קשר לא מוכרים]
+  מתג + הסבר
+
+[כרטיסייה: ניטור פעיל]
+  מתג + הסבר
+```
 
 ## פירוט טכני
 
-### קובץ: `src/pages/Dashboard.tsx`
+### קבצים חדשים
 
-החלפת בלוק ה-`snapshotLoading` (שורות 493-498) מ-pulse rectangles לקומפוננטת טעינה מעוצבת עם framer-motion:
+| קובץ | תיאור |
+|-------|--------|
+| `src/pages/NotificationSettings.tsx` | דף הגדרות התראות עם שליפה מ-`settings` ועדכון בזמן אמת |
 
-```tsx
-{snapshotLoading ? (
-  <div className="flex flex-col items-center justify-center py-16 space-y-6">
-    <motion.div
-      animate={{ scale: [1, 1.15, 1], opacity: [0.7, 1, 0.7] }}
-      transition={{ duration: 2, repeat: Infinity }}
-    >
-      <Shield className="h-16 w-16 text-primary" />
-    </motion.div>
-    <div className="text-center space-y-2">
-      <p className="text-lg font-medium text-foreground">בודק את הנתונים...</p>
-      <p className="text-sm text-muted-foreground">עוד רגע הכל מוכן</p>
-    </div>
-    {/* Three bouncing dots */}
-    <div className="flex gap-1.5">
-      {[0, 1, 2].map(i => (
-        <motion.div key={i}
-          className="w-2 h-2 rounded-full bg-primary"
-          animate={{ y: [0, -8, 0] }}
-          transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15 }}
-        />
-      ))}
-    </div>
-  </div>
-)
-```
+### קבצים שישתנו
 
-- ייבוא `motion` מ-`framer-motion` ו-`Shield` מ-`lucide-react` (כבר מותקנים)
-- אנימציה חלקה שנותנת תחושה של "המערכת עובדת"
-- RTL-friendly, מרכזי, ומתאים למובייל
+| קובץ | שינוי |
+|-------|-------|
+| `src/pages/Settings.tsx` | שינוי `navigate('/alerts')` ל-`navigate('/notification-settings')` (שורה 70) |
+| `src/App.tsx` | הוספת Route חדש `/notification-settings` |
 
+### לוגיקת הדף
+
+1. שליפת ילדים של ההורה מ-`children`
+2. אם יש יותר מילד אחד -- הצגת טאבים לבחירת ילד
+3. שליפת `settings` עבור הילד הנבחר (`child_id`)
+4. אם אין רשומת settings -- שימוש בברירות מחדל (threshold=70, trigger_words=true, unknown_contacts=true, monitoring=true)
+5. עדכון ב-`upsert` בעת שינוי כל הגדרה, עם toast success/error
+
+### עיצוב
+
+אותו סגנון כמו שאר ההגדרות: כרטיסיות עם `bg-card border-border/50`, RTL, אייקונים מ-lucide, מתגי Switch עטופים ב-`dir="ltr"`.
