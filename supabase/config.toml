@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.generate-periodic-summary]
 verify_jwt = false
+
+[functions.expire-subscriptions]
+verify_jwt = false

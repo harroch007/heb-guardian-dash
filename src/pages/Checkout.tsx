@@ -173,9 +173,17 @@ export default function Checkout() {
     setPaying(true);
 
     try {
+      // Calculate expiration date for promo codes with free months
+      let expiresAt: string | null = null;
+      if (appliedPromo?.discount_type === 'free_months') {
+        const d = new Date();
+        d.setMonth(d.getMonth() + appliedPromo.discount_value);
+        expiresAt = d.toISOString();
+      }
+
       const { error: updateError } = await supabase
         .from("children")
-        .update({ subscription_tier: "premium" })
+        .update({ subscription_tier: "premium", subscription_expires_at: expiresAt } as any)
         .eq("id", childId);
 
       if (updateError) throw updateError;
