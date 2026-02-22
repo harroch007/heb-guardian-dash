@@ -1,62 +1,76 @@
 
 
-# תיקון שגיאת "לא ניתן לשמור משוב" - שתי בעיות
+# תיקון parentId שנשאר null -- Race Condition ב-AuthContext
 
-## הבעיות שנמצאו
+## הבעיה
 
-**בעיה 1: parentId ריק** -- בקובץ `AlertCardStack.tsx` שורה 349, כשה-`parentId` עוד לא נטען (null), הוא מומר למחרוזת ריקה `''` שנשלחת כ-UUID לא תקין. זו הסיבה לשגיאה `invalid input syntax for type uuid: ""`.
+ה-RLS כבר תוקן (הפוליסות כעת PERMISSIVE), אבל ה-`parentId` נשאר `null` בגלל race condition ב-`AuthContext.tsx`.
 
-**בעיה 2: RLS Policies -- RESTRICTIVE** -- כל ה-policies על `alert_feedback` עדיין RESTRICTIVE. גם אחרי תיקון ה-parentId, הכתיבה תיחסם כי אין אף policy מסוג PERMISSIVE.
+### מה קורה בפועל:
 
-## התיקונים
+1. `onAuthStateChange` מופעל עם session
+2. `setUser(session.user)` נקרא (עדכון state אסינכרוני)
+3. `setTimeout(() => handlePostAuth(session.user), 0)` נקרא
+4. `handlePostAuth` קורא ל-`checkParentStatus()`
+5. `checkParentStatus()` בודק `if (!user)` -- אבל `user` עדיין **null** כי React עדיין לא עיבד את ה-state update מצעד 2
+6. לכן `parentId` לעולם לא מתעדכן
 
-### 1. תיקון קוד: AlertFeedback.tsx
+## הפתרון
 
-הוספת בדיקה בתחילת `handleFeedback` -- אם `parentId` ריק, מציגים הודעת שגיאה ברורה ולא שולחים בקשה:
+### שינוי ב-AuthContext.tsx
+
+שינוי `checkParentStatus` כך שיקבל את ה-user כפרמטר במקום לקרוא מה-state:
 
 ```typescript
-const handleFeedback = async (type: FeedbackType) => {
-  if (loading) return;
-  if (!parentId) {
-    toast({ title: "שגיאה", description: "יש להתחבר מחדש", variant: "destructive" });
+const checkParentStatus = async (currentUser?: User | null) => {
+  const u = currentUser ?? user;
+  if (!u) {
+    setIsNewUser(null);
+    setParentId(null);
     return;
   }
-  // ... rest of logic
+
+  const { data, error } = await supabase
+    .from('parents')
+    .select('id')
+    .eq('id', u.id)
+    .maybeSingle();
+
+  if (error) {
+    setIsNewUser(true);
+    return;
+  }
+
+  if (data) {
+    setIsNewUser(false);
+    setParentId(data.id);
+  } else {
+    setIsNewUser(true);
+    setParentId(null);
+  }
 };
 ```
 
-### 2. תיקון קוד: AlertCardStack.tsx שורה 349
+ועדכון `handlePostAuth` להעביר את ה-user:
 
-שינוי מ-`parentId={parentId || ''}` ל-`parentId={parentId ?? ''}` (למעשה לא ישנה, אבל ה-guard ב-AlertFeedback יתפוס את זה).
-
-### 3. מיגרציית DB: תיקון RLS policies
-
-מחיקת כל ה-policies הקיימות על `alert_feedback` ויצירתן מחדש כ-PERMISSIVE:
-
-```sql
-DROP POLICY IF EXISTS "Parents can insert own feedback" ON alert_feedback;
-DROP POLICY IF EXISTS "Parents can select own feedback" ON alert_feedback;
-DROP POLICY IF EXISTS "Parents can update own feedback" ON alert_feedback;
-DROP POLICY IF EXISTS "Admins can view all feedback" ON alert_feedback;
-
-CREATE POLICY "Parents can insert own feedback" ON alert_feedback
-  FOR INSERT TO authenticated WITH CHECK (parent_id = auth.uid());
-
-CREATE POLICY "Parents can select own feedback" ON alert_feedback
-  FOR SELECT TO authenticated USING (parent_id = auth.uid());
-
-CREATE POLICY "Parents can update own feedback" ON alert_feedback
-  FOR UPDATE TO authenticated USING (parent_id = auth.uid());
-
-CREATE POLICY "Admins can view all feedback" ON alert_feedback
-  FOR SELECT TO authenticated USING (is_admin());
+```typescript
+const handlePostAuth = async (sessionUser: User) => {
+  const allowed = await enforceWaitlistAccess(sessionUser);
+  if (!allowed) return;
+  await checkParentStatus(sessionUser);
+};
 ```
 
-## סיכום
+### שינוי ב-AlertCardStack.tsx שורה 349
 
-| בעיה | קובץ | תיקון |
-|------|------|-------|
-| parentId ריק | AlertFeedback.tsx | Guard בתחילת handleFeedback |
-| parentId fallback | AlertCardStack.tsx שורה 349 | לא חייב לשנות, ה-guard מגן |
-| RLS חוסם הכל | DB migration | החלפת RESTRICTIVE ב-PERMISSIVE |
+שינוי מ-`parentId={parentId || ''}` ל-`parentId={parentId ?? ''}` כדי לא להמיר null למחרוזת ריקה (ה-guard ב-AlertFeedback יטפל ב-null).
+
+## פירוט טכני
+
+| קובץ | שינוי |
+|------|-------|
+| `src/contexts/AuthContext.tsx` | `checkParentStatus` מקבל user כפרמטר |
+| `src/components/alerts/AlertCardStack.tsx` | שורה 349: `parentId \|\| ''` הופך ל-`parentId ?? ''` |
+
+אין צורך בשינויי DB נוספים -- ה-RLS כבר תוקן.
 
