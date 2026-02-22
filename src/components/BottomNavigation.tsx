@@ -30,7 +30,8 @@ export const BottomNavigation = forwardRef<HTMLElement, object>(function BottomN
         .select('*', { count: 'exact', head: true })
         .is('acknowledged_at', null)
         .eq('is_processed', true)
-        .is('parent_message', null);
+        .is('parent_message', null)
+        .in('ai_verdict', ['notify', 'review']);
       setAlertsCount(count || 0);
     };
 

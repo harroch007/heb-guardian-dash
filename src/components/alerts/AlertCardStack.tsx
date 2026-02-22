@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence, PanInfo } from "framer-motion";
-import { Bookmark, Check, AlertTriangle, Lightbulb, Link2, Clock, Users, User, Tag, Eye, ShieldAlert, MessageCircleWarning } from "lucide-react";
+import { Bookmark, Check, AlertTriangle, Lightbulb, Link2, Clock, Users, Tag, Eye, ShieldAlert, MessageCircleWarning } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -154,9 +154,7 @@ export function AlertCardStack({ alerts, onAcknowledge, onSave, isSavedView = fa
 
   // Generate fallback title if ai_title is not available
   const displayTitle = currentAlert.ai_title || 
-    (currentAlert.chat_type === 'group' 
-      ? `שיחה בקבוצה ${currentAlert.chat_name || ''}`
-      : `שיחה פרטית עם ${currentAlert.sender_display || currentAlert.chat_name || 'איש קשר'}`);
+    (currentAlert.chat_name ? `שיחה — ${currentAlert.chat_name}` : 'התראה שדורשת תשומת לב');
 
   return (
     <div className="flex flex-col" dir="rtl">
@@ -235,17 +233,12 @@ export function AlertCardStack({ alerts, onAcknowledge, onSave, isSavedView = fa
                     <Clock className="w-3.5 h-3.5" />
                     <span>{formatIsraelTime(currentAlert.created_at)}</span>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    {currentAlert.chat_type === 'group' ? (
+                  {currentAlert.chat_name && (
+                    <div className="flex items-center gap-1.5">
                       <Users className="w-3.5 h-3.5" />
-                    ) : (
-                      <User className="w-3.5 h-3.5" />
-                    )}
-                    <span>{currentAlert.chat_type === 'group' ? 'קבוצה' : 'פרטי'}</span>
-                    {currentAlert.chat_name && (
-                      <span className="text-foreground/70">• {currentAlert.chat_name}</span>
-                    )}
-                  </div>
+                      <span className="text-foreground/70">{currentAlert.chat_name}</span>
+                    </div>
+                  )}
                   {currentAlert.category && (
                     <Badge variant="outline" className="text-xs gap-1">
                       <Tag className="w-3 h-3" />

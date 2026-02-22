@@ -49,10 +49,9 @@ LANGUAGE POLICY
 
 TITLE RULES - CRITICAL
 - NEVER include actual names, placeholders like <NAME>, [name], or contact names in title_prefix.
-- For PRIVATE chats: title_prefix = "שיחה פרטית" (we will append the real name in code)
-- For GROUP chats: title_prefix = "שיח [adjective]" where adjective describes the nature (e.g., טעון, מטריד, מסוכן, בעייתי, רגיל)
-  Examples: "שיח טעון", "שיח מטריד", "שיח רגיל"
-- The code will build the full title like: "שיחה פרטית עם [real_name]" or "שיח טעון בקבוצה [real_group_name]"
+- title_prefix = a short Hebrew phrase describing the nature of the conversation (e.g., "שיחה רגילה", "שיח טעון", "שיח מטריד", "שיחה בעייתית", "שיח רגיש")
+- The code will build the full title like: "שיח טעון — [real_chat_name]"
+- Do NOT include "פרטית", "קבוצתית", "בקבוצה", "עם" in the prefix. Just describe the nature.
 - IMPORTANT: When child_role is "bystander", the title MUST be moderate/calm. Use mild adjectives like "בעייתי", "רגיש" instead of alarming words like "מסוכן", "איומים חמורים". The parent should NOT panic when the child wasn't directly involved.
 
 SUMMARY RULES FOR CHILD ROLE
@@ -397,14 +396,8 @@ async function processAlert(
 
   const isGroupChat = resolvedChatType === 'GROUP';
 
-  let finalTitle: string;
   const titlePrefix = aiResult.title_prefix || 'שיחה';
-
-  if (isGroupChat) {
-    finalTitle = `${titlePrefix} בקבוצה ${chatName}`;
-  } else {
-    finalTitle = `שיחה פרטית עם ${chatName}`;
-  }
+  const finalTitle = `${titlePrefix} — ${chatName}`;
 
   console.log(`Built title: "${finalTitle}" from prefix: "${titlePrefix}", resolvedChatType: ${resolvedChatType}, isGroup: ${isGroupChat}, chatName: "${chatName}"`);
 

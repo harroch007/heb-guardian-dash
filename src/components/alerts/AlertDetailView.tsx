@@ -1,4 +1,4 @@
-import { AlertTriangle, Users, Lightbulb, ArrowRight, FileText, Clock, MessageSquare } from "lucide-react";
+import { AlertTriangle, Users, Lightbulb, ArrowRight, FileText, Clock } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -189,29 +189,12 @@ export const AlertDetailView = ({
           )}
 
           {/* Meta Info - for basic data */}
-          {!hasRichData && (alert.created_at || alert.chat_type) && (
+          {!hasRichData && alert.created_at && (
             <div className="flex items-center gap-4 text-xs text-muted-foreground pt-2">
-              {alert.created_at && (
-                <div className="flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  <span>{formatTimeAgo(alert.created_at)}</span>
-                </div>
-              )}
-              {alert.chat_type && (
-                <div className="flex items-center gap-1">
-                  {alert.chat_type === 'group' ? (
-                    <>
-                      <Users className="w-3 h-3" />
-                      <span>שיחה קבוצתית</span>
-                    </>
-                  ) : (
-                    <>
-                      <MessageSquare className="w-3 h-3" />
-                      <span>שיחה פרטית</span>
-                    </>
-                  )}
-                </div>
-              )}
+              <div className="flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                <span>{formatTimeAgo(alert.created_at)}</span>
+              </div>
             </div>
           )}
 
