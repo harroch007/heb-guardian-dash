@@ -2,12 +2,10 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, TrendingUp, Star, BarChart3, Users, Smartphone, Calendar, Loader2 } from "lucide-react";
+import { ArrowRight, TrendingUp, Star, BarChart3, Users, Smartphone, Calendar, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 
 interface PeriodicSummary {
   id: string;
@@ -51,7 +49,6 @@ const PeriodicSummaryPage = () => {
   const { childId, type } = useParams<{ childId: string; type: string }>();
   const [summary, setSummary] = useState<PeriodicSummary | null>(null);
   const [loading, setLoading] = useState(true);
-  const [generating, setGenerating] = useState(false);
   const [childName, setChildName] = useState<string>("");
 
   const periodLabel = type === 'weekly' ? 'שבועי' : 'חודשי';
@@ -89,35 +86,12 @@ const PeriodicSummaryPage = () => {
     setLoading(false);
   };
 
-  const handleGenerate = async () => {
-    setGenerating(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('generate-periodic-summary', {
-        body: { child_id: childId, period_type: type, trigger: 'manual' },
-      });
-
-      if (error) throw error;
-      if (data?.success) {
-        toast.success(`הסיכום ה${periodLabel} נוצר בהצלחה`);
-        await fetchSummary();
-      } else if (data?.reason === 'insufficient_data') {
-        toast.error('אין מספיק נתונים ליצירת סיכום');
-      } else {
-        toast.error('שגיאה ביצירת הסיכום');
-      }
-    } catch (err) {
-      console.error('Generate error:', err);
-      toast.error('שגיאה ביצירת הסיכום');
-    }
-    setGenerating(false);
-  };
-
   if (!childId || !type) {
     return (
       <DashboardLayout>
         <div className="max-w-2xl mx-auto p-8 text-center" dir="rtl">
           <p className="text-muted-foreground">פרמטרים חסרים</p>
-          <Button onClick={() => navigate("/dashboard")} className="mt-4">חזרה לדשבורד</Button>
+          <button onClick={() => navigate("/dashboard")} className="mt-4 text-primary underline">חזרה לדשבורד</button>
         </div>
       </DashboardLayout>
     );
@@ -202,10 +176,10 @@ const PeriodicSummaryPage = () => {
 
             {/* Positive highlights */}
             {summary.positive_highlights && summary.positive_highlights.length > 0 && (
-              <Card className="border-emerald-500/30 bg-emerald-500/5">
+              <Card className="border-primary/30 bg-primary/5">
                 <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center gap-2 text-base font-semibold text-emerald-400">
-                    <Star className="h-5 w-5 fill-emerald-400 text-emerald-400" />
+                  <CardTitle className="flex items-center gap-2 text-base font-semibold text-primary">
+                    <Star className="h-5 w-5 fill-primary text-primary" />
                     רגעים חיוביים
                   </CardTitle>
                 </CardHeader>
@@ -213,7 +187,7 @@ const PeriodicSummaryPage = () => {
                   <ul className="space-y-1.5">
                     {summary.positive_highlights.map((h, i) => (
                       <li key={i} className="flex items-start gap-2 text-sm text-foreground">
-                        <span className="text-emerald-400 mt-0.5">✦</span>
+                        <span className="text-primary mt-0.5">✦</span>
                         <span>{h}</span>
                       </li>
                     ))}
@@ -284,30 +258,21 @@ const PeriodicSummaryPage = () => {
                 </CardContent>
               </Card>
             )}
-
-            {/* Regenerate button */}
-            <div className="flex justify-center pt-2 pb-8">
-              <Button variant="outline" onClick={handleGenerate} disabled={generating} className="gap-2">
-                {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <TrendingUp className="h-4 w-4" />}
-                {generating ? 'מייצר סיכום...' : 'צור סיכום מחדש'}
-              </Button>
-            </div>
           </>
         ) : (
-          /* No summary yet */
+          /* No summary yet — show automatic schedule message */
           <Card className="bg-card border-border">
             <CardContent className="p-8 text-center space-y-4">
-              <TrendingUp className="w-12 h-12 text-muted-foreground mx-auto opacity-50" />
-              <p className="text-muted-foreground">אין עדיין סיכום {periodLabel}</p>
-              <p className="text-sm text-muted-foreground">
+              <Clock className="w-12 h-12 text-muted-foreground mx-auto opacity-50" />
+              <p className="text-lg font-medium text-foreground">אין עדיין סיכום {periodLabel}</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">
                 {type === 'weekly'
-                  ? 'הסיכום השבועי נוצר אוטומטית כל יום חמישי בערב'
-                  : 'הסיכום החודשי נוצר אוטומטית ביום האחרון של כל חודש'}
+                  ? `הסיכום השבועי של ${childName || 'הילד/ה'} ייווצר אוטומטית ביום חמישי הקרוב בשעה \u202A21:00\u202C`
+                  : `הסיכום החודשי של ${childName || 'הילד/ה'} ייווצר אוטומטית ביום האחרון של החודש בשעה \u202A21:00\u202C`}
               </p>
-              <Button onClick={handleGenerate} disabled={generating} className="gap-2">
-                {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <TrendingUp className="h-4 w-4" />}
-                {generating ? 'מייצר...' : `צור סיכום ${periodLabel} עכשיו`}
-              </Button>
+              <p className="text-xs text-muted-foreground">
+                הסיכום נוצר אוטומטית — אין צורך לעשות דבר 😊
+              </p>
             </CardContent>
           </Card>
         )}
