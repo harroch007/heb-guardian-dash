@@ -19,6 +19,14 @@ export function AlertFeedback({ alertId, parentId, existingFeedback, onFeedbackC
 
   const handleFeedback = async (type: FeedbackType) => {
     if (loading) return;
+    if (!parentId) {
+      toast({
+        title: "שגיאה",
+        description: "יש להתחבר מחדש",
+        variant: "destructive",
+      });
+      return;
+    }
     setLoading(true);
 
     // Optimistic update
