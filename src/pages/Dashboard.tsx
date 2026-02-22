@@ -538,43 +538,45 @@ const Index = () => {
               </div>
             ) : snapshot ? (
               <>
+                {/* Card 1 - Digital Activity (all users) */}
+                <Card className="bg-card border-border">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+                      <BarChart3 className="h-5 w-5 text-muted-foreground" />
+                      פעילות דיגיטלית
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className={`grid ${isPremium ? 'grid-cols-3' : 'grid-cols-2'} gap-4`}>
+                      <div className="text-center p-3 rounded-lg bg-muted/50">
+                        <div className="flex items-center justify-center gap-1 mb-1">
+                          <Mail className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <div className="text-2xl font-bold text-foreground">{snapshot.messages_scanned ?? 0}</div>
+                        <div className="text-xs text-muted-foreground">הודעות נסרקו</div>
+                      </div>
+                      <div className="text-center p-3 rounded-lg bg-muted/50">
+                        <div className="flex items-center justify-center gap-1 mb-1">
+                          <Bot className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <div className="text-2xl font-bold text-foreground">{snapshot.stacks_sent_to_ai ?? 0}</div>
+                        <div className="text-xs text-muted-foreground">הועברו לניתוח AI</div>
+                      </div>
+                      {isPremium && (
+                        <div className="text-center p-3 rounded-lg bg-muted/50">
+                          <div className="flex items-center justify-center gap-1 mb-1">
+                            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                          <div className="text-2xl font-bold text-foreground">{snapshot.alerts_sent ?? 0}</div>
+                          <div className="text-xs text-muted-foreground">התראות נשלחו</div>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
                 {isPremium && (
                   <>
-                    {/* Card 1 - Digital Activity (Premium only) */}
-                    <Card className="bg-card border-border">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-                          <BarChart3 className="h-5 w-5 text-muted-foreground" />
-                          פעילות דיגיטלית
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div className="grid grid-cols-3 gap-4">
-                          <div className="text-center p-3 rounded-lg bg-muted/50">
-                            <div className="flex items-center justify-center gap-1 mb-1">
-                              <Mail className="h-4 w-4 text-muted-foreground" />
-                            </div>
-                            <div className="text-2xl font-bold text-foreground">{snapshot.messages_scanned ?? 0}</div>
-                            <div className="text-xs text-muted-foreground">הודעות נסרקו</div>
-                          </div>
-                          <div className="text-center p-3 rounded-lg bg-muted/50">
-                            <div className="flex items-center justify-center gap-1 mb-1">
-                              <Bot className="h-4 w-4 text-muted-foreground" />
-                            </div>
-                            <div className="text-2xl font-bold text-foreground">{snapshot.stacks_sent_to_ai ?? 0}</div>
-                            <div className="text-xs text-muted-foreground">הועברו לניתוח AI</div>
-                          </div>
-                          <div className="text-center p-3 rounded-lg bg-muted/50">
-                            <div className="flex items-center justify-center gap-1 mb-1">
-                              <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-                            </div>
-                            <div className="text-2xl font-bold text-foreground">{snapshot.alerts_sent ?? 0}</div>
-                            <div className="text-xs text-muted-foreground">התראות נשלחו</div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-
                     {/* Positive Alert Card - Premium only */}
                     {positiveAlert && (
                       <Card className="border-emerald-500/30 bg-emerald-500/5">
