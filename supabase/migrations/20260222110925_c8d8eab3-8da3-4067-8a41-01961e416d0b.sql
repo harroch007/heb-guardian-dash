@@ -1,0 +1,1 @@
+GRANT SELECT ON public.alert_events_queue TO authenticated;
