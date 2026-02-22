@@ -1524,6 +1524,7 @@ export type Database = {
           success: boolean
         }[]
       }
+      retry_failed_queue_items: { Args: never; Returns: Json }
       send_locate_to_all_devices: { Args: never; Returns: undefined }
       update_device_location: {
         Args: {

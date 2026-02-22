@@ -62,6 +62,7 @@ function QueueHealthCard({ stats, onRefresh }: { stats: OverviewStats; onRefresh
   const [processingAll, setProcessingAll] = useState(false);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [cleaningUp, setCleaningUp] = useState(false);
+  const [retrying, setRetrying] = useState(false);
 
   const hasIssues = stats.queuePending > 0 || stats.queueFailed > 0;
   const isStuck = stats.queuePending > 0 && stats.oldestPendingMinutes > 5;
@@ -144,6 +145,20 @@ function QueueHealthCard({ stats, onRefresh }: { stats: OverviewStats; onRefresh
     }
   };
 
+  const handleRetryFailed = async () => {
+    setRetrying(true);
+    try {
+      const { data, error } = await supabase.rpc('retry_failed_queue_items');
+      if (error) throw error;
+      toast.success(`אופסו ${(data as any)?.reset_count || 0} התראות שנכשלו`);
+      onRefresh?.();
+    } catch (e: any) {
+      toast.error("שגיאה באיפוס: " + e.message);
+    } finally {
+      setRetrying(false);
+    }
+  };
+
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
     return d.toLocaleString('he-IL', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
@@ -197,6 +212,12 @@ function QueueHealthCard({ stats, onRefresh }: { stats: OverviewStats; onRefresh
             <Button size="sm" variant="secondary" onClick={handleCleanupStale} disabled={cleaningUp}>
               {cleaningUp ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
               נקה מיותמות ({staleCount})
+            </Button>
+          )}
+          {stats.queueFailed > 0 && (
+            <Button size="sm" variant="destructive" onClick={handleRetryFailed} disabled={retrying}>
+              {retrying ? <Loader2 className="w-4 h-4 animate-spin" /> : <AlertTriangle className="w-4 h-4" />}
+              אפס נכשלות ({stats.queueFailed})
             </Button>
           )}
         </div>
