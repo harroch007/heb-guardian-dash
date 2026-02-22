@@ -248,11 +248,34 @@ async function processAlert(
     } else if (deviceData?.child_id) {
       const { data: childData } = await supabase
         .from('children')
-        .select('date_of_birth, gender')
+        .select('date_of_birth, gender, subscription_tier')
         .eq('id', deviceData.child_id)
         .single();
 
       if (childData) {
+        // Check subscription tier - skip AI for free users
+        const tier = childData.subscription_tier || 'free';
+        if (tier === 'free') {
+          console.log(`Alert ${alert.id} skipped: child is on free tier`);
+          await supabase
+            .from('alerts')
+            .update({
+              is_processed: true,
+              ai_verdict: 'skipped_free',
+              processing_status: 'skipped_free_tier',
+              content: null,
+              analyzed_at: new Date().toISOString(),
+            })
+            .eq('id', alert.id);
+
+          return {
+            alertId: alert.id,
+            verdict: 'skipped_free',
+            skipped: true,
+            reason: 'free_tier',
+          };
+        }
+
         const birthDate = new Date(childData.date_of_birth);
         const now = new Date();
         childAge = Math.floor((now.getTime() - birthDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25));
