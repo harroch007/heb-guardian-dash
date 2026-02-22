@@ -1,99 +1,102 @@
-# חבילת חינם vs Premium — תוכנית מלאה
 
-## אסטרטגיית המוצר
+# דף תשלום + מערכת פרומו קוד + סטטיסטיקות אדמין
 
-### חבילת חינם — "לדעת מה קורה"
+## סקירה כללית
 
-פיצ'רים שלא עולים כסף (נתוני מכשיר בלבד):
+המערכת תכלול 4 חלקים עיקריים:
 
-- מיקום בזמן אמת
-- מצב סוללה
-- זמן מסך יומי + אפליקציות מובילות
-- סטטוס מכשיר (אונליין/אופליין)
-- ניהול ילדים מרובים
-
-### חבילת Premium — "להבין מה קורה"
-
-כל מה שבחינם + כל מה שדורש AI:
-
-- סריקת הודעות וניתוח AI
-- התראות חכמות בזמן אמת
-- תובנות AI יומיות
-- רגעים טובים (positive alerts)
-- קשרים פעילים (top chats)
-- סיכום יומי / שבועי / חודשי
-- פעילות דיגיטלית (הודעות נסרקו, AI stacks)
+1. **דף תשלום (Checkout)** — דף חדש שנפתח מ-"שדרג עכשיו", עם טופס כרטיס אשראי מדומה + שדה פרומו קוד
+2. **טבלת promo_codes בDB** — לניהול קודי הנחה עם חוקים גמישים
+3. **טאב פרומו קודים באדמין** — יצירה, צפייה, ומחיקה של קודים
+4. **KPI חינם/משלם באדמין** — הצגת כמה יוזרים חינם וכמה Premium בסקירה הכללית
 
 ---
 
-## איך יראה הדשבורד למשתמש חינמי
+## 1. דף תשלום — `/checkout`
 
-### כרטיסים שיוצגו רגיל (פתוחים):
+### מה יוצג:
+- סיכום מה ההורה מקבל (רשימת פיצ'רים Premium)
+- מחיר: 19 ש"ח/חודש (או מחיר מותאם אם יש פרומו)
+- **שדה פרומו קוד** עם כפתור "החל" — בודק מול הDB ומעדכן את המחיר בהתאם
+- טופס כרטיס אשראי:
+  - מספר כרטיס (16 ספרות)
+  - תוקף (MM/YY)
+  - CVV (3 ספרות)
+  - שם בעל הכרטיס
+- כפתור "שלם ושדרג"
+- **כל מספר כרטיס יתקבל** — מדמה תשלום מוצלח
+- לאחר "תשלום": עדכון `children.subscription_tier = 'premium'` + הפניה לדשבורד עם toast הצלחה
 
-1. **מצב המכשיר** — מיקום, סוללה, עדכון אחרון
-2. **האפליקציות המרכזיות היום** — זמן מסך + אפליקציות
-
-### כרטיסים שיוחלפו בכרטיס שדרוג:
-
-במקום 4 הכרטיסים הנעולים (פעילות דיגיטלית, רגע טוב, תובנות AI, קשרים פעילים) + כפתור "סיכום אתמול" — יופיע **כרטיס שדרוג אחד** אטרקטיבי עם:
-
-- כותרת: "שדרג להגנה מלאה"
-- רשימת יתרונות Premium קצרה
-- כפתור שדרוג בולט
-
-### סדר הכרטיסים בחינם:
-
-1. מצב המכשיר (מיקום + סוללה + סטטוס)
-2. אפליקציות מרכזיות (זמן מסך)
-3. כרטיס שדרוג ל-Premium
-
----
-
-## תהליך התשלום (UI בלבד בשלב הזה)
-
-כפתור "שדרג עכשיו" יפתח את ה-`UpgradeModal` הקיים, שמפנה ל-`kippy.app/upgrade`. בהמשך נחבר Stripe.
+### שינויים:
+- קובץ חדש: `src/pages/Checkout.tsx`
+- עדכון `UpgradeModal.tsx`: במקום `window.open`, מנווט ל-`/checkout?childId=xxx`
+- עדכון `App.tsx`: הוספת Route `/checkout` (מוגן)
 
 ---
 
-## שינויים טכניים
+## 2. טבלת promo_codes
 
-### 1. Hook חדש: `useSubscription`
+```text
+promo_codes:
+  id          uuid (PK, default gen_random_uuid())
+  code        text (unique, NOT NULL) — הקוד עצמו, למשל "WELCOME2024"
+  discount_type text (NOT NULL) — סוג: 'free_months' | 'fixed_price' | 'percent_off'
+  discount_value integer (NOT NULL) — ערך: מספר חודשים / מחיר קבוע / אחוז
+  max_uses    integer (nullable) — מקסימום שימושים (null = ללא הגבלה)
+  current_uses integer (default 0) — כמה פעמים כבר השתמשו
+  expires_at  timestamptz (nullable) — תאריך תפוגה
+  is_active   boolean (default true)
+  created_at  timestamptz (default now())
+```
 
-קובץ: `src/hooks/useSubscription.ts`
+### חוקי פרומו קוד (דוגמאות):
+| discount_type | discount_value | משמעות |
+|---|---|---|
+| free_months | 1 | חודש חינם |
+| free_months | 3 | 3 חודשים חינם |
+| fixed_price | 10 | 10 ש"ח/חודש לתמיד |
+| percent_off | 50 | 50% הנחה |
 
-- קורא את `subscription_tier` מטבלת `children` עבור הילד הנבחר
-- מחזיר `{ tier: 'free' | 'premium', isPremium: boolean }`
-- בשלב הזה כל המשתמשים הם `free` (ברירת מחדל בDB)
+### RLS:
+- Admin: SELECT, INSERT, UPDATE, DELETE
+- Authenticated users: SELECT בלבד (לאימות קוד)
 
-### 2. רכיב חדש: `PremiumUpgradeCard`
+---
 
-קובץ: `src/components/PremiumUpgradeCard.tsx`
+## 3. טאב "פרומו קודים" באדמין
 
-- כרטיס אטרקטיבי עם אייקונים ורשימת יתרונות Premium
-- כפתור "שדרג עכשיו" שפותח את `UpgradeModal`
-- עיצוב עם גבול סגול (primary) ורקע gradient עדין
+### טאב חדש במערכת הניהול עם:
+- **טופס יצירת קוד**: שדות code, סוג הנחה, ערך, מקסימום שימושים, תאריך תפוגה
+- **טבלת קודים קיימים**: קוד, סוג, ערך, שימושים/מקסימום, סטטוס (פעיל/לא), פעולות (השבתה/מחיקה)
 
-### 3. עדכון Dashboard.tsx
+### קבצים:
+- קובץ חדש: `src/pages/admin/AdminPromoCodes.tsx`
+- עדכון `Admin.tsx`: הוספת טאב (TabsList יעבור מ-6 ל-7 עמודות)
 
-- ייבוא `useSubscription` ו-`PremiumUpgradeCard`
-- עטיפת הכרטיסים המותנים ב-`isPremium`:
-  - אם Premium: מוצג כרגיל (המצב הנוכחי)
-  - אם Free: מוצגים רק כרטיס מצב המכשיר + אפליקציות + כרטיס שדרוג
-- כרטיס "מצב המכשיר" יוזז למעלה (ראשון) בתצוגת חינם
+---
 
-### 4. עדכון LandingPricing.tsx
+## 4. KPI חינם/משלם בסקירה הכללית
 
-- עדכון רשימת הפיצ'רים בחבילת החינם לשקף את המציאות:
-  - מיקום בזמן אמת
-  - מצב סוללה
-  - זמן מסך 
-  - ניהול ילדים מרובים
+### בAdminOverview:
+- כרטיס KPI חדש: **"חינם / משלם"** — מציג כמה ילדים ב-free וכמה ב-premium
+- נשאב מטבלת `children` לפי `subscription_tier`
 
-### 5. עדכון UpgradeModal.tsx
+### שינויים:
+- עדכון `Admin.tsx` — fetchOverviewStats יוסיף ספירת free/premium
+- עדכון `AdminOverview.tsx` — כרטיס KPI חדש
+- עדכון הinterface `OverviewStats` בשני הקבצים
 
-- עדכון רשימת הפיצ'רים למה שבאמת Premium
-- עדכון המחיר ל-19 שח (לפי LandingPricing)
+---
 
-### 6. אין שינוי בסכמת DB
+## שינויים טכניים — סיכום קבצים
 
-השדה `children.subscription_tier` כבר קיים עם ברירת מחדל `'free'`.
+| קובץ | שינוי |
+|---|---|
+| **DB Migration** | טבלת `promo_codes` + RLS policies |
+| `src/pages/Checkout.tsx` | **חדש** — דף תשלום עם טופס כרטיס + פרומו קוד |
+| `src/pages/admin/AdminPromoCodes.tsx` | **חדש** — טאב ניהול פרומו קודים |
+| `src/components/UpgradeModal.tsx` | ניווט ל-`/checkout` במקום `window.open` |
+| `src/App.tsx` | הוספת Route `/checkout` |
+| `src/pages/Admin.tsx` | הוספת טאב פרומו + fetch free/premium counts |
+| `src/pages/admin/AdminOverview.tsx` | כרטיס KPI חינם/משלם |
+| `src/hooks/useSubscription.ts` | ללא שינוי (כבר קיים ועובד) |
