@@ -1,0 +1,1 @@
+UPDATE alerts SET is_processed = false, processing_status = 'pending' WHERE id = 884;
