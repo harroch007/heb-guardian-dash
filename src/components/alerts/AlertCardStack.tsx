@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence, PanInfo } from "framer-motion";
-import { Bookmark, Check, AlertTriangle, Lightbulb, Link2 } from "lucide-react";
+import { Bookmark, Check, AlertTriangle, Lightbulb, Link2, Clock, Users, User, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -51,6 +51,59 @@ interface AlertCardStackProps {
 }
 
 const SWIPE_THRESHOLD = 80;
+
+function formatIsraelTime(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  
+  const israelFormatter = new Intl.DateTimeFormat('he-IL', {
+    timeZone: 'Asia/Jerusalem',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+  const time = israelFormatter.format(date);
+  
+  const israelDate = new Intl.DateTimeFormat('he-IL', {
+    timeZone: 'Asia/Jerusalem',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  
+  const todayStr = israelDate.format(now);
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = israelDate.format(yesterday);
+  const alertDateStr = israelDate.format(date);
+  
+  const ltr = '\u202A';
+  const pop = '\u202C';
+  
+  if (alertDateStr === todayStr) {
+    return `היום ב-${ltr}${time}${pop}`;
+  } else if (alertDateStr === yesterdayStr) {
+    return `אתמול ב-${ltr}${time}${pop}`;
+  } else {
+    const shortDate = new Intl.DateTimeFormat('he-IL', {
+      timeZone: 'Asia/Jerusalem',
+      day: '2-digit',
+      month: '2-digit',
+    }).format(date);
+    return `${ltr}${shortDate}${pop} ב-${ltr}${time}${pop}`;
+  }
+}
+
+const categoryLabels: Record<string, string> = {
+  violence: 'אלימות',
+  bullying: 'בריונות',
+  sexual: 'תוכן מיני',
+  drugs: 'סמים',
+  self_harm: 'פגיעה עצמית',
+  hate: 'שנאה',
+  predator: 'טורף',
+  profanity: 'גסות',
+};
 
 export function AlertCardStack({ alerts, onAcknowledge, onSave, isSavedView = false, parentId, feedbackMap, onFeedbackChange }: AlertCardStackProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -175,6 +228,31 @@ export function AlertCardStack({ alerts, onAcknowledge, onSave, isSavedView = fa
                   )}
                 </div>
 
+                {/* Meta-data row */}
+                <div className="flex items-center gap-3 px-4 py-2.5 bg-muted/30 border-b border-border/30 text-sm text-muted-foreground flex-wrap">
+                  <div className="flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5" />
+                    <span>{formatIsraelTime(currentAlert.created_at)}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    {currentAlert.chat_type === 'group' ? (
+                      <Users className="w-3.5 h-3.5" />
+                    ) : (
+                      <User className="w-3.5 h-3.5" />
+                    )}
+                    <span>{currentAlert.chat_type === 'group' ? 'קבוצה' : 'פרטי'}</span>
+                    {currentAlert.chat_name && (
+                      <span className="text-foreground/70">• {currentAlert.chat_name}</span>
+                    )}
+                  </div>
+                  {currentAlert.category && (
+                    <Badge variant="outline" className="text-xs gap-1">
+                      <Tag className="w-3 h-3" />
+                      {categoryLabels[currentAlert.category] || currentAlert.category}
+                    </Badge>
+                  )}
+                </div>
+
                 {/* Content */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-4">
                   {/* Primary Summary (Cyan) */}
@@ -256,14 +334,12 @@ export function AlertCardStack({ alerts, onAcknowledge, onSave, isSavedView = fa
                 {/* Footer with feedback + acknowledge button */}
                 <div className="p-4 border-t border-border/30 space-y-3">
                   {/* Feedback buttons */}
-                  {parentId && (
-                    <AlertFeedback
-                      alertId={currentAlert.id}
-                      parentId={parentId}
-                      existingFeedback={feedbackMap?.[currentAlert.id] ?? null}
-                      onFeedbackChange={onFeedbackChange}
-                    />
-                  )}
+                  <AlertFeedback
+                    alertId={currentAlert.id}
+                    parentId={parentId || ''}
+                    existingFeedback={feedbackMap?.[currentAlert.id] ?? null}
+                    onFeedbackChange={onFeedbackChange}
+                  />
 
                   <Button
                     onClick={handleAcknowledge}
