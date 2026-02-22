@@ -1,76 +1,49 @@
 
 
-# תיקון parentId שנשאר null -- Race Condition ב-AuthContext
+# משוב = אישור אוטומטי של התראה
 
-## הבעיה
+## הרעיון
+כשהורה לוחץ על "רלוונטי" או "לא רלוונטי", זה אומר שהוא קרא את ההתראה. לכן, לחיצה על אחד מכפתורי המשוב תפעיל גם את פעולת "הבנתי, תודה" (acknowledge) באופן אוטומטי.
 
-ה-RLS כבר תוקן (הפוליסות כעת PERMISSIVE), אבל ה-`parentId` נשאר `null` בגלל race condition ב-`AuthContext.tsx`.
+## השינוי
 
-### מה קורה בפועל:
+### AlertCardStack.tsx
+- העברת ה-callback של `onAcknowledge` לתוך `AlertFeedback` דרך prop חדש
+- או: שימוש ב-`onFeedbackChange` הקיים כדי להפעיל acknowledge אחרי שהמשוב נשמר בהצלחה
 
-1. `onAuthStateChange` מופעל עם session
-2. `setUser(session.user)` נקרא (עדכון state אסינכרוני)
-3. `setTimeout(() => handlePostAuth(session.user), 0)` נקרא
-4. `handlePostAuth` קורא ל-`checkParentStatus()`
-5. `checkParentStatus()` בודק `if (!user)` -- אבל `user` עדיין **null** כי React עדיין לא עיבד את ה-state update מצעד 2
-6. לכן `parentId` לעולם לא מתעדכן
+### AlertFeedback.tsx
+- הוספת prop חדש: `onAutoAcknowledge?: () => void`
+- אחרי שמירת משוב מוצלחת (אחרי ה-upsert), קריאה ל-`onAutoAcknowledge()`
 
-## הפתרון
+### פירוט טכני
 
-### שינוי ב-AuthContext.tsx
-
-שינוי `checkParentStatus` כך שיקבל את ה-user כפרמטר במקום לקרוא מה-state:
-
+**AlertFeedback.tsx** -- הוספת prop והפעלתו:
 ```typescript
-const checkParentStatus = async (currentUser?: User | null) => {
-  const u = currentUser ?? user;
-  if (!u) {
-    setIsNewUser(null);
-    setParentId(null);
-    return;
-  }
-
-  const { data, error } = await supabase
-    .from('parents')
-    .select('id')
-    .eq('id', u.id)
-    .maybeSingle();
-
-  if (error) {
-    setIsNewUser(true);
-    return;
-  }
-
-  if (data) {
-    setIsNewUser(false);
-    setParentId(data.id);
-  } else {
-    setIsNewUser(true);
-    setParentId(null);
-  }
-};
+interface AlertFeedbackProps {
+  alertId: number;
+  parentId: string;
+  existingFeedback?: FeedbackType | null;
+  onFeedbackChange?: (alertId: number, feedback: FeedbackType) => void;
+  onAutoAcknowledge?: () => void;  // חדש
+}
 ```
 
-ועדכון `handlePostAuth` להעביר את ה-user:
-
+בתוך `handleFeedback`, אחרי upsert מוצלח:
 ```typescript
-const handlePostAuth = async (sessionUser: User) => {
-  const allowed = await enforceWaitlistAccess(sessionUser);
-  if (!allowed) return;
-  await checkParentStatus(sessionUser);
-};
+onFeedbackChange?.(alertId, type);
+onAutoAcknowledge?.();  // שורה חדשה
 ```
 
-### שינוי ב-AlertCardStack.tsx שורה 349
+**AlertCardStack.tsx** -- העברת prop:
+```tsx
+<AlertFeedback
+  alertId={currentAlert.id}
+  parentId={parentId ?? ''}
+  existingFeedback={feedbackMap?.[currentAlert.id] ?? null}
+  onFeedbackChange={onFeedbackChange}
+  onAutoAcknowledge={handleAcknowledge}  // חדש
+/>
+```
 
-שינוי מ-`parentId={parentId || ''}` ל-`parentId={parentId ?? ''}` כדי לא להמיר null למחרוזת ריקה (ה-guard ב-AlertFeedback יטפל ב-null).
-
-## פירוט טכני
-
-| קובץ | שינוי |
-|------|-------|
-| `src/contexts/AuthContext.tsx` | `checkParentStatus` מקבל user כפרמטר |
-| `src/components/alerts/AlertCardStack.tsx` | שורה 349: `parentId \|\| ''` הופך ל-`parentId ?? ''` |
-
-אין צורך בשינויי DB נוספים -- ה-RLS כבר תוקן.
+כך הלחיצה על משוב תפעיל את אותו `handleAcknowledge` שמפעיל אנימציית יציאה ומסמן את ההתראה כטופלת.
 
