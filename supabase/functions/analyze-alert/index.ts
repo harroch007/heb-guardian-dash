@@ -117,6 +117,27 @@ FINAL OUTPUT - Return JSON ONLY with these fields:
   "recommendation": "<Hebrew, non-empty ONLY if verdict is not 'safe'; otherwise ''>"
 }
 
+RELATIONSHIP CONTEXT (CRITICAL FOR ACCURATE SCORING)
+You will receive a "relationship_context" field in the user message with:
+- familiarity_level: "close_contact" | "regular" | "new_or_rare" | "unknown"
+- total_messages: historical message count with this chat/contact
+- active_days: how many different days this chat has been active
+- stats_chat_type: the chat_type recorded in historical stats (may differ from the alert's chat_type)
+
+SCORING ADJUSTMENT RULES BASED ON RELATIONSHIP:
+1. close_contact + group chat + playful/joking tone ->
+   REDUCE risk_score by 30-50 points. Friends joking around is NOT bullying.
+2. new_or_rare or unknown + aggressive content ->
+   KEEP or INCREASE risk_score. Unknown contacts with aggression = real concern.
+3. close_contact + private chat + aggressive ->
+   Moderate reduction (10-20). Even friends can cross lines in private.
+4. Regular family group (chat name contains "משפחה" or "בית") + banter ->
+   Significant reduction (40-60). Family dynamics are usually safe.
+
+The relationship between participants is THE MOST IMPORTANT factor after content analysis.
+"אתה זבל" from a best friend in a familiar group = banter (risk ~15)
+"אתה זבל" from an unknown number in private = potential bullying (risk ~65)
+
 AUTHOR & TARGET ANALYSIS (CRITICAL FOR SCORING)
 - Each message has an "origin" or "from" field indicating who sent it.
 - The CHILD is the person being monitored. Messages have author_type: CHILD, OTHER, or UNKNOWN.
@@ -214,7 +235,61 @@ async function processAlert(
     }
   }
 
-  // 3. Call OpenAI
+  // 3. Fetch relationship context from daily_chat_stats
+  let familiarityLevel = 'unknown';
+  let totalMessages = 0;
+  let activeDays = 0;
+  let statsChatType: string | null = null;
+
+  const chatNameForLookup = alert.chat_name;
+  const childIdForLookup = alert.child_id;
+
+  if (chatNameForLookup && childIdForLookup) {
+    try {
+      const { data: chatStats, error: statsError } = await supabase
+        .from('daily_chat_stats')
+        .select('message_count, stat_date, chat_type')
+        .eq('child_id', childIdForLookup)
+        .eq('chat_name', chatNameForLookup);
+
+      if (!statsError && chatStats && chatStats.length > 0) {
+        totalMessages = chatStats.reduce((sum: number, row: any) => sum + (row.message_count || 0), 0);
+        activeDays = new Set(chatStats.map((row: any) => row.stat_date)).size;
+        // Use the most common chat_type from stats
+        const groupCount = chatStats.filter((r: any) => r.chat_type === 'GROUP').length;
+        statsChatType = groupCount > chatStats.length / 2 ? 'GROUP' : chatStats[0].chat_type;
+
+        if (totalMessages >= 50 && activeDays >= 5) {
+          familiarityLevel = 'close_contact';
+        } else if (totalMessages >= 10) {
+          familiarityLevel = 'regular';
+        } else {
+          familiarityLevel = 'new_or_rare';
+        }
+        console.log(`Relationship context: familiarity=${familiarityLevel}, total_messages=${totalMessages}, active_days=${activeDays}, stats_chat_type=${statsChatType}`);
+      } else {
+        console.log(`No chat stats found for chat_name="${chatNameForLookup}", child_id="${childIdForLookup}"`);
+      }
+    } catch (statsErr) {
+      console.error('Failed to fetch relationship context (non-fatal):', statsErr);
+    }
+  }
+
+  // Build enriched user message with relationship context
+  const relationshipLine = `Relationship context: familiarity_level=${familiarityLevel}, total_messages=${totalMessages}, active_days=${activeDays}`;
+  const chatNameHint = chatNameForLookup ? `Chat name hint: '${chatNameForLookup}'` : '';
+  
+  const userMessage = [
+    'Analyze this message content:',
+    `Chat type: ${alert.chat_type || 'UNKNOWN'}`,
+    `Author type of flagged message: ${alert.author_type || 'UNKNOWN'}`,
+    relationshipLine,
+    chatNameHint,
+    '',
+    redactPII(content),
+  ].filter(Boolean).join('\n');
+
+  // 4. Call OpenAI
   const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -225,7 +300,7 @@ async function processAlert(
       model: 'gpt-4o-mini',
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: `Analyze this message content:\nChat type: ${alert.chat_type || 'UNKNOWN'}\nAuthor type of flagged message: ${alert.author_type || 'UNKNOWN'}\n\n${redactPII(content)}` }
+        { role: 'user', content: userMessage }
       ],
       response_format: { type: 'json_object' },
       temperature: 0.3,
@@ -263,7 +338,7 @@ async function processAlert(
     console.error('Training dataset insert error:', trainingError);
   }
 
-  // 5. Build title
+  // 5. Build title with smart chat_type fallback
   const { data: alertRecord } = await supabase
     .from('alerts')
     .select('chat_name, chat_type')
@@ -276,8 +351,31 @@ async function processAlert(
     .replace(/\s*\(\d+\s*messages?\)\s*$/i, '')
     .trim();
 
-  const chatType = alertRecord?.chat_type;
-  const isGroupChat = chatType === 'GROUP';
+  // Smart chat_type resolution: DB -> AI detection -> daily_chat_stats
+  let resolvedChatType = alertRecord?.chat_type || 'PRIVATE';
+  
+  // If DB says PRIVATE but AI detected group chat, trust the AI
+  if (resolvedChatType === 'PRIVATE' && aiResult.is_group_chat === true) {
+    console.log(`chat_type OVERRIDE: DB says PRIVATE but AI detected GROUP for "${chatName}"`);
+    resolvedChatType = 'GROUP';
+  }
+  
+  // If still PRIVATE but daily_chat_stats says GROUP, trust the stats
+  if (resolvedChatType === 'PRIVATE' && statsChatType === 'GROUP') {
+    console.log(`chat_type OVERRIDE: DB says PRIVATE but daily_chat_stats says GROUP for "${chatName}"`);
+    resolvedChatType = 'GROUP';
+  }
+
+  // Update the alert's chat_type if it was corrected
+  if (resolvedChatType !== alertRecord?.chat_type) {
+    await supabase
+      .from('alerts')
+      .update({ chat_type: resolvedChatType })
+      .eq('id', alertId);
+    console.log(`Updated alert ${alertId} chat_type from ${alertRecord?.chat_type} to ${resolvedChatType}`);
+  }
+
+  const isGroupChat = resolvedChatType === 'GROUP';
 
   let finalTitle: string;
   const titlePrefix = aiResult.title_prefix || 'שיחה';
@@ -288,7 +386,7 @@ async function processAlert(
     finalTitle = `שיחה פרטית עם ${chatName}`;
   }
 
-  console.log(`Built title: "${finalTitle}" from prefix: "${titlePrefix}", chatType: ${chatType}, isGroup: ${isGroupChat}, chatName: "${chatName}"`);
+  console.log(`Built title: "${finalTitle}" from prefix: "${titlePrefix}", resolvedChatType: ${resolvedChatType}, isGroup: ${isGroupChat}, chatName: "${chatName}"`);
 
   // 6. Clean social_context
   let cleanedSocialContext = aiResult.social_context;
