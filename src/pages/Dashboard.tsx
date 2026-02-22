@@ -6,7 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Plus, Users, User, RefreshCw, BarChart3, Brain, Smartphone, MapPin, Battery, Clock, Mail, Bot, AlertTriangle, Calendar, ChevronLeft, Bell, X, Shield, Star } from "lucide-react";
 import { motion } from "framer-motion";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
-
+import { useSubscription } from "@/hooks/useSubscription";
+import { PremiumUpgradeCard } from "@/components/PremiumUpgradeCard";
 // Auto-refresh interval: 2 hours in milliseconds
 const AUTO_REFRESH_INTERVAL = 2 * 60 * 60 * 1000;
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -186,7 +187,7 @@ const Index = () => {
   const [insights, setInsights] = useState<DailyInsights | null>(null);
   const [insightsLoading, setInsightsLoading] = useState(false);
   const [positiveAlert, setPositiveAlert] = useState<{id: number; ai_title: string; ai_summary: string} | null>(null);
-
+  const { isPremium } = useSubscription(selectedChildId || undefined);
   // When child is selected, immediately try to load from cache (sync)
   useEffect(() => {
     if (children.length > 0 && !selectedChildId) {
@@ -537,157 +538,188 @@ const Index = () => {
               </div>
             ) : snapshot ? (
               <>
-                {/* Card 1 - Digital Activity */}
-                <Card className="bg-card border-border">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-                      <BarChart3 className="h-5 w-5 text-muted-foreground" />
-                      פעילות דיגיטלית
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="text-center p-3 rounded-lg bg-muted/50">
-                        <div className="flex items-center justify-center gap-1 mb-1">
-                          <Mail className="h-4 w-4 text-muted-foreground" />
+                {isPremium && (
+                  <>
+                    {/* Card 1 - Digital Activity (Premium only) */}
+                    <Card className="bg-card border-border">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+                          <BarChart3 className="h-5 w-5 text-muted-foreground" />
+                          פעילות דיגיטלית
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="grid grid-cols-3 gap-4">
+                          <div className="text-center p-3 rounded-lg bg-muted/50">
+                            <div className="flex items-center justify-center gap-1 mb-1">
+                              <Mail className="h-4 w-4 text-muted-foreground" />
+                            </div>
+                            <div className="text-2xl font-bold text-foreground">{snapshot.messages_scanned ?? 0}</div>
+                            <div className="text-xs text-muted-foreground">הודעות נסרקו</div>
+                          </div>
+                          <div className="text-center p-3 rounded-lg bg-muted/50">
+                            <div className="flex items-center justify-center gap-1 mb-1">
+                              <Bot className="h-4 w-4 text-muted-foreground" />
+                            </div>
+                            <div className="text-2xl font-bold text-foreground">{snapshot.stacks_sent_to_ai ?? 0}</div>
+                            <div className="text-xs text-muted-foreground">הועברו לניתוח AI</div>
+                          </div>
+                          <div className="text-center p-3 rounded-lg bg-muted/50">
+                            <div className="flex items-center justify-center gap-1 mb-1">
+                              <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+                            </div>
+                            <div className="text-2xl font-bold text-foreground">{snapshot.alerts_sent ?? 0}</div>
+                            <div className="text-xs text-muted-foreground">התראות נשלחו</div>
+                          </div>
                         </div>
-                        <div className="text-2xl font-bold text-foreground">{snapshot.messages_scanned ?? 0}</div>
-                        <div className="text-xs text-muted-foreground">הודעות נסרקו</div>
-                      </div>
-                      <div className="text-center p-3 rounded-lg bg-muted/50">
-                        <div className="flex items-center justify-center gap-1 mb-1">
-                          <Bot className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                        <div className="text-2xl font-bold text-foreground">{snapshot.stacks_sent_to_ai ?? 0}</div>
-                        <div className="text-xs text-muted-foreground">הועברו לניתוח AI</div>
-                      </div>
-                      <div className="text-center p-3 rounded-lg bg-muted/50">
-                        <div className="flex items-center justify-center gap-1 mb-1">
-                          <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                        <div className="text-2xl font-bold text-foreground">{snapshot.alerts_sent ?? 0}</div>
-                        <div className="text-xs text-muted-foreground">התראות נשלחו</div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                      </CardContent>
+                    </Card>
 
-                {/* Positive Alert Card - only shown if exists */}
-                {positiveAlert && (
-                  <Card className="border-emerald-500/30 bg-emerald-500/5">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="flex items-center gap-2 text-base font-semibold text-emerald-400">
-                        <Star className="h-5 w-5 fill-emerald-400 text-emerald-400" />
-                        רגע טוב ✨
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      <p className="font-medium text-foreground text-sm">{positiveAlert.ai_title}</p>
-                      {positiveAlert.ai_summary && (
-                        <p className="text-sm text-muted-foreground line-clamp-2">{positiveAlert.ai_summary}</p>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 p-0 h-auto"
-                        onClick={() => navigate("/alerts?tab=positive")}
-                      >
-                        ראה הכל ←
-                      </Button>
-                    </CardContent>
-                  </Card>
-                )}
+                    {/* Positive Alert Card - Premium only */}
+                    {positiveAlert && (
+                      <Card className="border-emerald-500/30 bg-emerald-500/5">
+                        <CardHeader className="pb-2">
+                          <CardTitle className="flex items-center gap-2 text-base font-semibold text-emerald-400">
+                            <Star className="h-5 w-5 fill-emerald-400 text-emerald-400" />
+                            רגע טוב ✨
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                          <p className="font-medium text-foreground text-sm">{positiveAlert.ai_title}</p>
+                          {positiveAlert.ai_summary && (
+                            <p className="text-sm text-muted-foreground line-clamp-2">{positiveAlert.ai_summary}</p>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 p-0 h-auto"
+                            onClick={() => navigate("/alerts?tab=positive")}
+                          >
+                            ראה הכל ←
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    )}
 
-                {/* Summary Links */}
-                <Button
-                  variant="outline"
-                  className="w-full justify-between"
-                  onClick={() => navigate(`/daily-report/${selectedChildId}`)}
-                >
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4" />
-                    <span>סיכום אתמול</span>
-                  </div>
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-
-                {/* Card 2 - AI Insights */}
-                <Card className="bg-card border-border">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-                      <Brain className="h-5 w-5 text-muted-foreground" />
-                      תובנות AI
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {insightsLoading ? (
-                      <div className="space-y-2">
-                        <div className="h-5 bg-muted/50 rounded animate-pulse w-3/4" />
-                        <div className="h-4 bg-muted/50 rounded animate-pulse w-full" />
-                        <div className="h-4 bg-muted/50 rounded animate-pulse w-5/6" />
+                    {/* Summary Links - Premium only */}
+                    <Button
+                      variant="outline"
+                      className="w-full justify-between"
+                      onClick={() => navigate(`/daily-report/${selectedChildId}`)}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4" />
+                        <span>סיכום אתמול</span>
                       </div>
-                    ) : insights ? (
-                      <div className="space-y-3">
-                        <p className="font-medium text-foreground">{insights.headline}</p>
-                        <ul className="space-y-1.5">
-                          {insights.insights.map((insight, idx) => (
-                            <li key={idx} className="text-sm text-muted-foreground flex items-start gap-2">
-                              <span className="text-primary mt-1">•</span>
-                              <span>{insight}</span>
-                            </li>
-                          ))}
-                        </ul>
-                        {insights.suggested_action && (
-                          <p className="text-sm text-muted-foreground/80 pt-2 border-t border-border">
-                            {insights.suggested_action}
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+
+                    {/* AI Insights - Premium only */}
+                    <Card className="bg-card border-border">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+                          <Brain className="h-5 w-5 text-muted-foreground" />
+                          תובנות AI
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        {insightsLoading ? (
+                          <div className="space-y-2">
+                            <div className="h-5 bg-muted/50 rounded animate-pulse w-3/4" />
+                            <div className="h-4 bg-muted/50 rounded animate-pulse w-full" />
+                            <div className="h-4 bg-muted/50 rounded animate-pulse w-5/6" />
+                          </div>
+                        ) : insights ? (
+                          <div className="space-y-3">
+                            <p className="font-medium text-foreground">{insights.headline}</p>
+                            <ul className="space-y-1.5">
+                              {insights.insights.map((insight, idx) => (
+                                <li key={idx} className="text-sm text-muted-foreground flex items-start gap-2">
+                                  <span className="text-primary mt-1">•</span>
+                                  <span>{insight}</span>
+                                </li>
+                              ))}
+                            </ul>
+                            {insights.suggested_action && (
+                              <p className="text-sm text-muted-foreground/80 pt-2 border-t border-border">
+                                {insights.suggested_action}
+                              </p>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="text-center py-2">
+                            <p className="font-medium text-muted-foreground">אין מספיק נתונים לתובנות להיום</p>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              המערכת תציג תובנות לאחר הצטברות פעילות מספקת.
+                            </p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+
+                    {/* Top Friends/Chats - Premium only */}
+                    <Card className="bg-card border-border">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+                          <Users className="h-5 w-5 text-muted-foreground" />
+                          הקשרים הפעילים ביותר היום
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        {topChats.length > 0 ? (
+                          <>
+                            <div className="flex flex-wrap gap-2 mb-3">
+                              {topChats.map((chat, index) => (
+                                <span
+                                  key={index}
+                                  className="px-3 py-1.5 rounded-full bg-muted text-sm font-medium text-foreground"
+                                >
+                                  {chat.chat_name}
+                                </span>
+                              ))}
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              אלו הקשרים איתם התקיימה מרבית האינטראקציה היום.
+                            </p>
+                          </>
+                        ) : (
+                          <p className="text-sm text-muted-foreground text-center py-2">
+                            אין נתונים להיום
                           </p>
                         )}
-                      </div>
-                    ) : (
-                      <div className="text-center py-2">
-                        <p className="font-medium text-muted-foreground">אין מספיק נתונים לתובנות להיום</p>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          המערכת תציג תובנות לאחר הצטברות פעילות מספקת.
-                        </p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+                      </CardContent>
+                    </Card>
+                  </>
+                )}
 
-                {/* Card 3 - Top Friends/Chats */}
-                <Card className="bg-card border-border">
+                {/* Device Status - always visible, shown first for free users */}
+                <Card className="bg-muted/30 border-border">
                   <CardHeader className="pb-3">
                     <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-                      <Users className="h-5 w-5 text-muted-foreground" />
-                      הקשרים הפעילים ביותר היום
+                      <Smartphone className="h-5 w-5 text-muted-foreground" />
+                      מצב המכשיר
                     </CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    {topChats.length > 0 ? (
-                      <>
-                        <div className="flex flex-wrap gap-2 mb-3">
-                          {topChats.map((chat, index) => (
-                            <span
-                              key={index}
-                              className="px-3 py-1.5 rounded-full bg-muted text-sm font-medium text-foreground"
-                            >
-                              {chat.chat_name}
-                            </span>
-                          ))}
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          אלו הקשרים איתם התקיימה מרבית האינטראקציה היום.
-                        </p>
-                      </>
-                    ) : (
-                      <p className="text-sm text-muted-foreground text-center py-2">
-                        אין נתונים להיום
-                      </p>
-                    )}
+                  <CardContent className="space-y-3">
+                    <div className="flex items-center gap-3 text-sm">
+                      <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <span className="text-foreground">מיקום אחרון: {snapshot.address || "לא זמין"}</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm">
+                      <Battery className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <span className="text-foreground">סוללה: {snapshot.battery_level ?? "לא זמין"}%</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm">
+                      <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <span className="text-foreground">עדכון אחרון: {formatLastSeen(snapshot.last_seen)}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground pt-2 border-t border-border">
+                      הנתונים משקפים את המצב האחרון שדווח מהמכשיר.
+                    </p>
                   </CardContent>
                 </Card>
 
-                {/* Card 4 - App Usage */}
+                {/* App Usage - always visible */}
                 <Card className="bg-card border-border">
                   <CardHeader className="pb-3">
                     <CardTitle className="flex items-center gap-2 text-lg font-semibold">
@@ -725,32 +757,10 @@ const Index = () => {
                   </CardContent>
                 </Card>
 
-                {/* Card 5 - Device Status */}
-                <Card className="bg-muted/30 border-border">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-                      <Smartphone className="h-5 w-5 text-muted-foreground" />
-                      מצב המכשיר
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex items-center gap-3 text-sm">
-                      <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                      <span className="text-foreground">מיקום אחרון: {snapshot.address || "לא זמין"}</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-sm">
-                      <Battery className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                      <span className="text-foreground">סוללה: {snapshot.battery_level ?? "לא זמין"}%</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-sm">
-                      <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                      <span className="text-foreground">עדכון אחרון: {formatLastSeen(snapshot.last_seen)}</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground pt-2 border-t border-border">
-                      הנתונים משקפים את המצב האחרון שדווח מהמכשיר.
-                    </p>
-                  </CardContent>
-                </Card>
+                {/* Premium Upgrade Card - free users only */}
+                {!isPremium && (
+                  <PremiumUpgradeCard childName={selectedChild?.name} />
+                )}
 
                 {/* Bottom CTA */}
                 <div className="flex justify-center pt-4 pb-8">
