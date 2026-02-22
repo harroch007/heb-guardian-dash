@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence, PanInfo } from "framer-motion";
-import { Star, Check, Clock, User, Users, Sparkles } from "lucide-react";
+import { Star, Check, Clock, Users, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -169,11 +169,7 @@ export function PositiveAlertCard({ alerts, onAcknowledge }: PositiveAlertCardPr
                   </div>
                   {currentAlert.chat_name && (
                     <div className="flex items-center gap-1.5">
-                      {currentAlert.chat_type === 'GROUP' ? (
-                        <Users className="w-3.5 h-3.5" />
-                      ) : (
-                        <User className="w-3.5 h-3.5" />
-                      )}
+                      <Users className="w-3.5 h-3.5" />
                       <span>{currentAlert.chat_name}</span>
                     </div>
                   )}

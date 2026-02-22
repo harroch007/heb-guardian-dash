@@ -71,6 +71,7 @@ const AlertsPage = () => {
         .is('saved_at', null)
         .is('parent_message', null)
         .eq('alert_type', 'warning')
+        .in('ai_verdict', ['notify', 'review'])
         .order('created_at', { ascending: false });
 
       if (newError) throw newError;
@@ -84,6 +85,7 @@ const AlertsPage = () => {
         .not('saved_at', 'is', null)
         .is('parent_message', null)
         .eq('alert_type', 'warning')
+        .in('ai_verdict', ['notify', 'review'])
         .order('saved_at', { ascending: false });
 
       if (savedError) throw savedError;
