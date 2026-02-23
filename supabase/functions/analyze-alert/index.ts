@@ -498,6 +498,7 @@ async function processAlert(
   openAIApiKey: string,
   supabaseUrl: string,
   supabaseServiceKey: string,
+  force = false,
 ): Promise<Record<string, unknown>> {
   // 1. Fetch alert
   const { data: alert, error: fetchError } = await supabase
@@ -514,9 +515,13 @@ async function processAlert(
   const deviceId: string | null = alert.device_id;
   const isProcessed: boolean = alert.is_processed || false;
 
-  if (isProcessed) {
+  if (isProcessed && !force) {
     console.log(`Alert ${alertId} already processed, skipping`);
     return { message: 'Already processed', alert_id: alertId };
+  }
+
+  if (isProcessed && force) {
+    console.log(`Alert ${alertId} already processed but force=true, re-analyzing`);
   }
 
   if (!content) {
@@ -769,6 +774,12 @@ async function processAlert(
 
   const isGroupChat = resolvedChatType === 'GROUP';
 
+  // CHILD_ROLE GUARD: Iron rule – private chats cannot have bystander
+  if (!isGroupChat && aiResult.child_role === 'bystander') {
+    console.log(`CHILD_ROLE_GUARD: Overriding bystander -> unknown for PRIVATE chat, alert_id=${alertId}`);
+    aiResult.child_role = 'unknown';
+  }
+
   const titlePrefix = aiResult.title_prefix || 'שיחה';
   const finalTitle = `${titlePrefix} — ${chatName}`;
 
@@ -779,9 +790,20 @@ async function processAlert(
 
   if (!isGroupChat) {
     cleanedSocialContext = null;
-  } else if (cleanedSocialContext) {
-    // Remove any participants array the model might still return
+  } else {
+    // Group chat: ensure valid social_context
+    if (!cleanedSocialContext || typeof cleanedSocialContext !== 'object') {
+      console.log(`SOCIAL_CONTEXT_GUARD: Building default for GROUP chat, alert_id=${alertId}`);
+      cleanedSocialContext = {
+        label: "הקשר חברתי",
+        description: "שיחה קבוצתית"
+      };
+    }
+    // Remove any participants array
     delete cleanedSocialContext.participants;
+    // Ensure required fields
+    if (!cleanedSocialContext.label) cleanedSocialContext.label = "הקשר חברתי";
+    if (!cleanedSocialContext.description) cleanedSocialContext.description = "שיחה קבוצתית";
   }
 
   // 7. Update alert in DB (wipe content for privacy)
@@ -805,6 +827,10 @@ async function processAlert(
     content: '[CONTENT DELETED FOR PRIVACY]',
     analyzed_at: new Date().toISOString(),
     source: 'edge_analyze_alert',
+    ai_analysis: aiResult,  // Store full AI response for QA
+    ai_patterns: aiResult.patterns || null,
+    ai_classification: aiResult.classification || null,
+    ai_confidence: typeof aiResult.confidence === 'number' ? aiResult.confidence : null,
   };
 
   const { error: updateError } = await supabase
@@ -1196,8 +1222,9 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Use the shared processAlert helper
-    const result = await processAlert(supabase, alertId!, openAIApiKey, supabaseUrl, supabaseServiceKey);
+    // Use the shared processAlert helper (support force re-analyze)
+    const force = body.force === true;
+    const result = await processAlert(supabase, alertId!, openAIApiKey, supabaseUrl, supabaseServiceKey, force);
 
     return new Response(
       JSON.stringify(result),
