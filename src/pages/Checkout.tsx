@@ -7,10 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Shield, Brain, Bell, BarChart3, Star, CreditCard, Loader2, Check, Tag, ArrowRight } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Shield, Brain, Bell, BarChart3, Star, CreditCard, Loader2, Check, Tag, ArrowRight, MessageCircle, Lock } from "lucide-react";
 import { toast } from "sonner";
 
 const BASE_PRICE = 19;
+const WHATSAPP_LINK = "https://wa.me/972547836498?text=היי%2C%20אשמח%20לקבל%20קוד%20קופון%20לשדרוג%20Premium";
 
 const premiumFeatures = [
   { icon: Brain, text: "ניתוח AI מתקדם לכל ההודעות" },
@@ -52,8 +54,6 @@ function getDiscountedPrice(type: string, value: number): number {
   }
 }
 
-type CheckoutStep = "select" | "card";
-
 const ApplePayLogo = () => (
   <svg viewBox="0 0 165 40" className="h-12" fill="currentColor">
     <path d="M150.7 0H14.3C6.4 0 0 6.4 0 14.3v11.4C0 33.6 6.4 40 14.3 40h136.4c7.9 0 14.3-6.4 14.3-14.3V14.3C165 6.4 158.6 0 150.7 0z" fill="hsl(var(--foreground))"/>
@@ -76,7 +76,7 @@ export default function Checkout() {
   const [searchParams] = useSearchParams();
   const childId = searchParams.get("childId");
 
-  const [step, setStep] = useState<CheckoutStep>("select");
+  const [showClosedDialog, setShowClosedDialog] = useState(false);
 
   // Promo code state
   const [promoCode, setPromoCode] = useState("");
@@ -84,12 +84,6 @@ export default function Checkout() {
   const [appliedPromo, setAppliedPromo] = useState<PromoResult | null>(null);
   const [promoError, setPromoError] = useState("");
 
-  // Card form state
-  const [cardNumber, setCardNumber] = useState("");
-  const [cardExpiry, setCardExpiry] = useState("");
-  const [cardCvv, setCardCvv] = useState("");
-  const [cardName, setCardName] = useState("");
-  const [cardId, setCardId] = useState("");
   const [paying, setPaying] = useState(false);
 
   const finalPrice = appliedPromo
@@ -150,30 +144,11 @@ export default function Checkout() {
     }
   };
 
-  const formatCardNumber = (value: string) => {
-    const digits = value.replace(/\D/g, "").slice(0, 16);
-    return digits.replace(/(.{4})/g, "$1 ").trim();
-  };
-
-  const formatExpiry = (value: string) => {
-    const digits = value.replace(/\D/g, "").slice(0, 4);
-    if (digits.length >= 3) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
-    return digits;
-  };
-
-  const isFormValid =
-    cardNumber.replace(/\D/g, "").length === 16 &&
-    cardExpiry.replace(/\D/g, "").length === 4 &&
-    cardCvv.length === 3 &&
-    cardName.trim().length >= 2 &&
-    cardId.replace(/\D/g, "").length === 9;
-
   const handlePay = async () => {
     if (!childId) return;
     setPaying(true);
 
     try {
-      // Calculate expiration date for promo codes with free months
       let expiresAt: string | null = null;
       if (appliedPromo?.discount_type === 'free_months') {
         const d = new Date();
@@ -312,8 +287,21 @@ export default function Checkout() {
           </CardContent>
         </Card>
 
-        {/* Payment Method Selection */}
-        {step === "select" && (
+        {/* Payment Buttons / Upgrade with Promo */}
+        {appliedPromo ? (
+          <Button
+            onClick={handlePay}
+            disabled={paying}
+            className="w-full h-12 text-base gap-2"
+          >
+            {paying ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <Check className="w-5 h-5" />
+            )}
+            {paying ? "משדרג..." : finalPrice === 0 ? "שדרג עכשיו — חינם!" : `שדרג עכשיו — ₪${finalPrice}/חודש`}
+          </Button>
+        ) : (
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base">בחר אמצעי תשלום</CardTitle>
@@ -322,31 +310,29 @@ export default function Checkout() {
               <Button
                 variant="outline"
                 className="w-full h-16 justify-between text-base"
-                onClick={handlePay}
-                disabled={paying}
+                onClick={() => setShowClosedDialog(true)}
               >
                 <div className="flex items-center gap-3">
                   <ApplePayLogo />
                 </div>
-                {paying ? <Loader2 className="w-5 h-5 animate-spin" /> : <ArrowRight className="w-5 h-5 rotate-180" />}
+                <ArrowRight className="w-5 h-5 rotate-180" />
               </Button>
 
               <Button
                 variant="outline"
                 className="w-full h-16 justify-between text-base"
-                onClick={handlePay}
-                disabled={paying}
+                onClick={() => setShowClosedDialog(true)}
               >
                 <div className="flex items-center gap-3">
                   <GooglePayLogo />
                 </div>
-                {paying ? <Loader2 className="w-5 h-5 animate-spin" /> : <ArrowRight className="w-5 h-5 rotate-180" />}
+                <ArrowRight className="w-5 h-5 rotate-180" />
               </Button>
 
               <Button
                 variant="outline"
                 className="w-full h-16 justify-between text-base"
-                onClick={() => setStep("card")}
+                onClick={() => setShowClosedDialog(true)}
               >
                 <div className="flex items-center gap-3">
                   <CreditCard className="w-6 h-6" />
@@ -358,99 +344,44 @@ export default function Checkout() {
           </Card>
         )}
 
-        {/* Credit Card Form */}
-        {step === "card" && (
-          <>
-            <Card>
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <CreditCard className="w-4 h-4" />
-                    פרטי תשלום
-                  </CardTitle>
-                  <Button variant="ghost" size="sm" onClick={() => setStep("select")}>
-                    חזרה
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>שם בעל הכרטיס</Label>
-                  <Input
-                    placeholder="ישראל ישראלי"
-                    value={cardName}
-                    onChange={(e) => setCardName(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>ת.ז בעל הכרטיס</Label>
-                  <Input
-                    placeholder="012345678"
-                    value={cardId}
-                    onChange={(e) => setCardId(e.target.value.replace(/\D/g, "").slice(0, 9))}
-                    maxLength={9}
-                    dir="ltr"
-                    className="font-mono tracking-wider"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>מספר כרטיס</Label>
-                  <Input
-                    placeholder="1234 5678 9012 3456"
-                    value={cardNumber}
-                    onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
-                    maxLength={19}
-                    dir="ltr"
-                    className="font-mono tracking-wider"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>תוקף</Label>
-                    <Input
-                      placeholder="MM/YY"
-                      value={cardExpiry}
-                      onChange={(e) => setCardExpiry(formatExpiry(e.target.value))}
-                      maxLength={5}
-                      dir="ltr"
-                      className="font-mono"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>CVV</Label>
-                    <Input
-                      placeholder="123"
-                      value={cardCvv}
-                      onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, "").slice(0, 3))}
-                      maxLength={3}
-                      dir="ltr"
-                      className="font-mono"
-                      type="password"
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Button
-              onClick={handlePay}
-              disabled={!isFormValid || paying}
-              className="w-full h-12 text-base gap-2"
-            >
-              {paying ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                <CreditCard className="w-5 h-5" />
-              )}
-              {paying ? "מעבד תשלום..." : finalPrice === 0 ? "שדרג עכשיו — חינם!" : `שלם ושדרג — ₪${finalPrice}/חודש`}
-            </Button>
-          </>
-        )}
-
         <p className="text-xs text-center text-muted-foreground">
           התשלום מאובטח. ניתן לבטל בכל עת.
         </p>
       </div>
+
+      {/* System Closed Dialog */}
+      <Dialog open={showClosedDialog} onOpenChange={setShowClosedDialog}>
+        <DialogContent className="max-w-sm mx-4" dir="rtl">
+          <DialogHeader className="text-center space-y-3">
+            <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+              <Lock className="w-6 h-6 text-muted-foreground" />
+            </div>
+            <DialogTitle className="text-lg">המערכת סגורה כרגע</DialogTitle>
+            <DialogDescription className="text-sm leading-relaxed">
+              כרגע לא ניתן להשלים תשלום. הגישה מוגבלת ללקוחות מוזמנים בלבד.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 pt-2">
+            <p className="text-sm text-center text-muted-foreground">
+              לקבלת קוד קופון לשימוש, פנו אלינו בוואטסאפ:
+            </p>
+            <Button
+              className="w-full gap-2"
+              onClick={() => window.open(WHATSAPP_LINK, "_blank")}
+            >
+              <MessageCircle className="w-5 h-5" />
+              פנייה בוואטסאפ
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full"
+              onClick={() => setShowClosedDialog(false)}
+            >
+              סגור
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
