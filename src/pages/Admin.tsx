@@ -674,7 +674,7 @@ export default function Admin() {
             <Database className="w-4 h-4" />
             <span className="hidden sm:inline">תור עיבוד</span>
             {(overviewStats?.queuePending ?? 0) > 0 && (
-              <span className="absolute -top-1 -left-1 w-2.5 h-2.5 bg-red-500 rounded-full" />
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full" />
             )}
           </TabsTrigger>
           <TabsTrigger value="analyst" className="gap-2">
