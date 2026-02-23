@@ -125,12 +125,6 @@ export const AlertDetailView = ({
                 <span className="text-sm font-medium">{alert.socialContext.label || "הקשר חברתי"}</span>
               </div>
               <div className="space-y-2">
-                {alert.socialContext.participants && alert.socialContext.participants.length > 0 && (
-                  <p className="text-sm text-foreground">
-                    <span className="text-muted-foreground">משתתפים מרכזיים: </span>
-                    {alert.socialContext.participants.join("، ")}
-                  </p>
-                )}
                 {(alert.socialContext.description || alert.socialContext.note) && (
                   <p className="text-xs text-muted-foreground">
                     {alert.socialContext.description || alert.socialContext.note}

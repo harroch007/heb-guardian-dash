@@ -10,7 +10,6 @@ import { AlertFeedback } from "./AlertFeedback";
 
 interface SocialContext {
   label: string;
-  participants: string[];
   description: string;
 }
 
@@ -295,13 +294,6 @@ export function AlertCardStack({ alerts, onAcknowledge, onSave, isSavedView = fa
                             {currentAlert.ai_social_context.label || "הקשר חברתי"}
                           </Badge>
                         </div>
-                        {currentAlert.ai_social_context.participants && 
-                         currentAlert.ai_social_context.participants.length > 0 && (
-                          <p className="text-sm text-muted-foreground">
-                            <span className="font-medium">משתתפים מרכזיים: </span>
-                            {currentAlert.ai_social_context.participants.join(', ')}
-                          </p>
-                        )}
                         {currentAlert.ai_social_context.description && (
                           <p className="text-sm text-foreground/70">
                             {currentAlert.ai_social_context.description}
