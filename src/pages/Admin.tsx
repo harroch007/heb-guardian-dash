@@ -3,15 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, LogOut, Shield, LayoutDashboard, Users, UserPlus, Database, Brain, MessageSquare, Tag } from "lucide-react";
+import { Loader2, LogOut, Shield, LayoutDashboard, Users, Bell, Database, Brain } from "lucide-react";
 import kippyLogo from "@/assets/kippy-logo.svg";
 import { AdminOverview } from "./admin/AdminOverview";
-import { AdminUsers } from "./admin/AdminUsers";
-import { AdminWaitlist } from "./admin/AdminWaitlist";
-import { AdminTraining } from "./admin/AdminTraining";
+import { AdminUsersHub } from "./admin/AdminUsersHub";
+import { AdminAlertsAndAI } from "./admin/AdminAlertsAndAI";
+import { AdminQueue } from "./admin/AdminQueue";
 import { AdminAIAnalyst } from "./admin/AdminAIAnalyst";
-import { AdminFeedback } from "./admin/AdminFeedback";
-import { AdminPromoCodes } from "./admin/AdminPromoCodes";
 import { format, subDays } from "date-fns";
 
 interface TrainingRecord {
@@ -123,6 +121,7 @@ export default function Admin() {
   const [trainingRecords, setTrainingRecords] = useState<TrainingRecord[]>([]);
   const [activeTab, setActiveTab] = useState("overview");
   const [usersStatusFilter, setUsersStatusFilter] = useState<string | undefined>(undefined);
+  const [usersSubTab, setUsersSubTab] = useState<string | undefined>(undefined);
   const navigate = useNavigate();
 
   const handleOverviewNavigate = (tab: string, filter?: string) => {
@@ -201,23 +200,19 @@ export default function Admin() {
 
   const fetchOverviewStats = async () => {
     try {
-      // Fetch parents count
       const { count: parentsCount } = await supabase
         .from("parents")
         .select("*", { count: "exact", head: true });
 
-      // Fetch waitlist count
       const { count: waitlistCount } = await supabase
         .from("waitlist_signups")
         .select("*", { count: "exact", head: true });
 
-      // Fetch devices count
       const { count: devicesCount } = await supabase
         .from("devices")
         .select("*", { count: "exact", head: true })
         .not("child_id", "is", null);
 
-      // Fetch today's alerts
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       
@@ -228,16 +223,11 @@ export default function Admin() {
 
       const totalAlertsToday = alertsToday?.length || 0;
       const criticalAlertsToday = alertsToday?.filter(a => a.ai_verdict === 'notify').length || 0;
-
-      // New KPIs: breakdown
       const systemAlertsToday = alertsToday?.filter(a => a.is_processed === true && a.analyzed_at === null).length || 0;
       const alertsCreatedToday = totalAlertsToday - systemAlertsToday;
       const alertsAnalyzedToday = alertsToday?.filter(a => a.is_processed === true && a.analyzed_at !== null).length || 0;
-      const alertsNotifiedToday = alertsToday?.filter(a => 
-        a.processing_status === 'notified'
-      ).length || 0;
+      const alertsNotifiedToday = alertsToday?.filter(a => a.processing_status === 'notified').length || 0;
 
-      // Queue health - fetch full details
       const { data: queueData } = await supabase
         .from("alert_events_queue")
         .select("id, alert_id, status, attempt, created_at, last_error")
@@ -253,7 +243,6 @@ export default function Admin() {
         ? Math.round((Date.now() - new Date(oldestPending.created_at).getTime()) / 60000)
         : 0;
 
-      // Check which alerts in queue are already processed
       const queueAlertIds = [...new Set(queueData?.map(q => q.alert_id) || [])];
       let processedAlertIds = new Set<number>();
       if (queueAlertIds.length > 0) {
@@ -270,14 +259,12 @@ export default function Admin() {
         is_processed: processedAlertIds.has(q.alert_id),
       }));
 
-      // Count active users (devices with last_seen in last 24 hours)
       const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
       const { count: activeCount } = await supabase
         .from("devices")
         .select("*", { count: "exact", head: true })
         .gte("last_seen", yesterday.toISOString());
 
-      // Alerts by verdict
       const verdictCounts: Record<string, number> = { safe: 0, review: 0, notify: 0 };
       alertsToday?.forEach(alert => {
         if (alert.ai_verdict && verdictCounts[alert.ai_verdict] !== undefined) {
@@ -285,14 +272,12 @@ export default function Admin() {
         }
       });
 
-      // NEW KPIs: Active children today (distinct children in device_daily_metrics for today)
       const todayStr = format(new Date(), "yyyy-MM-dd");
       const { data: metricsToday } = await supabase
         .from("device_daily_metrics")
         .select("device_id")
         .eq("metric_date", todayStr);
       
-      // Get child_ids from devices for those device_ids
       const metricDeviceIds = [...new Set(metricsToday?.map(m => m.device_id) || [])];
       let activeChildrenToday = 0;
       if (metricDeviceIds.length > 0) {
@@ -304,7 +289,6 @@ export default function Admin() {
         activeChildrenToday = new Set(devicesWithChildren?.map(d => d.child_id)).size;
       }
 
-      // Active parents this week (distinct parents with alerts in last 7 days)
       const weekAgo = subDays(new Date(), 7);
       const { data: weekAlerts } = await supabase
         .from("alerts")
@@ -322,18 +306,15 @@ export default function Admin() {
         activeParentsThisWeek = new Set(childrenOfWeek?.map(c => c.parent_id)).size;
       }
 
-      // Messages scanned today
       const { data: metricsSum } = await supabase
         .from("device_daily_metrics")
         .select("messages_scanned")
         .eq("metric_date", todayStr);
       const messagesScannedToday = metricsSum?.reduce((sum, m) => sum + (m.messages_scanned || 0), 0) || 0;
 
-      // Fetch alerts trend (last 14 days) + feedback
       const alertsTrend: { date: string; safe: number; review: number; notify: number; notified: number }[] = [];
       const feedbackTrend: { date: string; total: number; important: number; not_relevant: number }[] = [];
       
-      // Batch fetch: all alerts last 14 days
       const fourteenDaysAgo = subDays(new Date(), 13);
       fourteenDaysAgo.setHours(0, 0, 0, 0);
       
@@ -343,7 +324,6 @@ export default function Admin() {
         .gte("created_at", fourteenDaysAgo.toISOString())
         .order("created_at", { ascending: true });
 
-      // Batch fetch: all feedback for these alerts
       const trendAlertIds = allTrendAlerts?.map(a => a.id) || [];
       let feedbackMap: Record<number, string> = {};
       if (trendAlertIds.length > 0) {
@@ -378,7 +358,6 @@ export default function Admin() {
         });
       }
 
-      // Feedback engagement (last 7 days)
       const sevenDaysAgo = subDays(new Date(), 7);
       const alertsLast7 = allTrendAlerts?.filter(a => new Date(a.created_at) >= sevenDaysAgo) || [];
       const totalAlertsLast7Days = alertsLast7.length;
@@ -390,14 +369,11 @@ export default function Admin() {
         ? (alertsWithFeedbackLast7Days / totalAlertsLast7Days) * 100
         : 0;
 
-      // Fetch free/premium children counts
       const { data: allChildren } = await supabase
         .from("children")
         .select("subscription_tier");
       const freeChildren = allChildren?.filter(c => !c.subscription_tier || c.subscription_tier === 'free').length || 0;
       const premiumChildren = allChildren?.filter(c => c.subscription_tier === 'premium').length || 0;
-
-      // Children count
       const childrenCount = allChildren?.length || 0;
 
       setOverviewStats({
@@ -447,7 +423,6 @@ export default function Admin() {
 
   const fetchUsers = async () => {
     try {
-      // Fetch parents
       const { data: parents, error: parentsError } = await supabase
         .from("parents")
         .select("*")
@@ -455,12 +430,10 @@ export default function Admin() {
 
       if (parentsError) throw parentsError;
 
-      // Fetch children
       const { data: children } = await supabase
         .from("children")
         .select("id, name, gender, parent_id");
 
-      // Fetch devices
       const { data: devices } = await supabase
         .from("devices")
         .select("device_id, child_id, last_seen, battery_level");
@@ -565,12 +538,7 @@ export default function Admin() {
       const verdictCounts: Record<string, number> = {};
       const riskLevelCounts: Record<string, number> = { low: 0, medium: 0, high: 0, critical: 0 };
       const classificationCounts: Record<string, number> = {
-        bullying: 0,
-        violence: 0,
-        sexual: 0,
-        drugs: 0,
-        self_harm: 0,
-        hate: 0,
+        bullying: 0, violence: 0, sexual: 0, drugs: 0, self_harm: 0, hate: 0,
       };
 
       records.forEach((record) => {
@@ -617,10 +585,7 @@ export default function Admin() {
           value,
           color: VERDICT_COLORS[name] || "#6b7280",
         })),
-        byRiskLevel: Object.entries(riskLevelCounts).map(([level, count]) => ({
-          level,
-          count,
-        })),
+        byRiskLevel: Object.entries(riskLevelCounts).map(([level, count]) => ({ level, count })),
         classificationCounts: Object.entries(classificationCounts)
           .filter(([_, count]) => count > 0)
           .sort((a, b) => b[1] - a[1])
@@ -649,12 +614,8 @@ export default function Admin() {
 
   const getClassificationLabel = (key: string): string => {
     const labels: Record<string, string> = {
-      bullying: "בריונות",
-      violence: "אלימות",
-      sexual: "תוכן מיני",
-      drugs: "סמים",
-      self_harm: "פגיעה עצמית",
-      hate: "שנאה",
+      bullying: "בריונות", violence: "אלימות", sexual: "תוכן מיני",
+      drugs: "סמים", self_harm: "פגיעה עצמית", hate: "שנאה",
     };
     return labels[key] || key;
   };
@@ -694,9 +655,9 @@ export default function Admin() {
         </Button>
       </header>
 
-      {/* Tabs */}
+      {/* Tabs - 5 instead of 7 */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-7 lg:w-auto lg:inline-flex">
+        <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-flex">
           <TabsTrigger value="overview" className="gap-2">
             <LayoutDashboard className="w-4 h-4" />
             <span className="hidden sm:inline">סקירה כללית</span>
@@ -705,25 +666,20 @@ export default function Admin() {
             <Users className="w-4 h-4" />
             <span className="hidden sm:inline">משתמשים</span>
           </TabsTrigger>
-          <TabsTrigger value="waitlist" className="gap-2">
-            <UserPlus className="w-4 h-4" />
-            <span className="hidden sm:inline">רשימת המתנה</span>
+          <TabsTrigger value="alerts" className="gap-2">
+            <Bell className="w-4 h-4" />
+            <span className="hidden sm:inline">התראות ו-AI</span>
           </TabsTrigger>
-          <TabsTrigger value="promo" className="gap-2">
-            <Tag className="w-4 h-4" />
-            <span className="hidden sm:inline">פרומו קודים</span>
+          <TabsTrigger value="queue" className="gap-2 relative">
+            <Database className="w-4 h-4" />
+            <span className="hidden sm:inline">תור עיבוד</span>
+            {(overviewStats?.queuePending ?? 0) > 0 && (
+              <span className="absolute -top-1 -left-1 w-2.5 h-2.5 bg-red-500 rounded-full" />
+            )}
           </TabsTrigger>
-          <TabsTrigger value="feedback" className="gap-2">
-            <MessageSquare className="w-4 h-4" />
-            <span className="hidden sm:inline">משוב</span>
-          </TabsTrigger>
-          <TabsTrigger value="insights" className="gap-2">
+          <TabsTrigger value="analyst" className="gap-2">
             <Brain className="w-4 h-4" />
             <span className="hidden sm:inline">אנליסט AI</span>
-          </TabsTrigger>
-          <TabsTrigger value="training" className="gap-2">
-            <Database className="w-4 h-4" />
-            <span className="hidden sm:inline">Training</span>
           </TabsTrigger>
         </TabsList>
 
@@ -732,27 +688,39 @@ export default function Admin() {
         </TabsContent>
 
         <TabsContent value="users">
-          <AdminUsers users={users} loading={loading} initialStatusFilter={usersStatusFilter} onFilterApplied={() => setUsersStatusFilter(undefined)} />
+          <AdminUsersHub 
+            users={users} 
+            waitlist={waitlist}
+            loading={loading} 
+            onRefreshWaitlist={fetchWaitlist}
+            funnel={overviewStats?.funnel || []}
+            initialStatusFilter={usersStatusFilter}
+            onFilterApplied={() => setUsersStatusFilter(undefined)}
+            initialSubTab={usersSubTab}
+          />
         </TabsContent>
 
-        <TabsContent value="waitlist">
-          <AdminWaitlist entries={waitlist} loading={loading} onRefresh={fetchWaitlist} funnel={overviewStats?.funnel || []} />
+        <TabsContent value="alerts">
+          <AdminAlertsAndAI 
+            overviewStats={overviewStats}
+            trainingStats={trainingStats}
+            trainingRecords={trainingRecords}
+            loading={loading}
+          />
         </TabsContent>
 
-        <TabsContent value="feedback">
-          <AdminFeedback />
+        <TabsContent value="queue">
+          <AdminQueue
+            queuePending={overviewStats?.queuePending || 0}
+            queueFailed={overviewStats?.queueFailed || 0}
+            oldestPendingMinutes={overviewStats?.oldestPendingMinutes || 0}
+            pendingAlerts={overviewStats?.pendingAlerts || []}
+            onRefresh={fetchOverviewStats}
+          />
         </TabsContent>
 
-        <TabsContent value="insights">
+        <TabsContent value="analyst">
           <AdminAIAnalyst overviewStats={overviewStats} users={users} waitlist={waitlist} />
-        </TabsContent>
-
-        <TabsContent value="training">
-          <AdminTraining stats={trainingStats} records={trainingRecords} loading={loading} />
-        </TabsContent>
-
-        <TabsContent value="promo">
-          <AdminPromoCodes />
         </TabsContent>
       </Tabs>
     </div>
