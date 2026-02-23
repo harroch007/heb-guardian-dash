@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Users, Search, Smartphone, Baby, Clock, UserCheck, Loader2, X } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { he } from "date-fns/locale";
@@ -83,15 +83,24 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
     }
   };
 
-  const sendTokensToIframe = useCallback((tokens: { access_token: string; refresh_token: string }) => {
+  const pendingTokensRef = useRef<{ access_token: string; refresh_token: string } | null>(null);
+
+  const sendTokensToIframe = useCallback(() => {
     const iframe = iframeRef.current;
-    if (!iframe?.contentWindow) return;
+    const tokens = pendingTokensRef.current;
+    if (!iframe?.contentWindow || !tokens) return;
     
     iframe.contentWindow.postMessage(
       { type: "impersonate-tokens", ...tokens },
       window.location.origin
     );
+    pendingTokensRef.current = null;
   }, []);
+
+  const handleIframeLoad = useCallback(() => {
+    // iframe finished loading, send tokens now
+    sendTokensToIframe();
+  }, [sendTokensToIframe]);
 
   const handleImpersonate = async (userId: string, userName: string) => {
     setImpersonatingId(userId);
@@ -104,16 +113,13 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
         throw new Error(data?.error || error?.message || "Failed to impersonate");
       }
 
+      // Store tokens and open iframe — tokens sent on iframe load
+      pendingTokensRef.current = {
+        access_token: data.access_token,
+        refresh_token: data.refresh_token,
+      };
       setIframeUserName(userName);
       setIframeOpen(true);
-
-      // Wait for iframe to load, then send tokens
-      setTimeout(() => {
-        sendTokensToIframe({
-          access_token: data.access_token,
-          refresh_token: data.refresh_token,
-        });
-      }, 1000);
     } catch (err: any) {
       toast({
         variant: "destructive",
@@ -303,6 +309,7 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
       {/* Impersonation iframe dialog */}
       <Dialog open={iframeOpen} onOpenChange={handleCloseIframe}>
         <DialogContent className="max-w-[95vw] w-[95vw] h-[90vh] p-0 gap-0 overflow-hidden">
+          <DialogTitle className="sr-only">מצב התחזות — {iframeUserName}</DialogTitle>
           <div
             dir="rtl"
             className="bg-amber-500/90 text-black px-4 py-2 flex items-center justify-between gap-3 text-sm font-medium"
@@ -326,6 +333,7 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
             src="/impersonate-session"
             className="w-full flex-1 border-0"
             style={{ height: "calc(90vh - 40px)" }}
+            onLoad={handleIframeLoad}
           />
         </DialogContent>
       </Dialog>
