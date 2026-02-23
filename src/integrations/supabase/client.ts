@@ -15,8 +15,9 @@ const isInIframe = typeof window !== 'undefined' && window.self !== window.top;
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
     storage: isInIframe ? sessionStorage : localStorage,
+    storageKey: isInIframe ? 'sb-impersonate-auth-token' : undefined,
     persistSession: true,
     autoRefreshToken: true,
-    detectSessionInUrl: true,
+    detectSessionInUrl: !isInIframe,
   }
 });
