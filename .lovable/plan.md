@@ -1,128 +1,88 @@
 
 
-# Guards + כלי QA + Re-analyze לאדמין
+# מוניטור כשלב ביניים + מד רגישות פעיל
 
-## סקירה
+## מצב נוכחי — מה גילינו
 
-4 שינויים מרכזיים:
-1. **Guards בצד השרת** — תיקון child_role ו-social_context אוטומטי
-2. **שמירת ai_analysis מלא** — לכל alert, שמירת ה-JSON המלא מהמודל בעמודת `ai_analysis` (כבר קיימת בטבלה)
-3. **כלי QA באדמין** — טאב חדש "QA התראות" שמציג את כל ה-ai_result המלא לכל alert
-4. **Re-analyze** — כפתור בממשק QA + תמיכה בטווח IDs להרצה מחדש של ניתוח
+### חדשות טובות
+- התראות `monitor` (סקור 25-59) כבר **מוסתרות** מההורה — דף ההתראות, הדשבורד והניווט התחתון מסננים רק `notify` ו-`review`
+- כלומר "מוניטור" כבר עובד כשלב ביניים שקוף
 
-## שינויים טכניים
+### הבעיות
+1. **מד הרגישות לא באמת עובד** — ההורה בוחר רמת רגישות (סף 50/65/85) בהגדרות, אבל הפרונטנד לא משתמש בזה. התראה עם סקור 62 (verdict=review) תוצג גם אם ההורה בחר "רק חמור" (סף 85)
+2. **אין הסלמה** — אם הילד מקבל 3 התראות `monitor` מאותו צ'אט ב-48 שעות, שום דבר לא קורה. אין מנגנון שמזהה דפוס ומעלה את הרמה
 
-### קובץ 1: `supabase/functions/analyze-alert/index.ts`
+## שינויים מוצעים
 
-**Guard 1 — child_role בפרטי:**
-אחרי ה-verdict guard (שורה ~716), הוספת:
-```
-// Iron rule: private chats cannot have bystander
-if (!isGroupChat && aiResult.child_role === 'bystander') {
-  console.log(`CHILD_ROLE_GUARD: Overriding bystander -> unknown for PRIVATE chat, alert_id=${alertId}`);
-  aiResult.child_role = 'unknown';
-}
-```
+### שלב 1: מד רגישות פעיל (עדיפות גבוהה)
 
-בעיה: `isGroupChat` מחושב רק בשורה 770 (אחרי ה-guard). צריך להזיז את ה-guard לאחרי חישוב `isGroupChat` (שורה ~770), או לחשב את `isGroupChat` מוקדם יותר. הפתרון: להזיז את ה-guard לאחרי שורה 770.
+**מה ישתנה:** כל נקודה שמציגה התראות תסנן לפי `alert_threshold` של ההורה.
 
-**Guard 2 — social_context בקבוצות:**
-בבלוק social_context (שורה 777-785), להרחיב:
-```
-if (!isGroupChat) {
-  cleanedSocialContext = null;
-} else {
-  // Group chat: ensure valid social_context
-  if (!cleanedSocialContext || typeof cleanedSocialContext !== 'object') {
-    console.log(`SOCIAL_CONTEXT_GUARD: Building default for GROUP chat, alert_id=${alertId}`);
-    cleanedSocialContext = {
-      label: "הקשר חברתי",
-      description: "שיחה קבוצתית"
-    };
-  }
-  // Remove any participants array
-  delete cleanedSocialContext.participants;
-  // Ensure required fields
-  if (!cleanedSocialContext.label) cleanedSocialContext.label = "הקשר חברתי";
-  if (!cleanedSocialContext.description) cleanedSocialContext.description = "שיחה קבוצתית";
-}
-```
+**קבצים:**
 
-**שמירת ai_analysis מלא:**
-ב-updateData (שורה ~793), הוספת:
-```
-ai_analysis: aiResult,  // Store full AI response for QA
-```
-ובנוסף שמירת `ai_patterns` ו-`ai_classification` ו-`ai_confidence`:
-```
-ai_patterns: aiResult.patterns || null,
-ai_classification: aiResult.classification || null,
-ai_confidence: typeof aiResult.confidence === 'number' ? aiResult.confidence : null,
-```
+**`src/pages/Alerts.tsx`** — שליפת הסף מטבלת `settings` ושימוש בו:
+- בטעינה ראשונית, שליפת `alert_threshold` מ-`settings` לפי ה-child_id הראשון (או שימוש ב-65 כברירת מחדל)
+- סינון ההתראות ב-JavaScript: הצגה רק אם `ai_risk_score >= threshold`
+- או לחלופין: שימוש ב-view `parent_alerts_effective` שכבר מטפל בזה
 
-### קובץ 2: `src/pages/admin/AdminAlertQA.tsx` (חדש)
+**`src/components/BottomNavigation.tsx`** — ספירת badge:
+- במקום לספור כל `notify`+`review`, לשלוף מ-`parent_alerts_effective` (שכבר מסנן לפי סף)
+- או לבצע join עם settings בשאילתה
 
-מסך QA שמציג טבלת התראות אחרונות עם:
-- ID, תאריך, chat_name, verdict, risk_score, child_role, chat_type
-- כפתור "פרטים" שפותח modal עם ה-JSON המלא של ai_analysis
-- כפתור "הרץ מחדש" לכל alert בודד
-- כפתור "Re-analyze range" בראש העמוד — מאפשר לבחור טווח IDs (מ-ID עד ID) ולהריץ מחדש
+**`src/pages/Dashboard.tsx`** — כרטיס התראות בדשבורד:
+- אותו עיקרון — להציג רק התראות מעל הסף
 
-הנתונים נשלפים מ-alerts עם שדות:
-`id, created_at, chat_name, chat_type, ai_verdict, ai_risk_score, child_role, ai_analysis, ai_social_context, ai_title, ai_summary, ai_recommendation, ai_patterns, ai_classification, ai_confidence, ai_meaning, ai_context`
+**`src/pages/Family.tsx`** — ספירת התראות לכל ילד:
+- סינון לפי סף
 
-### קובץ 3: `src/pages/Admin.tsx`
+### שלב 2: שינוי שמות verdicts (נראות)
 
-הוספת טאב 6 — "QA" עם אייקון Search/Microscope:
-- ייבוא AdminAlertQA
-- הוספת TabsTrigger ו-TabsContent
-- שינוי grid-cols-5 ל-grid-cols-6
+מכיוון ש-`monitor` כבר מוסתר, אין צורך בשינוי שם. אבל כדי שהמערכת תהיה ברורה גם פנימית:
 
-### קובץ 4: `supabase/functions/analyze-alert/index.ts` — תמיכה ב-re-analyze
+| verdict נוכחי | שם פנימי (ללא שינוי) | משמעות |
+|---|---|---|
+| `safe` (0-24) | safe | לא מוצג, נשמר ל-training |
+| `monitor` (25-59) | monitor | שלב ביניים — לא מוצג, ממתין להסלמה |
+| `review` (60-79) | review | מוצג אם מעל סף הרגישות |
+| `notify` (80-100) | notify | מוצג תמיד + Push |
 
-בהנדלר הראשי, הוספת מצב חדש:
-```
-// RE-ANALYZE MODE — { mode: 'reanalyze', from_id: 880, to_id: 900 }
-if (body.mode === 'reanalyze' && body.from_id && body.to_id) {
-  // Reset is_processed for range, then process each
-}
-```
+### שלב 3: מנגנון הסלמה (אופציונלי — להחלטה)
 
-בפועל, ה-re-analyze יעבוד כך:
-- הפרונטנד שולח לכל alert בנפרד `{ alert_id: X }` (הנתיב הקיים כבר עובד)
-- ה-function כבר תומכת בזה דרך הנתיב ה-legacy
-- צריך רק לוודא שכשקוראים ל-processAlert על alert שכבר processed, הוא לא נחסם
+מנגנון שבודק: "אם ב-48 שעות האחרונות יש 3+ התראות monitor מאותו chat_name, צור התראה review אוטומטית."
 
-בדיקה: בפונקציית processAlert, שורה ~490, יש בדיקה:
-```
-if (alert.is_processed) {
-  console.log(`Alert ${alertId} already processed, skipping`);
-  return { ... status: 'already_processed' };
-}
-```
+זה דורש:
+- Edge function (cron או trigger) שסורקת monitor alerts
+- לוגיקה שמזהה צבירה לפי chat_name + child_id
+- יצירת התראת review מסונתזת עם הסבר "זוהה דפוס חוזר"
 
-צריך להוסיף פרמטר `force` שעוקף את הבדיקה הזו:
-```
-async function processAlert(supabase, alertId, openAIApiKey, supabaseUrl, supabaseServiceKey, force = false)
-```
+**המלצה:** לדחות לשלב הבא. קודם להפעיל את מד הרגישות שכבר בנינו.
 
-ובהנדלר הראשי, כשיש `body.force === true`, להעביר `force=true`.
+## פירוט טכני
 
-## תהליך QA באדמין
+### שינוי 1: `src/pages/Alerts.tsx`
+- הוספת שליפת `alert_threshold` מ-`settings` (לכל ילד או ברירת מחדל 65)
+- סינון: `alerts.filter(a => (a.ai_risk_score ?? 0) >= threshold)`
+- חל על שני הטאבים (חדשות + שמורות)
 
-המסך יאפשר:
-1. **צפייה** — טבלת 50 התראות אחרונות עם כל השדות המרכזיים
-2. **חקירה** — לחיצה על שורה פותחת את ה-JSON המלא של ai_analysis
-3. **Re-analyze בודד** — כפתור לכל שורה
-4. **Re-analyze טווח** — הזנת from_id ו-to_id, לולאה בפרונטנד ששולחת כל אחד בנפרד
+### שינוי 2: `src/components/BottomNavigation.tsx`
+- שליפת הסף ובדיקה: count רק alerts עם `ai_risk_score >= threshold`
+- אפשרות: שאילתת RPC או join עם settings
 
-## סיכום קבצים
+### שינוי 3: `src/pages/Dashboard.tsx`
+- AlertsCard מקבל רק התראות מסוננות לפי סף
 
-| קובץ | שינוי |
-|-------|-------|
-| `supabase/functions/analyze-alert/index.ts` | Guards + ai_analysis save + force param |
-| `src/pages/admin/AdminAlertQA.tsx` | מסך QA חדש |
-| `src/pages/Admin.tsx` | טאב QA חדש |
+### שינוי 4: `src/pages/Family.tsx`
+- ספירת התראות לכל ילד — רק מעל הסף
 
-## אין שינויי DB
-עמודת `ai_analysis` (jsonb), `ai_patterns` (array), `ai_classification` (jsonb), `ai_confidence` (float) כבר קיימות בטבלת alerts.
+### אין שינוי ב-Edge Function
+ה-verdict guard נשאר כמו שהוא. ה-DB שומר את כל ההתראות. הסינון הוא רק בצד הלקוח.
+
+## סיכום
+
+| מה | סטטוס |
+|---|---|
+| monitor מוסתר מההורה | כבר עובד |
+| מד רגישות מסנן לפי סף | **לא עובד — צריך תיקון** |
+| הסלמה מ-monitor ל-review | עדיין אין — שלב עתידי |
+
+4 קבצים ישתנו, 0 שינויי DB, 0 שינויי edge function.
