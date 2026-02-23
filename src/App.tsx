@@ -115,7 +115,6 @@ const AppRoutes = () => {
         element={<ProtectedRoute><Onboarding /></ProtectedRoute>}
       />
       
-      <Route path="/impersonate-session" element={<ImpersonateSession />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
@@ -137,6 +136,7 @@ const App = () => (
                 {/* Admin routes - completely separate from main app */}
                 <Route path="/admin-login" element={<AdminLogin />} />
                 <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
+                <Route path="/impersonate-session" element={<ImpersonateSession />} />
                 
                 {/* Main app routes */}
                 <Route path="/*" element={

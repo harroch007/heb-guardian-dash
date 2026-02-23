@@ -5,12 +5,16 @@ import type { Database } from './types';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
+// When running inside an iframe (impersonation), use sessionStorage
+// to avoid overwriting the admin's session in localStorage
+const isInIframe = typeof window !== 'undefined' && window.self !== window.top;
+
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
-    storage: localStorage,
+    storage: isInIframe ? sessionStorage : localStorage,
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
