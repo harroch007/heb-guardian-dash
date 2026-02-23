@@ -1,114 +1,91 @@
 
-# SYSTEM_PROMPT 2.0 + Data Enrichment for analyze-alert
 
-## Overview
-Replacing the existing SYSTEM_PROMPT (lines 10-179) with the full v2.0 provided by the CEO, and enriching the `userMessage` with child age/gender and alert history per chat.
+# תוכנית בדיקות + תיקונים לאחר פריסת SYSTEM_PROMPT 2.0
 
-## Changes
+## מצב נוכחי
 
-### File: `supabase/functions/analyze-alert/index.ts`
+### מה עובד
+- SYSTEM_PROMPT 2.0 פרוס ורץ בפרודקשן
+- שאילתת alert history (7 ימים) + child age/gender מוזרקים ל-userMessage
+- social_context מנוקה בצד השרת (מוחק participants, null בפרטי)
+- max_tokens מוגדל ל-2000
 
-#### Change 1: Replace SYSTEM_PROMPT (lines 10-179)
-Replace the entire `SYSTEM_PROMPT` constant with the CEO-approved v2.0 text. Key improvements:
-- Structured scoring framework (severity x involvement grid + adjustments)
-- Non-overlapping verdict ranges: 0-24 safe, 25-59 monitor, 60-79 review, 80-100 notify
-- Iron rule: child_role cannot be "bystander" in private chats
-- `patterns` field = behavioral tags only, no PII or quotes
-- `social_context` without `participants` array (label + description only)
-- `positive_behavior` = null when not detected (never `detected: false`)
-- `recommendation` for notify = 3 numbered steps
-- Age/gender awareness in scoring
-- Alert history awareness for pattern detection
-- Stack window context (40 private / 60 group)
+### מה עדיין דורש תיקון
 
-#### Change 2: Add alert history query (after line 328, before userMessage construction)
-Query the `alerts` table for the same `child_id` + `chat_name` in the last 7 days to provide `alertHistoryLine`:
+**1. התראה 892 (Yariv Harroch) עובדה עם הפרומפט הישן**
+- child_role עדיין "bystander" כי נותחה לפני הפריסה
+- צריך לרוץ מחדש כדי לראות את ההבדל
 
-```text
-Alert history for this chat: 3 alerts in last 7 days, max_risk=82
+**2. שרידי `participants` בפרונטנד (3 קבצים)**
+- `src/pages/Alerts.tsx` שורה 11: interface עדיין מגדיר `participants: string[]`
+- `src/components/alerts/AlertCardStack.tsx` שורות 12-14 + 298-303: מציג "משתתפים מרכזיים"
+- `src/components/alerts/AlertDetailView.tsx` שורות 15, 128-132: עדיין מציג participants (אם קיימים)
+- התראות ישנות ב-DB (למשל 885) עדיין מכילות participants ב-ai_social_context
+
+**3. אין verdict guard בצד השרת**
+- המנכ"ל ביקש פונקציית `deriveVerdictFromScore` שתאכוף את המיפוי risk_score -> verdict
+- כרגע אם המודל יחליט verdict לא תואם ל-risk_score, אין הגנה
+
+## שינויים לביצוע
+
+### קובץ 1: `supabase/functions/analyze-alert/index.ts`
+**הוספת verdict guard** — אחרי שורה 700 (`const aiResult = JSON.parse(aiContent)`)
+
+הוספת פונקציה:
 ```
-
-This enables the AI to detect cross-stack patterns (repeated bullying from the same chat over days).
-
-#### Change 3: Add child context line (around line 334)
-Build a `childContextLine` from the already-computed `childAge` and `childGender`:
-
-```text
-Child age: 10, Gender: male
-```
-
-#### Change 4: Update userMessage construction (lines 335-343)
-Add the two new lines (`childContextLine` and `alertHistoryLine`) to the user message array.
-
-#### Change 5: Simplify social_context cleanup (lines 438-457)
-Remove the `participants` filtering logic since v2.0 no longer returns a `participants` array. Keep only the group/private null enforcement.
-
-#### Change 6: Increase max_tokens (line 361)
-Increase from 1500 to 2000 to accommodate the more detailed notify recommendations (3 numbered steps) and richer output.
-
-## Technical Details
-
-### Alert History Query
-```javascript
-let alertHistoryLine = 'Alert history for this chat: 0 alerts in last 7 days, max_risk=0';
-
-if (childIdForLookup && chatNameForLookup) {
-  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-  const { data: recentAlerts } = await supabase
-    .from('alerts')
-    .select('ai_risk_score')
-    .eq('child_id', childIdForLookup)
-    .eq('chat_name', chatNameForLookup)
-    .gte('created_at', sevenDaysAgo)
-    .neq('id', alertId); // exclude the current alert
-
-  if (recentAlerts && recentAlerts.length > 0) {
-    const maxRisk = Math.max(...recentAlerts.map(a => a.ai_risk_score ?? 0));
-    alertHistoryLine = `Alert history for this chat: ${recentAlerts.length} alerts in last 7 days, max_risk=${maxRisk}`;
-  }
+function deriveVerdictFromScore(score: number | null): string | null {
+  if (typeof score !== 'number') return null;
+  if (score <= 24) return 'safe';
+  if (score <= 59) return 'monitor';
+  if (score <= 79) return 'review';
+  return 'notify';
 }
 ```
 
-### Updated userMessage
-```javascript
-const childContextLine = (childAge !== null && childGender)
-  ? `Child age: ${childAge}, Gender: ${childGender}`
-  : '';
-
-const userMessage = [
-  'Analyze this message content:',
-  `Chat type: ${alert.chat_type || 'UNKNOWN'}`,
-  `Author type of flagged message: ${alert.author_type || 'UNKNOWN'}`,
-  relationshipLine,
-  chatNameHint,
-  childContextLine,
-  alertHistoryLine,
-  '',
-  redactPII(content),
-].filter(Boolean).join('\n');
+ולוגיקת override:
 ```
-
-### social_context Cleanup (simplified)
-```javascript
-let cleanedSocialContext = aiResult.social_context;
-if (!isGroupChat) {
-  cleanedSocialContext = null;
+const mappedVerdict = deriveVerdictFromScore(aiResult.risk_score ?? null);
+if (mappedVerdict && aiResult.verdict !== mappedVerdict) {
+  console.log(`Verdict mismatch: model=${aiResult.verdict}, mapped=${mappedVerdict} - overriding`);
+  aiResult.verdict = mappedVerdict;
 }
 ```
 
-## Files Modified
-| File | Change |
-|------|--------|
-| `supabase/functions/analyze-alert/index.ts` | Replace SYSTEM_PROMPT, add alert history query, add child context to userMessage, simplify social_context cleanup, increase max_tokens |
+### קובץ 2: `src/pages/Alerts.tsx`
+- הסרת `participants: string[]` מ-interface SocialContext (שורה 11)
+- יישאר רק `label: string; description: string;`
 
-## No Database Changes Required
-All data needed (alerts table, children table, daily_chat_stats) already exists.
+### קובץ 3: `src/components/alerts/AlertCardStack.tsx`
+- הסרת `participants: string[]` מ-interface SocialContext (שורה 13)
+- הסרת בלוק "משתתפים מרכזיים" (שורות 298-303) שמציג participants.join
+- השארת description בלבד
 
-## Expected Results
-For the specific case mentioned (private chat, "Yariv Harroch" sending "דיי כבר נמאס ממך ישמן, אל תבוא מחר לבית ספר"):
-- **child_role**: "target" (not "bystander" -- iron rule for private chats)
-- **summary**: "הילד/ה קיבל/ה הודעה פוגענית עם השפלה ואיומים"
-- **meaning**: Active language reflecting direct targeting
-- **risk_score**: ~70-80 (severity=4, involvement=2, base=70-80, pattern and age adjustments apply)
-- **recommendation**: 3 numbered steps for notify verdict
-- **social_context**: null (private chat)
+### קובץ 4: `src/components/alerts/AlertDetailView.tsx`
+- הסרת `participants?: string[]` מ-interface (שורה 15) — כבר מוגדר optional, אבל נסיר לגמרי
+- הסרת הבלוק שמציג "משתתפים מרכזיים" (שורות 128-132)
+
+## בדיקות לאחר הפריסה
+
+### בדיקה 1: הפעלה ידנית על alert קיים
+- קריאה ל-edge function עם alert_id של התראה לא מעובדת (או יצירת חדשה)
+- בדיקת logs: שורות Child age, Alert history, Relationship context מופיעות
+- בדיקת DB: verdict תואם ל-risk_score ranges
+
+### בדיקה 2: בדיקת UI
+- רענון דף ההתראות
+- וידוא שהתראות קבוצתיות ישנות (עם participants) לא שוברות את הדף
+- וידוא שהתראות חדשות מציגות label + description בלבד
+
+### בדיקה 3: private chat iron rule
+- בדיקה שהתראות פרטיות חדשות מקבלות child_role = target/sender (לא bystander)
+- בדיקה שהתראות פרטיות מקבלות social_context = null
+
+## קבצים שישתנו
+
+| קובץ | שינוי |
+|-------|-------|
+| `supabase/functions/analyze-alert/index.ts` | הוספת verdict guard |
+| `src/pages/Alerts.tsx` | הסרת participants מ-interface |
+| `src/components/alerts/AlertCardStack.tsx` | הסרת participants מ-interface + מתצוגה |
+| `src/components/alerts/AlertDetailView.tsx` | הסרת participants מ-interface + מתצוגה |
+
