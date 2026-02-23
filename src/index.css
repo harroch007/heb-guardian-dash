@@ -62,13 +62,14 @@
   }
 }
 
+html {
+  direction: rtl;
+  text-align: right;
+}
+
 @layer base {
   * {
     @apply border-border;
-  }
-
-  html {
-    direction: rtl;
   }
 
   body {
