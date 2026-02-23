@@ -56,10 +56,32 @@ const AlertsPage = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'new' | 'saved' | 'positive'>('new');
   const [feedbackMap, setFeedbackMap] = useState<Record<number, 'important' | 'not_relevant'>>({});
+  const [thresholdMap, setThresholdMap] = useState<Record<string, number>>({});
 
   const fetchAlerts = async () => {
     try {
       setLoading(true);
+      
+      // Fetch alert thresholds per child from settings
+      const { data: settingsData } = await supabase
+        .from('settings')
+        .select('child_id, alert_threshold')
+        .not('child_id', 'is', null);
+      
+      const thresholds: Record<string, number> = {};
+      settingsData?.forEach(s => {
+        if (s.child_id) {
+          thresholds[s.child_id] = s.alert_threshold ?? 65;
+        }
+      });
+      setThresholdMap(thresholds);
+
+      // Helper to filter alerts by parent's sensitivity threshold
+      const filterByThreshold = (alertsList: Alert[]) =>
+        alertsList.filter(a => {
+          const threshold = a.child_id ? (thresholds[a.child_id] ?? 65) : 65;
+          return (a.ai_risk_score ?? 0) >= threshold;
+        });
       
       // Fetch new warning alerts (not acknowledged, not saved)
       const { data: newData, error: newError } = await supabase
@@ -116,8 +138,8 @@ const AlertsPage = () => {
           ai_social_context: (alert.ai_social_context as unknown) as SocialContext | null
         })) as Alert[];
       
-      setAlerts(transformData(newData));
-      setSavedAlerts(transformData(savedData));
+      setAlerts(filterByThreshold(transformData(newData)));
+      setSavedAlerts(filterByThreshold(transformData(savedData)));
       setPositiveAlerts(transformData(positiveData));
 
       // Fetch existing feedback
