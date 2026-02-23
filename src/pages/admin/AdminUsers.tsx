@@ -324,7 +324,7 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
               className="h-7 border-black/30 bg-black/10 hover:bg-black/20 text-black"
               onClick={handleCloseIframe}
             >
-              <X className="w-3 h-3 me-1" />
+              <X className="w-3 h-3 mr-1" />
               סגור
             </Button>
           </div>

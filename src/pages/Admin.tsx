@@ -634,7 +634,7 @@ export default function Admin() {
   }
 
   return (
-    <div dir="rtl" className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 p-4 md:p-8">
+    <div dir="rtl" style={{ direction: 'rtl' }} className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 p-4 md:p-8">
       {/* Header */}
       <header className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
@@ -674,7 +674,7 @@ export default function Admin() {
             <Database className="w-4 h-4" />
             <span className="hidden sm:inline">תור עיבוד</span>
             {(overviewStats?.queuePending ?? 0) > 0 && (
-              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full" />
+              <span className="absolute -top-1 -left-1 w-2.5 h-2.5 bg-red-500 rounded-full" />
             )}
           </TabsTrigger>
           <TabsTrigger value="analyst" className="gap-2">
