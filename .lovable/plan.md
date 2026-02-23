@@ -1,38 +1,43 @@
 
-# תיקון שגיאת 403 בהתחזות להורה שני
 
-## הבעיה
-כשה-iframe קורא ל-`supabase.auth.setSession()` עם הטוקן של ההורה, Supabase משדר את הסשן החדש דרך BroadcastChannel לכל הטאבים והפריימים באותו origin. החלון הראשי (האדמין) קולט את הסשן של ההורה ודורס את הסשן שלו. כשמנסים להתחזות להורה שני, ה-edge function מקבל טוקן של הורה (לא אדמין) ומחזיר 403.
+# שינויים בעמוד התשלום - חסימת תשלום ישיר
 
-## הפתרון
-הפרדה מלאה של הסשן בתוך ה-iframe באמצעות `storageKey` ייחודי וכיבוי `detectSessionInUrl`. זה מונע את סנכרון ה-BroadcastChannel בין ה-iframe לחלון הראשי.
+## סיכום
+כרגע לחיצה על כפתורי תשלום (Apple Pay, Google Pay, כרטיס אשראי) משדרגת מיד ל-Premium בלי תשלום אמיתי. נחליף את זה בפופ-אפ שמודיע שהמערכת סגורה ומפנה לוואטסאפ לקבלת קוד קופון.
 
-## שינויים
+## הערה על הפיצ'רים החינמיים
+ניטור פעילות לילית (NightlyUsageCard) וניטור אפליקציות חדשות (NewAppsCard) כבר מוצגים לכל המשתמשים בדשבורד -- אין צורך בשינוי שם.
 
-### 1. `src/integrations/supabase/client.ts`
-- הוספת `storageKey` ייחודי כשרצים ב-iframe (`sb-impersonate-auth-token`)
-- כיבוי `detectSessionInUrl` ב-iframe כדי למנוע התערבות בסשן
+## מה ישתנה
 
-### 2. `src/pages/admin/AdminUsers.tsx`
-- כשסוגרים את ה-iframe וממשיכים להתחזות להורה אחר, לא צריך שינוי נוסף -- הפתרון ב-client.ts מטפל בבעיה
+### `src/pages/Checkout.tsx`
+- הוספת state לפופ-אפ (`showClosedDialog`)
+- כפתורי Apple Pay, Google Pay ו-Credit Card במקום להפעיל `handlePay` או לעבור לטופס אשראי -- יפתחו Dialog
+- ה-Dialog יכיל:
+  - כותרת: "המערכת סגורה כרגע"
+  - הסבר: "כרגע לא ניתן להשלים תשלום. הגישה מוגבלת ללקוחות מוזמנים בלבד."
+  - הפניה: "לקבלת קוד קופון לשימוש, פנו אלינו בוואטסאפ"
+  - כפתור וואטסאפ עם לינק (wa.me או מספר שירות לקוחות)
+  - כפתור סגירה
+- טופס כרטיס אשראי (step === "card") יוסר לחלוטין -- כי אין צורך בו
+- קוד קופון יישאר פעיל -- מי שיש לו קוד יוכל להחיל אותו ולשדרג
+
+### זרימה חדשה:
+1. הורה מגיע לעמוד checkout
+2. יכול להחיל קוד קופון (אם יש לו)
+3. אם יש קוד קופון מוחל -- כפתור "שדרג עכשיו" יבצע את השדרוג
+4. אם אין קוד קופון ולוחץ על כפתור תשלום רגיל -- פופ-אפ "המערכת סגורה"
 
 ## פרטים טכניים
 
-שינוי ב-client.ts:
+### לוגיקה:
+- אם `appliedPromo` קיים -- לחיצה על כפתור "שדרג עכשיו" תקרא ל-`handlePay` (כמו היום)
+- אם אין promo -- כל כפתורי התשלום יפתחו את הדיאלוג
+- ה-step של "card" מוסר -- אין צורך בטופס אשראי
 
-```text
-export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  auth: {
-    storage: isInIframe ? sessionStorage : localStorage,
-    storageKey: isInIframe ? 'sb-impersonate-auth-token' : undefined,
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: !isInIframe,
-  }
-});
-```
+### קומפוננטות:
+- שימוש ב-`Dialog` + `DialogContent` מ-shadcn/ui (כבר קיים בפרויקט)
+- כפתור וואטסאפ עם `window.open("https://wa.me/...")` או לינק ישיר
 
-שני שינויים מרכזיים:
-- **`storageKey`**: מפריד את ה-storage key של ה-iframe מזה של החלון הראשי, מה שמונע את ה-BroadcastChannel sync
-- **`detectSessionInUrl: false`**: מונע מה-iframe לנסות לקרוא סשן מה-URL
-
+### קובץ יחיד שישתנה:
+- `src/pages/Checkout.tsx`
