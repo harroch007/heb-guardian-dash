@@ -168,7 +168,7 @@ export function AdminWaitlist({ entries, loading, onRefresh, funnel }: AdminWait
             </div>
             <p className="text-2xl font-bold mt-1 text-green-500">
               {androidCount}
-              <span className="text-sm font-normal text-muted-foreground ml-2">
+              <span className="text-sm font-normal text-muted-foreground ms-2">
                 ({entries.length > 0 ? ((androidCount / entries.length) * 100).toFixed(0) : 0}%)
               </span>
             </p>
@@ -182,7 +182,7 @@ export function AdminWaitlist({ entries, loading, onRefresh, funnel }: AdminWait
             </div>
             <p className="text-2xl font-bold mt-1 text-blue-500">
               {iphoneCount}
-              <span className="text-sm font-normal text-muted-foreground ml-2">
+              <span className="text-sm font-normal text-muted-foreground ms-2">
                 ({entries.length > 0 ? ((iphoneCount / entries.length) * 100).toFixed(0) : 0}%)
               </span>
             </p>

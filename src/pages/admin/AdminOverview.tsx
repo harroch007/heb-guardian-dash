@@ -71,7 +71,7 @@ export function AdminOverview({ stats, loading, onNavigate }: AdminOverviewProps
             תור עיבוד: <strong className="text-orange-500">{stats.queuePending} ממתינות</strong>
             {stats.queueFailed > 0 && <>, <strong className="text-red-500">{stats.queueFailed} נכשלו</strong></>}
           </span>
-          <Badge variant="outline" className="ml-auto text-xs">לחץ לצפייה</Badge>
+          <Badge variant="outline" className="ms-auto text-xs">לחץ לצפייה</Badge>
         </div>
       )}
 
