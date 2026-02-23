@@ -8,7 +8,7 @@ import { NewAppsCard } from "@/components/dashboard/NewAppsCard";
 import { NightlyUsageCard } from "@/components/dashboard/NightlyUsageCard";
 import { motion } from "framer-motion";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
-import { useSubscription } from "@/hooks/useSubscription";
+import { useFamilySubscription } from "@/hooks/useFamilySubscription";
 import { PremiumUpgradeCard } from "@/components/PremiumUpgradeCard";
 // Auto-refresh interval: 2 hours in milliseconds
 const AUTO_REFRESH_INTERVAL = 2 * 60 * 60 * 1000;
@@ -189,7 +189,7 @@ const Index = () => {
   const [insights, setInsights] = useState<DailyInsights | null>(null);
   const [insightsLoading, setInsightsLoading] = useState(false);
   const [positiveAlert, setPositiveAlert] = useState<{id: number; ai_title: string; ai_summary: string} | null>(null);
-  const { isPremium } = useSubscription(selectedChildId || undefined);
+  const { allPremium: isPremium, childCount: familyChildCount } = useFamilySubscription();
   // When child is selected, immediately try to load from cache (sync)
   useEffect(() => {
     if (children.length > 0 && !selectedChildId) {
@@ -767,7 +767,7 @@ const Index = () => {
 
                 {/* Premium Upgrade Card - free users only */}
                 {!isPremium && (
-                  <PremiumUpgradeCard childName={selectedChild?.name} childId={selectedChildId} />
+                  <PremiumUpgradeCard childCount={familyChildCount} />
                 )}
 
                 {/* Bottom CTA */}

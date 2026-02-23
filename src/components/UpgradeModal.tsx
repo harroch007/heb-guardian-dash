@@ -3,12 +3,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Check, Star, Shield, Zap, MapPin, Bell } from "lucide-react";
 import kippyLogo from "@/assets/kippy-logo.svg";
+import { getFamilyPrice } from "@/hooks/useFamilySubscription";
 
 interface UpgradeModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   childName?: string;
-  childId?: string;
+  childCount?: number;
 }
 
 const features = [
@@ -18,11 +19,12 @@ const features = [
   { icon: MapPin, text: "זיהוי רגעים חיוביים וקשרים פעילים" },
 ];
 
-export function UpgradeModal({ open, onOpenChange, childName, childId }: UpgradeModalProps) {
+export function UpgradeModal({ open, onOpenChange, childName, childCount = 1 }: UpgradeModalProps) {
   const navigate = useNavigate();
+  const price = getFamilyPrice(childCount);
   const handleUpgrade = () => {
     onOpenChange(false);
-    navigate(childId ? `/checkout?childId=${childId}` : "/checkout");
+    navigate("/checkout");
   };
 
   return (
@@ -36,7 +38,7 @@ export function UpgradeModal({ open, onOpenChange, childName, childId }: Upgrade
             שדרג ל-Kippy Premium
           </DialogTitle>
           <DialogDescription className="text-base">
-            {childName ? `קבל הגנה מלאה על ${childName}` : "קבל הגנה מלאה על ילדיך"}
+            {childName ? `קבל הגנה מלאה על ${childName}` : "קבל הגנה מלאה על כל ילדיך"}
           </DialogDescription>
         </DialogHeader>
 
@@ -53,7 +55,7 @@ export function UpgradeModal({ open, onOpenChange, childName, childId }: Upgrade
         </div>
 
         <div className="bg-muted/50 rounded-lg p-4 text-center mb-4">
-          <div className="text-2xl font-bold text-foreground">₪19</div>
+          <div className="text-2xl font-bold text-foreground">₪{price}</div>
           <div className="text-sm text-muted-foreground">לחודש</div>
         </div>
 

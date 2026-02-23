@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Shield, Brain, Bell, BarChart3, Star } from "lucide-react";
 import { UpgradeModal } from "@/components/UpgradeModal";
+import { getFamilyPrice } from "@/hooks/useFamilySubscription";
 
 const premiumFeatures = [
   { icon: Brain, text: "ניתוח AI מתקדם לכל ההודעות" },
@@ -12,12 +13,12 @@ const premiumFeatures = [
 ];
 
 interface PremiumUpgradeCardProps {
-  childName?: string;
-  childId?: string;
+  childCount?: number;
 }
 
-export function PremiumUpgradeCard({ childName, childId }: PremiumUpgradeCardProps) {
+export function PremiumUpgradeCard({ childCount = 1 }: PremiumUpgradeCardProps) {
   const [showModal, setShowModal] = useState(false);
+  const price = getFamilyPrice(childCount);
 
   return (
     <>
@@ -30,7 +31,7 @@ export function PremiumUpgradeCard({ childName, childId }: PremiumUpgradeCardPro
             <div>
               <h3 className="font-bold text-foreground text-lg">שדרג להגנה מלאה</h3>
               <p className="text-sm text-muted-foreground">
-                {childName ? `הגן על ${childName} עם ניתוח AI` : "הגן על ילדיך עם ניתוח AI"}
+                הגן על כל ילדיך עם ניתוח AI
               </p>
             </div>
           </div>
@@ -46,12 +47,12 @@ export function PremiumUpgradeCard({ childName, childId }: PremiumUpgradeCardPro
 
           <Button onClick={() => setShowModal(true)} className="w-full gap-2 glow-primary">
             <Star className="h-4 w-4" />
-            שדרג ל-Premium — ₪19/חודש
+            שדרג ל-Premium — ₪{price}/חודש
           </Button>
         </CardContent>
       </Card>
 
-      <UpgradeModal open={showModal} onOpenChange={setShowModal} childName={childName} childId={childId} />
+      <UpgradeModal open={showModal} onOpenChange={setShowModal} childCount={childCount} />
     </>
   );
 }
