@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, UserPlus, Tag } from "lucide-react";
 import { AdminUsers } from "./AdminUsers";
@@ -46,6 +46,10 @@ export function AdminUsersHub({
   initialStatusFilter, onFilterApplied, initialSubTab
 }: AdminUsersHubProps) {
   const [subTab, setSubTab] = useState(initialSubTab || "users");
+
+  useEffect(() => {
+    if (initialSubTab) setSubTab(initialSubTab);
+  }, [initialSubTab]);
 
   return (
     <div className="space-y-4">
