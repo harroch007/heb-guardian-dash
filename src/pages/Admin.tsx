@@ -688,39 +688,47 @@ export default function Admin() {
         </TabsContent>
 
         <TabsContent value="users">
-          <AdminUsersHub 
-            users={users} 
-            waitlist={waitlist}
-            loading={loading} 
-            onRefreshWaitlist={fetchWaitlist}
-            funnel={overviewStats?.funnel || []}
-            initialStatusFilter={usersStatusFilter}
-            onFilterApplied={() => setUsersStatusFilter(undefined)}
-            initialSubTab={usersSubTab}
-          />
+          <div>
+            <AdminUsersHub 
+              users={users} 
+              waitlist={waitlist}
+              loading={loading} 
+              onRefreshWaitlist={fetchWaitlist}
+              funnel={overviewStats?.funnel || []}
+              initialStatusFilter={usersStatusFilter}
+              onFilterApplied={() => setUsersStatusFilter(undefined)}
+              initialSubTab={usersSubTab}
+            />
+          </div>
         </TabsContent>
 
         <TabsContent value="alerts">
-          <AdminAlertsAndAI 
-            overviewStats={overviewStats}
-            trainingStats={trainingStats}
-            trainingRecords={trainingRecords}
-            loading={loading}
-          />
+          <div>
+            <AdminAlertsAndAI 
+              overviewStats={overviewStats}
+              trainingStats={trainingStats}
+              trainingRecords={trainingRecords}
+              loading={loading}
+            />
+          </div>
         </TabsContent>
 
         <TabsContent value="queue">
-          <AdminQueue
-            queuePending={overviewStats?.queuePending || 0}
-            queueFailed={overviewStats?.queueFailed || 0}
-            oldestPendingMinutes={overviewStats?.oldestPendingMinutes || 0}
-            pendingAlerts={overviewStats?.pendingAlerts || []}
-            onRefresh={fetchOverviewStats}
-          />
+          <div>
+            <AdminQueue
+              queuePending={overviewStats?.queuePending || 0}
+              queueFailed={overviewStats?.queueFailed || 0}
+              oldestPendingMinutes={overviewStats?.oldestPendingMinutes || 0}
+              pendingAlerts={overviewStats?.pendingAlerts || []}
+              onRefresh={fetchOverviewStats}
+            />
+          </div>
         </TabsContent>
 
         <TabsContent value="analyst">
-          <AdminAIAnalyst overviewStats={overviewStats} users={users} waitlist={waitlist} />
+          <div>
+            <AdminAIAnalyst overviewStats={overviewStats} users={users} waitlist={waitlist} />
+          </div>
         </TabsContent>
       </Tabs>
     </div>
