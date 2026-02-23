@@ -700,6 +700,21 @@ async function processAlert(
   const aiResult = JSON.parse(aiContent);
   console.log('Parsed AI result:', JSON.stringify(aiResult, null, 2));
 
+  // Verdict guard: enforce risk_score -> verdict mapping
+  function deriveVerdictFromScore(score: number | null): string | null {
+    if (typeof score !== 'number') return null;
+    if (score <= 24) return 'safe';
+    if (score <= 59) return 'monitor';
+    if (score <= 79) return 'review';
+    return 'notify';
+  }
+
+  const mappedVerdict = deriveVerdictFromScore(aiResult.risk_score ?? null);
+  if (mappedVerdict && aiResult.verdict !== mappedVerdict) {
+    console.log(`Verdict mismatch: model=${aiResult.verdict}, mapped=${mappedVerdict} – overriding`);
+    aiResult.verdict = mappedVerdict;
+  }
+
   // 4. Copy to anonymous training_dataset
   const { error: trainingError } = await supabase
     .from('training_dataset')

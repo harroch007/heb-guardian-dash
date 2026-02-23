@@ -8,7 +8,6 @@ import { useAuth } from "@/contexts/AuthContext";
 
 interface SocialContext {
   label: string;
-  participants: string[];
   description: string;
 }
 
