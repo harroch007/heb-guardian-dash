@@ -75,11 +75,25 @@ export default function Family() {
     // Fetch alerts count for each child (only real actionable alerts)
     const { data: alertsData } = await supabase
       .from('alerts')
-      .select('child_id')
+      .select('child_id, ai_risk_score')
       .in('child_id', childIds)
       .is('acknowledged_at', null)
       .eq('is_processed', true)      // Only AI-processed alerts
-      .is('parent_message', null);   // Only real alerts (not system messages)
+      .is('parent_message', null)    // Only real alerts (not system messages)
+      .in('ai_verdict', ['notify', 'review']);
+
+    // Fetch alert thresholds per child from settings
+    const { data: settingsData } = await supabase
+      .from('settings')
+      .select('child_id, alert_threshold')
+      .in('child_id', childIds);
+    
+    const thresholds: Record<string, number> = {};
+    settingsData?.forEach(s => {
+      if (s.child_id) {
+        thresholds[s.child_id] = s.alert_threshold ?? 65;
+      }
+    });
 
     // Map devices to children
     const devicesMap: Record<string, DeviceInfo> = {};
@@ -99,11 +113,14 @@ export default function Family() {
       }
     });
 
-    // Count alerts per child
+    // Count alerts per child (filtered by threshold)
     const alertsCountMap: Record<string, number> = {};
     alertsData?.forEach(alert => {
       if (alert.child_id) {
-        alertsCountMap[alert.child_id] = (alertsCountMap[alert.child_id] || 0) + 1;
+        const threshold = thresholds[alert.child_id] ?? 65;
+        if ((alert.ai_risk_score ?? 0) >= threshold) {
+          alertsCountMap[alert.child_id] = (alertsCountMap[alert.child_id] || 0) + 1;
+        }
       }
     });
 
