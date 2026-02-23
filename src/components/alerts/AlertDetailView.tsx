@@ -10,8 +10,10 @@ interface AlertDetail {
   parent_message?: string | null;
   mainInsight?: string;
   socialContext?: {
-    participants: string[];
-    note: string;
+    label?: string;
+    description?: string;
+    participants?: string[];
+    note?: string; // legacy support
   };
   patternInsight?: string;
   meaning?: string;
@@ -120,16 +122,20 @@ export const AlertDetailView = ({
             <div className="bg-muted/30 rounded-lg p-4 space-y-3">
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Users className="w-4 h-4" />
-                <span className="text-sm font-medium">הקשר חברתי</span>
+                <span className="text-sm font-medium">{alert.socialContext.label || "הקשר חברתי"}</span>
               </div>
               <div className="space-y-2">
-                <p className="text-sm text-foreground">
-                  <span className="text-muted-foreground">משתתפים מרכזיים: </span>
-                  {alert.socialContext.participants.join("، ")}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {alert.socialContext.note}
-                </p>
+                {alert.socialContext.participants && alert.socialContext.participants.length > 0 && (
+                  <p className="text-sm text-foreground">
+                    <span className="text-muted-foreground">משתתפים מרכזיים: </span>
+                    {alert.socialContext.participants.join("، ")}
+                  </p>
+                )}
+                {(alert.socialContext.description || alert.socialContext.note) && (
+                  <p className="text-xs text-muted-foreground">
+                    {alert.socialContext.description || alert.socialContext.note}
+                  </p>
+                )}
               </div>
             </div>
           )}
