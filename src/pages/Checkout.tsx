@@ -1,6 +1,7 @@
-import { useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,10 +9,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Shield, Brain, Bell, BarChart3, Star, CreditCard, Loader2, Check, Tag, ArrowRight, MessageCircle, Lock } from "lucide-react";
+import { Shield, Brain, Bell, BarChart3, Star, CreditCard, Loader2, Check, Tag, ArrowRight, MessageCircle, Lock, Users } from "lucide-react";
 import { toast } from "sonner";
+import { getFamilyPrice } from "@/hooks/useFamilySubscription";
 
-const BASE_PRICE = 19;
 const WHATSAPP_LINK = "https://wa.me/972547836498?text=היי%2C%20אשמח%20לקבל%20קוד%20קופון%20לשדרוג%20Premium";
 
 const premiumFeatures = [
@@ -28,6 +29,12 @@ interface PromoResult {
   description: string;
 }
 
+interface ChildInfo {
+  id: string;
+  name: string;
+  subscription_tier: string | null;
+}
+
 function getPromoDescription(type: string, value: number): string {
   switch (type) {
     case "free_months":
@@ -41,16 +48,16 @@ function getPromoDescription(type: string, value: number): string {
   }
 }
 
-function getDiscountedPrice(type: string, value: number): number {
+function getDiscountedPrice(basePrice: number, type: string, value: number): number {
   switch (type) {
     case "free_months":
       return 0;
     case "fixed_price":
       return value;
     case "percent_off":
-      return Math.round(BASE_PRICE * (1 - value / 100));
+      return Math.round(basePrice * (1 - value / 100));
     default:
-      return BASE_PRICE;
+      return basePrice;
   }
 }
 
@@ -71,9 +78,10 @@ const GoogleIcon = () => (
 
 export default function Checkout() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const childId = searchParams.get("childId");
+  const { user } = useAuth();
 
+  const [children, setChildren] = useState<ChildInfo[]>([]);
+  const [childrenLoading, setChildrenLoading] = useState(true);
   const [showClosedDialog, setShowClosedDialog] = useState(false);
 
   // Promo code state
@@ -84,9 +92,33 @@ export default function Checkout() {
 
   const [paying, setPaying] = useState(false);
 
+  // Fetch children
+  useEffect(() => {
+    if (!user?.id) return;
+    const fetchChildren = async () => {
+      setChildrenLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from("children")
+          .select("id, name, subscription_tier")
+          .eq("parent_id", user.id);
+        if (error) throw error;
+        setChildren(data || []);
+      } catch (err) {
+        console.error("Error fetching children:", err);
+      } finally {
+        setChildrenLoading(false);
+      }
+    };
+    fetchChildren();
+  }, [user?.id]);
+
+  const freeChildren = children.filter(c => c.subscription_tier !== "premium");
+  const basePrice = getFamilyPrice(children.length);
+
   const finalPrice = appliedPromo
-    ? getDiscountedPrice(appliedPromo.discount_type, appliedPromo.discount_value)
-    : BASE_PRICE;
+    ? getDiscountedPrice(basePrice, appliedPromo.discount_type, appliedPromo.discount_value)
+    : basePrice;
 
   const handleApplyPromo = async () => {
     if (!promoCode.trim()) return;
@@ -143,7 +175,7 @@ export default function Checkout() {
   };
 
   const handlePay = async () => {
-    if (!childId) return;
+    if (!user?.id || freeChildren.length === 0) return;
     setPaying(true);
 
     try {
@@ -154,10 +186,11 @@ export default function Checkout() {
         expiresAt = d.toISOString();
       }
 
+      // Upgrade ALL children at once
       const { error: updateError } = await supabase
         .from("children")
         .update({ subscription_tier: "premium", subscription_expires_at: expiresAt } as any)
-        .eq("id", childId);
+        .eq("parent_id", user.id);
 
       if (updateError) throw updateError;
 
@@ -184,12 +217,39 @@ export default function Checkout() {
     }
   };
 
-  if (!childId) {
+  if (childrenLoading) {
+    return (
+      <DashboardLayout>
+        <div className="max-w-lg mx-auto px-4 py-12 flex justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (children.length === 0) {
     return (
       <DashboardLayout>
         <div className="max-w-md mx-auto px-4 py-12 text-center" dir="rtl">
-          <p className="text-muted-foreground">לא נמצא ילד לשדרוג</p>
+          <p className="text-muted-foreground">לא נמצאו ילדים במשפחה</p>
           <Button variant="outline" onClick={() => navigate("/dashboard")} className="mt-4">
+            חזרה לדשבורד
+          </Button>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (freeChildren.length === 0) {
+    return (
+      <DashboardLayout>
+        <div className="max-w-md mx-auto px-4 py-12 text-center" dir="rtl">
+          <div className="mx-auto w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
+            <Check className="h-7 w-7 text-primary" />
+          </div>
+          <h2 className="text-xl font-bold mb-2">כל הילדים כבר Premium! 🎉</h2>
+          <p className="text-muted-foreground mb-4">כל ילדיך נהנים מהגנה מלאה עם ניתוח AI</p>
+          <Button variant="outline" onClick={() => navigate("/dashboard")}>
             חזרה לדשבורד
           </Button>
         </div>
@@ -206,8 +266,30 @@ export default function Checkout() {
             <Shield className="h-7 w-7 text-primary" />
           </div>
           <h1 className="text-2xl font-bold">שדרג ל-Premium</h1>
-          <p className="text-muted-foreground">הגנה מלאה עם ניתוח AI מתקדם</p>
+          <p className="text-muted-foreground">הגנה מלאה עם ניתוח AI לכל המשפחה</p>
         </div>
+
+        {/* Children list */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Users className="w-4 h-4" />
+              ילדים שישודרגו ({freeChildren.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {children.map((child) => (
+              <div key={child.id} className="flex items-center justify-between text-sm py-1.5">
+                <span>{child.name}</span>
+                {child.subscription_tier === "premium" ? (
+                  <Badge variant="secondary" className="text-xs">Premium ✓</Badge>
+                ) : (
+                  <Badge variant="outline" className="text-xs">Free → Premium</Badge>
+                )}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
 
         {/* Features */}
         <Card>
@@ -269,7 +351,7 @@ export default function Checkout() {
           <CardContent className="pt-6 text-center">
             {appliedPromo ? (
               <div className="space-y-1">
-                <div className="text-lg text-muted-foreground line-through">₪{BASE_PRICE}/חודש</div>
+                <div className="text-lg text-muted-foreground line-through">₪{basePrice}/חודש</div>
                 <div className="text-3xl font-bold text-primary">
                   {finalPrice === 0 ? "חינם" : `₪${finalPrice}`}
                   {finalPrice > 0 && <span className="text-base font-normal text-muted-foreground">/חודש</span>}
@@ -278,8 +360,10 @@ export default function Checkout() {
               </div>
             ) : (
               <div>
-                <div className="text-3xl font-bold">₪{BASE_PRICE}</div>
-                <div className="text-sm text-muted-foreground">לחודש</div>
+                <div className="text-3xl font-bold">₪{basePrice}</div>
+                <div className="text-sm text-muted-foreground">
+                  לחודש · {children.length === 1 ? "ילד אחד" : `${children.length} ילדים`}
+                </div>
               </div>
             )}
           </CardContent>
