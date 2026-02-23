@@ -43,7 +43,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Use service role to generate a magic link for the target user
     const serviceClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -53,16 +52,13 @@ Deno.serve(async (req) => {
     const { data: userData, error: userError } =
       await serviceClient.auth.admin.getUserById(userId);
     if (userError || !userData?.user?.email) {
-      return new Response(
-        JSON.stringify({ error: "User not found" }),
-        {
-          status: 404,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+      return new Response(JSON.stringify({ error: "User not found" }), {
+        status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    // Generate magic link (gives us the token properties)
+    // Generate magic link
     const { data: linkData, error: linkError } =
       await serviceClient.auth.admin.generateLink({
         type: "magiclink",
@@ -71,37 +67,45 @@ Deno.serve(async (req) => {
 
     if (linkError || !linkData) {
       console.error("generateLink error:", linkError);
-      return new Response(
-        JSON.stringify({ error: "Failed to generate session" }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+      return new Response(JSON.stringify({ error: "Failed to generate session" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    // Extract the hashed_token from the action_link
+    // Extract token_hash and verify it server-side to get a real session
     const actionLink = linkData.properties?.action_link;
     if (!actionLink) {
-      return new Response(
-        JSON.stringify({ error: "Failed to generate link" }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+      return new Response(JSON.stringify({ error: "Failed to generate link" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    // Parse the token from the action link URL
     const url = new URL(actionLink);
     const token = url.searchParams.get("token");
-    const type = url.searchParams.get("type");
+
+    // Verify OTP server-side to exchange for a real session
+    const { data: verifyData, error: verifyError } =
+      await serviceClient.auth.verifyOtp({
+        token_hash: token!,
+        type: "magiclink",
+      });
+
+    if (verifyError || !verifyData?.session) {
+      console.error("verifyOtp error:", verifyError);
+      return new Response(JSON.stringify({ error: "Failed to create session" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     return new Response(
       JSON.stringify({
-        token,
-        type,
+        access_token: verifyData.session.access_token,
+        refresh_token: verifyData.session.refresh_token,
         email: userData.user.email,
+        full_name: userData.user.user_metadata?.full_name || userData.user.email,
       }),
       {
         status: 200,
@@ -110,12 +114,9 @@ Deno.serve(async (req) => {
     );
   } catch (err) {
     console.error("impersonate-user error:", err);
-    return new Response(
-      JSON.stringify({ error: "Internal server error" }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });

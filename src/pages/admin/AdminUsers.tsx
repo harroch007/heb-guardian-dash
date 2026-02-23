@@ -1,11 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, Search, Smartphone, Baby, Clock, UserCheck, Loader2 } from "lucide-react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Users, Search, Smartphone, Baby, Clock, UserCheck, Loader2, X } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { he } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -42,9 +43,11 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>(initialStatusFilter || "all");
   const [impersonatingId, setImpersonatingId] = useState<string | null>(null);
+  const [iframeOpen, setIframeOpen] = useState(false);
+  const [iframeUserName, setIframeUserName] = useState("");
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   const { toast } = useToast();
 
-  // Apply external filter when it changes
   useEffect(() => {
     if (initialStatusFilter) {
       setStatusFilter(initialStatusFilter);
@@ -80,22 +83,37 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
     }
   };
 
-  const handleImpersonate = async (userId: string) => {
+  const sendTokensToIframe = useCallback((tokens: { access_token: string; refresh_token: string }) => {
+    const iframe = iframeRef.current;
+    if (!iframe?.contentWindow) return;
+    
+    iframe.contentWindow.postMessage(
+      { type: "impersonate-tokens", ...tokens },
+      window.location.origin
+    );
+  }, []);
+
+  const handleImpersonate = async (userId: string, userName: string) => {
     setImpersonatingId(userId);
     try {
       const { data, error } = await supabase.functions.invoke("impersonate-user", {
         body: { userId },
       });
 
-      if (error || !data?.token) {
+      if (error || !data?.access_token) {
         throw new Error(data?.error || error?.message || "Failed to impersonate");
       }
 
-      // Build the Supabase verify URL that exchanges the token for a session
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const verifyUrl = `${supabaseUrl}/auth/v1/verify?token=${data.token}&type=${data.type}&redirect_to=${encodeURIComponent(window.location.origin + "/auth?impersonate=true")}`;
+      setIframeUserName(userName);
+      setIframeOpen(true);
 
-      window.open(verifyUrl, "_blank");
+      // Wait for iframe to load, then send tokens
+      setTimeout(() => {
+        sendTokensToIframe({
+          access_token: data.access_token,
+          refresh_token: data.refresh_token,
+        });
+      }, 1000);
     } catch (err: any) {
       toast({
         variant: "destructive",
@@ -105,6 +123,11 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
     } finally {
       setImpersonatingId(null);
     }
+  };
+
+  const handleCloseIframe = () => {
+    setIframeOpen(false);
+    setIframeUserName("");
   };
 
   if (loading) {
@@ -207,16 +230,16 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
                   <TableHead className="text-right">טלפון</TableHead>
                   <TableHead className="text-right">תאריך הרשמה</TableHead>
                   <TableHead className="text-right">ילדים</TableHead>
-                   <TableHead className="text-right">סטטוס</TableHead>
-                   <TableHead className="text-right">פעילות אחרונה</TableHead>
-                   <TableHead className="text-right">פעולות</TableHead>
+                  <TableHead className="text-right">סטטוס</TableHead>
+                  <TableHead className="text-right">פעילות אחרונה</TableHead>
+                  <TableHead className="text-right">פעולות</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                 {filteredUsers.length === 0 ? (
-                   <TableRow>
-                     <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
-                       לא נמצאו משתמשים
+                {filteredUsers.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                      לא נמצאו משתמשים
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -251,24 +274,24 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
                         ) : (
                           "-"
                         )}
-                       </TableCell>
-                       <TableCell>
-                         <Button
-                           size="sm"
-                           variant="ghost"
-                           className="text-xs gap-1"
-                           disabled={impersonatingId === user.id}
-                           onClick={() => handleImpersonate(user.id)}
-                         >
-                           {impersonatingId === user.id ? (
-                             <Loader2 className="w-3 h-3 animate-spin" />
-                           ) : (
-                             <UserCheck className="w-3 h-3" />
-                           )}
-                           היכנס כהורה
-                         </Button>
-                       </TableCell>
-                     </TableRow>
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-xs gap-1"
+                          disabled={impersonatingId === user.id}
+                          onClick={() => handleImpersonate(user.id, user.full_name)}
+                        >
+                          {impersonatingId === user.id ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <UserCheck className="w-3 h-3" />
+                          )}
+                          היכנס כהורה
+                        </Button>
+                      </TableCell>
+                    </TableRow>
                   ))
                 )}
               </TableBody>
@@ -276,6 +299,36 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
           </div>
         </CardContent>
       </Card>
+
+      {/* Impersonation iframe dialog */}
+      <Dialog open={iframeOpen} onOpenChange={handleCloseIframe}>
+        <DialogContent className="max-w-[95vw] w-[95vw] h-[90vh] p-0 gap-0 overflow-hidden">
+          <div
+            dir="rtl"
+            className="bg-amber-500/90 text-black px-4 py-2 flex items-center justify-between gap-3 text-sm font-medium"
+          >
+            <div className="flex items-center gap-2">
+              <UserCheck className="w-4 h-4" />
+              <span>מצב התחזות — צופה כ: {iframeUserName}</span>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 border-black/30 bg-black/10 hover:bg-black/20 text-black"
+              onClick={handleCloseIframe}
+            >
+              <X className="w-3 h-3 ml-1" />
+              סגור
+            </Button>
+          </div>
+          <iframe
+            ref={iframeRef}
+            src="/impersonate-session"
+            className="w-full flex-1 border-0"
+            style={{ height: "calc(90vh - 40px)" }}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
