@@ -31,6 +31,7 @@ import NotFound from "./pages/NotFound";
 import AdminLogin from "./pages/AdminLogin";
 import Admin from "./pages/Admin";
 import Checkout from "./pages/Checkout";
+import ImpersonateSession from "./pages/ImpersonateSession";
 
 // Demo pages
 import DemoDashboard from "./pages/demo/DemoDashboard";
@@ -114,6 +115,7 @@ const AppRoutes = () => {
         element={<ProtectedRoute><Onboarding /></ProtectedRoute>}
       />
       
+      <Route path="/impersonate-session" element={<ImpersonateSession />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
