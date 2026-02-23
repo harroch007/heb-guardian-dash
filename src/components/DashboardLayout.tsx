@@ -1,5 +1,6 @@
 import { AppSidebar } from "./AppSidebar";
 import { BottomNavigation } from "./BottomNavigation";
+import { ImpersonationBanner } from "./ImpersonationBanner";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -7,7 +8,9 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
-    <div className="flex min-h-screen w-full bg-background">
+    <div className="flex min-h-screen w-full bg-background flex-col">
+      <ImpersonationBanner />
+      <div className="flex flex-1">
       <AppSidebar />
       <main className="flex-1 overflow-auto">
         <div className="scanline fixed inset-0 pointer-events-none z-50 opacity-30" />
@@ -16,6 +19,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         </div>
       </main>
       <BottomNavigation />
+      </div>
     </div>
   );
 }

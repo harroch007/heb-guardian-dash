@@ -32,3 +32,6 @@ verify_jwt = false
 
 [functions.expire-subscriptions]
 verify_jwt = false
+
+[functions.impersonate-user]
+verify_jwt = false

@@ -44,17 +44,30 @@ export default function Auth() {
   const { setDemoMode } = useDemo();
   const { isInstalled, isInstallable, install } = usePWAInstall();
 
+  // Handle impersonation redirect
+  useEffect(() => {
+    const impersonate = searchParams.get('impersonate');
+    if (impersonate === 'true') {
+      // This page was opened via the magic link verify flow.
+      // Supabase detects the session from the URL automatically.
+      // Mark this session as impersonation and redirect.
+      sessionStorage.setItem('impersonating', 'true');
+      navigate('/dashboard', { replace: true });
+    }
+  }, [searchParams, navigate]);
+
   // Check if email is allowed and redirect if already logged in
   useEffect(() => {
     const checkUserAccess = async () => {
       if (!authLoading && user) {
-        // In waitlist mode, verify user's email is in allowed list
-        if (WAITLIST_MODE && user.email) {
+        // Skip waitlist check if impersonating
+        const isImpersonating = sessionStorage.getItem('impersonating') === 'true';
+
+        if (WAITLIST_MODE && user.email && !isImpersonating) {
           const { data: isAllowed, error } = await supabase
             .rpc('is_email_allowed', { p_email: user.email });
           
           if (error || !isAllowed) {
-            // Not allowed - cleanup user from database and sign out
             try {
               await supabase.functions.invoke('cleanup-unauthorized-user', {
                 body: { userId: user.id }
@@ -76,7 +89,7 @@ export default function Auth() {
         
         // Check if user is admin and redirect accordingly
         const { data: isAdmin } = await supabase.rpc('is_admin');
-        if (isAdmin) {
+        if (isAdmin && !isImpersonating) {
           navigate('/admin');
         } else {
           navigate('/dashboard');

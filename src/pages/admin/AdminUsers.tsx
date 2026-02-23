@@ -2,11 +2,14 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, Search, Smartphone, Baby, Clock } from "lucide-react";
+import { Users, Search, Smartphone, Baby, Clock, UserCheck, Loader2 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { he } from "date-fns/locale";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface UserData {
   id: string;
@@ -38,6 +41,8 @@ interface AdminUsersProps {
 export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplied }: AdminUsersProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>(initialStatusFilter || "all");
+  const [impersonatingId, setImpersonatingId] = useState<string | null>(null);
+  const { toast } = useToast();
 
   // Apply external filter when it changes
   useEffect(() => {
@@ -72,6 +77,33 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
         return <Badge variant="outline" className="text-muted-foreground">⚪ ללא מכשיר</Badge>;
       default:
         return <Badge variant="outline">לא ידוע</Badge>;
+    }
+  };
+
+  const handleImpersonate = async (userId: string) => {
+    setImpersonatingId(userId);
+    try {
+      const { data, error } = await supabase.functions.invoke("impersonate-user", {
+        body: { userId },
+      });
+
+      if (error || !data?.token) {
+        throw new Error(data?.error || error?.message || "Failed to impersonate");
+      }
+
+      // Build the Supabase verify URL that exchanges the token for a session
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const verifyUrl = `${supabaseUrl}/auth/v1/verify?token=${data.token}&type=${data.type}&redirect_to=${encodeURIComponent(window.location.origin + "/auth?impersonate=true")}`;
+
+      window.open(verifyUrl, "_blank");
+    } catch (err: any) {
+      toast({
+        variant: "destructive",
+        title: "שגיאה בהתחזות",
+        description: err.message,
+      });
+    } finally {
+      setImpersonatingId(null);
     }
   };
 
@@ -175,15 +207,16 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
                   <TableHead className="text-right">טלפון</TableHead>
                   <TableHead className="text-right">תאריך הרשמה</TableHead>
                   <TableHead className="text-right">ילדים</TableHead>
-                  <TableHead className="text-right">סטטוס</TableHead>
-                  <TableHead className="text-right">פעילות אחרונה</TableHead>
+                   <TableHead className="text-right">סטטוס</TableHead>
+                   <TableHead className="text-right">פעילות אחרונה</TableHead>
+                   <TableHead className="text-right">פעולות</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredUsers.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                      לא נמצאו משתמשים
+                 {filteredUsers.length === 0 ? (
+                   <TableRow>
+                     <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                       לא נמצאו משתמשים
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -218,8 +251,24 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
                         ) : (
                           "-"
                         )}
-                      </TableCell>
-                    </TableRow>
+                       </TableCell>
+                       <TableCell>
+                         <Button
+                           size="sm"
+                           variant="ghost"
+                           className="text-xs gap-1"
+                           disabled={impersonatingId === user.id}
+                           onClick={() => handleImpersonate(user.id)}
+                         >
+                           {impersonatingId === user.id ? (
+                             <Loader2 className="w-3 h-3 animate-spin" />
+                           ) : (
+                             <UserCheck className="w-3 h-3" />
+                           )}
+                           היכנס כהורה
+                         </Button>
+                       </TableCell>
+                     </TableRow>
                   ))
                 )}
               </TableBody>
