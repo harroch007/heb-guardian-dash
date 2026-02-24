@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { ChevronRight, UserX, Shield, Loader2, ShieldAlert, ShieldCheck, ShieldOff } from "lucide-react";
-import { Switch } from "@/components/ui/switch";
+import { ChevronRight, Loader2, ShieldAlert, ShieldCheck, ShieldOff } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -13,6 +12,7 @@ const SENSITIVITY_LEVELS = [
     threshold: 50,
     label: "רגיש",
     description: "כל חשד — גם אירועים ברמת סיכון בינונית",
+    dynamicDescription: "תקבל/י התראות על כל אירוע ברמת סיכון בינונית - מגביר את הסיכוי להתראות שווא, לא בטוח שזה השקט שאתם מחפשים",
     icon: ShieldAlert,
   },
   {
@@ -20,6 +20,7 @@ const SENSITIVITY_LEVELS = [
     threshold: 65,
     label: "מאוזן",
     description: "מומלץ — התראות על אירועים משמעותיים",
+    dynamicDescription: "תקבל/י התראות רק על אירועים משמעותיים - איזון בין שקט נפשי לבטיחות",
     icon: ShieldCheck,
     recommended: true,
   },
@@ -28,20 +29,17 @@ const SENSITIVITY_LEVELS = [
     threshold: 85,
     label: "רק חמור",
     description: "רק אירועים חמורים באמת",
+    dynamicDescription: "תקבל/י התראות רק על מצבים חמורים באמת - מינימום הפרעות, מקסימום רלוונטיות",
     icon: ShieldOff,
   },
 ] as const;
 
 interface SettingsData {
   alert_threshold: number;
-  alert_on_unknown_contacts: boolean;
-  monitoring_enabled: boolean;
 }
 
 const DEFAULTS: SettingsData = {
   alert_threshold: 65,
-  alert_on_unknown_contacts: true,
-  monitoring_enabled: true,
 };
 
 interface Child {
@@ -86,7 +84,7 @@ const NotificationSettings = () => {
       setLoading(true);
       const { data } = await supabase
         .from("settings")
-        .select("alert_threshold, alert_on_unknown_contacts, monitoring_enabled")
+        .select("alert_threshold")
         .eq("child_id", selectedChildId)
         .is("device_id", null)
         .maybeSingle();
@@ -94,8 +92,6 @@ const NotificationSettings = () => {
       if (data) {
         setSettings({
           alert_threshold: data.alert_threshold ?? DEFAULTS.alert_threshold,
-          alert_on_unknown_contacts: data.alert_on_unknown_contacts ?? DEFAULTS.alert_on_unknown_contacts,
-          monitoring_enabled: data.monitoring_enabled ?? DEFAULTS.monitoring_enabled,
         });
       } else {
         setSettings(DEFAULTS);
@@ -105,21 +101,20 @@ const NotificationSettings = () => {
     fetchSettings();
   }, [selectedChildId]);
 
-  const updateSetting = async (key: keyof SettingsData, value: number | boolean) => {
+  const updateSetting = async (key: keyof SettingsData, value: number) => {
     if (!selectedChildId || !user) return;
     setSaving(true);
     const prev = { ...settings };
-    const newSettings = { ...settings, [key]: value };
-    setSettings(newSettings);
+    setSettings({ ...settings, [key]: value });
 
     const { error } = await supabase
       .from("settings")
       .upsert(
-        {
+        [{
           child_id: selectedChildId,
           parent_id: user.id,
           [key]: value,
-        },
+        }],
         { onConflict: "parent_id,child_id,device_id" }
       );
 
@@ -220,50 +215,9 @@ const NotificationSettings = () => {
                 );
               })}
             </div>
-          </section>
-
-          {/* Unknown Contacts */}
-          <section className="p-6 rounded-xl bg-card border border-border/50">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <UserX className="w-5 h-5 text-primary" />
-                <div>
-                  <h2 className="text-lg font-semibold text-foreground">התראה על אנשי קשר לא מוכרים</h2>
-                  <p className="text-sm text-muted-foreground">
-                    קבל התראה כשהילד מתכתב עם גורם לא מוכר
-                  </p>
-                </div>
-              </div>
-              <div dir="ltr">
-                <Switch
-                  checked={settings.alert_on_unknown_contacts}
-                  disabled={saving}
-                  onCheckedChange={(checked) => updateSetting("alert_on_unknown_contacts", checked)}
-                />
-              </div>
-            </div>
-          </section>
-
-          {/* Monitoring Enabled */}
-          <section className="p-6 rounded-xl bg-card border border-border/50">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Shield className="w-5 h-5 text-emerald-500" />
-                <div>
-                  <h2 className="text-lg font-semibold text-foreground">ניטור פעיל</h2>
-                  <p className="text-sm text-muted-foreground">
-                    הפעלה או השבתה של ניטור ההודעות באופן כללי
-                  </p>
-                </div>
-              </div>
-              <div dir="ltr">
-                <Switch
-                  checked={settings.monitoring_enabled}
-                  disabled={saving}
-                  onCheckedChange={(checked) => updateSetting("monitoring_enabled", checked)}
-                />
-              </div>
-            </div>
+            <p className="text-sm text-muted-foreground mt-4 text-center">
+              {SENSITIVITY_LEVELS.find(l => l.key === selectedLevel)?.dynamicDescription}
+            </p>
           </section>
         </div>
       )}
