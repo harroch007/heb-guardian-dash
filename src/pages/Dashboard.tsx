@@ -434,6 +434,35 @@ const Index = () => {
     };
   }, [selectedChildId, fetchSnapshot]);
 
+  // Realtime: refresh when new processed alerts arrive for selected child
+  useEffect(() => {
+    if (!selectedChildId) return;
+    
+    const channel = supabase
+      .channel(`dashboard-alerts-${selectedChildId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'alerts',
+          filter: `child_id=eq.${selectedChildId}`,
+        },
+        (payload) => {
+          const newRecord = payload.new as any;
+          if (newRecord?.is_processed) {
+            console.log("[Dashboard] Realtime: new processed alert, refreshing...");
+            fetchSnapshot(false, true); // force refresh, no loading spinner
+          }
+        }
+      )
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [selectedChildId, fetchSnapshot]);
+
   const handleRefresh = async () => {
     setIsRefreshing(true);
     
