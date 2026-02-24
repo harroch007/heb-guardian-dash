@@ -275,7 +275,7 @@ export function AddChildModal({ open, onOpenChange, onChildAdded }: AddChildModa
             </Button>
           </form>
         ) : (
-          <QRCodeDisplay childId={childId!} parentId={user?.id || ""} onFinish={handleClose} />
+          <QRCodeDisplay childId={childId!} parentId={user?.id || ""} parentEmail={user?.email || ""} onFinish={handleClose} />
         )}
       </DialogContent>
     </Dialog>
