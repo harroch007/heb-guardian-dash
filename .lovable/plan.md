@@ -1,45 +1,59 @@
 
 
-# איפוס סטטוס משתמש ברשימת המתנה
+# פיצול זרימת חיבור מכשיר לשני שלבים
 
-## הבעיה
-המשתמש "eflash@gmail.com" כבר אושר (status = 'approved'), ולכן כפתור "אשר" לא מופיע עבורו. צריך להחזיר את הסטטוס ל-"pending" כדי שהכפתור יופיע מחדש.
+## סיכום הדרישה
+פיצול `QRCodeDisplay` ל-2 שלבים:
+1. **שלב 1 — הורדת האפליקציה**: QR שמוביל לחנות Google Play + כפתור "שלב הבא"
+2. **שלב 2 — חיבור המכשיר**: הצגת קוד ידני + אימייל ההורה. ההורה מזין את האימייל + הקוד באפליקציה שבמכשיר הילד. כשהמכשיר מתחבר — realtime redirect לדשבורד
 
-## פתרון
-עדכון ישיר בטבלת `waitlist_signups` — החזרת הסטטוס ל-`pending` עבור המייל הזה.
+## שינויים
 
-### `src/pages/admin/AdminWaitlist.tsx`
-הוספת כפתור "שלח שוב" (אייקון `RotateCcw`) שמופיע ליד רשומות שכבר אושרו, במקום להסתיר את האפשרות לגמרי. הכפתור:
-1. מאפס את הסטטוס ל-`pending` בטבלה
-2. קורא ל-`onRefresh()` כדי לרענן את הרשימה
-3. כפתור "אשר" חוזר להופיע
+### 1. `src/components/QRCodeDisplay.tsx` — שכתוב מלא
 
-לחלופין — הוספת כפתור "שלח WhatsApp" ישיר גם למשתמשים מאושרים, בלי צורך לאפס סטטוס.
+**Props חדש**: הוספת `parentEmail: string` כדי להציג את האימייל בשלב 2
 
-### גישה מומלצת
-הוספת כפתור "שלח שוב" (`RotateCcw`) בעמודת הפעולות גם עבור רשומות עם סטטוס `approved`. לחיצה עליו תפתח את WhatsApp עם ההודעה המותאמת — בלי לשנות את הסטטוס.
+**State חדש**: `step` (1 או 2)
 
-### שינוי בקוד
-בעמודת "פעולות" בטבלה, במקום:
+**שלב 1:**
+- QR Code שמפנה ל: `https://play.google.com/store/apps/details?id=com.kippy.safety.core`
+- טקסט: "סרקו את הקוד עם מכשיר הילד להורדת אפליקציית KippyAI"
+- כפתור "שלב הבא" שמעביר ל-step 2
+
+**שלב 2:**
+- הצגת אימייל ההורה (`parentEmail`)
+- הצגת הקוד הידני (pairing code) + כפתור העתקה
+- הסבר: "הזינו את האימייל והקוד במסך ההתחברות באפליקציה"
+- Realtime subscription על טבלת `devices` — מאזין לשינוי `child_id` שתואם ל-`childId`. כשמכשיר מתחבר → toast הצלחה + `onFinish()` (שמבצע redirect)
+
+**Realtime listener:**
+```typescript
+const channel = supabase
+  .channel(`device-pair-${childId}`)
+  .on('postgres_changes', {
+    event: '*',
+    schema: 'public',
+    table: 'devices',
+    filter: `child_id=eq.${childId}`
+  }, () => {
+    toast({ title: 'המכשיר חובר בהצלחה!' });
+    onFinish();
+  })
+  .subscribe();
 ```
-{entry.status !== 'approved' && ( <Button>אשר</Button> )}
-```
 
-יהיה:
-```
-{entry.status !== 'approved' ? (
-  <Button onClick={handleApprove}>אשר</Button>
-) : (
-  <Button variant="ghost" onClick={handleResend}>
-    <RotateCcw /> שלח שוב
-  </Button>
-)}
-```
+**כפתור "סגור וחבר מאוחר יותר"** — נשאר בשני השלבים
 
-פונקציית `handleResend` תפתח את WhatsApp עם אותה תבנית הודעה בלי לשנות שום דבר ב-DB.
+### 2. `src/components/AddChildModal.tsx` — עדכון props
+שורה 278: הוספת `parentEmail={user?.email || ''}` ל-`QRCodeDisplay`
 
-## סיכום
-- קובץ אחד: `AdminWaitlist.tsx`
-- אין שינוי DB
-- כפתור "שלח שוב" לכל משתמש מאושר — פותח WhatsApp עם ההודעה
+### 3. `src/pages/ChildDashboard.tsx` — עדכון props
+שורה 650: הוספת `parentEmail={user?.email || ''}` ל-`QRCodeDisplay`
+
+## סיכום טכני
+- 3 קבצים: `QRCodeDisplay.tsx`, `AddChildModal.tsx`, `ChildDashboard.tsx`
+- QR בשלב 1 מפנה לחנות Play (לא לקוד pairing)
+- שלב 2 מציג אימייל + קוד ידני
+- Realtime subscription מזהה חיבור מכשיר ועושה redirect
+- `onFinish` callback אחראי על הניווט (כבר קיים בקוד הקורא)
 
