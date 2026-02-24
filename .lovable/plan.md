@@ -1,74 +1,66 @@
 
 
-# תיקון לוגיקת Chat Grouping — ריסק עולה = התראה חדשה
+# סנכרון נתוני התראות בזמן אמת בדשבורד
 
-## הבעיה הנוכחית
-שורות 856-884 ב-`analyze-alert/index.ts`: הבדיקה מחפשת **כל** התראה מאותו צ'אט ב-10 דקות אחרונות עם `should_alert = true`, בלי קשר לציון שלה. אם נמצאת — ההתראה החדשה נחסמת כ-`grouped`.
+## הבעיה
+הדשבורד מציג נתונים מ-`parent_home_snapshot` ומאחסן אותם ב-cache לפי `last_seen` של המכשיר. כשמגיעה התראה חדשה (נוטיפיקציה), ה-`last_seen` לא משתנה — ולכן הדשבורד ממשיך להציג את הנתונים הישנים (0 התראות) עד שהמכשיר שולח עדכון חדש.
 
-התוצאה: התראה #906 (ציון 70) נחסמה כי התראה #900 (ציון 35) מאותו צ'אט עובדה 10 דקות קודם, למרות שהיא הייתה `should_alert: true` עם verdict `monitor`.
+## פתרון
+הוספת Supabase Realtime subscription על טבלת `alerts` בדשבורד. כשהתראה חדשה מעובדת (`is_processed = true`) לילד הנבחר — הדשבורד ירענן את הנתונים אוטומטית (force refresh שעוקף את ה-cache).
 
-## הפתרון
-שינוי הלוגיקה כך שה-grouping חוסם **רק אם** ההתראה הקודמת מאותו צ'אט הייתה עם `ai_risk_score` **גבוה או שווה** לציון ההתראה הנוכחית.
+## שינויים טכניים
 
-אם הציון של ההתראה החדשה **גבוה יותר** מהקודמת — היא עוברת, נשלחת להורה, וה-timer של 10 דקות מתאפס (כי עכשיו **היא** תהיה ה-anchor לבדיקה הבאה).
+### קובץ: `src/pages/Dashboard.tsx`
 
-## שינוי טכני
+1. **הוספת Realtime subscription** — בתוך `useEffect` שמאזין לשינויים בטבלת `alerts`:
+   - מסנן לפי `child_id` של הילד הנבחר
+   - מגיב על `INSERT` ו-`UPDATE` (כשההתראה עוברת עיבוד ומתעדכנת)
+   - כשמתקבל שינוי — קורא ל-`fetchSnapshot(false, true)` (force refresh, ללא loading state)
+   - מנקה את ה-subscription כשמשתנה הילד או כשהקומפוננטה מתפרקת
 
-### קובץ: `supabase/functions/analyze-alert/index.ts`
-**שורות 857-884** — עדכון הלוגיקת Chat Grouping:
+2. **Invalidation של cache** — ה-force refresh כבר קיים (`forceRefresh = true` בשורה 270), כך שצריך רק לקרוא לו
 
-**לפני:**
+### קוד חדש (בערך):
 ```typescript
-const { data: recentSameChat } = await supabase
-  .from('alerts')
-  .select('id')
-  .eq('child_id', alertData.child_id)
-  .eq('chat_name', alertData.chat_name || '')
-  .eq('should_alert', true)
-  .gte('analyzed_at', tenMinAgo)
-  .neq('id', alertId)
-  .limit(1);
-
-if (recentSameChat && recentSameChat.length > 0) {
-  // → חסום כ-grouped
-}
+// Realtime: refresh when new alerts arrive for selected child
+useEffect(() => {
+  if (!selectedChildId) return;
+  
+  const channel = supabase
+    .channel(`dashboard-alerts-${selectedChildId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'alerts',
+        filter: `child_id=eq.${selectedChildId}`,
+      },
+      (payload) => {
+        const newRecord = payload.new as any;
+        // Only refresh when alert is processed (has AI results)
+        if (newRecord?.is_processed) {
+          console.log("[Dashboard] Realtime: new processed alert, refreshing...");
+          fetchSnapshot(false, true); // force refresh, no loading spinner
+        }
+      }
+    )
+    .subscribe();
+  
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}, [selectedChildId, fetchSnapshot]);
 ```
 
-**אחרי:**
-```typescript
-const currentRiskScore = aiResult.risk_score ?? 0;
-
-const { data: recentSameChat } = await supabase
-  .from('alerts')
-  .select('id, ai_risk_score')
-  .eq('child_id', alertData.child_id)
-  .eq('chat_name', alertData.chat_name || '')
-  .eq('should_alert', true)
-  .gte('analyzed_at', tenMinAgo)
-  .neq('id', alertId)
-  .order('ai_risk_score', { ascending: false })
-  .limit(1);
-
-const maxRecentScore = recentSameChat?.[0]?.ai_risk_score ?? 0;
-
-if (recentSameChat && recentSameChat.length > 0 && currentRiskScore <= maxRecentScore) {
-  // → חסום כ-grouped (ריסק לא עלה)
-}
-// אם currentRiskScore > maxRecentScore → ממשיך לשליחה
-```
-
-**ההבדל:** שדה `ai_risk_score` נוסף ל-select, ותנאי `currentRiskScore <= maxRecentScore` נוסף לבדיקה.
-
-## התנהגות חדשה
-| תרחיש | התראה קודמת | התראה חדשה | תוצאה |
-|--------|------------|------------|--------|
-| ריסק ירד | 70 | 35 | grouped ✓ |
-| ריסק זהה | 70 | 70 | grouped ✓ |
-| ריסק עלה | 35 | 70 | **נשלחת** ← timer מתאפס |
-| אין קודמת | — | 70 | **נשלחת** |
+## מה זה פותר
+- כשהתראה חדשה נשלחת להורה → הדשבורד מתעדכן תוך שניות
+- `notify_effective_today` ו-`alerts_sent` יציגו ערכים נכונים
+- לא צריך לחכות לעדכון `last_seen` מהמכשיר
+- ה-cache מתעדכן אוטומטית עם הנתונים החדשים
 
 ## סיכום
-- קובץ אחד: `supabase/functions/analyze-alert/index.ts`
-- שינוי מינימלי: הוספת `ai_risk_score` ל-select + תנאי השוואה
-- לא משפיע על Daily Cap או לוגיקה אחרת
+- קובץ אחד: `src/pages/Dashboard.tsx`
+- שינוי מינימלי: הוספת useEffect אחד עם Realtime subscription
+- לא משפיע על ה-cache logic הקיים — רק מוסיף trigger נוסף לרענון
 
