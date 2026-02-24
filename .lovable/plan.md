@@ -1,36 +1,45 @@
 
 
-# הוספת עורך טקסט הודעת WhatsApp באדמין
+# איפוס סטטוס משתמש ברשימת המתנה
 
-## גישה
-הוספת כפתור "ערוך הודעה" מעל טבלת רשימת ההמתנה שפותח Dialog עם Textarea לעריכת תבנית ההודעה. התבנית נשמרת ב-`localStorage` כדי שתישאר גם אחרי רענון, בלי צורך בשינוי DB.
+## הבעיה
+המשתמש "eflash@gmail.com" כבר אושר (status = 'approved'), ולכן כפתור "אשר" לא מופיע עבורו. צריך להחזיר את הסטטוס ל-"pending" כדי שהכפתור יופיע מחדש.
 
-המשתנה `{parent_name}` ישמש כ-placeholder שיוחלף אוטומטית בשם ההורה בזמן השליחה.
-
-## שינויים
+## פתרון
+עדכון ישיר בטבלת `waitlist_signups` — החזרת הסטטוס ל-`pending` עבור המייל הזה.
 
 ### `src/pages/admin/AdminWaitlist.tsx`
+הוספת כפתור "שלח שוב" (אייקון `RotateCcw`) שמופיע ליד רשומות שכבר אושרו, במקום להסתיר את האפשרות לגמרי. הכפתור:
+1. מאפס את הסטטוס ל-`pending` בטבלה
+2. קורא ל-`onRefresh()` כדי לרענן את הרשימה
+3. כפתור "אשר" חוזר להופיע
 
-1. **הוספת state חדש** — `messageTemplate` שנטען מ-`localStorage` עם ברירת מחדל של הטקסט הנוכחי, ו-`showTemplateEditor` לפתיחת/סגירת הדיאלוג
+לחלופין — הוספת כפתור "שלח WhatsApp" ישיר גם למשתמשים מאושרים, בלי צורך לאפס סטטוס.
 
-2. **הוספת Dialog לעריכת ההודעה** — כולל:
-   - `Textarea` עם dir="rtl" להצגת ותבנית ההודעה
-   - הסבר קצר שהמשתנה `{parent_name}` יוחלף אוטומטית
-   - כפתורי "שמור" ו-"איפוס לברירת מחדל"
-   - שמירה ל-`localStorage` בלחיצה על שמור
+### גישה מומלצת
+הוספת כפתור "שלח שוב" (`RotateCcw`) בעמודת הפעולות גם עבור רשומות עם סטטוס `approved`. לחיצה עליו תפתח את WhatsApp עם ההודעה המותאמת — בלי לשנות את הסטטוס.
 
-3. **כפתור "ערוך הודעה"** — מוצב ליד כותרת הכרטיס של רשימת ההמתנה (אייקון `MessageSquare` או `Edit`)
+### שינוי בקוד
+בעמודת "פעולות" בטבלה, במקום:
+```
+{entry.status !== 'approved' && ( <Button>אשר</Button> )}
+```
 
-4. **עדכון `handleApprove`** — במקום הטקסט הקבוע, ישתמש ב-`messageTemplate` ויחליף `{parent_name}` בשם ההורה האמיתי
+יהיה:
+```
+{entry.status !== 'approved' ? (
+  <Button onClick={handleApprove}>אשר</Button>
+) : (
+  <Button variant="ghost" onClick={handleResend}>
+    <RotateCcw /> שלח שוב
+  </Button>
+)}
+```
 
-## imports חדשים
-- `Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription` מ-`@/components/ui/dialog`
-- `Textarea` מ-`@/components/ui/textarea`
-- `MessageSquare` מ-`lucide-react`
+פונקציית `handleResend` תפתח את WhatsApp עם אותה תבנית הודעה בלי לשנות שום דבר ב-DB.
 
 ## סיכום
 - קובץ אחד: `AdminWaitlist.tsx`
-- אין שינוי DB — שמירה ב-`localStorage`
-- המשתנה `{parent_name}` מוחלף דינמית
-- ברירת מחדל = הטקסט הנוכחי (לא ישתנה שום דבר אם לא עורכים)
+- אין שינוי DB
+- כפתור "שלח שוב" לכל משתמש מאושר — פותח WhatsApp עם ההודעה
 
