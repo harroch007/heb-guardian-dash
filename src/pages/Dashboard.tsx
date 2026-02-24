@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { DashboardGreeting } from "@/components/dashboard/DashboardGreeting";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Users, User, RefreshCw, BarChart3, Brain, Smartphone, MapPin, Battery, Clock, Mail, Bot, AlertTriangle, Calendar, ChevronLeft, Bell, X, Shield, Star } from "lucide-react";
+import { Plus, Users, User, BarChart3, Brain, Smartphone, MapPin, Battery, Clock, Mail, Bot, AlertTriangle, Calendar, ChevronLeft, Bell, X, Shield, Star } from "lucide-react";
 import { NewAppsCard } from "@/components/dashboard/NewAppsCard";
 import { NightlyUsageCard } from "@/components/dashboard/NightlyUsageCard";
 import { motion } from "framer-motion";
@@ -500,17 +500,15 @@ const Index = () => {
 
   return (
     <DashboardLayout>
-      <div className="max-w-2xl mx-auto px-4 py-6 space-y-6" dir="rtl">
-        {/* Header */}
-        <div className="flex items-start justify-between">
-          <DashboardGreeting />
-        </div>
+      <div className="max-w-2xl mx-auto px-4 py-4 space-y-4" dir="rtl">
+        {/* 1. Greeting + Refresh (compact single row) */}
+        <DashboardGreeting onRefresh={handleRefresh} isRefreshing={isRefreshing} />
 
         {/* Error State */}
         {error && (
-          <div className="mb-6 p-4 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive">
-            <p className="font-medium">שגיאה בטעינת נתונים</p>
-            <p className="text-sm opacity-80">{error}</p>
+          <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive">
+            <p className="font-medium text-sm">שגיאה בטעינת נתונים</p>
+            <p className="text-xs opacity-80">{error}</p>
           </div>
         )}
 
@@ -520,7 +518,7 @@ const Index = () => {
         {loading ? (
           <div className="h-48 rounded-2xl bg-card/50 animate-pulse border border-border/30" />
         ) : children.length > 0 ? (
-          <div className="space-y-6 animate-fade-in">
+          <div className="space-y-4 animate-fade-in">
             {/* Child Selector - shown only when more than 1 child */}
             {children.length > 1 && selectedChild && (
               <div className="flex items-center gap-3">
@@ -584,93 +582,58 @@ const Index = () => {
               </div>
             ) : snapshot ? (
               <>
-                {/* Card 1 - Digital Activity (all users) */}
-                <Card className="bg-card border-border">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-                      <BarChart3 className="h-5 w-5 text-muted-foreground" />
-                      פעילות דיגיטלית
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className={`grid ${isPremium ? 'grid-cols-3' : 'grid-cols-2'} gap-4`}>
-                      <div className="text-center p-3 rounded-lg bg-muted/50">
-                        <div className="flex items-center justify-center gap-1 mb-1">
-                          <Mail className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                        <div className="text-2xl font-bold text-foreground">{snapshot.messages_scanned ?? 0}</div>
-                        <div className="text-xs text-muted-foreground">הודעות נסרקו</div>
-                      </div>
-                      <div className="text-center p-3 rounded-lg bg-muted/50">
-                        <div className="flex items-center justify-center gap-1 mb-1">
-                          <Bot className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                        <div className="text-2xl font-bold text-foreground">{snapshot.stacks_sent_to_ai ?? 0}</div>
-                        <div className="text-xs text-muted-foreground">הועברו לניתוח AI</div>
-                      </div>
-                      {isPremium && (
-                        <div className="text-center p-3 rounded-lg bg-muted/50">
-                          <div className="flex items-center justify-center gap-1 mb-1">
-                            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-                          </div>
-                          <div className="text-2xl font-bold text-foreground">{snapshot.notify_effective_today ?? 0}</div>
-                          <div className="text-xs text-muted-foreground">התראות נשלחו</div>
-                        </div>
-                      )}
+                {/* 2. Positive Alert Banner (premium, if exists) */}
+                {isPremium && positiveAlert && (
+                  <div className="flex items-center gap-2 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                    <Star className="h-4 w-4 text-emerald-400 flex-shrink-0 fill-emerald-400" />
+                    <p className="text-sm text-foreground flex-1 line-clamp-1">{positiveAlert.ai_title}</p>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 h-auto py-1 px-2"
+                      onClick={() => navigate("/alerts?tab=positive")}
+                    >
+                      ←
+                    </Button>
+                  </div>
+                )}
+
+                {/* 3. Digital Activity — Compact Stats Bar (not a card) */}
+                <div className={`grid ${isPremium ? 'grid-cols-3' : 'grid-cols-2'} gap-2 p-3 rounded-xl bg-muted/30 border border-border/30`}>
+                  <div className="text-center">
+                    <Mail className="h-4 w-4 text-muted-foreground mx-auto mb-1" />
+                    <div className="text-xl font-bold text-foreground">{snapshot.messages_scanned ?? 0}</div>
+                    <div className="text-[10px] text-muted-foreground">הודעות נסרקו</div>
+                  </div>
+                  <div className="text-center">
+                    <Bot className="h-4 w-4 text-muted-foreground mx-auto mb-1" />
+                    <div className="text-xl font-bold text-foreground">{snapshot.stacks_sent_to_ai ?? 0}</div>
+                    <div className="text-[10px] text-muted-foreground">ניתוח AI</div>
+                  </div>
+                  {isPremium && (
+                    <div className="text-center">
+                      <AlertTriangle className="h-4 w-4 text-muted-foreground mx-auto mb-1" />
+                      <div className="text-xl font-bold text-foreground">{snapshot.notify_effective_today ?? 0}</div>
+                      <div className="text-[10px] text-muted-foreground">התראות</div>
                     </div>
-                  </CardContent>
-                </Card>
+                  )}
+                </div>
 
                 {isPremium && (
                   <>
-                    {/* Positive Alert Card - Premium only */}
-                    {positiveAlert && (
-                      <Card className="border-emerald-500/30 bg-emerald-500/5">
-                        <CardHeader className="pb-2">
-                          <CardTitle className="flex items-center gap-2 text-base font-semibold text-emerald-400">
-                            <Star className="h-5 w-5 fill-emerald-400 text-emerald-400" />
-                            רגע טוב ✨
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-2">
-                          <p className="font-medium text-foreground text-sm">{positiveAlert.ai_title}</p>
-                          {positiveAlert.ai_summary && (
-                            <p className="text-sm text-muted-foreground line-clamp-2">{positiveAlert.ai_summary}</p>
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 p-0 h-auto"
-                            onClick={() => navigate("/alerts?tab=positive")}
-                          >
-                            ראה הכל ←
-                          </Button>
-                        </CardContent>
-                      </Card>
-                    )}
-
-                    {/* Summary Links - Premium only */}
-                    <Button
-                      variant="outline"
-                      className="w-full justify-between"
+                    {/* 4. Yesterday Summary — Subtle ghost link */}
+                    <button
                       onClick={() => navigate(`/daily-report/${selectedChildId}`)}
+                      className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors pr-1"
                     >
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4" />
-                        <span>סיכום אתמול</span>
-                      </div>
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
+                      <Calendar className="h-3.5 w-3.5" />
+                      <span>צפה בסיכום של אתמול</span>
+                      <ChevronLeft className="h-3.5 w-3.5" />
+                    </button>
 
-                    {/* AI Insights - Premium only */}
-                    <Card className="bg-card border-border">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-                          <Brain className="h-5 w-5 text-muted-foreground" />
-                          תובנות AI
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
+                    {/* 5. AI Insights — Hero Card */}
+                    <Card className="bg-card border-primary/20 shadow-sm shadow-primary/5">
+                      <CardContent className="p-4">
                         {insightsLoading ? (
                           <div className="space-y-2">
                             <div className="h-5 bg-muted/50 rounded animate-pulse w-3/4" />
@@ -678,154 +641,130 @@ const Index = () => {
                             <div className="h-4 bg-muted/50 rounded animate-pulse w-5/6" />
                           </div>
                         ) : insights ? (
-                          <div className="space-y-3">
-                            <p className="font-medium text-foreground">{insights.headline}</p>
-                            <ul className="space-y-1.5">
+                          <div className="space-y-2.5">
+                            <div className="flex items-center gap-2">
+                              <Brain className="h-4 w-4 text-primary" />
+                              <p className="text-base font-semibold text-foreground">{insights.headline}</p>
+                            </div>
+                            <ul className="space-y-1">
                               {insights.insights.map((insight, idx) => (
                                 <li key={idx} className="text-sm text-muted-foreground flex items-start gap-2">
-                                  <span className="text-primary mt-1">•</span>
+                                  <span className="text-primary mt-0.5">•</span>
                                   <span>{insight}</span>
                                 </li>
                               ))}
                             </ul>
                             {insights.suggested_action && (
-                              <p className="text-sm text-muted-foreground/80 pt-2 border-t border-border">
+                              <p className="text-xs text-muted-foreground/80 pt-2 border-t border-border/50">
                                 {insights.suggested_action}
                               </p>
                             )}
                           </div>
                         ) : (
                           <div className="text-center py-2">
-                            <p className="font-medium text-muted-foreground">אין מספיק נתונים לתובנות להיום</p>
-                            <p className="text-sm text-muted-foreground mt-1">
-                              המערכת תציג תובנות לאחר הצטברות פעילות מספקת.
+                            <div className="flex items-center justify-center gap-2 mb-1">
+                              <Brain className="h-4 w-4 text-muted-foreground" />
+                              <p className="font-medium text-sm text-muted-foreground">אין מספיק נתונים לתובנות</p>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              תובנות יופיעו לאחר הצטברות פעילות מספקת.
                             </p>
                           </div>
                         )}
                       </CardContent>
                     </Card>
 
-                    {/* Top Friends/Chats - Premium only */}
-                    <Card className="bg-card border-border">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-                          <Users className="h-5 w-5 text-muted-foreground" />
-                          הקשרים הפעילים ביותר היום
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        {topChats.length > 0 ? (
-                          <>
-                            <div className="flex flex-wrap gap-2 mb-3">
-                              {topChats.map((chat, index) => (
-                                <span
-                                  key={index}
-                                  className="px-3 py-1.5 rounded-full bg-muted text-sm font-medium text-foreground"
-                                >
-                                  {chat.chat_name}
-                                </span>
-                              ))}
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                              אלו הקשרים איתם התקיימה מרבית האינטראקציה היום.
-                            </p>
-                          </>
-                        ) : (
-                          <p className="text-sm text-muted-foreground text-center py-2">
-                            אין נתונים להיום
-                          </p>
-                        )}
-                      </CardContent>
-                    </Card>
+                    {/* 6. Top Contacts — Compact pills (collapse if empty) */}
+                    {topChats.length > 0 && (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-1.5 pr-1">
+                          <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span className="text-xs font-medium text-muted-foreground">קשרים פעילים</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {topChats.map((chat, index) => (
+                            <span
+                              key={index}
+                              className="px-2.5 py-1 rounded-full bg-muted/60 text-xs font-medium text-foreground"
+                            >
+                              {chat.chat_name}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </>
                 )}
 
-                {/* New Apps & Nightly Usage Cards - shown only when data exists */}
+                {/* 7. Device Status — Compact inline row */}
+                <div className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/30 text-sm">
+                  <div className="flex items-center gap-4 flex-wrap">
+                    <span className="flex items-center gap-1.5 text-foreground">
+                      <MapPin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                      <span className="truncate max-w-[120px]">{snapshot.address || "לא זמין"}</span>
+                    </span>
+                    <span className="flex items-center gap-1 text-foreground">
+                      <Battery className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                      {snapshot.battery_level != null ? `${snapshot.battery_level}%` : "—"}
+                    </span>
+                    <span className="flex items-center gap-1 text-muted-foreground text-xs">
+                      <Clock className="h-3 w-3 flex-shrink-0" />
+                      {formatLastSeen(snapshot.last_seen)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* 8. Top Apps — With mini progress bars */}
+                {topApps.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-1.5 pr-1">
+                      <Smartphone className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span className="text-xs font-medium text-muted-foreground">אפליקציות מובילות</span>
+                    </div>
+                    <div className="space-y-2">
+                      {topApps.map((app, index) => {
+                        const iconInfo = getAppIconInfo(app.package_name);
+                        const IconComponent = iconInfo.icon;
+                        const maxMinutes = topApps[0]?.usage_minutes || 1;
+                        const percent = Math.round((app.usage_minutes / maxMinutes) * 100);
+                        return (
+                          <div key={index} className="flex items-center gap-2.5">
+                            <span 
+                              className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                              style={{ backgroundColor: iconInfo.bgColor }}
+                            >
+                              <IconComponent className="w-3.5 h-3.5" style={{ color: iconInfo.color }} />
+                            </span>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between mb-0.5">
+                                <span className="text-sm font-medium text-foreground truncate">{app.app_name}</span>
+                                <span className="text-xs text-muted-foreground mr-2">{formatMinutes(app.usage_minutes)}</span>
+                              </div>
+                              <div className="h-1.5 rounded-full bg-muted/50 overflow-hidden">
+                                <motion.div
+                                  className="h-full rounded-full"
+                                  style={{ backgroundColor: iconInfo.color }}
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${percent}%` }}
+                                  transition={{ duration: 0.6, delay: index * 0.1 }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* 9. New Apps & Nightly Usage (conditional) */}
                 <NewAppsCard childId={selectedChildId} />
                 <NightlyUsageCard childId={selectedChildId} />
 
-                {/* Device Status - always visible, shown first for free users */}
-                <Card className="bg-muted/30 border-border">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-                      <Smartphone className="h-5 w-5 text-muted-foreground" />
-                      מצב המכשיר
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex items-center gap-3 text-sm">
-                      <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                      <span className="text-foreground">מיקום אחרון: {snapshot.address || "לא זמין"}</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-sm">
-                      <Battery className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                      <span className="text-foreground">סוללה: {snapshot.battery_level ?? "לא זמין"}%</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-sm">
-                      <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                      <span className="text-foreground">עדכון אחרון: {formatLastSeen(snapshot.last_seen)}</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground pt-2 border-t border-border">
-                      הנתונים משקפים את המצב האחרון שדווח מהמכשיר.
-                    </p>
-                  </CardContent>
-                </Card>
-
-                {/* App Usage - always visible */}
-                <Card className="bg-card border-border">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-                      <Smartphone className="h-5 w-5 text-muted-foreground" />
-                      האפליקציות המרכזיות היום
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {topApps.length > 0 ? (
-                      <div className="space-y-3">
-                        {topApps.map((app, index) => {
-                          const iconInfo = getAppIconInfo(app.package_name);
-                          const IconComponent = iconInfo.icon;
-                          return (
-                            <div key={index} className="flex items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                <span 
-                                  className="w-7 h-7 rounded-full flex items-center justify-center"
-                                  style={{ backgroundColor: iconInfo.bgColor }}
-                                >
-                                  <IconComponent className="w-4 h-4" style={{ color: iconInfo.color }} />
-                                </span>
-                                <span className="font-medium text-foreground">{app.app_name}</span>
-                              </div>
-                              <span className="text-sm text-muted-foreground">{formatMinutes(app.usage_minutes)}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground text-center py-2">
-                        אין נתונים להיום
-                      </p>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* Premium Upgrade Card - free users only */}
+                {/* 10. Premium Upgrade Card - free users only */}
                 {!isPremium && (
                   <PremiumUpgradeCard childCount={familyChildCount} />
                 )}
-
-                {/* Bottom CTA */}
-                <div className="flex justify-center pt-4 pb-8">
-                  <Button
-                    variant="outline"
-                    onClick={handleRefresh}
-                    disabled={isRefreshing}
-                    className="gap-2"
-                  >
-                    <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
-                    רענון נתונים
-                  </Button>
-                </div>
               </>
             ) : (
               /* No snapshot data yet */
@@ -850,12 +789,12 @@ const Index = () => {
             </Button>
           </div>
         )}
-          </div>
+      </div>
 
-          {/* Disclaimer */}
-          <p className="text-xs text-muted-foreground text-center mt-8">
-            הנתונים מתעדכנים אוטומטית כל ~15 דקות. התראות בטיחות מתקבלות באופן מיידי.
-          </p>
+      {/* Disclaimer */}
+      <p className="text-xs text-muted-foreground text-center mt-4 mb-8 px-4">
+        הנתונים מתעדכנים אוטומטית כל ~15 דקות. התראות בטיחות מתקבלות באופן מיידי.
+      </p>
     </DashboardLayout>
   );
 };
