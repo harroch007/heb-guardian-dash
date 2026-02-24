@@ -1,27 +1,52 @@
-## Notification Settings Simplification
 
-### What Changes
 
-Remove the two toggle sections ("התראה על אנשי קשר לא מוכרים" and "ניטור פעיל") from `/notification-settings`. Instead, the sensitivity level card will show a dynamic description below the three buttons that updates based on the selected level.
+## Two Issues to Fix
 
-### Dynamic Descriptions per Level
+### Issue 1: 409 Error When Saving Settings
 
-- **רגיש** : "תקבל/י התראות על כל אירוע ברמת סיכון בינונית - מגביר את הסיכוי להתראות שווא, לא בטוח שזה השקט שאתם מחפשים"
-- **מאוזן** : "תקבל/י התראות רק על אירועים משמעותיים - איזון בין שקט נפשי לבטיחות"
-- **רק חמור** : "תקבל/י התראות רק על מצבים חמורים באמת - מינימום הפרעות, מקסימום רלוונטיות"
+**Root Cause**: The `settings` table has a partial unique index `uq_settings_child_no_device` defined as:
+```sql
+UNIQUE (COALESCE(parent_id, '00000000-...'), child_id) WHERE device_id IS NULL
+```
 
-### Technical Details
+The code uses `.upsert()` with `onConflict: "parent_id,child_id,device_id"`, but this doesn't match the actual partial unique index (which uses `COALESCE` and a `WHERE` clause). Supabase/PostgREST can't resolve the conflict via the named columns, so it attempts an INSERT and hits the unique constraint, returning 409.
 
-**File**: `src/pages/NotificationSettings.tsx`
+**Fix**: Replace the `upsert` call with a two-step approach: first try `update` (matching `child_id` + `device_id IS NULL`), and if no row was updated (count = 0), fall back to `insert`.
 
-1. Add a `dynamicDescription` field to each item in `SENSITIVITY_LEVELS`
-2. After the 3-button grid, render a `<p>` that shows `SENSITIVITY_LEVELS.find(l => l.key === selectedLevel).dynamicDescription` with a subtle style (`text-sm text-muted-foreground mt-4 text-center`)
-3. Delete the two `<section>` blocks for "unknown contacts" and "monitoring enabled"
-4. Remove unused imports: `UserX`, `Shield`, `Switch`
-5. Remove `alert_on_unknown_contacts` and `monitoring_enabled` from `SettingsData` interface and `DEFAULTS` (keep only `alert_threshold`)
+**File**: `src/pages/NotificationSettings.tsx`, in the `updateSetting` function (around lines 88-100).
 
-No database changes — the columns remain in `settings` but the UI simply won't modify them anymore.
+Change from:
+```ts
+const { error } = await supabase
+  .from("settings")
+  .upsert([{ child_id, parent_id, alert_threshold: value }],
+    { onConflict: "parent_id,child_id,device_id" });
+```
 
-### Layout Result
+To:
+```ts
+// Try update first
+const { error, count } = await supabase
+  .from("settings")
+  .update({ alert_threshold: value })
+  .eq("child_id", selectedChildId)
+  .is("device_id", null)
+  .select();
 
-The page becomes a single clean card with: title → subtitle → 3 sensitivity buttons → dynamic explanation text. Nothing else.
+// If no row existed, insert
+if (!error && count === 0) {
+  const { error: insertError } = await supabase
+    .from("settings")
+    .insert({ child_id: selectedChildId, parent_id: user.id, alert_threshold: value });
+  if (insertError) { /* handle */ }
+}
+```
+
+### Issue 2: Dynamic Description Text Placement
+
+Move the `<p>` with `dynamicDescription` from **inside** the sensitivity card `<section>` to **below** it (outside the card border).
+
+**File**: `src/pages/NotificationSettings.tsx` -- move the `<p className="text-sm text-muted-foreground mt-4 text-center">` line to after the closing `</section>` tag of the sensitivity card.
+
+### No Database Changes Required
+
