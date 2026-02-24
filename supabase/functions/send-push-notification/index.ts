@@ -64,7 +64,7 @@ serve(async (req) => {
 
     // Create application server with VAPID authentication
     const appServer = await webpush.ApplicationServer.new({
-      contactInformation: "mailto:support@kippyai.com",
+      contactInformation: "mailto:yariv@kippyai.com",
       vapidKeys,
     });
 

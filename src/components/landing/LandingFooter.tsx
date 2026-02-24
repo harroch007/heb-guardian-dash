@@ -53,8 +53,8 @@ export const LandingFooter = React.forwardRef<HTMLElement, React.HTMLAttributes<
             <ul className="space-y-2">
               <li className="flex items-center gap-2 text-muted-foreground">
                 <Mail className="w-4 h-4" />
-                <a href="mailto:support@kippyai.com" className="hover:text-primary transition-colors">
-                  support@kippyai.com
+                <a href="mailto:yariv@kippyai.com" className="hover:text-primary transition-colors">
+                  yariv@kippyai.com
                 </a>
               </li>
               <li className="flex items-center gap-2 text-muted-foreground">
