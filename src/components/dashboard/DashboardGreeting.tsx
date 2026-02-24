@@ -1,9 +1,15 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Sparkles } from "lucide-react";
+import { RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
-export const DashboardGreeting = () => {
+interface DashboardGreetingProps {
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
+}
+
+export const DashboardGreeting = ({ onRefresh, isRefreshing }: DashboardGreetingProps) => {
   const { user } = useAuth();
   const [parentName, setParentName] = useState<string | null>(null);
 
@@ -18,7 +24,6 @@ export const DashboardGreeting = () => {
         .single();
       
       if (data?.full_name) {
-        // Extract first name (before @ if email, or first word)
         const name = data.full_name.includes('@') 
           ? data.full_name.split('@')[0] 
           : data.full_name.split(' ')[0];
@@ -38,13 +43,21 @@ export const DashboardGreeting = () => {
   };
 
   return (
-    <div className="mb-6 animate-fade-in">
-      <div className="flex items-center gap-2">
-        <Sparkles className="w-5 h-5 text-primary" />
-        <h1 className="text-xl sm:text-2xl font-bold text-foreground">
-          {getGreeting()}{parentName ? `, ${parentName}` : ''}! 👋
-        </h1>
-      </div>
+    <div className="flex items-center justify-between w-full">
+      <h1 className="text-lg font-semibold text-foreground">
+        {getGreeting()}{parentName ? `, ${parentName}` : ''} 👋
+      </h1>
+      {onRefresh && (
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onRefresh}
+          disabled={isRefreshing}
+          className="h-8 w-8 text-muted-foreground hover:text-foreground"
+        >
+          <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+        </Button>
+      )}
     </div>
   );
 };
