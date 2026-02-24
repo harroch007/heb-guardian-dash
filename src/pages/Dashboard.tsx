@@ -639,15 +639,6 @@ const Index = () => {
 
                 {isPremium && (
                   <>
-                    {/* Yesterday Summary — Subtle ghost link */}
-                    <button
-                      onClick={() => navigate(`/daily-report/${selectedChildId}`)}
-                      className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors pr-1"
-                    >
-                      <Calendar className="h-3.5 w-3.5" />
-                      <span>צפה בסיכום של אתמול</span>
-                      <ChevronLeft className="h-3.5 w-3.5" />
-                    </button>
 
                     {/* AI Insights — Hero Card */}
                     <Card className="bg-card border-primary/20 shadow-sm shadow-primary/5">
@@ -697,7 +688,7 @@ const Index = () => {
                       <div className="space-y-2">
                         <div className="flex items-center gap-1.5 pr-1">
                           <Users className="h-3.5 w-3.5 text-muted-foreground" />
-                          <span className="text-xs font-medium text-muted-foreground">קשרים פעילים</span>
+                          <span className="text-xs font-medium text-muted-foreground">הצ'אטים הפעילים ביותר</span>
                         </div>
                         <div className="flex flex-wrap gap-1.5">
                           {topChats.map((chat, index) => (
@@ -792,9 +783,20 @@ const Index = () => {
       </div>
 
       {/* Disclaimer */}
-      <p className="text-xs text-muted-foreground text-center mt-4 mb-8 px-4">
+      <p className="text-xs text-muted-foreground text-center mt-4 px-4">
         הנתונים מתעדכנים אוטומטית כל ~15 דקות. התראות בטיחות מתקבלות באופן מיידי.
       </p>
+      {isPremium && selectedChildId && (
+        <button
+          onClick={() => navigate(`/daily-report/${selectedChildId}`)}
+          className="flex items-center justify-center mx-auto gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mt-2 mb-8"
+        >
+          <Calendar className="h-3.5 w-3.5" />
+          <span>צפה בסיכום של אתמול</span>
+          <ChevronLeft className="h-3.5 w-3.5" />
+        </button>
+      )}
+      {!(isPremium && selectedChildId) && <div className="mb-8" />}
     </DashboardLayout>
   );
 };
