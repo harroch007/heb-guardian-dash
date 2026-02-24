@@ -107,21 +107,30 @@ const NotificationSettings = () => {
     const prev = { ...settings };
     setSettings({ ...settings, [key]: value });
 
-    const { error } = await supabase
+    // Try update first (avoids 409 from partial unique index)
+    const { data: updated, error } = await supabase
       .from("settings")
-      .upsert(
-        [{
-          child_id: selectedChildId,
-          parent_id: user.id,
-          [key]: value,
-        }],
-        { onConflict: "parent_id,child_id,device_id" }
-      );
+      .update({ [key]: value })
+      .eq("child_id", selectedChildId)
+      .is("device_id", null)
+      .select();
 
     if (error) {
       console.error("Failed to update setting:", error);
       toast.error("שגיאה בשמירת ההגדרה");
       setSettings(prev);
+    } else if (!updated || updated.length === 0) {
+      // No existing row – insert
+      const { error: insertError } = await supabase
+        .from("settings")
+        .insert({ child_id: selectedChildId, parent_id: user.id, [key]: value });
+      if (insertError) {
+        console.error("Failed to insert setting:", insertError);
+        toast.error("שגיאה בשמירת ההגדרה");
+        setSettings(prev);
+      } else {
+        toast.success("ההגדרה עודכנה בהצלחה");
+      }
     } else {
       toast.success("ההגדרה עודכנה בהצלחה");
     }
@@ -215,10 +224,10 @@ const NotificationSettings = () => {
                 );
               })}
             </div>
-            <p className="text-sm text-muted-foreground mt-4 text-center">
-              {SENSITIVITY_LEVELS.find(l => l.key === selectedLevel)?.dynamicDescription}
-            </p>
           </section>
+          <p className="text-sm text-muted-foreground mt-3 text-center">
+            {SENSITIVITY_LEVELS.find(l => l.key === selectedLevel)?.dynamicDescription}
+          </p>
         </div>
       )}
     </DashboardLayout>
