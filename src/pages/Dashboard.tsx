@@ -598,7 +598,25 @@ const Index = () => {
                   </div>
                 )}
 
-                {/* 3. Digital Activity — Compact Stats Bar (not a card) */}
+                {/* Device Status — Compact inline row (moved up) */}
+                <div className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/30 text-sm">
+                  <div className="flex items-center gap-4 flex-wrap">
+                    <span className="flex items-center gap-1.5 text-foreground">
+                      <MapPin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                      <span className="truncate max-w-[120px]">{snapshot.address || "לא זמין"}</span>
+                    </span>
+                    <span className="flex items-center gap-1 text-foreground">
+                      <Battery className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                      {snapshot.battery_level != null ? `${snapshot.battery_level}%` : "—"}
+                    </span>
+                    <span className="flex items-center gap-1 text-muted-foreground text-xs">
+                      <Clock className="h-3 w-3 flex-shrink-0" />
+                      {formatLastSeen(snapshot.last_seen)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Digital Activity — Compact Stats Bar */}
                 <div className={`grid ${isPremium ? 'grid-cols-3' : 'grid-cols-2'} gap-2 p-3 rounded-xl bg-muted/30 border border-border/30`}>
                   <div className="text-center">
                     <Mail className="h-4 w-4 text-muted-foreground mx-auto mb-1" />
@@ -621,7 +639,7 @@ const Index = () => {
 
                 {isPremium && (
                   <>
-                    {/* 4. Yesterday Summary — Subtle ghost link */}
+                    {/* Yesterday Summary — Subtle ghost link */}
                     <button
                       onClick={() => navigate(`/daily-report/${selectedChildId}`)}
                       className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors pr-1"
@@ -631,7 +649,7 @@ const Index = () => {
                       <ChevronLeft className="h-3.5 w-3.5" />
                     </button>
 
-                    {/* 5. AI Insights — Hero Card */}
+                    {/* AI Insights — Hero Card */}
                     <Card className="bg-card border-primary/20 shadow-sm shadow-primary/5">
                       <CardContent className="p-4">
                         {insightsLoading ? (
@@ -674,7 +692,7 @@ const Index = () => {
                       </CardContent>
                     </Card>
 
-                    {/* 6. Top Contacts — Compact pills (collapse if empty) */}
+                    {/* Top Contacts — Compact pills (collapse if empty) */}
                     {topChats.length > 0 && (
                       <div className="space-y-2">
                         <div className="flex items-center gap-1.5 pr-1">
@@ -695,24 +713,6 @@ const Index = () => {
                     )}
                   </>
                 )}
-
-                {/* 7. Device Status — Compact inline row */}
-                <div className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/30 text-sm">
-                  <div className="flex items-center gap-4 flex-wrap">
-                    <span className="flex items-center gap-1.5 text-foreground">
-                      <MapPin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                      <span className="truncate max-w-[120px]">{snapshot.address || "לא זמין"}</span>
-                    </span>
-                    <span className="flex items-center gap-1 text-foreground">
-                      <Battery className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                      {snapshot.battery_level != null ? `${snapshot.battery_level}%` : "—"}
-                    </span>
-                    <span className="flex items-center gap-1 text-muted-foreground text-xs">
-                      <Clock className="h-3 w-3 flex-shrink-0" />
-                      {formatLastSeen(snapshot.last_seen)}
-                    </span>
-                  </div>
-                </div>
 
                 {/* 8. Top Apps — With mini progress bars */}
                 {topApps.length > 0 && (
