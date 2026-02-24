@@ -13,7 +13,7 @@ import { Shield, Brain, Bell, BarChart3, Star, CreditCard, Loader2, Check, Tag, 
 import { toast } from "sonner";
 import { getFamilyPrice } from "@/hooks/useFamilySubscription";
 
-const WHATSAPP_LINK = "https://wa.me/972547836498?text=היי%2C%20אשמח%20לקבל%20קוד%20קופון%20לשדרוג%20Premium";
+const WHATSAPP_LINK = "https://wa.me/972548383340?text=היי%2C%20אשמח%20לקבל%20קוד%20קופון%20לשדרוג%20Premium";
 
 const premiumFeatures = [
   { icon: Brain, text: "ניתוח AI מתקדם לכל ההודעות" },
