@@ -854,20 +854,24 @@ async function processAlert(
         .single();
 
       if (alertData?.child_id) {
-        // ── Anti-Spam: Chat Grouping (10-minute window) ──
+        // ── Anti-Spam: Chat Grouping (10-minute window, risk-aware) ──
         const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+        const currentRiskScore = aiResult.risk_score ?? 0;
         const { data: recentSameChat } = await supabase
           .from('alerts')
-          .select('id')
+          .select('id, ai_risk_score')
           .eq('child_id', alertData.child_id)
           .eq('chat_name', alertData.chat_name || '')
           .eq('should_alert', true)
           .gte('analyzed_at', tenMinAgo)
           .neq('id', alertId)
+          .order('ai_risk_score', { ascending: false })
           .limit(1);
 
-        if (recentSameChat && recentSameChat.length > 0) {
-          console.log(`ANTI_SPAM: Grouping alert ${alertId} – same chat within 10min`);
+        const maxRecentScore = recentSameChat?.[0]?.ai_risk_score ?? 0;
+
+        if (recentSameChat && recentSameChat.length > 0 && currentRiskScore <= maxRecentScore) {
+          console.log(`ANTI_SPAM: Grouping alert ${alertId} (score ${currentRiskScore}) – same chat within 10min, max recent score ${maxRecentScore}`);
           const { error: groupErr } = await supabase
             .from('alerts')
             .update({ processing_status: 'grouped', should_alert: false })
