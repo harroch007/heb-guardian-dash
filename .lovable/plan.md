@@ -1,52 +1,23 @@
 
 
-## Two Issues to Fix
+## Plan: Upgrade AI Model to gpt-4.1
 
-### Issue 1: 409 Error When Saving Settings
+Two simple changes in `supabase/functions/analyze-alert/index.ts`:
 
-**Root Cause**: The `settings` table has a partial unique index `uq_settings_child_no_device` defined as:
-```sql
-UNIQUE (COALESCE(parent_id, '00000000-...'), child_id) WHERE device_id IS NULL
+### Change 1: Add console.log before the OpenAI call
+Around line ~678 (before the `fetch` call to the OpenAI API), add:
+```
+console.log("Using model: gpt-4.1 for alert analysis");
 ```
 
-The code uses `.upsert()` with `onConflict: "parent_id,child_id,device_id"`, but this doesn't match the actual partial unique index (which uses `COALESCE` and a `WHERE` clause). Supabase/PostgREST can't resolve the conflict via the named columns, so it attempts an INSERT and hits the unique constraint, returning 409.
+### Change 2: Change model from `gpt-4o-mini` to `gpt-4.1`
+Line 682: replace `model: 'gpt-4o-mini'` with `model: 'gpt-4.1'`
 
-**Fix**: Replace the `upsert` call with a two-step approach: first try `update` (matching `child_id` + `device_id IS NULL`), and if no row was updated (count = 0), fall back to `insert`.
+No other changes to temperature, max_tokens, prompts, or any other logic.
 
-**File**: `src/pages/NotificationSettings.tsx`, in the `updateSetting` function (around lines 88-100).
-
-Change from:
-```ts
-const { error } = await supabase
-  .from("settings")
-  .upsert([{ child_id, parent_id, alert_threshold: value }],
-    { onConflict: "parent_id,child_id,device_id" });
-```
-
-To:
-```ts
-// Try update first
-const { error, count } = await supabase
-  .from("settings")
-  .update({ alert_threshold: value })
-  .eq("child_id", selectedChildId)
-  .is("device_id", null)
-  .select();
-
-// If no row existed, insert
-if (!error && count === 0) {
-  const { error: insertError } = await supabase
-    .from("settings")
-    .insert({ child_id: selectedChildId, parent_id: user.id, alert_threshold: value });
-  if (insertError) { /* handle */ }
-}
-```
-
-### Issue 2: Dynamic Description Text Placement
-
-Move the `<p>` with `dynamicDescription` from **inside** the sensitivity card `<section>` to **below** it (outside the card border).
-
-**File**: `src/pages/NotificationSettings.tsx` -- move the `<p className="text-sm text-muted-foreground mt-4 text-center">` line to after the closing `</section>` tag of the sensitivity card.
-
-### No Database Changes Required
+### Technical Detail
+- File: `supabase/functions/analyze-alert/index.ts`
+- Line 682: `model: 'gpt-4o-mini'` → `model: 'gpt-4.1'`
+- New log line inserted just before the fetch call
+- Edge function will be redeployed after the change
 
