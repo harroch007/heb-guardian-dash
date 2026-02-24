@@ -1,59 +1,74 @@
 
 
-# פיצול זרימת חיבור מכשיר לשני שלבים
+# תיקון לוגיקת Chat Grouping — ריסק עולה = התראה חדשה
 
-## סיכום הדרישה
-פיצול `QRCodeDisplay` ל-2 שלבים:
-1. **שלב 1 — הורדת האפליקציה**: QR שמוביל לחנות Google Play + כפתור "שלב הבא"
-2. **שלב 2 — חיבור המכשיר**: הצגת קוד ידני + אימייל ההורה. ההורה מזין את האימייל + הקוד באפליקציה שבמכשיר הילד. כשהמכשיר מתחבר — realtime redirect לדשבורד
+## הבעיה הנוכחית
+שורות 856-884 ב-`analyze-alert/index.ts`: הבדיקה מחפשת **כל** התראה מאותו צ'אט ב-10 דקות אחרונות עם `should_alert = true`, בלי קשר לציון שלה. אם נמצאת — ההתראה החדשה נחסמת כ-`grouped`.
 
-## שינויים
+התוצאה: התראה #906 (ציון 70) נחסמה כי התראה #900 (ציון 35) מאותו צ'אט עובדה 10 דקות קודם, למרות שהיא הייתה `should_alert: true` עם verdict `monitor`.
 
-### 1. `src/components/QRCodeDisplay.tsx` — שכתוב מלא
+## הפתרון
+שינוי הלוגיקה כך שה-grouping חוסם **רק אם** ההתראה הקודמת מאותו צ'אט הייתה עם `ai_risk_score` **גבוה או שווה** לציון ההתראה הנוכחית.
 
-**Props חדש**: הוספת `parentEmail: string` כדי להציג את האימייל בשלב 2
+אם הציון של ההתראה החדשה **גבוה יותר** מהקודמת — היא עוברת, נשלחת להורה, וה-timer של 10 דקות מתאפס (כי עכשיו **היא** תהיה ה-anchor לבדיקה הבאה).
 
-**State חדש**: `step` (1 או 2)
+## שינוי טכני
 
-**שלב 1:**
-- QR Code שמפנה ל: `https://play.google.com/store/apps/details?id=com.kippy.safety.core`
-- טקסט: "סרקו את הקוד עם מכשיר הילד להורדת אפליקציית KippyAI"
-- כפתור "שלב הבא" שמעביר ל-step 2
+### קובץ: `supabase/functions/analyze-alert/index.ts`
+**שורות 857-884** — עדכון הלוגיקת Chat Grouping:
 
-**שלב 2:**
-- הצגת אימייל ההורה (`parentEmail`)
-- הצגת הקוד הידני (pairing code) + כפתור העתקה
-- הסבר: "הזינו את האימייל והקוד במסך ההתחברות באפליקציה"
-- Realtime subscription על טבלת `devices` — מאזין לשינוי `child_id` שתואם ל-`childId`. כשמכשיר מתחבר → toast הצלחה + `onFinish()` (שמבצע redirect)
-
-**Realtime listener:**
+**לפני:**
 ```typescript
-const channel = supabase
-  .channel(`device-pair-${childId}`)
-  .on('postgres_changes', {
-    event: '*',
-    schema: 'public',
-    table: 'devices',
-    filter: `child_id=eq.${childId}`
-  }, () => {
-    toast({ title: 'המכשיר חובר בהצלחה!' });
-    onFinish();
-  })
-  .subscribe();
+const { data: recentSameChat } = await supabase
+  .from('alerts')
+  .select('id')
+  .eq('child_id', alertData.child_id)
+  .eq('chat_name', alertData.chat_name || '')
+  .eq('should_alert', true)
+  .gte('analyzed_at', tenMinAgo)
+  .neq('id', alertId)
+  .limit(1);
+
+if (recentSameChat && recentSameChat.length > 0) {
+  // → חסום כ-grouped
+}
 ```
 
-**כפתור "סגור וחבר מאוחר יותר"** — נשאר בשני השלבים
+**אחרי:**
+```typescript
+const currentRiskScore = aiResult.risk_score ?? 0;
 
-### 2. `src/components/AddChildModal.tsx` — עדכון props
-שורה 278: הוספת `parentEmail={user?.email || ''}` ל-`QRCodeDisplay`
+const { data: recentSameChat } = await supabase
+  .from('alerts')
+  .select('id, ai_risk_score')
+  .eq('child_id', alertData.child_id)
+  .eq('chat_name', alertData.chat_name || '')
+  .eq('should_alert', true)
+  .gte('analyzed_at', tenMinAgo)
+  .neq('id', alertId)
+  .order('ai_risk_score', { ascending: false })
+  .limit(1);
 
-### 3. `src/pages/ChildDashboard.tsx` — עדכון props
-שורה 650: הוספת `parentEmail={user?.email || ''}` ל-`QRCodeDisplay`
+const maxRecentScore = recentSameChat?.[0]?.ai_risk_score ?? 0;
 
-## סיכום טכני
-- 3 קבצים: `QRCodeDisplay.tsx`, `AddChildModal.tsx`, `ChildDashboard.tsx`
-- QR בשלב 1 מפנה לחנות Play (לא לקוד pairing)
-- שלב 2 מציג אימייל + קוד ידני
-- Realtime subscription מזהה חיבור מכשיר ועושה redirect
-- `onFinish` callback אחראי על הניווט (כבר קיים בקוד הקורא)
+if (recentSameChat && recentSameChat.length > 0 && currentRiskScore <= maxRecentScore) {
+  // → חסום כ-grouped (ריסק לא עלה)
+}
+// אם currentRiskScore > maxRecentScore → ממשיך לשליחה
+```
+
+**ההבדל:** שדה `ai_risk_score` נוסף ל-select, ותנאי `currentRiskScore <= maxRecentScore` נוסף לבדיקה.
+
+## התנהגות חדשה
+| תרחיש | התראה קודמת | התראה חדשה | תוצאה |
+|--------|------------|------------|--------|
+| ריסק ירד | 70 | 35 | grouped ✓ |
+| ריסק זהה | 70 | 70 | grouped ✓ |
+| ריסק עלה | 35 | 70 | **נשלחת** ← timer מתאפס |
+| אין קודמת | — | 70 | **נשלחת** |
+
+## סיכום
+- קובץ אחד: `supabase/functions/analyze-alert/index.ts`
+- שינוי מינימלי: הוספת `ai_risk_score` ל-select + תנאי השוואה
+- לא משפיע על Daily Cap או לוגיקה אחרת
 
