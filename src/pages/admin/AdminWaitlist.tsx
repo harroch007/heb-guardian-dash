@@ -80,6 +80,12 @@ export function AdminWaitlist({ entries, loading, onRefresh, funnel }: AdminWait
 
       if (updateError) throw updateError;
 
+      // Open WhatsApp with pre-filled message
+      const cleanPhone = entry.phone.replace(/[\s\-()]/g, '').replace(/^0/, '972');
+      const message = `שלום ${entry.parent_name} 👋\nקיבלת הזמנה אישית לאפליקציית Kippy!`;
+      const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+      window.open(waUrl, '_blank');
+
       toast.success(`${entry.parent_name} אושר בהצלחה!`);
       onRefresh();
     } catch (error) {
