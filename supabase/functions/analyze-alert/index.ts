@@ -672,6 +672,7 @@ async function processAlert(
   ].filter(Boolean).join('\n');
 
   // 4. Call OpenAI
+  console.log("Using model: gpt-4.1 for alert analysis");
   const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -679,7 +680,7 @@ async function processAlert(
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'gpt-4o-mini',
+      model: 'gpt-4.1',
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: userMessage }
