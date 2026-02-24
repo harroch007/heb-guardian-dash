@@ -190,7 +190,14 @@ const Index = () => {
   const [insightsLoading, setInsightsLoading] = useState(false);
   const [positiveAlert, setPositiveAlert] = useState<{id: number; ai_title: string; ai_summary: string} | null>(null);
   const { allPremium: isPremium, childCount: familyChildCount } = useFamilySubscription();
-  // When child is selected, immediately try to load from cache (sync)
+
+  // One-time: clear stale dashboard cache entries on mount to ensure fresh data
+  useEffect(() => {
+    const keys = Object.keys(localStorage).filter(k => k.startsWith(DASHBOARD_CACHE_PREFIX));
+    keys.forEach(k => localStorage.removeItem(k));
+    console.log("[Dashboard] Cleared", keys.length, "stale cache entries on mount");
+  }, []);
+
   useEffect(() => {
     if (children.length > 0 && !selectedChildId) {
       const firstChildId = children[0].id;
@@ -266,55 +273,19 @@ const Index = () => {
     }
   }, []);
 
-  // Main fetch function - checks last_seen before fetching all data
+  // Main fetch function - always fetches fresh snapshot, caches only AI insights by last_seen
   const fetchSnapshot = useCallback(async (showLoadingState = true, forceRefresh = false) => {
     if (!selectedChildId) return;
     
     const cacheKey = `${DASHBOARD_CACHE_PREFIX}${selectedChildId}`;
     
     try {
-      // Step 1: Fetch only last_seen to check if data changed
-      const { data: currentData, error: checkError } = await supabase
-        .from("parent_home_snapshot")
-        .select("last_seen")
-        .eq("child_id", selectedChildId)
-        .maybeSingle();
-      
-      if (checkError) throw checkError;
-      
-      const currentLastSeen = currentData?.last_seen;
-      
-      // Step 2: Check cache
-      if (!forceRefresh) {
-        const cachedRaw = localStorage.getItem(cacheKey);
-        if (cachedRaw && currentLastSeen) {
-          try {
-            const cached: CachedDashboardData = JSON.parse(cachedRaw);
-            
-            // If last_seen hasn't changed - use cache!
-            if (cached.lastSeen === currentLastSeen) {
-              console.log("[Dashboard] Cache hit - last_seen unchanged:", currentLastSeen);
-              setSnapshot(cached.snapshot);
-              setInsights(cached.insights);
-              return { fromCache: true, hasNewData: false };
-            }
-            
-            console.log("[Dashboard] Cache invalidated - last_seen changed:", 
-              cached.lastSeen, "→", currentLastSeen);
-          } catch (e) {
-            console.error("[Dashboard] Cache parse error:", e);
-            localStorage.removeItem(cacheKey);
-          }
-        }
-      }
-      
-      // Step 3: last_seen changed (or no cache) - fetch full data
       if (showLoadingState) {
         setSnapshotLoading(true);
         setInsightsLoading(true);
       }
 
-      // Fetch snapshot and positive alert in parallel
+      // Always fetch snapshot fresh (lightweight view, prevents stale metrics)
       const [snapshotResult, positiveResult] = await Promise.all([
         supabase
           .from("parent_home_snapshot")
@@ -351,12 +322,32 @@ const Index = () => {
         };
         setSnapshot(snapshotData);
         
-        // Step 4: Fetch fresh AI insights (only when last_seen changed)
-        console.log("[Dashboard] Fetching fresh AI insights...");
-        const freshInsights = await fetchFreshInsights(selectedChildId);
+        // AI insights: use cache if last_seen unchanged (expensive call)
+        const currentLastSeen = fullData.last_seen;
+        let freshInsights: DailyInsights | null = null;
+        
+        if (!forceRefresh && currentLastSeen) {
+          const cachedRaw = localStorage.getItem(cacheKey);
+          if (cachedRaw) {
+            try {
+              const cached: CachedDashboardData = JSON.parse(cachedRaw);
+              if (cached.lastSeen === currentLastSeen && cached.insights) {
+                console.log("[Dashboard] AI insights cache hit - last_seen unchanged");
+                freshInsights = cached.insights;
+              }
+            } catch (e) {
+              localStorage.removeItem(cacheKey);
+            }
+          }
+        }
+        
+        if (!freshInsights) {
+          console.log("[Dashboard] Fetching fresh AI insights...");
+          freshInsights = await fetchFreshInsights(selectedChildId);
+        }
         setInsights(freshInsights);
         
-        // Step 5: Save to cache
+        // Save to cache (snapshot + insights)
         if (fullData.last_seen) {
           const cacheData: CachedDashboardData = {
             lastSeen: fullData.last_seen,
@@ -365,7 +356,6 @@ const Index = () => {
             cachedAt: Date.now()
           };
           localStorage.setItem(cacheKey, JSON.stringify(cacheData));
-          console.log("[Dashboard] Cached new data with last_seen:", fullData.last_seen);
         }
         
         return { fromCache: false, hasNewData: true };
@@ -463,14 +453,39 @@ const Index = () => {
     };
   }, [selectedChildId, fetchSnapshot]);
 
+  // Realtime: refresh when device_daily_metrics change for selected child's device
+  useEffect(() => {
+    const deviceId = snapshot?.device_id;
+    if (!deviceId) return;
+    
+    const channel = supabase
+      .channel(`dashboard-metrics-${deviceId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'device_daily_metrics',
+          filter: `device_id=eq.${deviceId}`,
+        },
+        () => {
+          console.log("[Dashboard] Realtime: device_daily_metrics changed, refreshing...");
+          fetchSnapshot(false, true);
+        }
+      )
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [snapshot?.device_id, fetchSnapshot]);
+
   const handleRefresh = async () => {
     setIsRefreshing(true);
     
-    const result = await fetchSnapshot(false, false); // Check cache first
+    const result = await fetchSnapshot(false, true); // force refresh on manual tap
     
-    if (result?.fromCache) {
-      toast.info("אין עדכונים חדשים מהמכשיר");
-    } else if (result?.hasNewData) {
+    if (result?.hasNewData) {
       toast.success("הנתונים עודכנו");
     } else {
       toast.info("אין נתונים זמינים");
