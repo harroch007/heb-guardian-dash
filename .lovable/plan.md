@@ -1,25 +1,35 @@
 
 
-# החלפת כתובת אימייל מ-support@kippyai.com ל-yariv@kippyai.com
+# שליחת הודעת WhatsApp בלחיצה על "אשר"
 
-## הבעיה
-האימייל `support@kippyai.com` מופיע ב-5 קבצים שונים (סה"כ 10 מופעים — href + טקסט).
+## גישה
+הדרך הפשוטה והמיידית — בלחיצה על "אשר", אחרי עדכון הסטטוס וה-`allowed_emails`, נפתח טאב חדש עם קישור `wa.me` שמכיל את הודעת ההזמנה מוכנה עם שם ההורה. האדמין רק לוחץ "שלח" בוואטסאפ.
 
-## קבצים לעדכון
+**יתרונות:**
+- אין צורך ב-API key או שירות צד שלישי
+- אין צורך ב-Edge Function חדשה
+- הטלפון כבר קיים בטבלת `waitlist_signups`
+- שליטה מלאה — האדמין רואה את ההודעה לפני שליחה
 
-| # | קובץ | מיקום |
-|---|---|---|
-| 1 | `src/pages/PrivacyPolicy.tsx` | קישור + טקסט בתחתית העמוד |
-| 2 | `src/pages/TermsOfService.tsx` | קישור + טקסט בתחתית העמוד |
-| 3 | `src/components/legal/LegalPageLayout.tsx` | footer משותף לדפים משפטיים |
-| 4 | `src/components/landing/LandingFooter.tsx` | footer דף הנחיתה |
-| 5 | `supabase/functions/send-push-notification/index.ts` | contactInformation ב-VAPID config |
+## שינוי יחיד
 
-## השינוי
-בכל קובץ — החלפת `support@kippyai.com` ב-`yariv@kippyai.com` (גם ב-`mailto:` וגם בטקסט המוצג).
+### `src/pages/admin/AdminWaitlist.tsx`
+בפונקציית `handleApprove`, אחרי העדכון המוצלח בדאטאבייס:
 
-## פירוט טכני
-- 5 קבצים, שינוי טקסט בלבד
-- אין שינוי לוגי או מבני
-- ה-edge function `send-push-notification` ידרוש deploy מחדש
+1. בניית URL של `https://wa.me/<phone>?text=<encoded_message>`
+2. ההודעה תכלול את שם ההורה (פרסונלי)
+3. פתיחת הקישור בטאב חדש (`window.open`)
+4. הטלפון ינוקה מתווים מיותרים (מקפים, רווחים) ויומר לפורמט בינלאומי (972)
+
+## תוכן ההודעה (טיוטה ראשונית — נעבוד על זה בהמשך כפי שביקשת)
+```
+שלום {parent_name} 👋
+קיבלת הזמנה אישית לאפליקציית Kippy!
+```
+
+## סיכום
+- קובץ אחד לעדכון: `AdminWaitlist.tsx`
+- אין Edge Function חדשה
+- אין secrets חדשים
+- אין שינוי DB
 
