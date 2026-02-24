@@ -5,11 +5,17 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UserPlus, Search, Smartphone, CheckCircle, Loader2, TrendingUp } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { UserPlus, Search, Smartphone, CheckCircle, Loader2, TrendingUp, MessageSquare, RotateCcw } from "lucide-react";
 import { format } from "date-fns";
 import { he } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
+const DEFAULT_MESSAGE_TEMPLATE = `שלום {parent_name} 👋\n\nKippyAI היא אפליקציה שמזהה מצבים כמו בריונות, חרמות, לחץ חברתי או פניות מזרים בשלבים מאוד מוקדמים, כל זאת מבלי לחשוף לך את תוכן ההודעות של הילד.\n\nנרשמת אלינו לפני כמה זמן לרשימת ההמתנה והיום התור שלך הגיע 🙂\n\nכמשתמשים הראשונים, מגיעים לך 3 חודשים ראשונים חינם — ללא כרטיס אשראי.\nקוד ההטבה שלך: KIPPY3\n\nכדי להתחיל:\n1️⃣ התחבר/י דרך האימייל שאיתו נרשמת:\nhttps://www.kippyai.com/\n\n2️⃣ במכשיר הילד חפשו בחנות האפליקציות: KippyAI\n3️⃣ עקבו אחרי שלבי החיבור (זה לוקח כמה דקות)\n\nKippyAI לא מחליפה אותך כהורה, אנחנו פשוט מרימים דגל קטן ובזמן, כדי שתוכל/י להיות שם כשצריך.\n\nאני כאן לכל שאלה.\nיריב הרוש, מנכ"ל KippyAI`;
+
+const STORAGE_KEY = 'kippy_wa_message_template';
 
 interface WaitlistEntry {
   id: string;
@@ -35,6 +41,11 @@ export function AdminWaitlist({ entries, loading, onRefresh, funnel }: AdminWait
   const [search, setSearch] = useState("");
   const [deviceFilter, setDeviceFilter] = useState<string>("all");
   const [approvingId, setApprovingId] = useState<string | null>(null);
+  const [showTemplateEditor, setShowTemplateEditor] = useState(false);
+  const [messageTemplate, setMessageTemplate] = useState(() => {
+    return localStorage.getItem(STORAGE_KEY) || DEFAULT_MESSAGE_TEMPLATE;
+  });
+  const [editingTemplate, setEditingTemplate] = useState(messageTemplate);
 
   const filteredEntries = entries.filter((entry) => {
     const matchesSearch = 
@@ -82,7 +93,7 @@ export function AdminWaitlist({ entries, loading, onRefresh, funnel }: AdminWait
 
       // Open WhatsApp with pre-filled message
       const cleanPhone = entry.phone.replace(/[\s\-()]/g, '').replace(/^0/, '972');
-      const message = `שלום ${entry.parent_name} 👋\n\nKippyAI היא אפליקציה שמזהה מצבים כמו בריונות, חרמות, לחץ חברתי או פניות מזרים בשלבים מאוד מוקדמים, כל זאת מבלי לחשוף לך את תוכן ההודעות של הילד.\n\nנרשמת אלינו לפני כמה זמן לרשימת ההמתנה והיום התור שלך הגיע 🙂\n\nכמשתמשים הראשונים, מגיעים לך 3 חודשים ראשונים חינם — ללא כרטיס אשראי.\nקוד ההטבה שלך: KIPPY3\n\nכדי להתחיל:\n1️⃣ התחבר/י דרך האימייל שאיתו נרשמת:\nhttps://www.kippyai.com/\n\n2️⃣ במכשיר הילד חפשו בחנות האפליקציות: KippyAI\n3️⃣ עקבו אחרי שלבי החיבור (זה לוקח כמה דקות)\n\nKippyAI לא מחליפה אותך כהורה, אנחנו פשוט מרימים דגל קטן ובזמן, כדי שתוכל/י להיות שם כשצריך.\n\nאני כאן לכל שאלה.\nיריב הרוש, מנכ"ל KippyAI`;
+      const message = messageTemplate.replace(/\{parent_name\}/g, entry.parent_name);
       const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
       window.open(waUrl, '_blank');
 
@@ -209,12 +220,23 @@ export function AdminWaitlist({ entries, loading, onRefresh, funnel }: AdminWait
 
       {/* Table */}
       <Card className="border-primary/20">
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <UserPlus className="w-5 h-5" />
-            רשימת המתנה
-          </CardTitle>
-          <CardDescription>{filteredEntries.length} תוצאות</CardDescription>
+        <CardHeader className="flex flex-row items-start justify-between">
+          <div>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <UserPlus className="w-5 h-5" />
+              רשימת המתנה
+            </CardTitle>
+            <CardDescription>{filteredEntries.length} תוצאות</CardDescription>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => { setEditingTemplate(messageTemplate); setShowTemplateEditor(true); }}
+            className="gap-1.5"
+          >
+            <MessageSquare className="w-4 h-4" />
+            ערוך הודעה
+          </Button>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-4 mb-4">
@@ -319,6 +341,48 @@ export function AdminWaitlist({ entries, loading, onRefresh, funnel }: AdminWait
           </div>
         </CardContent>
       </Card>
+
+      {/* Template Editor Dialog */}
+      <Dialog open={showTemplateEditor} onOpenChange={setShowTemplateEditor}>
+        <DialogContent className="max-w-2xl" dir="rtl">
+          <DialogHeader>
+            <DialogTitle>עריכת הודעת WhatsApp</DialogTitle>
+            <DialogDescription>
+              השתמש ב-<code className="bg-muted px-1 rounded text-xs">{'{parent_name}'}</code> כדי להכניס את שם ההורה אוטומטית
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            dir="rtl"
+            value={editingTemplate}
+            onChange={(e) => setEditingTemplate(e.target.value)}
+            className="min-h-[300px] font-mono text-sm leading-relaxed"
+          />
+          <div className="flex gap-2 justify-between">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setEditingTemplate(DEFAULT_MESSAGE_TEMPLATE)}
+              className="gap-1.5"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              איפוס לברירת מחדל
+            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setShowTemplateEditor(false)}>
+                ביטול
+              </Button>
+              <Button onClick={() => {
+                setMessageTemplate(editingTemplate);
+                localStorage.setItem(STORAGE_KEY, editingTemplate);
+                setShowTemplateEditor(false);
+                toast.success('תבנית ההודעה נשמרה');
+              }}>
+                שמור
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
