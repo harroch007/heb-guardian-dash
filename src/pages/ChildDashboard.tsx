@@ -647,7 +647,7 @@ export default function ChildDashboard() {
                   <X className="w-5 h-5" />
                 </Button>
               </div>
-              <QRCodeDisplay childId={child.id} parentId={user?.id || ""} onFinish={() => setShowQRModal(false)} />
+              <QRCodeDisplay childId={child.id} parentId={user?.id || ""} parentEmail={user?.email || ""} onFinish={() => setShowQRModal(false)} />
             </div>
           </div>
         )}
