@@ -107,6 +107,13 @@ export function AdminWaitlist({ entries, loading, onRefresh, funnel }: AdminWait
     }
   };
 
+  const handleResend = (entry: WaitlistEntry) => {
+    const cleanPhone = entry.phone.replace(/[\s\-()]/g, '').replace(/^0/, '972');
+    const message = messageTemplate.replace(/\{parent_name\}/g, entry.parent_name);
+    const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+    window.open(waUrl, '_blank');
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -317,7 +324,7 @@ export function AdminWaitlist({ entries, loading, onRefresh, funnel }: AdminWait
                         )}
                       </TableCell>
                       <TableCell>
-                        {entry.status !== 'approved' && (
+                        {entry.status !== 'approved' ? (
                           <Button
                             size="sm"
                             onClick={() => handleApprove(entry)}
@@ -330,6 +337,16 @@ export function AdminWaitlist({ entries, loading, onRefresh, funnel }: AdminWait
                               <CheckCircle className="w-3 h-3" />
                             )}
                             אשר
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleResend(entry)}
+                            className="gap-1"
+                          >
+                            <RotateCcw className="w-3 h-3" />
+                            שלח שוב
                           </Button>
                         )}
                       </TableCell>
