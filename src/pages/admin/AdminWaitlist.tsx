@@ -82,7 +82,7 @@ export function AdminWaitlist({ entries, loading, onRefresh, funnel }: AdminWait
 
       // Open WhatsApp with pre-filled message
       const cleanPhone = entry.phone.replace(/[\s\-()]/g, '').replace(/^0/, '972');
-      const message = `שלום ${entry.parent_name} 👋\nקיבלת הזמנה אישית לאפליקציית Kippy!`;
+      const message = `שלום ${entry.parent_name} 👋\n\nKippyAI היא אפליקציה שמזהה מצבים כמו בריונות, חרמות, לחץ חברתי או פניות מזרים בשלבים מאוד מוקדמים, כל זאת מבלי לחשוף לך את תוכן ההודעות של הילד.\n\nנרשמת אלינו לפני כמה זמן לרשימת ההמתנה והיום התור שלך הגיע 🙂\n\nכמשתמשים הראשונים, מגיעים לך 3 חודשים ראשונים חינם — ללא כרטיס אשראי.\nקוד ההטבה שלך: KIPPY3\n\nכדי להתחיל:\n1️⃣ התחבר/י דרך האימייל שאיתו נרשמת:\nhttps://www.kippyai.com/\n\n2️⃣ במכשיר הילד חפשו בחנות האפליקציות: KippyAI\n3️⃣ עקבו אחרי שלבי החיבור (זה לוקח כמה דקות)\n\nKippyAI לא מחליפה אותך כהורה, אנחנו פשוט מרימים דגל קטן ובזמן, כדי שתוכל/י להיות שם כשצריך.\n\nאני כאן לכל שאלה.\nיריב הרוש, מנכ"ל KippyAI`;
       const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
       window.open(waUrl, '_blank');
 
