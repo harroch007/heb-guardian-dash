@@ -598,7 +598,7 @@ const Index = () => {
                           <div className="flex items-center justify-center gap-1 mb-1">
                             <AlertTriangle className="h-4 w-4 text-muted-foreground" />
                           </div>
-                          <div className="text-2xl font-bold text-foreground">{snapshot.alerts_sent ?? 0}</div>
+                          <div className="text-2xl font-bold text-foreground">{snapshot.notify_effective_today ?? 0}</div>
                           <div className="text-xs text-muted-foreground">התראות נשלחו</div>
                         </div>
                       )}
