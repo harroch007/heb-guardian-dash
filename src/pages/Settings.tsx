@@ -25,7 +25,7 @@ const SettingsPage = () => {
 
   const handleTestNotification = async () => {
     if (!user || !isSubscribed) return;
-    
+
     setIsSendingTest(true);
     try {
       const { error } = await supabase.functions.invoke('send-push-notification', {
@@ -36,7 +36,7 @@ const SettingsPage = () => {
           url: '/settings'
         }
       });
-      
+
       if (error) throw error;
       toast.success('התראת בדיקה נשלחה בהצלחה');
     } catch (error) {
@@ -66,10 +66,10 @@ const SettingsPage = () => {
       <div className="max-w-2xl space-y-4">
         {/* Card 1: התראות */}
         <section className="p-6 rounded-xl bg-card border border-border/50">
-          <div 
+          <div
             onClick={() => navigate('/notification-settings')}
-            className="flex items-center justify-between cursor-pointer hover:opacity-80 transition-opacity"
-          >
+            className="flex items-center justify-between cursor-pointer hover:opacity-80 transition-opacity">
+
             <div className="flex items-center gap-3">
               <Bell className="w-5 h-5 text-warning" />
               <div>
@@ -81,17 +81,17 @@ const SettingsPage = () => {
           </div>
           
           {/* Alerts Preview */}
-          <div className="mt-4 pt-4 border-t border-border/30">
-            <SettingsAlertPreview 
-              alerts={[]}
-              onViewAll={() => navigate('/alerts')}
-            />
-          </div>
+          
+
+
+
+
+
         </section>
 
         {/* Card 2: Push Notifications */}
-        {isSupported && (
-          <section className="p-6 rounded-xl bg-card border border-border/50">
+        {isSupported &&
+        <section className="p-6 rounded-xl bg-card border border-border/50">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <BellRing className="w-5 h-5 text-primary" />
@@ -102,43 +102,43 @@ const SettingsPage = () => {
                   </p>
                 </div>
               </div>
-              {permission === 'denied' ? (
-                <span className="text-xs text-destructive">חסום בדפדפן</span>
-              ) : (
-                <div dir="ltr">
+              {permission === 'denied' ?
+            <span className="text-xs text-destructive">חסום בדפדפן</span> :
+
+            <div dir="ltr">
                   <Switch
-                    checked={isSubscribed}
-                    disabled={pushLoading}
-                    onCheckedChange={(checked) => checked ? subscribe() : unsubscribe()}
-                  />
+                checked={isSubscribed}
+                disabled={pushLoading}
+                onCheckedChange={(checked) => checked ? subscribe() : unsubscribe()} />
+
                 </div>
-              )}
+            }
             </div>
-            {permission === 'denied' && (
-              <p className="mt-3 text-xs text-muted-foreground">
+            {permission === 'denied' &&
+          <p className="mt-3 text-xs text-muted-foreground">
                 ההתראות חסומות. יש לאפשר אותן בהגדרות הדפדפן.
               </p>
-            )}
-            {isSubscribed && (
-              <div className="mt-4 pt-4 border-t border-border/30">
+          }
+            {isSubscribed &&
+          <div className="mt-4 pt-4 border-t border-border/30">
                 <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleTestNotification}
-                  disabled={isSendingTest}
-                  className="gap-2"
-                >
-                  {isSendingTest ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Send className="w-4 h-4" />
-                  )}
+              variant="outline"
+              size="sm"
+              onClick={handleTestNotification}
+              disabled={isSendingTest}
+              className="gap-2">
+
+                  {isSendingTest ?
+              <Loader2 className="w-4 h-4 animate-spin" /> :
+
+              <Send className="w-4 h-4" />
+              }
                   שלח התראת בדיקה
                 </Button>
               </div>
-            )}
+          }
           </section>
-        )}
+        }
 
         {/* Card 3: פרטיות ושקיפות */}
         <section className="p-6 rounded-xl bg-card border border-border/50">
@@ -150,21 +150,21 @@ const SettingsPage = () => {
             </div>
           </div>
           <div className="flex gap-3">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={() => navigate('/privacy')}
-              className="gap-2"
-            >
+              className="gap-2">
+
               <FileText className="w-4 h-4" />
               מדיניות פרטיות
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={() => navigate('/terms')}
-              className="gap-2"
-            >
+              className="gap-2">
+
               <FileText className="w-4 h-4" />
               תנאי שימוש
             </Button>
@@ -181,30 +181,30 @@ const SettingsPage = () => {
             </div>
           </div>
           <div className="flex flex-wrap gap-3">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={() => openWhatsApp()}
-              className="gap-2 border-green-500/30 text-green-600 hover:bg-green-500/10 hover:text-green-600"
-            >
+              className="gap-2 border-green-500/30 text-green-600 hover:bg-green-500/10 hover:text-green-600">
+
               <MessageCircle className="w-4 h-4" />
               WhatsApp
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={() => openWhatsApp("היי, אני רוצה לדווח על תקלה באפליקציה:\n\n")}
-              className="gap-2"
-            >
+              className="gap-2">
+
               <Bug className="w-4 h-4" />
               דווח על תקלה
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={() => openWhatsApp("היי, יש לי הצעה לשיפור:\n\n")}
-              className="gap-2"
-            >
+              className="gap-2">
+
               <Lightbulb className="w-4 h-4" />
               הצעה לשיפור
             </Button>
@@ -214,8 +214,8 @@ const SettingsPage = () => {
         {/* Sign Out */}
         <button
           onClick={handleSignOut}
-          className="w-full py-3 px-6 rounded-lg bg-destructive/10 text-destructive font-medium hover:bg-destructive/20 transition-all border border-destructive/20 flex items-center justify-center gap-2"
-        >
+          className="w-full py-3 px-6 rounded-lg bg-destructive/10 text-destructive font-medium hover:bg-destructive/20 transition-all border border-destructive/20 flex items-center justify-center gap-2">
+
           <LogOut className="w-5 h-5" />
           התנתקות
         </button>
@@ -227,8 +227,8 @@ const SettingsPage = () => {
           </p>
         </div>
       </div>
-    </DashboardLayout>
-  );
+    </DashboardLayout>);
+
 };
 
 export default SettingsPage;
