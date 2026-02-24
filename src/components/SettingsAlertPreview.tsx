@@ -21,10 +21,10 @@ const formatTimeAgo = (timestamp: string): string => {
 
   if (diffMinutes < 1) return "עכשיו";
   if (diffMinutes < 60) return `לפני ${diffMinutes} דקות`;
-  
+
   const diffHours = Math.floor(diffMinutes / 60);
   if (diffHours < 24) return `לפני ${diffHours} שעות`;
-  
+
   const diffDays = Math.floor(diffHours / 24);
   return `לפני ${diffDays} ימים`;
 };
@@ -39,23 +39,23 @@ export function SettingsAlertPreview({ alerts, onAlertClick, onViewAll }: Settin
   const displayAlerts = alerts.slice(0, 5);
 
   if (displayAlerts.length === 0) {
-    return (
-      <div className="text-center py-4">
-        <p className="text-sm text-muted-foreground">הכל רגוע – אין התראות פתוחות</p>
-      </div>
-    );
+    return;
+
+
+
+
   }
 
   return (
     <div className="space-y-0">
-      {displayAlerts.map((alert, index) => (
-        <div
-          key={alert.id}
-          onClick={() => onAlertClick?.(alert.id)}
-          className={`p-3 cursor-pointer hover:bg-muted/30 transition-colors ${
-            index < displayAlerts.length - 1 ? "border-b border-border/30" : ""
-          }`}
-        >
+      {displayAlerts.map((alert, index) =>
+      <div
+        key={alert.id}
+        onClick={() => onAlertClick?.(alert.id)}
+        className={`p-3 cursor-pointer hover:bg-muted/30 transition-colors ${
+        index < displayAlerts.length - 1 ? "border-b border-border/30" : ""}`
+        }>
+
           <div className="flex items-start justify-between gap-2 mb-1">
             <span className="text-sm font-medium text-foreground">
               {alert.chat_name || "שיחה"}
@@ -68,17 +68,17 @@ export function SettingsAlertPreview({ alerts, onAlertClick, onViewAll }: Settin
             {truncateMessage(alert.parent_message)}
           </p>
         </div>
-      ))}
+      )}
 
-      {onViewAll && (
-        <button
-          onClick={onViewAll}
-          className="w-full flex items-center justify-center gap-1 py-3 text-sm text-primary hover:text-primary/80 transition-colors"
-        >
+      {onViewAll &&
+      <button
+        onClick={onViewAll}
+        className="w-full flex items-center justify-center gap-1 py-3 text-sm text-primary hover:text-primary/80 transition-colors">
+
           צפייה בכל ההתראות
           <ChevronLeft className="w-4 h-4" />
         </button>
-      )}
-    </div>
-  );
+      }
+    </div>);
+
 }
