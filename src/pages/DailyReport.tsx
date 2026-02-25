@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, BarChart3, Brain, Users, Smartphone, Calendar, Mail, Bot, AlertTriangle } from "lucide-react";
+import { ArrowRight, BarChart3, Brain, Users, Smartphone, Calendar, Mail, Bot, AlertTriangle, Moon, PartyPopper } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getAppIconInfo } from "@/lib/appIcons";
 import {
@@ -99,6 +99,8 @@ const DailyReport = () => {
   const [appsLoading, setAppsLoading] = useState(false);
   const [insights, setInsights] = useState<DailyInsights | null>(null);
   const [insightsLoading, setInsightsLoading] = useState(false);
+  const [nightlyReport, setNightlyReport] = useState<{ total_minutes: number; top_app_name: string | null; top_app_package: string | null; top_app_minutes: number | null } | null>(null);
+  const [nightlyLoading, setNightlyLoading] = useState(false);
 
   const fetchMetrics = async () => {
     if (!childId) return;
@@ -208,11 +210,31 @@ const DailyReport = () => {
     setInsightsLoading(false);
   };
 
+  const fetchNightlyReport = async () => {
+    if (!childId) return;
+    setNightlyLoading(true);
+    const { data, error } = await supabase
+      .from("nightly_usage_reports")
+      .select("total_minutes, top_app_name, top_app_package, top_app_minutes")
+      .eq("child_id", childId)
+      .eq("report_date", selectedDate)
+      .limit(1)
+      .maybeSingle();
+
+    if (!error && data) {
+      setNightlyReport(data);
+    } else {
+      setNightlyReport(null);
+    }
+    setNightlyLoading(false);
+  };
+
   useEffect(() => {
     fetchMetrics();
     fetchTopContacts();
     fetchTopApps();
     fetchInsights();
+    fetchNightlyReport();
   }, [childId, selectedDate]);
 
   // No child guard
@@ -316,6 +338,58 @@ const DailyReport = () => {
                   <div className="text-2xl font-bold text-foreground">{metrics?.alerts_sent ?? 0}</div>
                   <div className="text-xs text-muted-foreground">התראות נשלחו</div>
                 </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Nightly Usage Card */}
+        <Card className={`bg-card border-border ${nightlyReport && nightlyReport.total_minutes > 0 ? 'border-blue-500/30 bg-blue-500/5' : 'border-green-500/30 bg-green-500/5'}`}>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+              <Moon className={`h-5 w-5 ${nightlyReport && nightlyReport.total_minutes > 0 ? 'text-blue-400' : 'text-green-400'}`} />
+              שימוש לילי
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {nightlyLoading ? (
+              <Skeleton className="h-8 w-full" />
+            ) : nightlyReport && nightlyReport.total_minutes > 0 ? (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">סה״כ שימוש (00:00–05:00)</span>
+                  <span className="font-bold text-foreground">{nightlyReport.total_minutes} דקות</span>
+                </div>
+                {nightlyReport.top_app_name && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">האפליקציה המובילה</span>
+                    <div className="flex items-center gap-2">
+                      {(() => {
+                        const iconInfo = getAppIconInfo(nightlyReport.top_app_package);
+                        const IconComp = iconInfo.icon;
+                        return (
+                          <>
+                            <span className="w-6 h-6 rounded-full flex items-center justify-center" style={{ backgroundColor: iconInfo.bgColor }}>
+                              <IconComp className="w-3.5 h-3.5" style={{ color: iconInfo.color }} />
+                            </span>
+                            <span className="text-sm font-medium text-foreground">{nightlyReport.top_app_name}</span>
+                            {nightlyReport.top_app_minutes && (
+                              <span className="text-xs text-muted-foreground">({nightlyReport.top_app_minutes} דק׳)</span>
+                            )}
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div>
+                <div className="flex items-center gap-2 text-green-400">
+                  <PartyPopper className="h-5 w-5" />
+                  <span className="font-medium">לא זוהה שימוש לילי 🎉</span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">לא נצפה שימוש במכשיר בין 00:00–05:00</p>
               </div>
             )}
           </CardContent>

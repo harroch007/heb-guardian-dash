@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Moon } from "lucide-react";
+import { Moon, PartyPopper } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getIsraelDate } from "@/lib/utils";
 import { getAppIconInfo } from "@/lib/appIcons";
@@ -16,9 +16,16 @@ interface NightlyUsageCardProps {
   childId: string;
 }
 
+const getIsraelHour = (): number => {
+  const now = new Date();
+  const israelTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Jerusalem" }));
+  return israelTime.getHours();
+};
+
 export function NightlyUsageCard({ childId }: NightlyUsageCardProps) {
   const [report, setReport] = useState<NightlyReport | null>(null);
   const [loading, setLoading] = useState(true);
+  const [hasData, setHasData] = useState(false);
 
   useEffect(() => {
     const fetchReport = async () => {
@@ -33,10 +40,12 @@ export function NightlyUsageCard({ childId }: NightlyUsageCardProps) {
         .limit(1)
         .maybeSingle();
 
-      if (!error && data && data.total_minutes > 0) {
+      if (!error && data) {
         setReport(data);
+        setHasData(true);
       } else {
         setReport(null);
+        setHasData(false);
       }
       setLoading(false);
     };
@@ -44,8 +53,33 @@ export function NightlyUsageCard({ childId }: NightlyUsageCardProps) {
     fetchReport();
   }, [childId]);
 
-  if (loading || !report) return null;
+  // Hide after 11:00 AM Israel time
+  if (getIsraelHour() >= 11) return null;
 
+  if (loading) return null;
+
+  // No usage or no report → show positive message
+  if (!hasData || !report || report.total_minutes === 0) {
+    return (
+      <Card className="border-green-500/30 bg-green-500/5">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+            <Moon className="h-5 w-5 text-green-400" />
+            שימוש לילי
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-2 text-green-400">
+            <PartyPopper className="h-5 w-5" />
+            <span className="font-medium">לא זוהה שימוש לילי 🎉</span>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">לא נצפה שימוש במכשיר בין 00:00–05:00</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Has usage → show real data
   const iconInfo = getAppIconInfo(report.top_app_package);
   const IconComponent = iconInfo.icon;
 
