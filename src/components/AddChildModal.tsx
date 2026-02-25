@@ -131,11 +131,19 @@ export function AddChildModal({ open, onOpenChange, onChildAdded }: AddChildModa
 
       if (error) {
         console.error("Error adding child:", error);
-        toast({
-          title: "שגיאה",
-          description: "לא ניתן להוסיף את הילד",
-          variant: "destructive",
-        });
+        if (error.code === '23505') {
+          toast({
+            title: "לא ניתן להוסיף את הילד",
+            description: "מספר הטלפון כבר קיים במערכת. אם אתה חושב שמדובר בטעות, פנה לשירות הלקוחות שלנו בכתובת yariv@kippyai.com",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "שגיאה",
+            description: "לא ניתן להוסיף את הילד",
+            variant: "destructive",
+          });
+        }
         return;
       }
 

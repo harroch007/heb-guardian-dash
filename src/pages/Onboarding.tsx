@@ -61,11 +61,27 @@ export default function Onboarding() {
 
       if (error) {
         console.error('Error creating parent record:', error);
-        toast({
-          title: 'שגיאה',
-          description: 'לא ניתן לשמור את הפרופיל',
-          variant: 'destructive',
-        });
+        
+        if (error.code === '23505') {
+          const isPhoneDuplicate = error.message?.includes('uq_parents_phone');
+          const isEmailDuplicate = error.message?.includes('uq_parents_email');
+          
+          toast({
+            title: 'לא ניתן להשלים את הרישום',
+            description: isPhoneDuplicate
+              ? 'מספר הטלפון כבר קיים במערכת. אם אתה חושב שמדובר בטעות, פנה לשירות הלקוחות שלנו בכתובת yariv@kippyai.com'
+              : isEmailDuplicate
+              ? 'כתובת האימייל כבר קיימת במערכת. פנה לשירות הלקוחות: yariv@kippyai.com'
+              : 'הפרטים כבר קיימים במערכת. פנה לשירות הלקוחות: yariv@kippyai.com',
+            variant: 'destructive',
+          });
+        } else {
+          toast({
+            title: 'שגיאה',
+            description: 'לא ניתן לשמור את הפרופיל',
+            variant: 'destructive',
+          });
+        }
         return;
       }
 
