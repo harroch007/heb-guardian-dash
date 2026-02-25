@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -7,13 +7,32 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { UserPlus, Search, Smartphone, CheckCircle, Loader2, TrendingUp, MessageSquare, RotateCcw } from "lucide-react";
+import { UserPlus, Search, Smartphone, CheckCircle, Loader2, TrendingUp, MessageSquare, RotateCcw, Trash2, UserCheck } from "lucide-react";
 import { format } from "date-fns";
 import { he } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-const DEFAULT_MESSAGE_TEMPLATE = `שלום {parent_name}\n\nKippyAI היא אפליקציה שמזהה מצבים כמו בריונות, חרמות, לחץ חברתי או פניות מזרים בשלבים מאוד מוקדמים, כל זאת מבלי לחשוף לך את תוכן ההודעות של הילד.\n\nנרשמת אלינו לפני כמה זמן לרשימת ההמתנה והיום התור שלך הגיע!\n\nכמשתמשים הראשונים, מגיעים לך 3 חודשים ראשונים חינם — ללא כרטיס אשראי.\nקוד ההטבה שלך: KIPPY3\n\nכדי להתחיל:\n1. היכנס/י לאתר והרשם/י עם האימייל שאיתו נרשמת:\nhttps://www.kippyai.com/\n\n2. במכשיר הילד חפשו בחנות האפליקציות: KippyAI\n3. עקבו אחרי שלבי החיבור (זה לוקח כמה דקות)\n\nKippyAI לא מחליפה אותך כהורה, אנחנו פשוט מרימים דגל קטן ובזמן, כדי שתוכל/י להיות שם כשצריך.\n\nאני כאן לכל שאלה.\nיריב הרוש, מנכ"ל KippyAI`;
+const DEFAULT_MESSAGE_TEMPLATE = `שלום {parent_name}
+
+KippyAI היא אפליקציה שמזהה מצבים כמו בריונות, חרמות, לחץ חברתי או פניות מזרים בשלבים מאוד מוקדמים, כל זאת מבלי לחשוף לך את תוכן ההודעות של הילד.
+
+נרשמת אלינו לפני כמה זמן לרשימת ההמתנה והיום התור שלך הגיע!
+
+כמשתמשים הראשונים, מגיעים לך 3 חודשים ראשונים חינם — ללא כרטיס אשראי.
+קוד ההטבה שלך: KIPPY3
+
+כדי להתחיל:
+1. היכנס/י לאתר והרשם/י עם האימייל שאיתו נרשמת:
+https://www.kippyai.com/
+
+2. במכשיר הילד חפשו בחנות האפליקציות: KippyAI
+3. עקבו אחרי שלבי החיבור (זה לוקח כמה דקות)
+
+KippyAI לא מחליפה אותך כהורה, אנחנו פשוט מרימים דגל קטן ובזמן, כדי שתוכל/י להיות שם כשצריך.
+
+אני כאן לכל שאלה.
+יריב הרוש, מנכ"ל KippyAI`;
 
 const STORAGE_KEY = 'kippy_wa_message_template';
 
@@ -41,11 +60,28 @@ export function AdminWaitlist({ entries, loading, onRefresh, funnel }: AdminWait
   const [search, setSearch] = useState("");
   const [deviceFilter, setDeviceFilter] = useState<string>("all");
   const [approvingId, setApprovingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [showTemplateEditor, setShowTemplateEditor] = useState(false);
   const [messageTemplate, setMessageTemplate] = useState(() => {
     return localStorage.getItem(STORAGE_KEY) || DEFAULT_MESSAGE_TEMPLATE;
   });
   const [editingTemplate, setEditingTemplate] = useState(messageTemplate);
+  const [registeredEmails, setRegisteredEmails] = useState<Set<string>>(new Set());
+
+  // Fetch registered parent emails
+  useEffect(() => {
+    const fetchRegisteredEmails = async () => {
+      const { data } = await supabase
+        .from('parents')
+        .select('email');
+      if (data) {
+        setRegisteredEmails(new Set(data.map(p => p.email?.toLowerCase()).filter(Boolean) as string[]));
+      }
+    };
+    fetchRegisteredEmails();
+  }, [entries]); // Re-fetch when entries change (after refresh)
+
+  const isRegistered = (email: string) => registeredEmails.has(email.toLowerCase());
 
   const filteredEntries = entries.filter((entry) => {
     const matchesSearch = 
@@ -62,11 +98,11 @@ export function AdminWaitlist({ entries, loading, onRefresh, funnel }: AdminWait
 
   const androidCount = entries.filter(e => e.device_os.toLowerCase().includes('android')).length;
   const iphoneCount = entries.filter(e => e.device_os.toLowerCase().includes('iphone') || e.device_os.toLowerCase().includes('ios')).length;
+  const registeredCount = entries.filter(e => e.status === 'approved' && isRegistered(e.email)).length;
 
   const handleApprove = async (entry: WaitlistEntry) => {
     setApprovingId(entry.id);
     try {
-      // Add to allowed_emails
       const { error: insertError } = await supabase
         .from('allowed_emails')
         .insert({
@@ -83,7 +119,6 @@ export function AdminWaitlist({ entries, loading, onRefresh, funnel }: AdminWait
         }
       }
 
-      // Update waitlist status
       const { error: updateError } = await supabase
         .from('waitlist_signups')
         .update({ status: 'approved' })
@@ -91,7 +126,6 @@ export function AdminWaitlist({ entries, loading, onRefresh, funnel }: AdminWait
 
       if (updateError) throw updateError;
 
-      // Open WhatsApp with pre-filled message
       const cleanPhone = entry.phone.replace(/[\s\-()]/g, '').replace(/^0/, '972');
       const message = messageTemplate.replace(/\{parent_name\}/g, entry.parent_name);
       const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
@@ -112,6 +146,26 @@ export function AdminWaitlist({ entries, loading, onRefresh, funnel }: AdminWait
     const message = messageTemplate.replace(/\{parent_name\}/g, entry.parent_name);
     const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
     window.open(waUrl, '_blank');
+  };
+
+  const handleDelete = async (entry: WaitlistEntry) => {
+    setDeletingId(entry.id);
+    try {
+      const { error } = await supabase
+        .from('waitlist_signups')
+        .delete()
+        .eq('id', entry.id);
+
+      if (error) throw error;
+
+      toast.success(`${entry.parent_name} הוסר מרשימת ההמתנה`);
+      onRefresh();
+    } catch (error) {
+      console.error('Error deleting waitlist entry:', error);
+      toast.error('שגיאה בהסרת הרשומה');
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   if (loading) {
@@ -174,7 +228,7 @@ export function AdminWaitlist({ entries, loading, onRefresh, funnel }: AdminWait
       )}
 
       {/* Stats Summary */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card className="border-primary/20">
           <CardContent className="pt-4">
             <div className="flex items-center gap-2">
@@ -220,6 +274,17 @@ export function AdminWaitlist({ entries, loading, onRefresh, funnel }: AdminWait
             </div>
             <p className="text-2xl font-bold mt-1 text-yellow-500">
               {entries.filter(e => e.status === 'pending').length}
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="border-sky-500/20">
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-2">
+              <UserCheck className="w-4 h-4 text-sky-500" />
+              <span className="text-sm text-muted-foreground">נרשמו</span>
+            </div>
+            <p className="text-2xl font-bold mt-1 text-sky-500">
+              {registeredCount}
             </p>
           </CardContent>
         </Card>
@@ -291,67 +356,94 @@ export function AdminWaitlist({ entries, loading, onRefresh, funnel }: AdminWait
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredEntries.map((entry) => (
-                    <TableRow key={entry.id} className="hover:bg-muted/20">
-                      <TableCell className="font-medium">{entry.parent_name}</TableCell>
-                      <TableCell className="text-muted-foreground">{entry.email}</TableCell>
-                      <TableCell className="text-muted-foreground">{entry.phone}</TableCell>
-                      <TableCell className="text-center">{entry.child_age}</TableCell>
-                      <TableCell>
-                        <Badge 
-                          variant="outline" 
-                          className={
-                            entry.device_os.toLowerCase().includes('android')
-                              ? "bg-green-500/10 text-green-400 border-green-500/30"
-                              : "bg-blue-500/10 text-blue-400 border-blue-500/30"
-                          }
-                        >
-                          {entry.device_os}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {format(new Date(entry.created_at), "dd/MM/yy", { locale: he })}
-                      </TableCell>
-                      <TableCell>
-                        {entry.status === 'approved' ? (
-                          <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
-                            מאושר
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-yellow-400 border-yellow-500/30">
-                            ממתין
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {entry.status !== 'approved' ? (
-                          <Button
-                            size="sm"
-                            onClick={() => handleApprove(entry)}
-                            disabled={approvingId === entry.id}
-                            className="gap-1"
+                  filteredEntries.map((entry) => {
+                    const registered = entry.status === 'approved' && isRegistered(entry.email);
+                    return (
+                      <TableRow key={entry.id} className="hover:bg-muted/20">
+                        <TableCell className="font-medium">{entry.parent_name}</TableCell>
+                        <TableCell className="text-muted-foreground">{entry.email}</TableCell>
+                        <TableCell className="text-muted-foreground">{entry.phone}</TableCell>
+                        <TableCell className="text-center">{entry.child_age}</TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant="outline" 
+                            className={
+                              entry.device_os.toLowerCase().includes('android')
+                                ? "bg-green-500/10 text-green-400 border-green-500/30"
+                                : "bg-blue-500/10 text-blue-400 border-blue-500/30"
+                            }
                           >
-                            {approvingId === entry.id ? (
-                              <Loader2 className="w-3 h-3 animate-spin" />
+                            {entry.device_os}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {format(new Date(entry.created_at), "dd/MM/yy", { locale: he })}
+                        </TableCell>
+                        <TableCell>
+                          {registered ? (
+                            <Badge className="bg-sky-500/20 text-sky-400 border-sky-500/30">
+                              נרשם ✓
+                            </Badge>
+                          ) : entry.status === 'approved' ? (
+                            <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+                              מאושר
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-yellow-400 border-yellow-500/30">
+                              ממתין
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            {entry.status !== 'approved' ? (
+                              <Button
+                                size="sm"
+                                onClick={() => handleApprove(entry)}
+                                disabled={approvingId === entry.id}
+                                className="gap-1"
+                              >
+                                {approvingId === entry.id ? (
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                ) : (
+                                  <CheckCircle className="w-3 h-3" />
+                                )}
+                                אשר
+                              </Button>
                             ) : (
-                              <CheckCircle className="w-3 h-3" />
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleResend(entry)}
+                                  className="gap-1"
+                                >
+                                  <RotateCcw className="w-3 h-3" />
+                                  שלח שוב
+                                </Button>
+                                {registered && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleDelete(entry)}
+                                    disabled={deletingId === entry.id}
+                                    className="gap-1 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  >
+                                    {deletingId === entry.id ? (
+                                      <Loader2 className="w-3 h-3 animate-spin" />
+                                    ) : (
+                                      <Trash2 className="w-3 h-3" />
+                                    )}
+                                    הסר
+                                  </Button>
+                                )}
+                              </>
                             )}
-                            אשר
-                          </Button>
-                        ) : (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleResend(entry)}
-                            className="gap-1"
-                          >
-                            <RotateCcw className="w-3 h-3" />
-                            שלח שוב
-                          </Button>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
