@@ -453,6 +453,13 @@ export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: Adm
   const handleImpersonate = async () => {
     setImpersonatingId(user.id);
     try {
+      // Verify admin session is still valid
+      const { data: { session } } = await adminSupabase.auth.getSession();
+      if (!session) {
+        toast({ variant: 'destructive', title: 'הסשן פג', description: 'יש להתחבר מחדש לדף הניהול' });
+        window.location.href = '/admin-login';
+        return;
+      }
       const { data, error } = await adminSupabase.functions.invoke("impersonate-user", { body: { userId: user.id } });
       if (error || !data?.access_token) throw new Error(data?.error || error?.message || "Failed to impersonate");
       await logActivity("impersonate");
