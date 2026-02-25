@@ -65,6 +65,7 @@ interface AdminCustomerProfileProps {
   user: UserData;
   open: boolean;
   onClose: () => void;
+  onUserDeleted?: () => void;
 }
 
 const NOTE_TYPES = [
@@ -95,7 +96,7 @@ const NOTE_TYPE_COLORS: Record<string, string> = {
   other: "bg-blue-500/20 text-blue-400 border-blue-500/30",
 };
 
-export function AdminCustomerProfile({ user, open, onClose }: AdminCustomerProfileProps) {
+export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: AdminCustomerProfileProps) {
   const [childrenDetails, setChildrenDetails] = useState<ChildDetail[]>([]);
   const [notes, setNotes] = useState<AdminNote[]>([]);
   const [activityLog, setActivityLog] = useState<ActivityLog[]>([]);
@@ -347,7 +348,11 @@ export function AdminCustomerProfile({ user, open, onClose }: AdminCustomerProfi
 
       toast({ title: "המשתמש נמחק בהצלחה" });
       setDeleteDialogOpen(false);
-      onClose();
+      if (onUserDeleted) {
+        onUserDeleted();
+      } else {
+        onClose();
+      }
     } catch (err: any) {
       toast({ variant: "destructive", title: "שגיאה במחיקה", description: err.message });
     } finally {

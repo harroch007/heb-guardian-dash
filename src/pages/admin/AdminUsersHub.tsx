@@ -37,6 +37,7 @@ interface AdminUsersHubProps {
   waitlist: WaitlistEntry[];
   loading: boolean;
   onRefreshWaitlist: () => void;
+  onRefreshUsers?: () => void;
   funnel?: { stage: string; count: number }[];
   initialStatusFilter?: string;
   onFilterApplied?: () => void;
@@ -44,7 +45,7 @@ interface AdminUsersHubProps {
 }
 
 export function AdminUsersHub({ 
-  users, waitlist, loading, onRefreshWaitlist, funnel,
+  users, waitlist, loading, onRefreshWaitlist, onRefreshUsers, funnel,
   initialStatusFilter, onFilterApplied, initialSubTab
 }: AdminUsersHubProps) {
   const [subTab, setSubTab] = useState(initialSubTab || "users");
@@ -109,6 +110,10 @@ export function AdminUsersHub({
           user={selectedUser}
           open={!!selectedUser}
           onClose={() => setSelectedUser(null)}
+          onUserDeleted={() => {
+            setSelectedUser(null);
+            onRefreshUsers?.();
+          }}
         />
       )}
     </div>
