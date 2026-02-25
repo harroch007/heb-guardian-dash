@@ -99,6 +99,7 @@ export function AdminCustomerProfile({ user, open, onClose }: AdminCustomerProfi
   const [childrenDetails, setChildrenDetails] = useState<ChildDetail[]>([]);
   const [notes, setNotes] = useState<AdminNote[]>([]);
   const [activityLog, setActivityLog] = useState<ActivityLog[]>([]);
+  const [adminNames, setAdminNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [newNote, setNewNote] = useState("");
   const [noteType, setNoteType] = useState("general");
@@ -198,6 +199,20 @@ export function AdminCustomerProfile({ user, open, onClose }: AdminCustomerProfi
         .order("created_at", { ascending: false })
         .limit(50);
       setActivityLog(logData || []);
+
+      // Fetch admin names for activity log
+      if (logData && logData.length > 0) {
+        const uniqueAdminIds = [...new Set(logData.map((l: any) => l.admin_user_id))];
+        const { data: admins } = await supabase
+          .from("parents")
+          .select("id, full_name")
+          .in("id", uniqueAdminIds);
+        if (admins) {
+          const map: Record<string, string> = {};
+          admins.forEach((a: any) => { map[a.id] = a.full_name; });
+          setAdminNames(map);
+        }
+      }
     } catch (err) {
       console.error("Error fetching customer data:", err);
     } finally {
@@ -788,7 +803,7 @@ export function AdminCustomerProfile({ user, open, onClose }: AdminCustomerProfi
                             )}
                           </div>
                           <span className="text-xs text-muted-foreground">
-                            {formatDistanceToNow(new Date(log.created_at), { addSuffix: true, locale: he })}
+                            {adminNames[log.admin_user_id] || "אדמין"} · {formatDistanceToNow(new Date(log.created_at), { addSuffix: true, locale: he })}
                           </span>
                         </div>
                       ))}
