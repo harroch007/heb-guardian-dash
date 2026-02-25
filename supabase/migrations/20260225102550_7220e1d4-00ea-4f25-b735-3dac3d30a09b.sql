@@ -1,0 +1,1 @@
+UPDATE devices SET child_id = NULL WHERE device_id = '9d5a9132b033a86b';
