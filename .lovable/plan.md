@@ -1,26 +1,36 @@
 
 
-## חיבור Resend כספק אימיילים
+## בעיית ניתוק תכוף — שני חשבונות באותו דפדפן
 
-### מה נדרש
+### הבעיה
 
-1. **הרשמה ב-Resend** — אם עדיין אין לך חשבון, היכנס ל-[resend.com](https://resend.com) וצור חשבון
-2. **אימות דומיין** — ב-[resend.com/domains](https://resend.com/domains) יש לאמת את הדומיין שממנו ישלחו האימיילים (למשל `kippyai.com`)
-3. **יצירת API Key** — ב-[resend.com/api-keys](https://resend.com/api-keys) צור מפתח API
-4. **שמירת הסוד** — נשמור את ה-`RESEND_API_KEY` כ-secret בסופאבייס
+שני הטאבים (אדמין + הורה) משתמשים באותו `localStorage` key של Supabase Auth. כשטאב אחד מרענן את ה-refresh token, הוא מבטל את הטוקן של הטאב השני — וזה גורם לשגיאת `refresh_token_not_found` ולניתוק.
 
-### שלבים טכניים
+### הפתרון
 
-- שמירת `RESEND_API_KEY` כ-Supabase secret
-- יצירת Edge Function `send-email` שמשתמש ב-Resend לשליחת אימיילי אימות (magic link, איפוס סיסמה וכו׳)
-- יצירת תבנית React Email מותאמת עם הלוגו של KippyAI בעברית ו-RTL
-- הגדרת Auth Hook בסופאבייס כדי שאימיילי האימות ישלחו דרך Resend
+ליצור Supabase client נפרד לאדמין עם `storageKey` ייחודי, כך ששני החשבונות חיים ב-localStorage בלי להתנגש.
 
-### הערה חשובה
+### שינויים נדרשים
 
-מערכת האימיילים תומכת **רק באימיילי אימות** (magic link, איפוס סיסמה, אימות אימייל). לא מתאים לאימיילים שיווקיים או טרנזקציוניים.
+**1. קובץ חדש: `src/integrations/supabase/admin-client.ts`**
+- יצירת client נפרד עם `storageKey: 'sb-admin-auth-token'`
+- אותו URL ו-anon key, רק storage key שונה
 
-### האם להמשיך?
+**2. עדכון `src/pages/AdminLogin.tsx`**
+- שימוש ב-`adminSupabase` במקום `supabase` רגיל
 
-לפני שאתחיל — האם יש לך כבר חשבון ב-Resend עם דומיין מאומת ו-API Key מוכן?
+**3. עדכון `src/components/AdminRoute.tsx`**
+- שימוש ב-`adminSupabase` לבדיקת הרשאות
+
+**4. עדכון `src/pages/Admin.tsx`**
+- שימוש ב-`adminSupabase` (או העברת context מתאים)
+
+**5. עדכון כל קומפוננטות האדמין** שמשתמשות ב-`supabase` ישירות
+- החלפת import ל-admin client בדפי admin
+
+### תוצאה
+
+- חשבון הורה שומר טוקן ב-`sb-fsedenvbdpctzoznppwo-auth-token` (ברירת מחדל)
+- חשבון אדמין שומר טוקן ב-`sb-admin-auth-token`
+- אין עוד התנגשויות refresh token בין הטאבים
 
