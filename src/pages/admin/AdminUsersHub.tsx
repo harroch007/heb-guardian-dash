@@ -4,6 +4,7 @@ import { Users, UserPlus, Tag } from "lucide-react";
 import { AdminUsers } from "./AdminUsers";
 import { AdminWaitlist } from "./AdminWaitlist";
 import { AdminPromoCodes } from "./AdminPromoCodes";
+import { AdminCustomerProfile } from "./AdminCustomerProfile";
 
 interface UserData {
   id: string;
@@ -46,6 +47,7 @@ export function AdminUsersHub({
   initialStatusFilter, onFilterApplied, initialSubTab
 }: AdminUsersHubProps) {
   const [subTab, setSubTab] = useState(initialSubTab || "users");
+  const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
 
   useEffect(() => {
     if (initialSubTab) setSubTab(initialSubTab);
@@ -75,6 +77,7 @@ export function AdminUsersHub({
             loading={loading} 
             initialStatusFilter={initialStatusFilter}
             onFilterApplied={onFilterApplied}
+            onSelectUser={setSelectedUser}
           />
         </TabsContent>
 
@@ -91,6 +94,14 @@ export function AdminUsersHub({
           <AdminPromoCodes />
         </TabsContent>
       </Tabs>
+
+      {selectedUser && (
+        <AdminCustomerProfile
+          user={selectedUser}
+          open={!!selectedUser}
+          onClose={() => setSelectedUser(null)}
+        />
+      )}
     </div>
   );
 }

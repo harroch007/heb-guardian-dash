@@ -14,6 +14,68 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_activity_log: {
+        Row: {
+          action_details: Json
+          action_type: string
+          admin_user_id: string
+          created_at: string
+          id: string
+          target_parent_id: string
+        }
+        Insert: {
+          action_details?: Json
+          action_type: string
+          admin_user_id: string
+          created_at?: string
+          id?: string
+          target_parent_id: string
+        }
+        Update: {
+          action_details?: Json
+          action_type?: string
+          admin_user_id?: string
+          created_at?: string
+          id?: string
+          target_parent_id?: string
+        }
+        Relationships: []
+      }
+      admin_notes: {
+        Row: {
+          admin_user_id: string
+          created_at: string
+          id: string
+          note_text: string
+          note_type: string
+          parent_id: string
+        }
+        Insert: {
+          admin_user_id: string
+          created_at?: string
+          id?: string
+          note_text: string
+          note_type?: string
+          parent_id: string
+        }
+        Update: {
+          admin_user_id?: string
+          created_at?: string
+          id?: string
+          note_text?: string
+          note_type?: string
+          parent_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_notes_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "parents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_model_config: {
         Row: {
           created_at: string | null

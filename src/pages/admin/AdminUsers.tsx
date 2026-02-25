@@ -37,9 +37,10 @@ interface AdminUsersProps {
   loading: boolean;
   initialStatusFilter?: string;
   onFilterApplied?: () => void;
+  onSelectUser?: (user: UserData) => void;
 }
 
-export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplied }: AdminUsersProps) {
+export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplied, onSelectUser }: AdminUsersProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>(initialStatusFilter || "all");
   const [impersonatingId, setImpersonatingId] = useState<string | null>(null);
@@ -111,6 +112,17 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
 
       if (error || !data?.access_token) {
         throw new Error(data?.error || error?.message || "Failed to impersonate");
+      }
+
+      // Log the impersonation action
+      const { data: { user: adminUser } } = await supabase.auth.getUser();
+      if (adminUser) {
+        await supabase.from("admin_activity_log").insert([{
+          admin_user_id: adminUser.id,
+          target_parent_id: userId,
+          action_type: "impersonate",
+          action_details: { user_name: userName } as any,
+        }]);
       }
 
       // Store tokens and open iframe — tokens sent on iframe load
@@ -251,7 +263,14 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
                 ) : (
                   filteredUsers.map((user) => (
                     <TableRow key={user.id} className="hover:bg-muted/20">
-                      <TableCell className="font-medium">{user.full_name}</TableCell>
+                      <TableCell>
+                        <button
+                          className="font-medium text-primary hover:underline cursor-pointer bg-transparent border-none p-0"
+                          onClick={() => onSelectUser?.(user)}
+                        >
+                          {user.full_name}
+                        </button>
+                      </TableCell>
                       <TableCell className="text-muted-foreground">{user.email || "-"}</TableCell>
                       <TableCell className="text-muted-foreground">{user.phone || "-"}</TableCell>
                       <TableCell className="text-muted-foreground">
