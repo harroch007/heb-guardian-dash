@@ -1230,6 +1230,7 @@ export type Database = {
           email: string | null
           full_name: string
           id: string
+          is_locked: boolean
           phone: string | null
         }
         Insert: {
@@ -1237,6 +1238,7 @@ export type Database = {
           email?: string | null
           full_name: string
           id: string
+          is_locked?: boolean
           phone?: string | null
         }
         Update: {
@@ -1244,6 +1246,7 @@ export type Database = {
           email?: string | null
           full_name?: string
           id?: string
+          is_locked?: boolean
           phone?: string | null
         }
         Relationships: []

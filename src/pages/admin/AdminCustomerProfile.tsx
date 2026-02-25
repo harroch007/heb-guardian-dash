@@ -2,16 +2,20 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Separator } from "@/components/ui/separator";
 import {
-  ArrowRight, User, Mail, Phone, Calendar, Baby, Smartphone, 
+  ArrowRight, User, Mail, Phone, Calendar, Baby, Smartphone,
   UserCheck, Crown, StickyNote, History, Loader2, X, Send,
-  Gift, Lock, Unlock, MessageSquare
+  Gift, Lock, Unlock, MessageSquare, Pencil, Save, Trash2
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { he } from "date-fns/locale";
@@ -78,6 +82,9 @@ const ACTION_TYPE_LABELS: Record<string, string> = {
   lock: "נעילת חשבון",
   unlock: "שחרור חשבון",
   edit_subscription: "עריכת מנוי",
+  edit_parent: "עריכת פרטי הורה",
+  edit_child: "עריכת פרטי ילד",
+  delete_user: "מחיקת משתמש",
 };
 
 const NOTE_TYPE_COLORS: Record<string, string> = {
@@ -101,6 +108,30 @@ export function AdminCustomerProfile({ user, open, onClose }: AdminCustomerProfi
   const [iframeOpen, setIframeOpen] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const pendingTokensRef = useRef<{ access_token: string; refresh_token: string } | null>(null);
+
+  // Edit parent state
+  const [editingParent, setEditingParent] = useState(false);
+  const [editParentName, setEditParentName] = useState("");
+  const [editParentPhone, setEditParentPhone] = useState("");
+  const [savingParent, setSavingParent] = useState(false);
+
+  // Edit child state
+  const [editingChildId, setEditingChildId] = useState<string | null>(null);
+  const [editChildName, setEditChildName] = useState("");
+  const [editChildPhone, setEditChildPhone] = useState("");
+  const [editChildGender, setEditChildGender] = useState("");
+  const [editChildDob, setEditChildDob] = useState("");
+  const [savingChild, setSavingChild] = useState(false);
+
+  // Lock state
+  const [isLocked, setIsLocked] = useState(false);
+  const [lockLoading, setLockLoading] = useState(false);
+
+  // Delete state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteConfirmName, setDeleteConfirmName] = useState("");
+  const [deleting, setDeleting] = useState(false);
+
   const { toast } = useToast();
 
   useEffect(() => {
@@ -112,6 +143,14 @@ export function AdminCustomerProfile({ user, open, onClose }: AdminCustomerProfi
   const fetchCustomerData = async () => {
     setLoading(true);
     try {
+      // Fetch parent's is_locked status
+      const { data: parentData } = await supabase
+        .from("parents")
+        .select("is_locked")
+        .eq("id", user.id)
+        .maybeSingle();
+      setIsLocked((parentData as any)?.is_locked ?? false);
+
       // Fetch children with subscription info
       const { data: children } = await supabase
         .from("children")
@@ -120,7 +159,6 @@ export function AdminCustomerProfile({ user, open, onClose }: AdminCustomerProfi
 
       const childIds = children?.map(c => c.id) || [];
 
-      // Fetch devices for these children
       const { data: devices } = childIds.length > 0
         ? await supabase.from("devices").select("device_id, child_id, last_seen, battery_level").in("child_id", childIds)
         : { data: [] };
@@ -136,23 +174,19 @@ export function AdminCustomerProfile({ user, open, onClose }: AdminCustomerProfi
 
       setChildrenDetails(childrenWithDevices);
 
-      // Fetch notes
       const { data: notesData } = await supabase
         .from("admin_notes")
         .select("*")
         .eq("parent_id", user.id)
         .order("created_at", { ascending: false });
-
       setNotes(notesData || []);
 
-      // Fetch activity log
       const { data: logData } = await supabase
         .from("admin_activity_log")
         .select("*")
         .eq("target_parent_id", user.id)
         .order("created_at", { ascending: false })
         .limit(50);
-
       setActivityLog(logData || []);
     } catch (err) {
       console.error("Error fetching customer data:", err);
@@ -164,7 +198,6 @@ export function AdminCustomerProfile({ user, open, onClose }: AdminCustomerProfi
   const logActivity = async (actionType: string, details: Record<string, unknown> = {}) => {
     const { data: { user: adminUser } } = await supabase.auth.getUser();
     if (!adminUser) return;
-
     await supabase.from("admin_activity_log").insert([{
       admin_user_id: adminUser.id,
       target_parent_id: user.id,
@@ -173,22 +206,142 @@ export function AdminCustomerProfile({ user, open, onClose }: AdminCustomerProfi
     }]);
   };
 
+  // === PARENT EDIT ===
+  const startEditParent = () => {
+    setEditParentName(user.full_name);
+    setEditParentPhone(user.phone || "");
+    setEditingParent(true);
+  };
+
+  const saveParent = async () => {
+    setSavingParent(true);
+    try {
+      const { error } = await supabase
+        .from("parents")
+        .update({ full_name: editParentName.trim(), phone: editParentPhone.trim() || null })
+        .eq("id", user.id);
+      if (error) throw error;
+
+      await logActivity("edit_parent", { full_name: editParentName.trim(), phone: editParentPhone.trim() });
+      // Update local user object for display
+      user.full_name = editParentName.trim();
+      user.phone = editParentPhone.trim() || null;
+      setEditingParent(false);
+      toast({ title: "פרטי הלקוח עודכנו" });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "שגיאה", description: err.message });
+    } finally {
+      setSavingParent(false);
+    }
+  };
+
+  // === CHILD EDIT ===
+  const startEditChild = (child: ChildDetail) => {
+    setEditingChildId(child.id);
+    setEditChildName(child.name);
+    setEditChildPhone(child.phone_number || "");
+    setEditChildGender(child.gender);
+    setEditChildDob(child.date_of_birth);
+  };
+
+  const saveChild = async () => {
+    if (!editingChildId) return;
+    setSavingChild(true);
+    try {
+      const { error } = await supabase
+        .from("children")
+        .update({
+          name: editChildName.trim(),
+          phone_number: editChildPhone.trim(),
+          gender: editChildGender,
+          date_of_birth: editChildDob,
+        })
+        .eq("id", editingChildId);
+      if (error) throw error;
+
+      await logActivity("edit_child", { child_id: editingChildId, name: editChildName.trim() });
+      setEditingChildId(null);
+      fetchCustomerData();
+      toast({ title: "פרטי הילד עודכנו" });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "שגיאה", description: err.message });
+    } finally {
+      setSavingChild(false);
+    }
+  };
+
+  // === LOCK/UNLOCK ===
+  const toggleLock = async () => {
+    setLockLoading(true);
+    const newLocked = !isLocked;
+    try {
+      const { error } = await supabase
+        .from("parents")
+        .update({ is_locked: newLocked } as any)
+        .eq("id", user.id);
+      if (error) throw error;
+
+      await logActivity(newLocked ? "lock" : "unlock");
+      setIsLocked(newLocked);
+      toast({ title: newLocked ? "החשבון ננעל" : "החשבון שוחרר" });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "שגיאה", description: err.message });
+    } finally {
+      setLockLoading(false);
+    }
+  };
+
+  // === DELETE USER ===
+  const handleDeleteUser = async () => {
+    setDeleting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-delete-user", {
+        body: { userId: user.id },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      toast({ title: "המשתמש נמחק בהצלחה" });
+      setDeleteDialogOpen(false);
+      onClose();
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "שגיאה במחיקה", description: err.message });
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  // === WHATSAPP ===
+  const getWhatsAppPhone = (): string | null => {
+    if (user.phone) return user.phone;
+    // Fallback to first child's phone
+    const childPhone = childrenDetails.find(c => c.phone_number)?.phone_number;
+    return childPhone || null;
+  };
+
+  const openWhatsApp = () => {
+    const phone = getWhatsAppPhone();
+    if (!phone) return;
+    const cleaned = phone.replace(/[^0-9+]/g, "");
+    const intl = cleaned.startsWith("0") ? "972" + cleaned.slice(1) : cleaned.replace("+", "");
+    const msg = encodeURIComponent(`שלום ${user.full_name}, פונים אליך מ-KippyAI 🙏`);
+    window.open(`https://wa.me/${intl}?text=${msg}`, "_blank");
+  };
+
+  // === NOTES ===
   const handleAddNote = async () => {
     if (!newNote.trim()) return;
     setSubmittingNote(true);
     try {
       const { data: { user: adminUser } } = await supabase.auth.getUser();
       if (!adminUser) throw new Error("Not authenticated");
-
       const { error } = await supabase.from("admin_notes").insert({
         parent_id: user.id,
         admin_user_id: adminUser.id,
         note_text: newNote.trim(),
         note_type: noteType,
       });
-
       if (error) throw error;
-
       await logActivity("add_note", { note_type: noteType, note_preview: newNote.trim().slice(0, 50) });
       setNewNote("");
       setNoteType("general");
@@ -211,6 +364,7 @@ export function AdminCustomerProfile({ user, open, onClose }: AdminCustomerProfi
     }
   };
 
+  // === PREMIUM ===
   const handleGrantPremium = async () => {
     if (childrenDetails.length === 0) {
       toast({ variant: "destructive", title: "אין ילדים", description: "ללקוח זה אין ילדים רשומים" });
@@ -220,24 +374,13 @@ export function AdminCustomerProfile({ user, open, onClose }: AdminCustomerProfi
     try {
       const expiresAt = new Date();
       expiresAt.setMonth(expiresAt.getMonth() + 1);
-
       const childIds = childrenDetails.map(c => c.id);
       const { error } = await supabase
         .from("children")
-        .update({
-          subscription_tier: "premium",
-          subscription_expires_at: expiresAt.toISOString(),
-        })
+        .update({ subscription_tier: "premium", subscription_expires_at: expiresAt.toISOString() })
         .in("id", childIds);
-
       if (error) throw error;
-
-      await logActivity("grant_benefit", {
-        type: "premium_month",
-        children_count: childIds.length,
-        expires_at: expiresAt.toISOString(),
-      });
-
+      await logActivity("grant_benefit", { type: "premium_month", children_count: childIds.length, expires_at: expiresAt.toISOString() });
       fetchCustomerData();
       toast({ title: "הטבה הוענקה", description: `חודש Premium הוענק ל-${childIds.length} ילדים` });
     } catch (err: any) {
@@ -247,38 +390,24 @@ export function AdminCustomerProfile({ user, open, onClose }: AdminCustomerProfi
     }
   };
 
-  // Impersonation logic
+  // === IMPERSONATION ===
   const sendTokensToIframe = useCallback(() => {
     const iframe = iframeRef.current;
     const tokens = pendingTokensRef.current;
     if (!iframe?.contentWindow || !tokens) return;
-    iframe.contentWindow.postMessage(
-      { type: "impersonate-tokens", ...tokens },
-      window.location.origin
-    );
+    iframe.contentWindow.postMessage({ type: "impersonate-tokens", ...tokens }, window.location.origin);
     pendingTokensRef.current = null;
   }, []);
 
-  const handleIframeLoad = useCallback(() => {
-    sendTokensToIframe();
-  }, [sendTokensToIframe]);
+  const handleIframeLoad = useCallback(() => { sendTokensToIframe(); }, [sendTokensToIframe]);
 
   const handleImpersonate = async () => {
     setImpersonatingId(user.id);
     try {
-      const { data, error } = await supabase.functions.invoke("impersonate-user", {
-        body: { userId: user.id },
-      });
-      if (error || !data?.access_token) {
-        throw new Error(data?.error || error?.message || "Failed to impersonate");
-      }
-
+      const { data, error } = await supabase.functions.invoke("impersonate-user", { body: { userId: user.id } });
+      if (error || !data?.access_token) throw new Error(data?.error || error?.message || "Failed to impersonate");
       await logActivity("impersonate");
-
-      pendingTokensRef.current = {
-        access_token: data.access_token,
-        refresh_token: data.refresh_token,
-      };
+      pendingTokensRef.current = { access_token: data.access_token, refresh_token: data.refresh_token };
       setIframeOpen(true);
     } catch (err: any) {
       toast({ variant: "destructive", title: "שגיאה בהתחזות", description: err.message });
@@ -289,16 +418,14 @@ export function AdminCustomerProfile({ user, open, onClose }: AdminCustomerProfi
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'online':
-        return <Badge className="bg-green-500/20 text-green-400 border-green-500/30">🟢 אונליין</Badge>;
-      case 'today':
-        return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">🟡 פעיל היום</Badge>;
-      case 'offline':
-        return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">🔴 לא פעיל</Badge>;
-      default:
-        return <Badge variant="outline" className="text-muted-foreground">⚪ ללא מכשיר</Badge>;
+      case 'online': return <Badge className="bg-green-500/20 text-green-400 border-green-500/30">🟢 אונליין</Badge>;
+      case 'today': return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">🟡 פעיל היום</Badge>;
+      case 'offline': return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">🔴 לא פעיל</Badge>;
+      default: return <Badge variant="outline" className="text-muted-foreground">⚪ ללא מכשיר</Badge>;
     }
   };
+
+  const whatsAppPhone = getWhatsAppPhone();
 
   return (
     <>
@@ -309,6 +436,7 @@ export function AdminCustomerProfile({ user, open, onClose }: AdminCustomerProfi
               <SheetTitle className="text-xl flex items-center gap-2">
                 <User className="w-5 h-5 text-primary" />
                 {user.full_name}
+                {isLocked && <Badge className="bg-red-500/20 text-red-400 border-red-500/30 text-xs">🔒 נעול</Badge>}
               </SheetTitle>
               {getStatusBadge(user.device_status)}
             </div>
@@ -323,26 +451,63 @@ export function AdminCustomerProfile({ user, open, onClose }: AdminCustomerProfi
               {/* Basic Info */}
               <Card className="border-border/50">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-base">פרטי לקוח</CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base">פרטי לקוח</CardTitle>
+                    {!editingParent ? (
+                      <Button size="sm" variant="ghost" className="gap-1 h-7 text-xs" onClick={startEditParent}>
+                        <Pencil className="w-3 h-3" /> ערוך
+                      </Button>
+                    ) : (
+                      <div className="flex gap-1">
+                        <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setEditingParent(false)}>
+                          <X className="w-3 h-3" />
+                        </Button>
+                        <Button size="sm" className="h-7 text-xs gap-1" onClick={saveParent} disabled={savingParent}>
+                          {savingParent ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                          שמור
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-2 text-sm">
-                  <div className="flex items-center gap-2">
-                    <Mail className="w-4 h-4 text-muted-foreground" />
-                    <span>{user.email || "—"}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Phone className="w-4 h-4 text-muted-foreground" />
-                    <span dir="ltr">{user.phone || "—"}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-muted-foreground" />
-                    <span>נרשם {format(new Date(user.created_at), "dd/MM/yyyy", { locale: he })}</span>
-                  </div>
-                  {user.last_activity && (
-                    <div className="flex items-center gap-2">
-                      <Smartphone className="w-4 h-4 text-muted-foreground" />
-                      <span>פעילות אחרונה: {formatDistanceToNow(new Date(user.last_activity), { addSuffix: true, locale: he })}</span>
+                  {editingParent ? (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-xs text-muted-foreground">שם מלא</label>
+                        <Input value={editParentName} onChange={e => setEditParentName(e.target.value)} className="h-8 text-sm" />
+                      </div>
+                      <div>
+                        <label className="text-xs text-muted-foreground">טלפון</label>
+                        <Input value={editParentPhone} onChange={e => setEditParentPhone(e.target.value)} dir="ltr" className="h-8 text-sm" placeholder="050-1234567" />
+                      </div>
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Mail className="w-4 h-4" />
+                        <span>{user.email || "—"}</span>
+                        <span className="text-xs">(לא ניתן לעריכה)</span>
+                      </div>
                     </div>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <Mail className="w-4 h-4 text-muted-foreground" />
+                        <span>{user.email || "—"}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Phone className="w-4 h-4 text-muted-foreground" />
+                        <span dir="ltr">{user.phone || "—"}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-muted-foreground" />
+                        <span>נרשם {format(new Date(user.created_at), "dd/MM/yyyy", { locale: he })}</span>
+                      </div>
+                      {user.last_activity && (
+                        <div className="flex items-center gap-2">
+                          <Smartphone className="w-4 h-4 text-muted-foreground" />
+                          <span>פעילות אחרונה: {formatDistanceToNow(new Date(user.last_activity), { addSuffix: true, locale: he })}</span>
+                        </div>
+                      )}
+                    </>
                   )}
                 </CardContent>
               </Card>
@@ -361,29 +526,80 @@ export function AdminCustomerProfile({ user, open, onClose }: AdminCustomerProfi
                   ) : (
                     <div className="space-y-3">
                       {childrenDetails.map(child => (
-                        <div key={child.id} className="rounded-lg border border-border/50 p-3 space-y-1">
-                          <div className="flex items-center justify-between">
-                            <span className="font-medium">{child.name}</span>
-                            <Badge variant={child.subscription_tier === 'premium' ? 'default' : 'outline'} className={child.subscription_tier === 'premium' ? 'bg-primary/20 text-primary border-primary/30' : ''}>
-                              {child.subscription_tier === 'premium' ? '👑 Premium' : 'Free'}
-                            </Badge>
-                          </div>
-                          <div className="text-xs text-muted-foreground flex gap-3">
-                            <span>{child.gender === 'male' ? 'זכר' : 'נקבה'}</span>
-                            <span>נולד: {format(new Date(child.date_of_birth), "dd/MM/yyyy")}</span>
-                            {child.subscription_expires_at && (
-                              <span>תפוגה: {format(new Date(child.subscription_expires_at), "dd/MM/yyyy")}</span>
-                            )}
-                          </div>
-                          {child.devices.length > 0 && (
-                            <div className="text-xs text-muted-foreground flex gap-2 mt-1">
-                              {child.devices.map(d => (
-                                <Badge key={d.device_id} variant="outline" className="text-xs font-mono">
-                                  {d.device_id.slice(0, 8)}...
-                                  {d.battery_level != null && ` 🔋${d.battery_level}%`}
-                                </Badge>
-                              ))}
+                        <div key={child.id} className="rounded-lg border border-border/50 p-3 space-y-2">
+                          {editingChildId === child.id ? (
+                            // Edit mode
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-medium text-muted-foreground">עריכת פרטי ילד</span>
+                                <div className="flex gap-1">
+                                  <Button size="sm" variant="ghost" className="h-6 text-xs" onClick={() => setEditingChildId(null)}>
+                                    <X className="w-3 h-3" />
+                                  </Button>
+                                  <Button size="sm" className="h-6 text-xs gap-1" onClick={saveChild} disabled={savingChild}>
+                                    {savingChild ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                                    שמור
+                                  </Button>
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <label className="text-xs text-muted-foreground">שם</label>
+                                  <Input value={editChildName} onChange={e => setEditChildName(e.target.value)} className="h-7 text-xs" />
+                                </div>
+                                <div>
+                                  <label className="text-xs text-muted-foreground">מספר טלפון</label>
+                                  <Input value={editChildPhone} onChange={e => setEditChildPhone(e.target.value)} dir="ltr" className="h-7 text-xs" placeholder="050-..." />
+                                </div>
+                                <div>
+                                  <label className="text-xs text-muted-foreground">מגדר</label>
+                                  <Select value={editChildGender} onValueChange={setEditChildGender}>
+                                    <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="male">זכר</SelectItem>
+                                      <SelectItem value="female">נקבה</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <div>
+                                  <label className="text-xs text-muted-foreground">תאריך לידה</label>
+                                  <Input type="date" value={editChildDob} onChange={e => setEditChildDob(e.target.value)} dir="ltr" className="h-7 text-xs" />
+                                </div>
+                              </div>
                             </div>
+                          ) : (
+                            // View mode
+                            <>
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium">{child.name}</span>
+                                  <Button size="sm" variant="ghost" className="h-5 w-5 p-0" onClick={() => startEditChild(child)}>
+                                    <Pencil className="w-3 h-3 text-muted-foreground" />
+                                  </Button>
+                                </div>
+                                <Badge variant={child.subscription_tier === 'premium' ? 'default' : 'outline'} className={child.subscription_tier === 'premium' ? 'bg-primary/20 text-primary border-primary/30' : ''}>
+                                  {child.subscription_tier === 'premium' ? '👑 Premium' : 'Free'}
+                                </Badge>
+                              </div>
+                              <div className="text-xs text-muted-foreground flex flex-wrap gap-3">
+                                <span>{child.gender === 'male' ? 'זכר' : 'נקבה'}</span>
+                                <span>נולד: {format(new Date(child.date_of_birth), "dd/MM/yyyy")}</span>
+                                <span dir="ltr">📱 {child.phone_number || "—"}</span>
+                                {child.subscription_expires_at && (
+                                  <span>תפוגה: {format(new Date(child.subscription_expires_at), "dd/MM/yyyy")}</span>
+                                )}
+                              </div>
+                              {child.devices.length > 0 && (
+                                <div className="text-xs text-muted-foreground flex gap-2 mt-1">
+                                  {child.devices.map(d => (
+                                    <Badge key={d.device_id} variant="outline" className="text-xs font-mono">
+                                      {d.device_id.slice(0, 8)}...
+                                      {d.battery_level != null && ` 🔋${d.battery_level}%`}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              )}
+                            </>
                           )}
                         </div>
                       ))}
@@ -398,13 +614,7 @@ export function AdminCustomerProfile({ user, open, onClose }: AdminCustomerProfi
                   <CardTitle className="text-base">פעולות מהירות</CardTitle>
                 </CardHeader>
                 <CardContent className="flex flex-wrap gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="gap-2"
-                    disabled={impersonatingId === user.id}
-                    onClick={handleImpersonate}
-                  >
+                  <Button size="sm" variant="outline" className="gap-2" disabled={impersonatingId === user.id} onClick={handleImpersonate}>
                     {impersonatingId === user.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserCheck className="w-4 h-4" />}
                     צפה כהורה
                   </Button>
@@ -412,15 +622,9 @@ export function AdminCustomerProfile({ user, open, onClose }: AdminCustomerProfi
                     size="sm"
                     variant="outline"
                     className="gap-2 text-green-500 border-green-500/30 hover:bg-green-500/10"
-                    disabled={!user.phone}
-                    onClick={() => {
-                      if (!user.phone) return;
-                      const cleaned = user.phone.replace(/[^0-9+]/g, "");
-                      const intl = cleaned.startsWith("0") ? "972" + cleaned.slice(1) : cleaned.replace("+", "");
-                      const msg = encodeURIComponent(`שלום ${user.full_name}, פונים אליך מ-KippyAI 🙏`);
-                      window.open(`https://wa.me/${intl}?text=${msg}`, "_blank");
-                    }}
-                    title={user.phone ? "שלח הודעת WhatsApp" : "אין מספר טלפון"}
+                    disabled={!whatsAppPhone}
+                    onClick={openWhatsApp}
+                    title={whatsAppPhone ? "שלח הודעת WhatsApp" : "אין מספר טלפון (לא להורה ולא לילד)"}
                   >
                     <MessageSquare className="w-4 h-4" />
                     WhatsApp
@@ -435,9 +639,15 @@ export function AdminCustomerProfile({ user, open, onClose }: AdminCustomerProfi
                     {grantingPremium ? <Loader2 className="w-4 h-4 animate-spin" /> : <Gift className="w-4 h-4" />}
                     הענק חודש Premium
                   </Button>
-                  <Button size="sm" variant="outline" className="gap-2 opacity-50 cursor-not-allowed" disabled>
-                    <Lock className="w-4 h-4" />
-                    נעל חשבון (בקרוב)
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className={`gap-2 ${isLocked ? 'text-green-500 border-green-500/30 hover:bg-green-500/10' : 'text-yellow-500 border-yellow-500/30 hover:bg-yellow-500/10'}`}
+                    disabled={lockLoading}
+                    onClick={toggleLock}
+                  >
+                    {lockLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : isLocked ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                    {isLocked ? "שחרר חשבון" : "נעל חשבון"}
                   </Button>
                 </CardContent>
               </Card>
@@ -451,38 +661,21 @@ export function AdminCustomerProfile({ user, open, onClose }: AdminCustomerProfi
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* Add note form */}
                   <div className="space-y-2 rounded-lg border border-border/50 p-3">
-                    <Textarea
-                      placeholder="כתוב הערה חדשה..."
-                      value={newNote}
-                      onChange={(e) => setNewNote(e.target.value)}
-                      className="min-h-[60px] resize-none"
-                    />
+                    <Textarea placeholder="כתוב הערה חדשה..." value={newNote} onChange={(e) => setNewNote(e.target.value)} className="min-h-[60px] resize-none" />
                     <div className="flex items-center gap-2">
                       <Select value={noteType} onValueChange={setNoteType}>
-                        <SelectTrigger className="w-[120px] h-8 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
+                        <SelectTrigger className="w-[120px] h-8 text-xs"><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          {NOTE_TYPES.map(t => (
-                            <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-                          ))}
+                          {NOTE_TYPES.map(t => (<SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>))}
                         </SelectContent>
                       </Select>
-                      <Button
-                        size="sm"
-                        className="gap-1 h-8"
-                        disabled={!newNote.trim() || submittingNote}
-                        onClick={handleAddNote}
-                      >
+                      <Button size="sm" className="gap-1 h-8" disabled={!newNote.trim() || submittingNote} onClick={handleAddNote}>
                         {submittingNote ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
                         שמור
                       </Button>
                     </div>
                   </div>
-
-                  {/* Notes list */}
                   {notes.length === 0 ? (
                     <p className="text-muted-foreground text-sm text-center py-2">אין הערות</p>
                   ) : (
@@ -497,12 +690,7 @@ export function AdminCustomerProfile({ user, open, onClose }: AdminCustomerProfi
                               <span className="text-xs text-muted-foreground">
                                 {formatDistanceToNow(new Date(note.created_at), { addSuffix: true, locale: he })}
                               </span>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 w-6 p-0"
-                                onClick={() => handleDeleteNote(note.id)}
-                              >
+                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => handleDeleteNote(note.id)}>
                                 <X className="w-3 h-3" />
                               </Button>
                             </div>
@@ -553,40 +741,76 @@ export function AdminCustomerProfile({ user, open, onClose }: AdminCustomerProfi
                   )}
                 </CardContent>
               </Card>
+
+              {/* Danger Zone */}
+              <Card className="border-red-500/30">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base text-red-400">אזור מסוכן</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-2 text-red-500 border-red-500/30 hover:bg-red-500/10"
+                    onClick={() => setDeleteDialogOpen(true)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    מחק משתמש לצמיתות
+                  </Button>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    פעולה זו תמחק את המשתמש, הילדים, המכשירים, ההתראות וכל המידע הקשור. לא ניתן לשחזר.
+                  </p>
+                </CardContent>
+              </Card>
             </div>
           )}
         </SheetContent>
       </Sheet>
 
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>מחיקת משתמש לצמיתות</AlertDialogTitle>
+            <AlertDialogDescription>
+              פעולה זו תמחק את <strong>{user.full_name}</strong> ואת כל המידע הקשור אליו (ילדים, מכשירים, התראות).
+              <br />לאישור, הקלד את שם המשתמש: <strong>{user.full_name}</strong>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Input
+            value={deleteConfirmName}
+            onChange={e => setDeleteConfirmName(e.target.value)}
+            placeholder={user.full_name}
+            className="mt-2"
+          />
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => { setDeleteConfirmName(""); }}>ביטול</AlertDialogCancel>
+            <Button
+              variant="destructive"
+              disabled={deleteConfirmName !== user.full_name || deleting}
+              onClick={handleDeleteUser}
+            >
+              {deleting ? <Loader2 className="w-4 h-4 animate-spin me-2" /> : <Trash2 className="w-4 h-4 me-2" />}
+              מחק לצמיתות
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Impersonation iframe dialog */}
       <Dialog open={iframeOpen} onOpenChange={(v) => !v && setIframeOpen(false)}>
         <DialogContent className="max-w-[95vw] w-[95vw] h-[90vh] p-0 gap-0 overflow-hidden">
           <DialogTitle className="sr-only">מצב התחזות — {user.full_name}</DialogTitle>
-          <div
-            dir="rtl"
-            className="bg-amber-500/90 text-black px-4 py-2 flex items-center justify-between gap-3 text-sm font-medium"
-          >
+          <div dir="rtl" className="bg-amber-500/90 text-black px-4 py-2 flex items-center justify-between gap-3 text-sm font-medium">
             <div className="flex items-center gap-2">
               <UserCheck className="w-4 h-4" />
               <span>מצב התחזות — צופה כ: {user.full_name}</span>
             </div>
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-7 border-black/30 bg-black/10 hover:bg-black/20 text-black"
-              onClick={() => setIframeOpen(false)}
-            >
-              <X className="w-3 h-3 me-1" />
-              סגור
+            <Button size="sm" variant="outline" className="h-7 border-black/30 bg-black/10 hover:bg-black/20 text-black" onClick={() => setIframeOpen(false)}>
+              <X className="w-3 h-3 me-1" /> סגור
             </Button>
           </div>
-          <iframe
-            ref={iframeRef}
-            src="/impersonate-session"
-            className="w-full flex-1 border-0"
-            style={{ height: "calc(90vh - 40px)" }}
-            onLoad={handleIframeLoad}
-          />
+          <iframe ref={iframeRef} src="/impersonate-session" className="w-full flex-1 border-0" style={{ height: "calc(90vh - 40px)" }} onLoad={handleIframeLoad} />
         </DialogContent>
       </Dialog>
     </>

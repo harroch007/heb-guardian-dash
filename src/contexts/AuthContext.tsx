@@ -43,7 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data, error } = await supabase
       .from('parents')
-      .select('id')
+      .select('id, is_locked')
       .eq('id', u.id)
       .maybeSingle();
 
@@ -54,6 +54,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     if (data) {
+      // Check if account is locked
+      if ((data as any).is_locked) {
+        await supabase.auth.signOut();
+        toast({
+          variant: 'destructive',
+          title: 'החשבון נעול',
+          description: 'החשבון שלך נעול. פנה לתמיכה: support@kippyai.com',
+        });
+        navigate('/', { replace: true });
+        return;
+      }
       setIsNewUser(false);
       setParentId(data.id);
     } else {
