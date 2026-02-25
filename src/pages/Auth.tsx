@@ -28,7 +28,7 @@ const resetEmailSchema = z.object({
 export default function Auth() {
   const [searchParams] = useSearchParams();
   // In waitlist mode, force login only (ignore signup param)
-  const [isLogin, setIsLogin] = useState(() => WAITLIST_MODE ? true : searchParams.get('signup') !== 'true');
+  const [isLogin, setIsLogin] = useState(() => searchParams.get('signup') !== 'true');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
@@ -160,15 +160,19 @@ export default function Auth() {
         if (error) throw error;
         navigate('/dashboard');
       } else {
-        // Signup is disabled in waitlist mode - this should not be reachable
-        // but we keep the logic as a fallback
+        // In waitlist mode, check if email is approved before allowing signup
         if (WAITLIST_MODE) {
-          toast({
-            variant: "destructive",
-            title: "הרשמה סגורה",
-            description: "כרגע ההרשמה אפשרית רק דרך רשימת ההמתנה",
-          });
-          return;
+          const { data: isAllowed, error: rpcError } = await supabase
+            .rpc('is_email_allowed', { p_email: email });
+          
+          if (rpcError || !isAllowed) {
+            toast({
+              variant: "destructive",
+              title: "הרשמה נדחתה",
+              description: "האימייל שלך לא נמצא ברשימת המורשים. הצטרף לרשימת ההמתנה.",
+            });
+            return;
+          }
         }
         
         const { error } = await supabase.auth.signUp({
@@ -514,29 +518,44 @@ export default function Auth() {
               המשך עם Google
             </Button>
 
-            {/* Only show toggle if not in waitlist mode */}
-            {!WAITLIST_MODE && (
-              <p className="text-center text-sm text-muted-foreground mt-6">
-                {isLogin ? 'אין לך חשבון?' : 'יש לך כבר חשבון?'}
-                <button
-                  type="button"
-                  onClick={() => setIsLogin(!isLogin)}
-                  className="text-primary hover:underline mr-1"
-                >
-                  {isLogin ? 'הרשם עכשיו' : 'התחבר'}
-                </button>
-              </p>
-            )}
-            
-            {/* Show waitlist info when in waitlist mode */}
-            {WAITLIST_MODE && (
-              <p className="text-center text-sm text-muted-foreground mt-6">
-                אין לך חשבון?{' '}
-                <Link to="/" className="text-primary hover:underline">
-                  הצטרף לרשימת ההמתנה
-                </Link>
-              </p>
-            )}
+            <p className="text-center text-sm text-muted-foreground mt-6">
+              {isLogin ? (
+                WAITLIST_MODE ? (
+                  <>
+                    אושרת מרשימת ההמתנה?{' '}
+                    <button
+                      type="button"
+                      onClick={() => setIsLogin(false)}
+                      className="text-primary hover:underline mr-1"
+                    >
+                      הרשם כאן
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    אין לך חשבון?
+                    <button
+                      type="button"
+                      onClick={() => setIsLogin(false)}
+                      className="text-primary hover:underline mr-1"
+                    >
+                      הרשם עכשיו
+                    </button>
+                  </>
+                )
+              ) : (
+                <>
+                  יש לך כבר חשבון?
+                  <button
+                    type="button"
+                    onClick={() => setIsLogin(true)}
+                    className="text-primary hover:underline mr-1"
+                  >
+                    התחבר
+                  </button>
+                </>
+              )}
+            </p>
             
             {/* PWA Install button - only show if not installed */}
             {!isInstalled && (
