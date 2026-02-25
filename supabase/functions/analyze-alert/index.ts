@@ -671,11 +671,12 @@ async function processAlert(
     redactPII(content),
   ].filter(Boolean).join('\n');
 
-  // 4. Select model: check child override → weighted random from config → fallback
+  // 4. Select model: check child override → parent group → weighted random → fallback
   let selectedModel = 'gpt-4.1'; // fallback
   try {
     const childId = alert.child_id;
     if (childId) {
+      // Priority 1: child-level override
       const { data: override } = await supabase
         .from('child_model_override')
         .select('model_name')
@@ -686,6 +687,33 @@ async function processAlert(
         console.log(`Model override found for child ${childId}: ${selectedModel}`);
       }
     }
+    // Priority 2: parent group model
+    if (selectedModel === 'gpt-4.1' && alert.child_id) {
+      const { data: childRow } = await supabase
+        .from('children')
+        .select('parent_id')
+        .eq('id', alert.child_id)
+        .single();
+      if (childRow?.parent_id) {
+        const { data: parentRow } = await supabase
+          .from('parents')
+          .select('group_id')
+          .eq('id', childRow.parent_id)
+          .single();
+        if ((parentRow as any)?.group_id) {
+          const { data: groupRow } = await supabase
+            .from('customer_groups')
+            .select('model_name')
+            .eq('id', (parentRow as any).group_id)
+            .single();
+          if ((groupRow as any)?.model_name) {
+            selectedModel = (groupRow as any).model_name;
+            console.log(`Group model for parent ${childRow.parent_id}: ${selectedModel}`);
+          }
+        }
+      }
+    }
+    // Priority 3: weighted random from ai_model_config
     if (selectedModel === 'gpt-4.1') {
       const { data: configs } = await supabase
         .from('ai_model_config')

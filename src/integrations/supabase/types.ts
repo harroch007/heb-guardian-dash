@@ -801,6 +801,36 @@ export type Database = {
           },
         ]
       }
+      customer_groups: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          is_default: boolean
+          model_name: string | null
+          name: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_default?: boolean
+          model_name?: string | null
+          name: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_default?: boolean
+          model_name?: string | null
+          name?: string
+        }
+        Relationships: []
+      }
       daily_chat_stats: {
         Row: {
           chat_name: string
@@ -1229,6 +1259,7 @@ export type Database = {
           created_at: string
           email: string | null
           full_name: string
+          group_id: string | null
           id: string
           is_locked: boolean
           phone: string | null
@@ -1237,6 +1268,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           full_name: string
+          group_id?: string | null
           id: string
           is_locked?: boolean
           phone?: string | null
@@ -1245,11 +1277,20 @@ export type Database = {
           created_at?: string
           email?: string | null
           full_name?: string
+          group_id?: string | null
           id?: string
           is_locked?: boolean
           phone?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "parents_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "customer_groups"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       promo_codes: {
         Row: {

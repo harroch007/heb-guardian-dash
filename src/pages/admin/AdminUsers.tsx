@@ -12,6 +12,12 @@ import { he } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
+interface GroupInfo {
+  id: string;
+  name: string;
+  color: string;
+}
+
 interface UserData {
   id: string;
   full_name: string;
@@ -30,6 +36,7 @@ interface UserData {
   }[];
   device_status: 'online' | 'today' | 'offline' | 'no_device';
   last_activity: string | null;
+  group_id?: string | null;
 }
 
 interface AdminUsersProps {
@@ -48,6 +55,14 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
   const [iframeUserName, setIframeUserName] = useState("");
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const { toast } = useToast();
+
+  // Fetch groups
+  const [groups, setGroups] = useState<GroupInfo[]>([]);
+  useEffect(() => {
+    (supabase.from("customer_groups") as any).select("id, name, color").order("created_at").then(({ data }: any) => {
+      setGroups((data || []) as GroupInfo[]);
+    });
+  }, []);
 
   useEffect(() => {
     if (initialStatusFilter) {
@@ -247,8 +262,9 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
                   <TableHead className="text-right">אימייל</TableHead>
                   <TableHead className="text-right">טלפון</TableHead>
                   <TableHead className="text-right">תאריך הרשמה</TableHead>
-                  <TableHead className="text-right">ילדים</TableHead>
-                  <TableHead className="text-right">סטטוס</TableHead>
+                   <TableHead className="text-right">ילדים</TableHead>
+                   <TableHead className="text-right">קבוצה</TableHead>
+                   <TableHead className="text-right">סטטוס</TableHead>
                   <TableHead className="text-right">פעילות אחרונה</TableHead>
                   <TableHead className="text-right">פעולות</TableHead>
                 </TableRow>
@@ -256,7 +272,7 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
               <TableBody>
                 {filteredUsers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                     <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                       לא נמצאו משתמשים
                     </TableCell>
                   </TableRow>
@@ -288,6 +304,18 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
                             ))
                           )}
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        {(() => {
+                          const group = groups.find(g => g.id === user.group_id);
+                          return group ? (
+                            <Badge className="text-xs" style={{ backgroundColor: group.color + '33', color: group.color, borderColor: group.color + '50' }}>
+                              {group.name}
+                            </Badge>
+                          ) : (
+                            <span className="text-muted-foreground text-xs">—</span>
+                          );
+                        })()}
                       </TableCell>
                       <TableCell>{getStatusBadge(user.device_status)}</TableCell>
                       <TableCell className="text-muted-foreground text-sm">

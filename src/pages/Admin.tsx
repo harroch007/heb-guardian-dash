@@ -486,6 +486,7 @@ export default function Admin() {
           })),
           device_status: deviceStatus,
           last_activity: lastActivity,
+          group_id: (parent as any).group_id || null,
         };
       });
 
