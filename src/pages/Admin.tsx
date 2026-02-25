@@ -138,6 +138,16 @@ export default function Admin() {
     fetchAllData();
   }, []);
 
+  // Redirect to login if admin session expires
+  useEffect(() => {
+    const { data: { subscription } } = adminSupabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') {
+        navigate('/admin-login', { replace: true });
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
   // Auto-refresh queue health every 30 seconds
   useEffect(() => {
     const interval = setInterval(async () => {

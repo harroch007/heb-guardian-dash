@@ -11,6 +11,7 @@ import { format, formatDistanceToNow } from "date-fns";
 import { he } from "date-fns/locale";
 import { adminSupabase } from "@/integrations/supabase/admin-client";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 interface GroupInfo {
   id: string;
@@ -55,6 +56,7 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
   const [iframeUserName, setIframeUserName] = useState("");
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   // Fetch groups
   const [groups, setGroups] = useState<GroupInfo[]>([]);
@@ -121,6 +123,13 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
   const handleImpersonate = async (userId: string, userName: string) => {
     setImpersonatingId(userId);
     try {
+      // Verify admin session is still valid
+      const { data: { session } } = await adminSupabase.auth.getSession();
+      if (!session) {
+        toast({ variant: 'destructive', title: 'הסשן פג', description: 'יש להתחבר מחדש לדף הניהול' });
+        navigate('/admin-login');
+        return;
+      }
       const { data, error } = await adminSupabase.functions.invoke("impersonate-user", {
         body: { userId },
       });
