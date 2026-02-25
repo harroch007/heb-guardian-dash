@@ -15,7 +15,7 @@ import { Separator } from "@/components/ui/separator";
 import {
   ArrowRight, User, Mail, Phone, Calendar, Baby, Smartphone,
   UserCheck, Crown, StickyNote, History, Loader2, X, Send,
-  Gift, Lock, Unlock, MessageSquare, Pencil, Save, Trash2
+  Gift, Lock, Unlock, MessageSquare, Pencil, Save, Trash2, Users
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { he } from "date-fns/locale";
@@ -132,6 +132,11 @@ export function AdminCustomerProfile({ user, open, onClose }: AdminCustomerProfi
   const [deleteConfirmName, setDeleteConfirmName] = useState("");
   const [deleting, setDeleting] = useState(false);
 
+  // Group state
+  const [groupId, setGroupId] = useState<string | null>(null);
+  const [groups, setGroups] = useState<{ id: string; name: string; color: string }[]>([]);
+  const [savingGroup, setSavingGroup] = useState(false);
+
   const { toast } = useToast();
 
   useEffect(() => {
@@ -143,13 +148,18 @@ export function AdminCustomerProfile({ user, open, onClose }: AdminCustomerProfi
   const fetchCustomerData = async () => {
     setLoading(true);
     try {
-      // Fetch parent's is_locked status
+      // Fetch parent's is_locked status and group_id
       const { data: parentData } = await supabase
         .from("parents")
-        .select("is_locked")
+        .select("is_locked, group_id" as any)
         .eq("id", user.id)
         .maybeSingle();
       setIsLocked((parentData as any)?.is_locked ?? false);
+      setGroupId((parentData as any)?.group_id ?? null);
+
+      // Fetch groups list
+      const { data: groupsData } = await (supabase.from("customer_groups") as any).select("id, name, color").order("created_at");
+      setGroups((groupsData || []) as any[]);
 
       // Fetch children with subscription info
       const { data: children } = await supabase
@@ -192,6 +202,25 @@ export function AdminCustomerProfile({ user, open, onClose }: AdminCustomerProfi
       console.error("Error fetching customer data:", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGroupChange = async (newGroupId: string) => {
+    setSavingGroup(true);
+    try {
+      const val = newGroupId === "none" ? null : newGroupId;
+      const { error } = await (supabase.from("parents") as any)
+        .update({ group_id: val })
+        .eq("id", user.id);
+      if (error) throw error;
+      setGroupId(val);
+      const groupName = groups.find(g => g.id === val)?.name || "ללא";
+      await logActivity("change_group", { group_id: val, group_name: groupName });
+      toast({ title: `קבוצה עודכנה: ${groupName}` });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "שגיאה", description: err.message });
+    } finally {
+      setSavingGroup(false);
     }
   };
 
@@ -509,6 +538,32 @@ export function AdminCustomerProfile({ user, open, onClose }: AdminCustomerProfi
                       )}
                     </>
                   )}
+                  {/* Group assignment */}
+                  <div className="flex items-center gap-2 pt-2 border-t border-border/30 mt-2">
+                    <Users className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">קבוצה:</span>
+                    <Select
+                      value={groupId || "none"}
+                      onValueChange={handleGroupChange}
+                      disabled={savingGroup}
+                    >
+                      <SelectTrigger className="w-36 h-7 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">ללא קבוצה</SelectItem>
+                        {groups.map((g) => (
+                          <SelectItem key={g.id} value={g.id}>
+                            <div className="flex items-center gap-2">
+                              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: g.color }} />
+                              {g.name}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {savingGroup && <Loader2 className="w-3 h-3 animate-spin" />}
+                  </div>
                 </CardContent>
               </Card>
 

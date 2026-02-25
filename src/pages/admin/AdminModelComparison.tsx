@@ -7,8 +7,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, Plus, Trash2, RefreshCw, Star } from "lucide-react";
 import { toast } from "sonner";
+import { AdminGroupsTab } from "@/components/admin/AdminGroupsTab";
 
 interface ModelConfig {
   id: string;
@@ -203,6 +205,13 @@ export function AdminModelComparison() {
   }
 
   return (
+    <Tabs defaultValue="models" dir="rtl">
+      <TabsList className="mb-4">
+        <TabsTrigger value="models">מודלים</TabsTrigger>
+        <TabsTrigger value="groups">קבוצות</TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="models">
     <div className="space-y-6" dir="rtl">
       {/* Model Management */}
       <Card>
@@ -381,5 +390,11 @@ export function AdminModelComparison() {
         </CardContent>
       </Card>
     </div>
+      </TabsContent>
+
+      <TabsContent value="groups">
+        <AdminGroupsTab />
+      </TabsContent>
+    </Tabs>
   );
 }

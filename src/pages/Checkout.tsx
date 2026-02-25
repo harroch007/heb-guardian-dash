@@ -194,6 +194,28 @@ export default function Checkout() {
 
       if (updateError) throw updateError;
 
+      // Auto-assign to default group if not already in a group
+      try {
+        const { data: parentData } = await supabase
+          .from("parents")
+          .select("group_id" as any)
+          .eq("id", user.id)
+          .maybeSingle();
+        if (!(parentData as any)?.group_id) {
+          const { data: defaultGroup } = await (supabase.from("customer_groups") as any)
+            .select("id")
+            .eq("is_default", true)
+            .maybeSingle();
+          if (defaultGroup?.id) {
+            await (supabase.from("parents") as any)
+              .update({ group_id: defaultGroup.id })
+              .eq("id", user.id);
+          }
+        }
+      } catch (groupErr) {
+        console.warn("Auto group assignment failed (non-fatal):", groupErr);
+      }
+
       if (appliedPromo) {
         const { data: promoData } = await supabase
           .from("promo_codes" as any)
