@@ -1,37 +1,45 @@
 
 
-## תיקון: שגיאה באישור משתמש מרשימת ההמתנה
+## תכונה: הסרת משתמשים מאושרים מרשימת ההמתנה
 
-### שורש הבעיה
+### הבעיה
+כשהורה אושר מרשימת ההמתנה ויצר חשבון, אין אפשרות להסיר אותו מהרשימה. הרשימה ממשיכה לגדול עם רשומות שכבר לא רלוונטיות.
 
-כל ה-RLS policies בטבלאות `allowed_emails` ו-`waitlist_signups` מוגדרות כ-**RESTRICTIVE**. ב-PostgreSQL, כדי שגישה תינתן, חייבת להיות לפחות policy אחת **PERMISSIVE** שמתקיימת. אם יש רק restrictive policies — הגישה תמיד נדחית, גם אם `is_admin()` מחזיר `true`.
+### שינויים נדרשים
 
-### תיקון
-
-**מיגרציה חדשה** — שינוי הפוליסות מ-RESTRICTIVE ל-PERMISSIVE:
-
-1. **`allowed_emails`** — מחיקת 3 הפוליסות הקיימות (INSERT, SELECT, DELETE) ויצירתן מחדש כ-PERMISSIVE
-2. **`waitlist_signups`** — מחיקת 3 הפוליסות הקיימות (SELECT, UPDATE, INSERT) ויצירתן מחדש כ-PERMISSIVE
+#### 1. מיגרציה — הוספת DELETE policy לטבלת `waitlist_signups`
+כרגע אין policy שמאפשרת מחיקה. נוסיף policy permissive לאדמינים:
 
 ```sql
--- allowed_emails: drop restrictive, create permissive
-DROP POLICY "Admins can insert allowed emails" ON allowed_emails;
-DROP POLICY "Admins can view allowed emails" ON allowed_emails;
-DROP POLICY "Admins can delete allowed emails" ON allowed_emails;
-
-CREATE POLICY "Admins can insert allowed emails" ON allowed_emails FOR INSERT TO authenticated WITH CHECK (is_admin());
-CREATE POLICY "Admins can view allowed emails" ON allowed_emails FOR SELECT TO authenticated USING (is_admin());
-CREATE POLICY "Admins can delete allowed emails" ON allowed_emails FOR DELETE TO authenticated USING (is_admin());
-
--- waitlist_signups: drop restrictive, create permissive
-DROP POLICY "Admins can update waitlist" ON waitlist_signups;
-DROP POLICY "Admins can view all waitlist" ON waitlist_signups;
-DROP POLICY "Allow anonymous insert to waitlist" ON waitlist_signups;
-
-CREATE POLICY "Admins can update waitlist" ON waitlist_signups FOR UPDATE TO authenticated USING (is_admin());
-CREATE POLICY "Admins can view all waitlist" ON waitlist_signups FOR SELECT TO authenticated USING (is_admin());
-CREATE POLICY "Allow anonymous insert to waitlist" ON waitlist_signups FOR INSERT TO anon, authenticated WITH CHECK (true);
+CREATE POLICY "Admins can delete waitlist entries"
+ON waitlist_signups FOR DELETE TO authenticated
+USING (is_admin());
 ```
 
-לא נדרש שינוי בקוד — רק במסד הנתונים.
+#### 2. שינוי ב-`AdminWaitlist.tsx`
+
+**לוגיקה:**
+- בטעינת הקומפוננטה, שליפת רשימת אימיילים מ-`parents` כדי לדעת מי כבר יצר חשבון
+- לכל רשומה עם `status === 'approved'`, בדיקה אם האימייל שלה קיים ב-`parents`
+- אם כן — הצגת כפתור "הסר" (אייקון Trash2) לצד כפתור "שלח שוב"
+- לחיצה על "הסר" → `DELETE FROM waitlist_signups WHERE id = entry.id` → רענון הרשימה
+- הצגת סטטוס חדש: "נרשם" (badge כחול) כשהאימייל קיים ב-parents, במקום רק "מאושר"
+
+**עמודת סטטוס מעודכנת:**
+- ממתין (צהוב) — `status === 'pending'`
+- מאושר (ירוק) — `status === 'approved'` ולא נרשם עדיין
+- נרשם ✓ (כחול) — `status === 'approved'` + אימייל קיים ב-`parents`
+
+**עמודת פעולות מעודכנת:**
+- ממתין → כפתור "אשר" (כמו היום)
+- מאושר (לא נרשם) → כפתור "שלח שוב" (כמו היום)
+- נרשם → כפתור "שלח שוב" + כפתור "הסר" (אדום, אייקון פח)
+
+**פרטים טכניים:**
+- שליפת `parents` emails תהיה ב-`useEffect` או inline query עם `supabase.from('parents').select('email')`
+- כפתור ההסרה יציג loading spinner בזמן המחיקה
+- אחרי מחיקה מוצלחת → toast הצלחה + `onRefresh()`
+
+#### 3. קאונטר מעודכן בכרטיסי הסטטיסטיקה
+הוספת כרטיס "נרשמו" שמראה כמה מהמאושרים כבר יצרו חשבון.
 
