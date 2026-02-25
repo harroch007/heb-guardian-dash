@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { DashboardGreeting } from "@/components/dashboard/DashboardGreeting";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Users, User, BarChart3, Brain, Smartphone, MapPin, Battery, Clock, Mail, Bot, AlertTriangle, Calendar, ChevronLeft, Bell, X, Shield, Star } from "lucide-react";
+import { Plus, Users, User, BarChart3, Brain, Smartphone, MapPin, Battery, Clock, Mail, Bot, AlertTriangle, Calendar, ChevronLeft, Bell, X, Shield, Star, UserPlus } from "lucide-react";
 import { NewAppsCard } from "@/components/dashboard/NewAppsCard";
 import { NightlyUsageCard } from "@/components/dashboard/NightlyUsageCard";
 import { motion } from "framer-motion";
@@ -771,14 +771,46 @@ const Index = () => {
             )}
           </div>
         ) : (
-          <div className="p-8 rounded-2xl bg-card border border-border/50 text-center">
-            <Users className="w-12 h-12 text-muted-foreground mx-auto mb-3 opacity-50" />
-            <p className="text-muted-foreground mb-4">אין ילדים רשומים</p>
-            <Button onClick={() => navigate("/family")} className="gap-2">
+          <motion.div
+            className="rounded-2xl bg-gradient-to-b from-primary/10 to-card border border-primary/20 text-center px-6 py-10"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4 }}
+          >
+            <div className="w-16 h-16 rounded-full bg-primary/15 flex items-center justify-center mx-auto mb-5">
+              <Shield className="w-8 h-8 text-primary" />
+            </div>
+            <h2 className="text-xl font-bold text-foreground mb-2">
+              ברוכים הבאים ל-Kippy! 👋
+            </h2>
+            <p className="text-muted-foreground text-sm mb-8 max-w-sm mx-auto">
+              כדי להתחיל להגן על הילדים שלכם ברשת, הוסיפו ילד וחברו את המכשיר שלו
+            </p>
+
+            <div className="flex justify-center gap-4 mb-8">
+              {[
+                { icon: UserPlus, label: "הוסיפו ילד", step: "1" },
+                { icon: Smartphone, label: "חברו מכשיר", step: "2" },
+                { icon: Bell, label: "קבלו התראות", step: "3" },
+              ].map((item) => (
+                <div key={item.step} className="flex flex-col items-center gap-2 w-24">
+                  <div className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center relative">
+                    <item.icon className="w-5 h-5 text-primary" />
+                    <span className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center">
+                      {item.step}
+                    </span>
+                  </div>
+                  <span className="text-xs text-muted-foreground font-medium">{item.label}</span>
+                </div>
+              ))}
+            </div>
+
+            <Button onClick={() => navigate("/family")} size="lg" className="gap-2 mb-3">
               <Plus className="w-4 h-4" />
-              הוסף ילד
+              הוסיפו את הילד הראשון
             </Button>
-          </div>
+            <p className="text-xs text-muted-foreground">זה לוקח פחות מדקה ⏱️</p>
+          </motion.div>
         )}
       </div>
 
