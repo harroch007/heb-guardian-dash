@@ -11,7 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import {
   ArrowRight, User, Mail, Phone, Calendar, Baby, Smartphone, 
   UserCheck, Crown, StickyNote, History, Loader2, X, Send,
-  Gift, Lock, Unlock
+  Gift, Lock, Unlock, MessageSquare
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { he } from "date-fns/locale";
@@ -407,6 +407,23 @@ export function AdminCustomerProfile({ user, open, onClose }: AdminCustomerProfi
                   >
                     {impersonatingId === user.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserCheck className="w-4 h-4" />}
                     צפה כהורה
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-2 text-green-500 border-green-500/30 hover:bg-green-500/10"
+                    disabled={!user.phone}
+                    onClick={() => {
+                      if (!user.phone) return;
+                      const cleaned = user.phone.replace(/[^0-9+]/g, "");
+                      const intl = cleaned.startsWith("0") ? "972" + cleaned.slice(1) : cleaned.replace("+", "");
+                      const msg = encodeURIComponent(`שלום ${user.full_name}, פונים אליך מ-KippyAI 🙏`);
+                      window.open(`https://wa.me/${intl}?text=${msg}`, "_blank");
+                    }}
+                    title={user.phone ? "שלח הודעת WhatsApp" : "אין מספר טלפון"}
+                  >
+                    <MessageSquare className="w-4 h-4" />
+                    WhatsApp
                   </Button>
                   <Button
                     size="sm"

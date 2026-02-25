@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, UserPlus, Tag } from "lucide-react";
+import { Users, UserPlus, Tag, AlertTriangle } from "lucide-react";
 import { AdminUsers } from "./AdminUsers";
 import { AdminWaitlist } from "./AdminWaitlist";
 import { AdminPromoCodes } from "./AdminPromoCodes";
 import { AdminCustomerProfile } from "./AdminCustomerProfile";
+import { AdminAttentionReport } from "./AdminAttentionReport";
 
 interface UserData {
   id: string;
@@ -56,10 +57,14 @@ export function AdminUsersHub({
   return (
     <div className="space-y-4">
       <Tabs value={subTab} onValueChange={setSubTab}>
-        <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-flex">
+        <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-flex">
           <TabsTrigger value="users" className="gap-2">
             <Users className="w-4 h-4" />
             משתמשים ({users.length})
+          </TabsTrigger>
+          <TabsTrigger value="attention" className="gap-2">
+            <AlertTriangle className="w-4 h-4" />
+            דורשים טיפול
           </TabsTrigger>
           <TabsTrigger value="waitlist" className="gap-2">
             <UserPlus className="w-4 h-4" />
@@ -79,6 +84,10 @@ export function AdminUsersHub({
             onFilterApplied={onFilterApplied}
             onSelectUser={setSelectedUser}
           />
+        </TabsContent>
+
+        <TabsContent value="attention">
+          <AdminAttentionReport users={users} onSelectUser={setSelectedUser} />
         </TabsContent>
 
         <TabsContent value="waitlist">
