@@ -1,92 +1,79 @@
 
 
-## תוכנית: ממשק CRM לניהול לקוחות באדמין
+## תוכנית: שדרוג AdminCustomerProfile — עריכה, מחיקה, ופרטי ילד מורחבים
 
-### סקירת הפיצ'ר
-כשלוחצים על שם משתמש ברשימת המשתמשים, נפתח דף פרופיל לקוח מלא עם יכולות ניהול: הערות, צפייה כהורה, מתן הטבות, ותיעוד כל פעולה שבוצעה.
+### הבעיות הנוכחיות
 
-### שינויי מסד נתונים (2 טבלאות חדשות)
+1. **"ילדים ומנויים"** — מציג שם, מגדר, תאריך לידה, מנוי, מכשירים — אבל אין אפשרות לערוך, אין מספר טלפון של הילד, ואין פרטים מלאים
+2. **WhatsApp מכובה** — כי `user.phone` הוא `null` (ללקוח אין טלפון רשום ב-parents). הכפתור disabled כי `disabled={!user.phone}`
+3. **"נעל חשבון"** — מוגדר כ-`disabled` עם הכיתוב "בקרוב" כי עדיין לא מומש
+4. **אין עריכת פרטי לקוח** — לא ניתן לשנות שם/טלפון/אימייל מתוך הפרופיל
+5. **אין מחיקת משתמש** — אין כפתור מחיקה לאדמין
 
-#### 1. `admin_notes` — הערות שירות לקוחות
+### שינויים מתוכננים
+
+#### 1. `src/pages/admin/AdminCustomerProfile.tsx` — שינויים מרכזיים
+
+**כרטיס פרטי לקוח — מצב עריכה:**
+- הוספת כפתור "ערוך" שמעביר למצב עריכה inline
+- שדות ניתנים לעריכה: שם מלא, טלפון
+- שמירה ב-`parents` table (אדמין כבר יש לו RLS ל-SELECT, צריך להוסיף UPDATE)
+
+**כרטיס ילדים — הרחבה:**
+- הצגת מספר טלפון של הילד (`phone_number` — כבר קיים ב-DB)
+- הוספת כפתור עריכה לכל ילד: שם, תאריך לידה, מגדר, מספר טלפון
+- עריכה inline בתוך הכרטיס
+
+**כפתור WhatsApp — תיקון:**
+- כשאין טלפון הורה, נסה להשתמש בטלפון הילד אם קיים
+- הוסף tooltip שמסביר למה מכובה (אין טלפון כלל)
+
+**נעילת חשבון — הפעלה:**
+- הוספת עמודה `is_locked` ל-`parents` (migration)
+- כפתור נעל/שחרר שמעדכן את השדה + מתעד בלוג
+- ב-AuthContext — בדיקה אם ההורה נעול ומניעת כניסה
+
+**מחיקת משתמש:**
+- כפתור "מחק משתמש" בצבע אדום בתחתית הפרופיל
+- דיאלוג אישור עם הקלדת שם המשתמש
+- מחיקת: alerts, app_usage, devices, children, admin_notes, admin_activity_log, parents
+- שימוש ב-service role דרך edge function חדשה `admin-delete-user`
+
+#### 2. Migration — שינויי DB
+
+```sql
+-- הוספת עמודת נעילה ל-parents
+ALTER TABLE parents ADD COLUMN is_locked boolean DEFAULT false;
+
+-- RLS: אדמין יכול לעדכן parents
+CREATE POLICY "Admins can update parents" ON parents
+  FOR UPDATE USING (is_admin());
 ```
-id             uuid PK
-parent_id      uuid NOT NULL (ref parents.id)
-admin_user_id  uuid NOT NULL (ref auth.users)
-note_text      text NOT NULL
-note_type      text DEFAULT 'general' (general / complaint / benefit / lock / other)
-created_at     timestamptz DEFAULT now()
-```
-RLS: admins only (SELECT, INSERT, DELETE)
 
-#### 2. `admin_activity_log` — לוג פעולות אדמין
-```
-id             uuid PK
-admin_user_id  uuid NOT NULL
-target_parent_id uuid NOT NULL
-action_type    text NOT NULL (impersonate / add_note / grant_benefit / lock / unlock / edit_subscription)
-action_details jsonb DEFAULT '{}'
-created_at     timestamptz DEFAULT now()
-```
-RLS: admins only (SELECT, INSERT)
+#### 3. Edge Function חדשה: `supabase/functions/admin-delete-user/index.ts`
+- מאמתת שהקורא הוא אדמין
+- מקבלת `userId`
+- מוחקת לפי סדר תלויות: alerts → app_usage → nightly_usage_reports → app_alerts → device_events → settings → devices → children → admin_notes → admin_activity_log → push_subscriptions → parents
+- מוחקת את המשתמש מ-auth.users דרך `serviceClient.auth.admin.deleteUser()`
+- מתעדת בלוג לפני המחיקה
 
-כל פעולה (כולל impersonation הקיים) תתועד כאן אוטומטית.
-
-### שינויי קוד
-
-#### 1. `src/pages/admin/AdminCustomerProfile.tsx` — קומפוננטה חדשה
-דף פרופיל לקוח עם הסקשנים הבאים:
-
-| סקשן | תוכן |
-|---|---|
-| כרטיס פרטים | שם, אימייל, טלפון, תאריך הרשמה, סטטוס מכשיר |
-| ילדים ומכשירים | טבלה עם ילדים, מנוי (free/premium), תפוגה, מכשירים |
-| פעולות מהירות | כפתורים: צפה כהורה, הענק חודש premium, נעל חשבון |
-| הערות | רשימת הערות + טופס להוספת הערה חדשה |
-| לוג פעולות | היסטוריית כל הפעולות שבוצעו על הלקוח |
-
-פעולות זמינות:
-- **צפה כהורה** — משתמש ב-impersonate הקיים + מתעד בלוג
-- **הענק premium** — מעדכן `subscription_tier` ו-`subscription_expires_at` לכל הילדים + מתעד
-- **הוסף הערה** — שומר ב-`admin_notes` + מתעד בלוג
-- **נעל/שחרר חשבון** — (מוכן לעתיד, כרגע מסומן ב-UI)
-
-#### 2. `src/pages/admin/AdminUsers.tsx` — שינוי
-- שם המשתמש בטבלה הופך ללינק לחיץ
-- לחיצה על השם פותחת את `AdminCustomerProfile` כ-Dialog/Sheet (או מוסיפה state)
-
-#### 3. `src/pages/Admin.tsx` — שינוי קל
-- שמירת `selectedUserId` ב-state
-- העברתו ל-`AdminUsersHub` → `AdminUsers`
-- כש-`selectedUserId` קיים, מציגים את `AdminCustomerProfile`
-
-#### 4. תיעוד impersonation קיים
-- ב-`handleImpersonate` הקיים ב-`AdminUsers.tsx`, מוסיפים INSERT ל-`admin_activity_log`
-
-### ארכיטקטורה ויזואלית
-
-```text
-AdminUsers (טבלה)
-  ├── לחיצה על שם → selectedUserId = user.id
-  └── AdminCustomerProfile (Sheet/Dialog)
-        ├── פרטי לקוח
-        ├── ילדים + מנויים
-        ├── [צפה כהורה] [הענק premium] [נעל]
-        ├── הערות (+ הוספה)
-        └── לוג פעולות
-```
+#### 4. שינוי ב-AuthContext (בדיקת נעילה)
+- אחרי login, בדיקה אם `parents.is_locked === true`
+- אם כן → logout + הודעת שגיאה "החשבון שלך נעול, פנה לתמיכה"
 
 ### קבצים שישתנו
 
 | קובץ | שינוי |
 |---|---|
-| Migration | 2 טבלאות חדשות + RLS |
-| `src/pages/admin/AdminCustomerProfile.tsx` | חדש — דף פרופיל לקוח |
-| `src/pages/admin/AdminUsers.tsx` | שם לחיץ + תיעוד impersonation |
-| `src/pages/admin/AdminUsersHub.tsx` | העברת state של selectedUser |
-| `src/pages/Admin.tsx` | ניהול state של selectedUser |
+| Migration | `is_locked` ב-parents + RLS update לאדמין |
+| `src/pages/admin/AdminCustomerProfile.tsx` | עריכת פרטי הורה, עריכת פרטי ילד, טלפון ילד, נעילה, מחיקה |
+| `supabase/functions/admin-delete-user/index.ts` | חדש — מחיקת משתמש מלאה |
+| `supabase/config.toml` | הוספת admin-delete-user עם verify_jwt=false |
+| `src/contexts/AuthContext.tsx` | בדיקת is_locked |
+| `src/integrations/supabase/types.ts` | עדכון types ל-parents.is_locked |
 
 ### אבטחה
-- כל הטבלאות עם RLS מוגבל לאדמינים בלבד (`is_admin()`)
-- לוג הפעולות הוא append-only (INSERT בלבד, ללא DELETE/UPDATE)
-- אין חשיפת מידע רגיש נוסף — משתמשים בנתונים שכבר זמינים לאדמין
+- Edge function מחיקה דורשת אימות אדמין (is_admin via RPC)
+- נעילה מונעת login — לא רק UI
+- כל פעולת עריכה/מחיקה מתועדת ב-admin_activity_log
 
