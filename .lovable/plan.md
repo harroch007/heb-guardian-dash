@@ -1,45 +1,37 @@
 
 
-## באג: Badge התראות מציג מספר שגוי למשתמשים חדשים
+## תיקון: שגיאה באישור משתמש מרשימת ההמתנה
 
 ### שורש הבעיה
 
-שתי בעיות שונות גורמות לזה:
+כל ה-RLS policies בטבלאות `allowed_emails` ו-`waitlist_signups` מוגדרות כ-**RESTRICTIVE**. ב-PostgreSQL, כדי שגישה תינתן, חייבת להיות לפחות policy אחת **PERMISSIVE** שמתקיימת. אם יש רק restrictive policies — הגישה תמיד נדחית, גם אם `is_admin()` מחזיר `true`.
 
-**1. ה-View חשוף לכל המשתמשים (קריטי)**
+### תיקון
 
-במיגרציה האחרונה (`20260224171355`) ה-view `parent_alerts_effective` נוצר מחדש **בלי** `security_invoker=on`. בגרסה הקודמת (`20260222150306`) הוא היה עם `security_invoker=on`, מה שגרם ל-RLS של טבלת `alerts` לפעול. עכשיו ה-view מחזיר התראות של **כל** המשתמשים — ומשתמש חדש בלי ילדים רואה התראות של אחרים.
+**מיגרציה חדשה** — שינוי הפוליסות מ-RESTRICTIVE ל-PERMISSIVE:
 
-**2. Badge לא מסנן `saved_at`**
+1. **`allowed_emails`** — מחיקת 3 הפוליסות הקיימות (INSERT, SELECT, DELETE) ויצירתן מחדש כ-PERMISSIVE
+2. **`waitlist_signups`** — מחיקת 3 הפוליסות הקיימות (SELECT, UPDATE, INSERT) ויצירתן מחדש כ-PERMISSIVE
 
-ב-`BottomNavigation.tsx` השאילתה לא מסננת `saved_at IS NULL`, אבל דף ההתראות עצמו כן מסנן. זה יכול לגרום לאי-התאמה נוספת בין המספר ב-badge לבין מה שמוצג בדף.
-
-### תיקונים נדרשים
-
-**קובץ 1: מיגרציה חדשה** — תיקון ה-view
-
-יצירת מיגרציה שמוסיפה חזרה את `security_invoker=on` ל-view `parent_alerts_effective`, כדי שה-RLS של טבלת `alerts` יחול וכל משתמש יראה רק את ההתראות של הילדים שלו.
-
-**קובץ 2: `src/components/BottomNavigation.tsx`** — שורה 33
-
-הוספת סינון `.is('saved_at', null)` לשאילתה, כדי שה-badge יציג רק התראות חדשות (לא שמורות) — בדיוק כמו הטאב "חדשות" בדף ההתראות.
-
-### פרטים טכניים
-
-המיגרציה תריץ:
 ```sql
-CREATE OR REPLACE VIEW parent_alerts_effective 
-WITH (security_invoker=on) AS
--- ... (אותה שאילתה בדיוק, רק עם security_invoker)
+-- allowed_emails: drop restrictive, create permissive
+DROP POLICY "Admins can insert allowed emails" ON allowed_emails;
+DROP POLICY "Admins can view allowed emails" ON allowed_emails;
+DROP POLICY "Admins can delete allowed emails" ON allowed_emails;
+
+CREATE POLICY "Admins can insert allowed emails" ON allowed_emails FOR INSERT TO authenticated WITH CHECK (is_admin());
+CREATE POLICY "Admins can view allowed emails" ON allowed_emails FOR SELECT TO authenticated USING (is_admin());
+CREATE POLICY "Admins can delete allowed emails" ON allowed_emails FOR DELETE TO authenticated USING (is_admin());
+
+-- waitlist_signups: drop restrictive, create permissive
+DROP POLICY "Admins can update waitlist" ON waitlist_signups;
+DROP POLICY "Admins can view all waitlist" ON waitlist_signups;
+DROP POLICY "Allow anonymous insert to waitlist" ON waitlist_signups;
+
+CREATE POLICY "Admins can update waitlist" ON waitlist_signups FOR UPDATE TO authenticated USING (is_admin());
+CREATE POLICY "Admins can view all waitlist" ON waitlist_signups FOR SELECT TO authenticated USING (is_admin());
+CREATE POLICY "Allow anonymous insert to waitlist" ON waitlist_signups FOR INSERT TO anon, authenticated WITH CHECK (true);
 ```
 
-ב-BottomNavigation, השאילתה תשתנה מ:
-```typescript
-.is('parent_message', null)
-```
-ל:
-```typescript
-.is('parent_message', null)
-.is('saved_at', null)
-```
+לא נדרש שינוי בקוד — רק במסד הנתונים.
 
