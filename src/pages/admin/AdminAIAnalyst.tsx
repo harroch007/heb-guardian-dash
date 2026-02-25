@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { adminSupabase } from "@/integrations/supabase/admin-client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, Brain, Sparkles } from "lucide-react";
@@ -129,7 +129,7 @@ export function AdminAIAnalyst({ overviewStats, users, waitlist }: AdminAIAnalys
         },
       };
 
-      const { data, error } = await supabase.functions.invoke("admin-ai-analyst", {
+      const { data, error } = await adminSupabase.functions.invoke("admin-ai-analyst", {
         body: { metrics },
       });
 

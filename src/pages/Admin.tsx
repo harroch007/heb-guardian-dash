@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { adminSupabase } from "@/integrations/supabase/admin-client";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, LogOut, Shield, LayoutDashboard, Users, Bell, Database, Brain, Microscope } from "lucide-react";
@@ -142,7 +142,7 @@ export default function Admin() {
   useEffect(() => {
     const interval = setInterval(async () => {
       try {
-        const { data: queueData } = await supabase
+        const { data: queueData } = await adminSupabase
           .from("alert_events_queue")
           .select("id, alert_id, status, attempt, created_at, last_error")
           .in("status", ["pending", "failed", "processing"])
@@ -160,7 +160,7 @@ export default function Admin() {
         const queueAlertIds = [...new Set(queueData?.map(q => q.alert_id) || [])];
         let processedAlertIds = new Set<number>();
         if (queueAlertIds.length > 0) {
-          const { data: processedAlerts } = await supabase
+          const { data: processedAlerts } = await adminSupabase
             .from("alerts")
             .select("id")
             .in("id", queueAlertIds)
@@ -201,15 +201,15 @@ export default function Admin() {
 
   const fetchOverviewStats = async () => {
     try {
-      const { count: parentsCount } = await supabase
+      const { count: parentsCount } = await adminSupabase
         .from("parents")
         .select("*", { count: "exact", head: true });
 
-      const { count: waitlistCount } = await supabase
+      const { count: waitlistCount } = await adminSupabase
         .from("waitlist_signups")
         .select("*", { count: "exact", head: true });
 
-      const { count: devicesCount } = await supabase
+      const { count: devicesCount } = await adminSupabase
         .from("devices")
         .select("*", { count: "exact", head: true })
         .not("child_id", "is", null);
@@ -217,7 +217,7 @@ export default function Admin() {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       
-      const { data: alertsToday } = await supabase
+      const { data: alertsToday } = await adminSupabase
         .from("alerts")
         .select("ai_verdict, ai_risk_score, is_processed, processing_status, analyzed_at")
         .gte("created_at", today.toISOString());
@@ -229,7 +229,7 @@ export default function Admin() {
       const alertsAnalyzedToday = alertsToday?.filter(a => a.is_processed === true && a.analyzed_at !== null).length || 0;
       const alertsNotifiedToday = alertsToday?.filter(a => a.processing_status === 'notified').length || 0;
 
-      const { data: queueData } = await supabase
+      const { data: queueData } = await adminSupabase
         .from("alert_events_queue")
         .select("id, alert_id, status, attempt, created_at, last_error")
         .in("status", ["pending", "failed", "processing"])
@@ -247,7 +247,7 @@ export default function Admin() {
       const queueAlertIds = [...new Set(queueData?.map(q => q.alert_id) || [])];
       let processedAlertIds = new Set<number>();
       if (queueAlertIds.length > 0) {
-        const { data: processedAlerts } = await supabase
+        const { data: processedAlerts } = await adminSupabase
           .from("alerts")
           .select("id")
           .in("id", queueAlertIds)
@@ -261,7 +261,7 @@ export default function Admin() {
       }));
 
       const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
-      const { count: activeCount } = await supabase
+      const { count: activeCount } = await adminSupabase
         .from("devices")
         .select("*", { count: "exact", head: true })
         .gte("last_seen", yesterday.toISOString());
@@ -274,7 +274,7 @@ export default function Admin() {
       });
 
       const todayStr = format(new Date(), "yyyy-MM-dd");
-      const { data: metricsToday } = await supabase
+      const { data: metricsToday } = await adminSupabase
         .from("device_daily_metrics")
         .select("device_id")
         .eq("metric_date", todayStr);
@@ -282,7 +282,7 @@ export default function Admin() {
       const metricDeviceIds = [...new Set(metricsToday?.map(m => m.device_id) || [])];
       let activeChildrenToday = 0;
       if (metricDeviceIds.length > 0) {
-        const { data: devicesWithChildren } = await supabase
+        const { data: devicesWithChildren } = await adminSupabase
           .from("devices")
           .select("child_id")
           .in("device_id", metricDeviceIds)
@@ -291,7 +291,7 @@ export default function Admin() {
       }
 
       const weekAgo = subDays(new Date(), 7);
-      const { data: weekAlerts } = await supabase
+      const { data: weekAlerts } = await adminSupabase
         .from("alerts")
         .select("child_id")
         .gte("created_at", weekAgo.toISOString())
@@ -300,14 +300,14 @@ export default function Admin() {
       const weekChildIds = [...new Set(weekAlerts?.map(a => a.child_id).filter(Boolean) || [])];
       let activeParentsThisWeek = 0;
       if (weekChildIds.length > 0) {
-        const { data: childrenOfWeek } = await supabase
+        const { data: childrenOfWeek } = await adminSupabase
           .from("children")
           .select("parent_id")
           .in("id", weekChildIds);
         activeParentsThisWeek = new Set(childrenOfWeek?.map(c => c.parent_id)).size;
       }
 
-      const { data: metricsSum } = await supabase
+      const { data: metricsSum } = await adminSupabase
         .from("device_daily_metrics")
         .select("messages_scanned")
         .eq("metric_date", todayStr);
@@ -319,7 +319,7 @@ export default function Admin() {
       const fourteenDaysAgo = subDays(new Date(), 13);
       fourteenDaysAgo.setHours(0, 0, 0, 0);
       
-      const { data: allTrendAlerts } = await supabase
+      const { data: allTrendAlerts } = await adminSupabase
         .from("alerts")
         .select("id, ai_verdict, created_at, processing_status")
         .gte("created_at", fourteenDaysAgo.toISOString())
@@ -328,7 +328,7 @@ export default function Admin() {
       const trendAlertIds = allTrendAlerts?.map(a => a.id) || [];
       let feedbackMap: Record<number, string> = {};
       if (trendAlertIds.length > 0) {
-        const { data: feedbackData } = await supabase
+        const { data: feedbackData } = await adminSupabase
           .from("alert_feedback")
           .select("alert_id, feedback_type")
           .in("alert_id", trendAlertIds);
@@ -370,7 +370,7 @@ export default function Admin() {
         ? (alertsWithFeedbackLast7Days / totalAlertsLast7Days) * 100
         : 0;
 
-      const { data: allChildren } = await supabase
+      const { data: allChildren } = await adminSupabase
         .from("children")
         .select("subscription_tier");
       const freeChildren = allChildren?.filter(c => !c.subscription_tier || c.subscription_tier === 'free').length || 0;
@@ -424,23 +424,23 @@ export default function Admin() {
 
   const fetchUsers = async () => {
     try {
-      const { data: parents, error: parentsError } = await supabase
+      const { data: parents, error: parentsError } = await adminSupabase
         .from("parents")
         .select("*")
         .order("created_at", { ascending: false });
 
       if (parentsError) throw parentsError;
 
-      const { data: children } = await supabase
+      const { data: children } = await adminSupabase
         .from("children")
         .select("id, name, gender, parent_id");
 
-      const { data: devices } = await supabase
+      const { data: devices } = await adminSupabase
         .from("devices")
         .select("device_id, child_id, last_seen, battery_level");
 
       // Fetch admin user IDs to filter them out
-      const { data: adminRoles } = await supabase
+      const { data: adminRoles } = await adminSupabase
         .from("user_roles")
         .select("user_id")
         .eq("role", "admin");
@@ -505,7 +505,7 @@ export default function Admin() {
 
   const fetchWaitlist = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await adminSupabase
         .from("waitlist_signups")
         .select("*")
         .order("created_at", { ascending: false });
@@ -521,11 +521,11 @@ export default function Admin() {
 
   const fetchTrainingStats = async () => {
     try {
-      const { data: allData, error: allError } = await supabase
+      const { data: allData, error: allError } = await adminSupabase
         .from("training_dataset")
         .select("*");
 
-      const { data: tableData, error: tableError } = await supabase
+      const { data: tableData, error: tableError } = await adminSupabase
         .from("training_dataset")
         .select("*")
         .neq("raw_text", SYSTEM_ALERT_TEXT)
@@ -630,7 +630,7 @@ export default function Admin() {
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    await adminSupabase.auth.signOut();
     navigate("/admin-login");
   };
 

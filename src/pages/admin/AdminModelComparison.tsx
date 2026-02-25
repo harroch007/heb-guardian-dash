@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { adminSupabase } from "@/integrations/supabase/admin-client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -56,7 +56,7 @@ export function AdminModelComparison() {
   };
 
   const fetchModels = async () => {
-    const { data } = await supabase
+    const { data } = await adminSupabase
       .from("ai_model_config")
       .select("*")
       .order("created_at");
@@ -64,18 +64,18 @@ export function AdminModelComparison() {
   };
 
   const fetchChildren = async () => {
-    const { data: childrenData } = await supabase
+    const { data: childrenData } = await adminSupabase
       .from("children")
       .select("id, name, parent_id")
       .order("name");
 
     if (!childrenData) return;
 
-    const { data: parents } = await supabase
+    const { data: parents } = await adminSupabase
       .from("parents")
       .select("id, full_name");
 
-    const { data: overrides } = await supabase
+    const { data: overrides } = await adminSupabase
       .from("child_model_override")
       .select("child_id, model_name");
 
@@ -93,7 +93,7 @@ export function AdminModelComparison() {
   };
 
   const fetchKPIs = async () => {
-    const { data: alerts } = await supabase
+    const { data: alerts } = await adminSupabase
       .from("alerts")
       .select("ai_analysis, ai_risk_score, ai_confidence, ai_summary, ai_verdict")
       .not("ai_verdict", "is", null)
@@ -132,7 +132,7 @@ export function AdminModelComparison() {
 
   const addModel = async () => {
     if (!newModelName.trim()) return;
-    const { error } = await supabase.from("ai_model_config").insert({
+    const { error } = await adminSupabase.from("ai_model_config").insert({
       model_name: newModelName.trim(),
       description: newModelDesc.trim() || null,
       weight: 0,
@@ -150,29 +150,29 @@ export function AdminModelComparison() {
 
   const updateWeight = async (id: string, weight: number) => {
     setSavingWeight(id);
-    await supabase.from("ai_model_config").update({ weight } as any).eq("id", id);
+    await adminSupabase.from("ai_model_config").update({ weight } as any).eq("id", id);
     setSavingWeight(null);
     await fetchModels();
   };
 
   const setDefault = async (id: string) => {
-    await supabase.from("ai_model_config").update({ is_default: false } as any).neq("id", id);
-    await supabase.from("ai_model_config").update({ is_default: true } as any).eq("id", id);
+    await adminSupabase.from("ai_model_config").update({ is_default: false } as any).neq("id", id);
+    await adminSupabase.from("ai_model_config").update({ is_default: true } as any).eq("id", id);
     toast.success("ברירת מחדל עודכנה");
     await fetchModels();
   };
 
   const deleteModel = async (id: string) => {
-    await supabase.from("ai_model_config").delete().eq("id", id);
+    await adminSupabase.from("ai_model_config").delete().eq("id", id);
     toast.success("מודל נמחק");
     await fetchModels();
   };
 
   const setChildOverride = async (childId: string, modelName: string | null) => {
     if (modelName === null || modelName === "auto") {
-      await supabase.from("child_model_override").delete().eq("child_id", childId);
+      await adminSupabase.from("child_model_override").delete().eq("child_id", childId);
     } else {
-      await supabase.from("child_model_override").upsert(
+      await adminSupabase.from("child_model_override").upsert(
         { child_id: childId, model_name: modelName } as any,
         { onConflict: "child_id" }
       );
@@ -182,7 +182,7 @@ export function AdminModelComparison() {
   };
 
   const clearAllOverrides = async () => {
-    const { error } = await supabase.from("child_model_override").delete().neq("child_id", "00000000-0000-0000-0000-000000000000");
+    const { error } = await adminSupabase.from("child_model_override").delete().neq("child_id", "00000000-0000-0000-0000-000000000000");
     if (!error) {
       toast.success("כל השיוכים נוקו");
       await fetchChildren();

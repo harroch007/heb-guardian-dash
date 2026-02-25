@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { adminSupabase } from "@/integrations/supabase/admin-client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -56,7 +56,7 @@ export function AdminAlertQA() {
   const fetchAlerts = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data, error } = await adminSupabase
         .from("alerts")
         .select("id, created_at, chat_name, chat_type, ai_verdict, ai_risk_score, child_role, ai_analysis, ai_social_context, ai_title, ai_summary, ai_recommendation, ai_patterns, ai_classification, ai_confidence, ai_meaning, ai_context")
         .order("id", { ascending: false })
@@ -75,7 +75,7 @@ export function AdminAlertQA() {
   const reanalyzeAlert = async (alertId: number) => {
     setReanalyzing(alertId);
     try {
-      const { data, error } = await supabase.functions.invoke("analyze-alert", {
+      const { data, error } = await adminSupabase.functions.invoke("analyze-alert", {
         body: { alert_id: alertId, force: true },
       });
       if (error) throw error;
@@ -105,7 +105,7 @@ export function AdminAlertQA() {
     for (let id = fromId; id <= toId; id++) {
       setRangeProgress(`${id - fromId + 1}/${total}`);
       try {
-        await supabase.functions.invoke("analyze-alert", {
+        await adminSupabase.functions.invoke("analyze-alert", {
           body: { alert_id: id, force: true },
         });
         success++;

@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { UserPlus, Search, Smartphone, CheckCircle, Loader2, TrendingUp, MessageSquare, RotateCcw, Trash2, UserCheck } from "lucide-react";
 import { format } from "date-fns";
 import { he } from "date-fns/locale";
-import { supabase } from "@/integrations/supabase/client";
+import { adminSupabase } from "@/integrations/supabase/admin-client";
 import { toast } from "sonner";
 
 const DEFAULT_MESSAGE_TEMPLATE = `שלום {parent_name}
@@ -71,7 +71,7 @@ export function AdminWaitlist({ entries, loading, onRefresh, funnel }: AdminWait
   // Fetch registered parent emails
   useEffect(() => {
     const fetchRegisteredEmails = async () => {
-      const { data } = await supabase
+      const { data } = await adminSupabase
         .from('parents')
         .select('email');
       if (data) {
@@ -103,7 +103,7 @@ export function AdminWaitlist({ entries, loading, onRefresh, funnel }: AdminWait
   const handleApprove = async (entry: WaitlistEntry) => {
     setApprovingId(entry.id);
     try {
-      const { error: insertError } = await supabase
+      const { error: insertError } = await adminSupabase
         .from('allowed_emails')
         .insert({
           email: entry.email.toLowerCase(),
@@ -119,7 +119,7 @@ export function AdminWaitlist({ entries, loading, onRefresh, funnel }: AdminWait
         }
       }
 
-      const { error: updateError } = await supabase
+      const { error: updateError } = await adminSupabase
         .from('waitlist_signups')
         .update({ status: 'approved' })
         .eq('id', entry.id);
@@ -151,7 +151,7 @@ export function AdminWaitlist({ entries, loading, onRefresh, funnel }: AdminWait
   const handleDelete = async (entry: WaitlistEntry) => {
     setDeletingId(entry.id);
     try {
-      const { error } = await supabase
+      const { error } = await adminSupabase
         .from('waitlist_signups')
         .delete()
         .eq('id', entry.id);

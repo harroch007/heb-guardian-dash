@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { adminSupabase } from "@/integrations/supabase/admin-client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Database, Zap, Clock, Moon, TrendingUp, RefreshCw } from "lucide-react";
@@ -44,7 +44,7 @@ export function AdminInsightStats() {
       // Fetch logs from last 7 days
       const sevenDaysAgo = subDays(new Date(), 7).toISOString();
       
-      const { data: logs, error } = await supabase
+      const { data: logs, error } = await adminSupabase
         .from('insight_logs')
         .select('request_type, created_at')
         .gte('created_at', sevenDaysAgo)

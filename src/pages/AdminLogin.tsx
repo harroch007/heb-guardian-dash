@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { adminSupabase } from "@/integrations/supabase/admin-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,7 +23,7 @@ export default function AdminLogin() {
 
     try {
       // Sign in with email and password
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      const { data: authData, error: authError } = await adminSupabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -35,11 +35,11 @@ export default function AdminLogin() {
       }
 
       // Check if user is admin
-      const { data: isAdmin, error: adminError } = await supabase.rpc("is_admin");
+      const { data: isAdmin, error: adminError } = await adminSupabase.rpc("is_admin");
 
       if (adminError || !isAdmin) {
         // Sign out and show error
-        await supabase.auth.signOut();
+        await adminSupabase.auth.signOut();
         setError("אין לך הרשאת גישה לדשבורד זה");
         setLoading(false);
         return;

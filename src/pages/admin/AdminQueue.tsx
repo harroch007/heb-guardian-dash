@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CheckCircle, AlertTriangle, Clock, XCircle, Loader2, Zap, Cpu, Trash2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { adminSupabase } from "@/integrations/supabase/admin-client";
 import { toast } from "sonner";
 
 interface PendingAlert {
@@ -39,7 +39,7 @@ export function AdminQueue({ queuePending, queueFailed, oldestPendingMinutes, pe
   const handleProcessOne = async () => {
     setProcessing(true);
     try {
-      const { error } = await supabase.functions.invoke('analyze-alert', { body: {} });
+      const { error } = await adminSupabase.functions.invoke('analyze-alert', { body: {} });
       if (error) throw error;
       toast.success("עיבוד התראה אחת הושלם");
       onRefresh?.();
@@ -56,7 +56,7 @@ export function AdminQueue({ queuePending, queueFailed, oldestPendingMinutes, pe
     const realPending = pendingAlerts.filter(a => !a.is_processed && a.status === 'pending').length;
     try {
       for (let i = 0; i < realPending; i++) {
-        const { error } = await supabase.functions.invoke('analyze-alert', { body: {} });
+        const { error } = await adminSupabase.functions.invoke('analyze-alert', { body: {} });
         if (error) throw error;
         processed++;
       }
@@ -72,7 +72,7 @@ export function AdminQueue({ queuePending, queueFailed, oldestPendingMinutes, pe
   const handleProcessSingle = async (alertId: number, queueId: string) => {
     setProcessingId(queueId);
     try {
-      const { error } = await supabase.functions.invoke('analyze-alert', { body: { alert_id: alertId } });
+      const { error } = await adminSupabase.functions.invoke('analyze-alert', { body: { alert_id: alertId } });
       if (error) throw error;
       toast.success(`התראה ${alertId} עובדה בהצלחה`);
       onRefresh?.();
@@ -86,7 +86,7 @@ export function AdminQueue({ queuePending, queueFailed, oldestPendingMinutes, pe
   const handleCleanupStale = async () => {
     setCleaningUp(true);
     try {
-      const { data, error } = await supabase.functions.invoke('cleanup-stale-queue');
+      const { data, error } = await adminSupabase.functions.invoke('cleanup-stale-queue');
       if (error) throw error;
       toast.success(`נוקו ${data?.cleaned || 0} רשומות מיותמות`);
       onRefresh?.();
@@ -100,7 +100,7 @@ export function AdminQueue({ queuePending, queueFailed, oldestPendingMinutes, pe
   const handleRetryFailed = async () => {
     setRetrying(true);
     try {
-      const { data, error } = await supabase.rpc('retry_failed_queue_items');
+      const { data, error } = await adminSupabase.rpc('retry_failed_queue_items');
       if (error) throw error;
       toast.success(`אופסו ${(data as any)?.reset_count || 0} התראות שנכשלו`);
       onRefresh?.();

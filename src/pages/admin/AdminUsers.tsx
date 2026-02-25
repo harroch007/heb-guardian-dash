@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Users, Search, Smartphone, Baby, Clock, UserCheck, Loader2, X } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { he } from "date-fns/locale";
-import { supabase } from "@/integrations/supabase/client";
+import { adminSupabase } from "@/integrations/supabase/admin-client";
 import { useToast } from "@/hooks/use-toast";
 
 interface GroupInfo {
@@ -59,7 +59,7 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
   // Fetch groups
   const [groups, setGroups] = useState<GroupInfo[]>([]);
   useEffect(() => {
-    (supabase.from("customer_groups") as any).select("id, name, color").order("created_at").then(({ data }: any) => {
+    (adminSupabase.from("customer_groups") as any).select("id, name, color").order("created_at").then(({ data }: any) => {
       setGroups((data || []) as GroupInfo[]);
     });
   }, []);
@@ -121,7 +121,7 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
   const handleImpersonate = async (userId: string, userName: string) => {
     setImpersonatingId(userId);
     try {
-      const { data, error } = await supabase.functions.invoke("impersonate-user", {
+      const { data, error } = await adminSupabase.functions.invoke("impersonate-user", {
         body: { userId },
       });
 
@@ -130,9 +130,9 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
       }
 
       // Log the impersonation action
-      const { data: { user: adminUser } } = await supabase.auth.getUser();
+      const { data: { user: adminUser } } = await adminSupabase.auth.getUser();
       if (adminUser) {
-        await supabase.from("admin_activity_log").insert([{
+        await adminSupabase.from("admin_activity_log").insert([{
           admin_user_id: adminUser.id,
           target_parent_id: userId,
           action_type: "impersonate",
