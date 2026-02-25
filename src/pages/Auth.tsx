@@ -524,13 +524,13 @@ export default function Auth() {
               {isLogin ? (
                 WAITLIST_MODE ? (
                   <>
-                    אושרת מרשימת ההמתנה?{' '}
+                    אישרו לך גישה מוקדמת?{' '}
                     <button
                       type="button"
                       onClick={() => setIsLogin(false)}
                       className="text-primary hover:underline mr-1"
                     >
-                      הרשם כאן
+                      הרשמו כאן
                     </button>
                   </>
                 ) : (
