@@ -179,6 +179,7 @@ export default function Auth() {
           email,
           password,
           options: {
+            emailRedirectTo: window.location.origin,
             data: {
               full_name: fullName,
             },
@@ -187,8 +188,9 @@ export default function Auth() {
         if (error) throw error;
         toast({
           title: "נרשמת בהצלחה!",
-          description: "בדוק את האימייל שלך לאישור החשבון",
+          description: "מתחבר לחשבון שלך...",
         });
+        navigate('/dashboard');
       }
     } catch (error: any) {
       let errorMessage = error.message;
