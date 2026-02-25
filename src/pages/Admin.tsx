@@ -700,6 +700,7 @@ export default function Admin() {
               waitlist={waitlist}
               loading={loading} 
               onRefreshWaitlist={fetchWaitlist}
+              onRefreshUsers={fetchUsers}
               funnel={overviewStats?.funnel || []}
               initialStatusFilter={usersStatusFilter}
               onFilterApplied={() => setUsersStatusFilter(undefined)}
