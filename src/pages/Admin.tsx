@@ -439,11 +439,18 @@ export default function Admin() {
         .from("devices")
         .select("device_id, child_id, last_seen, battery_level");
 
+      // Fetch admin user IDs to filter them out
+      const { data: adminRoles } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "admin");
+      const adminIds = new Set((adminRoles || []).map(r => r.user_id));
+
       const now = new Date();
       const fifteenMinsAgo = new Date(now.getTime() - 15 * 60 * 1000);
       const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
-      const usersData: UserData[] = (parents || []).map(parent => {
+      const usersData: UserData[] = (parents || []).filter(p => !adminIds.has(p.id)).map(parent => {
         const parentChildren = children?.filter(c => c.parent_id === parent.id) || [];
         const childIds = parentChildren.map(c => c.id);
         const parentDevices = devices?.filter(d => d.child_id && childIds.includes(d.child_id)) || [];
