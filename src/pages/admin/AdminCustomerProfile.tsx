@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { he } from "date-fns/locale";
-import { supabase } from "@/integrations/supabase/client";
+import { adminSupabase } from "@/integrations/supabase/admin-client";
 import { useToast } from "@/hooks/use-toast";
 
 interface UserData {
@@ -151,7 +151,7 @@ export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: Adm
     setLoading(true);
     try {
       // Fetch parent's is_locked status and group_id
-      const { data: parentData } = await supabase
+      const { data: parentData } = await adminSupabase
         .from("parents")
         .select("is_locked, group_id" as any)
         .eq("id", user.id)
@@ -160,11 +160,11 @@ export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: Adm
       setGroupId((parentData as any)?.group_id ?? null);
 
       // Fetch groups list
-      const { data: groupsData } = await (supabase.from("customer_groups") as any).select("id, name, color").order("created_at");
+      const { data: groupsData } = await (adminSupabase.from("customer_groups") as any).select("id, name, color").order("created_at");
       setGroups((groupsData || []) as any[]);
 
       // Fetch children with subscription info
-      const { data: children } = await supabase
+      const { data: children } = await adminSupabase
         .from("children")
         .select("id, name, gender, date_of_birth, phone_number, subscription_tier, subscription_expires_at")
         .eq("parent_id", user.id);
@@ -172,7 +172,7 @@ export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: Adm
       const childIds = children?.map(c => c.id) || [];
 
       const { data: devices } = childIds.length > 0
-        ? await supabase.from("devices").select("device_id, child_id, last_seen, battery_level").in("child_id", childIds)
+        ? await adminSupabase.from("devices").select("device_id, child_id, last_seen, battery_level").in("child_id", childIds)
         : { data: [] };
 
       const childrenWithDevices: ChildDetail[] = (children || []).map(child => ({
@@ -186,14 +186,14 @@ export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: Adm
 
       setChildrenDetails(childrenWithDevices);
 
-      const { data: notesData } = await supabase
+      const { data: notesData } = await adminSupabase
         .from("admin_notes")
         .select("*")
         .eq("parent_id", user.id)
         .order("created_at", { ascending: false });
       setNotes(notesData || []);
 
-      const { data: logData } = await supabase
+      const { data: logData } = await adminSupabase
         .from("admin_activity_log")
         .select("*")
         .eq("target_parent_id", user.id)
@@ -204,7 +204,7 @@ export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: Adm
       // Fetch admin names for activity log
       if (logData && logData.length > 0) {
         const uniqueAdminIds = [...new Set(logData.map((l: any) => l.admin_user_id))];
-        const { data: admins } = await supabase
+        const { data: admins } = await adminSupabase
           .from("parents")
           .select("id, full_name")
           .in("id", uniqueAdminIds);
@@ -225,7 +225,7 @@ export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: Adm
     setSavingGroup(true);
     try {
       const val = newGroupId === "none" ? null : newGroupId;
-      const { error } = await (supabase.from("parents") as any)
+      const { error } = await (adminSupabase.from("parents") as any)
         .update({ group_id: val })
         .eq("id", user.id);
       if (error) throw error;
@@ -241,9 +241,9 @@ export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: Adm
   };
 
   const logActivity = async (actionType: string, details: Record<string, unknown> = {}) => {
-    const { data: { user: adminUser } } = await supabase.auth.getUser();
+    const { data: { user: adminUser } } = await adminSupabase.auth.getUser();
     if (!adminUser) return;
-    await supabase.from("admin_activity_log").insert([{
+    await adminSupabase.from("admin_activity_log").insert([{
       admin_user_id: adminUser.id,
       target_parent_id: user.id,
       action_type: actionType,
@@ -261,7 +261,7 @@ export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: Adm
   const saveParent = async () => {
     setSavingParent(true);
     try {
-      const { error } = await supabase
+      const { error } = await adminSupabase
         .from("parents")
         .update({ full_name: editParentName.trim(), phone: editParentPhone.trim() || null })
         .eq("id", user.id);
@@ -293,7 +293,7 @@ export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: Adm
     if (!editingChildId) return;
     setSavingChild(true);
     try {
-      const { error } = await supabase
+      const { error } = await adminSupabase
         .from("children")
         .update({
           name: editChildName.trim(),
@@ -320,7 +320,7 @@ export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: Adm
     setLockLoading(true);
     const newLocked = !isLocked;
     try {
-      const { error } = await supabase
+      const { error } = await adminSupabase
         .from("parents")
         .update({ is_locked: newLocked } as any)
         .eq("id", user.id);
@@ -340,7 +340,7 @@ export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: Adm
   const handleDeleteUser = async () => {
     setDeleting(true);
     try {
-      const { data, error } = await supabase.functions.invoke("admin-delete-user", {
+      const { data, error } = await adminSupabase.functions.invoke("admin-delete-user", {
         body: { userId: user.id },
       });
       if (error) throw error;
@@ -382,9 +382,9 @@ export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: Adm
     if (!newNote.trim()) return;
     setSubmittingNote(true);
     try {
-      const { data: { user: adminUser } } = await supabase.auth.getUser();
+      const { data: { user: adminUser } } = await adminSupabase.auth.getUser();
       if (!adminUser) throw new Error("Not authenticated");
-      const { error } = await supabase.from("admin_notes").insert({
+      const { error } = await adminSupabase.from("admin_notes").insert({
         parent_id: user.id,
         admin_user_id: adminUser.id,
         note_text: newNote.trim(),
@@ -405,7 +405,7 @@ export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: Adm
 
   const handleDeleteNote = async (noteId: string) => {
     try {
-      await supabase.from("admin_notes").delete().eq("id", noteId);
+      await adminSupabase.from("admin_notes").delete().eq("id", noteId);
       fetchCustomerData();
       toast({ title: "הערה נמחקה" });
     } catch (err: any) {
@@ -424,7 +424,7 @@ export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: Adm
       const expiresAt = new Date();
       expiresAt.setMonth(expiresAt.getMonth() + 1);
       const childIds = childrenDetails.map(c => c.id);
-      const { error } = await supabase
+      const { error } = await adminSupabase
         .from("children")
         .update({ subscription_tier: "premium", subscription_expires_at: expiresAt.toISOString() })
         .in("id", childIds);
@@ -453,7 +453,7 @@ export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: Adm
   const handleImpersonate = async () => {
     setImpersonatingId(user.id);
     try {
-      const { data, error } = await supabase.functions.invoke("impersonate-user", { body: { userId: user.id } });
+      const { data, error } = await adminSupabase.functions.invoke("impersonate-user", { body: { userId: user.id } });
       if (error || !data?.access_token) throw new Error(data?.error || error?.message || "Failed to impersonate");
       await logActivity("impersonate");
       pendingTokensRef.current = { access_token: data.access_token, refresh_token: data.refresh_token };

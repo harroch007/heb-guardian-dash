@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { adminSupabase } from "@/integrations/supabase/admin-client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -67,7 +67,7 @@ export function AdminFeedback() {
     try {
       // Fetch all feedback (last 30 days for analysis)
       const thirtyDaysAgo = subDays(new Date(), 30).toISOString();
-      const { data: feedback, error: fbError } = await supabase
+      const { data: feedback, error: fbError } = await adminSupabase
         .from("alert_feedback")
         .select("*")
         .gte("created_at", thirtyDaysAgo)
@@ -82,7 +82,7 @@ export function AdminFeedback() {
 
       // Fetch corresponding alerts
       const alertIds = [...new Set(feedback.map(f => f.alert_id))];
-      const { data: alerts, error: alertsError } = await supabase
+      const { data: alerts, error: alertsError } = await adminSupabase
         .from("alerts")
         .select("id, ai_title, category, ai_risk_score, ai_verdict, ai_summary, ai_explanation, ai_recommendation, chat_type, chat_name")
         .in("id", alertIds);

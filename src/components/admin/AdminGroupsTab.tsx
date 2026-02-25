@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { adminSupabase } from "@/integrations/supabase/admin-client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,9 +49,9 @@ export function AdminGroupsTab() {
   const fetchAll = async () => {
     setLoading(true);
     const [groupsRes, modelsRes, parentsRes] = await Promise.all([
-      supabase.from("customer_groups" as any).select("*").order("created_at"),
-      supabase.from("ai_model_config").select("model_name"),
-      supabase.from("parents").select("id, group_id" as any),
+      adminSupabase.from("customer_groups" as any).select("*").order("created_at"),
+      adminSupabase.from("ai_model_config").select("model_name"),
+      adminSupabase.from("parents").select("id, group_id" as any),
     ]);
 
     const groupsData = (groupsRes.data || []) as any[];
@@ -75,7 +75,7 @@ export function AdminGroupsTab() {
 
   const addGroup = async () => {
     if (!newName.trim()) return;
-    const { error } = await supabase.from("customer_groups" as any).insert({
+    const { error } = await adminSupabase.from("customer_groups" as any).insert({
       name: newName.trim(),
       description: newDesc.trim() || null,
       model_name: newModel === "default" ? null : newModel,
@@ -104,7 +104,7 @@ export function AdminGroupsTab() {
 
   const saveEdit = async () => {
     if (!editingId) return;
-    const { error } = await supabase.from("customer_groups" as any)
+    const { error } = await adminSupabase.from("customer_groups" as any)
       .update({
         name: editName.trim(),
         description: editDesc.trim() || null,
@@ -123,8 +123,8 @@ export function AdminGroupsTab() {
 
   const deleteGroup = async (id: string) => {
     // First unset group_id for any parents in this group
-    await (supabase.from("parents") as any).update({ group_id: null }).eq("group_id", id);
-    const { error } = await (supabase.from("customer_groups") as any).delete().eq("id", id);
+    await (adminSupabase.from("parents") as any).update({ group_id: null }).eq("group_id", id);
+    const { error } = await (adminSupabase.from("customer_groups") as any).delete().eq("id", id);
     if (error) {
       toast.error("שגיאה: " + error.message);
     } else {

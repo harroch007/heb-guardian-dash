@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { adminSupabase } from "@/integrations/supabase/admin-client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,7 +49,7 @@ export function AdminPromoCodes() {
 
   const fetchCodes = async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    const { data, error } = await adminSupabase
       .from("promo_codes" as any)
       .select("*")
       .order("created_at", { ascending: false });
@@ -70,7 +70,7 @@ export function AdminPromoCodes() {
     }
 
     setCreating(true);
-    const { error } = await supabase
+    const { error } = await adminSupabase
       .from("promo_codes" as any)
       .insert({
         code: newCode.trim().toUpperCase(),
@@ -98,7 +98,7 @@ export function AdminPromoCodes() {
   };
 
   const handleToggle = async (code: PromoCode) => {
-    const { error } = await supabase
+    const { error } = await adminSupabase
       .from("promo_codes" as any)
       .update({ is_active: !code.is_active } as any)
       .eq("id", code.id);
@@ -112,7 +112,7 @@ export function AdminPromoCodes() {
   };
 
   const handleDelete = async (id: string) => {
-    const { error } = await supabase
+    const { error } = await adminSupabase
       .from("promo_codes" as any)
       .delete()
       .eq("id", id);

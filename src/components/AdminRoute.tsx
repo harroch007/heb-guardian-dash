@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { adminSupabase } from "@/integrations/supabase/admin-client";
 import { Loader2 } from "lucide-react";
 
 interface AdminRouteProps {
@@ -15,7 +15,7 @@ export function AdminRoute({ children }: AdminRouteProps) {
     const checkAdmin = async () => {
       try {
         // First check if user is authenticated
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user } } = await adminSupabase.auth.getUser();
         
         if (!user) {
           setIsAdmin(false);
@@ -24,7 +24,7 @@ export function AdminRoute({ children }: AdminRouteProps) {
         }
 
         // Check admin role via RPC
-        const { data, error } = await supabase.rpc("is_admin");
+        const { data, error } = await adminSupabase.rpc("is_admin");
         
         if (error) {
           console.error("Error checking admin status:", error);
