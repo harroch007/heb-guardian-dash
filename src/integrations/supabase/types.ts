@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_model_config: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_default: boolean
+          model_name: string
+          updated_at: string | null
+          weight: number
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_default?: boolean
+          model_name: string
+          updated_at?: string | null
+          weight?: number
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_default?: boolean
+          model_name?: string
+          updated_at?: string | null
+          weight?: number
+        }
+        Relationships: []
+      }
       ai_stack_requests: {
         Row: {
           chat_hash: string | null
@@ -563,6 +593,35 @@ export type Database = {
             foreignKeyName: "child_daily_insights_child_id_fkey"
             columns: ["child_id"]
             isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      child_model_override: {
+        Row: {
+          child_id: string
+          created_at: string | null
+          id: string
+          model_name: string
+        }
+        Insert: {
+          child_id: string
+          created_at?: string | null
+          id?: string
+          model_name: string
+        }
+        Update: {
+          child_id?: string
+          created_at?: string | null
+          id?: string
+          model_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "child_model_override_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: true
             referencedRelation: "children"
             referencedColumns: ["id"]
           },
