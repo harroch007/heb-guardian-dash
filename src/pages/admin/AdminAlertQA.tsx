@@ -6,9 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, RefreshCw, Eye, RotateCcw, Play } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { AdminModelComparison } from "./AdminModelComparison";
 
 interface AlertQARow {
   id: number;
@@ -120,6 +122,15 @@ export function AdminAlertQA() {
 
   return (
     <div className="space-y-4" dir="rtl">
+      <Tabs defaultValue="alerts" dir="rtl">
+        <TabsList>
+          <TabsTrigger value="alerts">התראות</TabsTrigger>
+          <TabsTrigger value="models">מודלים</TabsTrigger>
+        </TabsList>
+        <TabsContent value="models">
+          <AdminModelComparison />
+        </TabsContent>
+        <TabsContent value="alerts">
       {/* Re-analyze Range */}
       <Card>
         <CardHeader className="pb-3">
@@ -340,6 +351,8 @@ export function AdminAlertQA() {
           )}
         </DialogContent>
       </Dialog>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

@@ -671,8 +671,38 @@ async function processAlert(
     redactPII(content),
   ].filter(Boolean).join('\n');
 
-  // 4. Call OpenAI
-  console.log("Using model: gpt-4.1 for alert analysis");
+  // 4. Select model: check child override → weighted random from config → fallback
+  let selectedModel = 'gpt-4.1'; // fallback
+  try {
+    const childId = alert.child_id;
+    if (childId) {
+      const { data: override } = await supabase
+        .from('child_model_override')
+        .select('model_name')
+        .eq('child_id', childId)
+        .maybeSingle();
+      if (override?.model_name) {
+        selectedModel = override.model_name;
+        console.log(`Model override found for child ${childId}: ${selectedModel}`);
+      }
+    }
+    if (selectedModel === 'gpt-4.1') {
+      const { data: configs } = await supabase
+        .from('ai_model_config')
+        .select('model_name, weight')
+        .gt('weight', 0);
+      if (configs && configs.length > 0) {
+        const totalWeight = configs.reduce((s: number, c: any) => s + c.weight, 0);
+        let rand = Math.random() * totalWeight;
+        for (const c of configs) {
+          rand -= c.weight;
+          if (rand <= 0) { selectedModel = c.model_name; break; }
+        }
+      }
+    }
+  } catch (e) { console.warn('Model selection fallback:', e); }
+
+  console.log(`Using model: ${selectedModel} for alert analysis`);
   const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -680,7 +710,7 @@ async function processAlert(
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'gpt-4.1',
+      model: selectedModel,
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: userMessage }
@@ -828,7 +858,7 @@ async function processAlert(
     content: '[CONTENT DELETED FOR PRIVACY]',
     analyzed_at: new Date().toISOString(),
     source: 'edge_analyze_alert',
-    ai_analysis: aiResult,  // Store full AI response for QA
+    ai_analysis: { ...aiResult, model_used: selectedModel },  // Store full AI response for QA + model tracking
     ai_patterns: aiResult.patterns || null,
     ai_classification: aiResult.classification || null,
     ai_confidence: typeof aiResult.confidence === 'number' ? aiResult.confidence : null,
