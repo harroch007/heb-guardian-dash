@@ -1,38 +1,40 @@
 
 
-## תיקון אימוג'ים בהודעת WhatsApp
+## תיקון: רענון רשימת משתמשים אחרי מחיקה
 
 ### הבעיה
-האימוג'ים בתבנית ההודעה (👋, 🙂, 1️⃣, 2️⃣, 3️⃣) מופיעים כסימני שאלה (❓) בוואטסאפ. זו בעיה ידועה עם אימוג'ים מסוימים (במיוחד keycap emojis כמו 1️⃣) שעוברים דרך `wa.me` URL.
+המחיקה עצמה **עובדת** — ה-Edge Function מחק בהצלחה את המשתמש "עידן סאסי" מהדאטאבייס (מאומת בלוגים ובשאילתה). הבעיה היא שה-UI לא מרענן את רשימת המשתמשים אחרי המחיקה.
+
+### שרשרת הקריאות הנוכחית
+```text
+Admin.tsx (fetchUsers → users state)
+  └─ AdminUsersHub (users prop, onClose = setSelectedUser(null))
+       └─ AdminCustomerProfile (onClose called after delete)
+```
+
+אחרי מחיקה, `onClose()` רק סוגר את הפרופיל — אין שום קריאה ל-`fetchUsers()` מחדש.
 
 ### הפתרון
-החלפת האימוג'ים הבעייתיים בטקסט פשוט — גישה בטוחה ואמינה:
+1. **Admin.tsx** — לחשוף את `fetchUsers` כ-prop `onRefreshUsers` ל-`AdminUsersHub`
+2. **AdminUsersHub.tsx** — להעביר callback `onUserDeleted` ל-`AdminCustomerProfile`
+3. **AdminCustomerProfile.tsx** — לקרוא ל-`onUserDeleted` אחרי מחיקה מוצלחת (לפני `onClose`)
 
-**קובץ:** `src/pages/admin/AdminWaitlist.tsx` (שורה 16)
+### שינויים בקבצים
 
-**לפני:**
-```
-שלום {parent_name} 👋
-...התור שלך הגיע 🙂
-...
-1️⃣ התחבר/י דרך האימייל...
-2️⃣ במכשיר הילד חפשו...
-3️⃣ עקבו אחרי שלבי החיבור...
-```
+**`src/pages/Admin.tsx`**
+- הוספת prop `onRefreshUsers={fetchUsers}` ל-`AdminUsersHub`
 
-**אחרי:**
-```
-שלום {parent_name}
-...התור שלך הגיע!
-...
-1. התחבר/י דרך האימייל...
-2. במכשיר הילד חפשו...
-3. עקבו אחרי שלבי החיבור...
-```
+**`src/pages/admin/AdminUsersHub.tsx`**
+- קבלת prop `onRefreshUsers`
+- העברתו ל-`AdminCustomerProfile` כ-`onUserDeleted`
+- כשהמשתמש נמחק: סגירת הפרופיל + קריאה לרענון
+
+**`src/pages/admin/AdminCustomerProfile.tsx`**
+- קבלת prop `onUserDeleted`
+- קריאה אליו אחרי מחיקה מוצלחת (שורה 348-350)
 
 ### פרטים טכניים
-- שינוי בקובץ אחד בלבד: `AdminWaitlist.tsx`
-- הסרת 5 אימוג'ים בעייתיים מה-`DEFAULT_MESSAGE_TEMPLATE`
-- החלפה בטקסט פשוט (מספרים עם נקודה, סימן קריאה)
-- משתמשים שכבר ערכו את התבנית (שמורה ב-localStorage) יצטרכו ללחוץ "איפוס לברירת מחדל" כדי לקבל את הגרסה המתוקנת
+- 3 קבצים משתנים, ללא שינוי בדאטאבייס
+- אחרי מחיקה מוצלחת, `fetchUsers()` נקרא מחדש ומביא את הרשימה המעודכנת
+- המשתמש שנמחק ייעלם מהטבלה מיד
 
