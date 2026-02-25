@@ -31,6 +31,7 @@ export const BottomNavigation = forwardRef<HTMLElement, object>(function BottomN
         .is('acknowledged_at', null)
         .eq('is_processed', true)
         .is('parent_message', null)
+        .is('saved_at', null)
         .eq('alert_type', 'warning')
         .in('ai_verdict', ['notify', 'review']);
       setAlertsCount(count || 0);
