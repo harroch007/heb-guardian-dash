@@ -730,12 +730,16 @@ export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: Adm
                                   })}
                                 </div>
                               )}
-                              {/* Permission alerts */}
+                              {/* Permission status - smart detection */}
                               {child.permissionAlerts.length > 0 ? (
                                 <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30 text-xs mt-1">
                                   ⚠️ הרשאות חסרות
                                 </Badge>
-                              ) : child.devices.length > 0 ? (
+                              ) : child.devices.length > 0 && child.devices.some(d => d.appUsage7d > 0 && d.realAlerts7d === 0) ? (
+                                <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 text-xs mt-1" title="יש שימוש באפליקציות אבל אין התראות ב-7 ימים אחרונים">
+                                  ⚠️ חשד להרשאות חסרות
+                                </Badge>
+                              ) : child.devices.length > 0 && child.devices.some(d => d.appUsage7d > 0 && d.realAlerts7d > 0) ? (
                                 <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs mt-1">
                                   ✅ הרשאות תקינות
                                 </Badge>
