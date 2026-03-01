@@ -282,6 +282,7 @@ export type Database = {
           ai_classification: Json | null
           ai_confidence: number | null
           ai_context: string | null
+          ai_error: string | null
           ai_explanation: string | null
           ai_explanation_short: string | null
           ai_meaning: string | null
@@ -290,6 +291,7 @@ export type Database = {
           ai_recommendation_short: string | null
           ai_risk_score: number | null
           ai_social_context: Json | null
+          ai_status: string | null
           ai_summary: string | null
           ai_title: string | null
           ai_verdict: string | null
@@ -301,6 +303,7 @@ export type Database = {
           chat_type: string | null
           child_id: string | null
           child_role: string | null
+          client_event_id: string | null
           content: string | null
           created_at: string
           device_id: string | null
@@ -330,6 +333,7 @@ export type Database = {
           ai_classification?: Json | null
           ai_confidence?: number | null
           ai_context?: string | null
+          ai_error?: string | null
           ai_explanation?: string | null
           ai_explanation_short?: string | null
           ai_meaning?: string | null
@@ -338,6 +342,7 @@ export type Database = {
           ai_recommendation_short?: string | null
           ai_risk_score?: number | null
           ai_social_context?: Json | null
+          ai_status?: string | null
           ai_summary?: string | null
           ai_title?: string | null
           ai_verdict?: string | null
@@ -349,6 +354,7 @@ export type Database = {
           chat_type?: string | null
           child_id?: string | null
           child_role?: string | null
+          client_event_id?: string | null
           content?: string | null
           created_at?: string
           device_id?: string | null
@@ -378,6 +384,7 @@ export type Database = {
           ai_classification?: Json | null
           ai_confidence?: number | null
           ai_context?: string | null
+          ai_error?: string | null
           ai_explanation?: string | null
           ai_explanation_short?: string | null
           ai_meaning?: string | null
@@ -386,6 +393,7 @@ export type Database = {
           ai_recommendation_short?: string | null
           ai_risk_score?: number | null
           ai_social_context?: Json | null
+          ai_status?: string | null
           ai_summary?: string | null
           ai_title?: string | null
           ai_verdict?: string | null
@@ -397,6 +405,7 @@ export type Database = {
           chat_type?: string | null
           child_id?: string | null
           child_role?: string | null
+          client_event_id?: string | null
           content?: string | null
           created_at?: string
           device_id?: string | null
@@ -1802,22 +1811,40 @@ export type Database = {
         }
         Returns: Json
       }
-      create_alert: {
-        Args: {
-          p_author_type?: string
-          p_chat_name?: string
-          p_chat_type?: string
-          p_contact_hash?: string
-          p_device_id: string
-          p_message: string
-          p_message_count?: number
-          p_pii_redacted_count?: number
-          p_risk_level: number
-          p_sender_display?: string
-          p_source: string
-        }
-        Returns: number
-      }
+      create_alert:
+        | {
+            Args: {
+              p_author_type?: string
+              p_chat_name?: string
+              p_chat_type?: string
+              p_contact_hash?: string
+              p_device_id: string
+              p_message: string
+              p_message_count?: number
+              p_pii_redacted_count?: number
+              p_risk_level: number
+              p_sender_display?: string
+              p_source: string
+            }
+            Returns: number
+          }
+        | {
+            Args: {
+              p_author_type?: string
+              p_chat_name?: string
+              p_chat_type?: string
+              p_client_event_id?: string
+              p_contact_hash?: string
+              p_device_id: string
+              p_message: string
+              p_message_count?: number
+              p_pii_redacted_count?: number
+              p_risk_level: number
+              p_sender_display?: string
+              p_source: string
+            }
+            Returns: number
+          }
       create_app_alert: {
         Args: {
           p_app_name?: string
