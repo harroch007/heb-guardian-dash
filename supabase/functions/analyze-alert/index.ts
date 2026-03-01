@@ -1012,7 +1012,7 @@ async function processAlert(
 
   console.log(`ANALYZE_ALERT_OK alert_id=${alertId}`);
 
-  // 8. Send push notification if verdict is notify or review (with anti-spam)
+  // 8. Send push notification if verdict is notify or review (with threshold + anti-spam)
   if (aiResult.verdict === 'notify' || aiResult.verdict === 'review') {
     try {
       const { data: alertData } = await supabase
@@ -1022,6 +1022,35 @@ async function processAlert(
         .single();
 
       if (alertData?.child_id) {
+        // ── Threshold Check: Only send push if risk_score >= parent's alert_threshold ──
+        const DEFAULT_THRESHOLD = 65; // "Balanced" sensitivity
+        const { data: settingsData } = await supabase
+          .from('settings')
+          .select('alert_threshold')
+          .eq('child_id', alertData.child_id)
+          .is('device_id', null)
+          .order('parent_id', { nullsFirst: false })
+          .limit(1)
+          .maybeSingle();
+
+        const parentThreshold = settingsData?.alert_threshold ?? DEFAULT_THRESHOLD;
+        const currentRiskScoreForThreshold = aiResult.risk_score ?? 0;
+
+        if (currentRiskScoreForThreshold < parentThreshold) {
+          console.log(`THRESHOLD_SKIP: alert ${alertId} risk_score=${currentRiskScoreForThreshold} < threshold=${parentThreshold}, skipping push`);
+          await supabase
+            .from('alerts')
+            .update({ processing_status: 'below_threshold', should_alert: false })
+            .eq('id', alertId);
+
+          return {
+            success: true,
+            alert_id: alertId,
+            status: 'below_threshold',
+            ai_verdict: updateData.ai_verdict,
+            privacy: 'content_wiped',
+          };
+        }
         // ── Anti-Spam: Chat Grouping (10-minute window, risk-aware) ──
         const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
         const currentRiskScore = aiResult.risk_score ?? 0;
