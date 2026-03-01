@@ -137,6 +137,7 @@ Deno.serve(async (req) => {
           is_processed: true,
           should_alert: true,
           ai_risk_score: 50,
+          ai_verdict: 'notify',
         });
 
       if (alertError) {
