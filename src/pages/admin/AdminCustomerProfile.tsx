@@ -42,7 +42,8 @@ interface ChildDetail {
   phone_number: string;
   subscription_tier: string | null;
   subscription_expires_at: string | null;
-  devices: { device_id: string; last_seen: string | null; battery_level: number | null }[];
+  devices: { device_id: string; last_seen: string | null; battery_level: number | null; device_model: string | null; device_manufacturer: string | null }[];
+  permissionAlerts: { parent_message: string | null; created_at: string }[];
 }
 
 interface AdminNote {
