@@ -1406,6 +1406,17 @@ serve(async (req) => {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error(`ANALYZE_ALERT_FAIL alert_id=${alertId || 'unknown'} reason=${errorMessage}`);
+
+    // Update ai_status on the alert if we have an alertId and supabase client
+    if (alertId) {
+      try {
+        const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+        const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+        const sb = createClient(supabaseUrl, supabaseServiceKey);
+        await sb.from('alerts').update({ ai_status: 'failed', ai_error: errorMessage }).eq('id', alertId);
+      } catch (_) { /* best-effort */ }
+    }
+
     return new Response(
       JSON.stringify({ error: errorMessage }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
