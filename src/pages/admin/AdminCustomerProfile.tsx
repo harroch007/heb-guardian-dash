@@ -42,7 +42,8 @@ interface ChildDetail {
   phone_number: string;
   subscription_tier: string | null;
   subscription_expires_at: string | null;
-  devices: { device_id: string; last_seen: string | null; battery_level: number | null }[];
+  devices: { device_id: string; last_seen: string | null; battery_level: number | null; device_model: string | null; device_manufacturer: string | null }[];
+  permissionAlerts: { parent_message: string | null; created_at: string }[];
 }
 
 interface AdminNote {
@@ -172,15 +173,26 @@ export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: Adm
       const childIds = children?.map(c => c.id) || [];
 
       const { data: devices } = childIds.length > 0
-        ? await adminSupabase.from("devices").select("device_id, child_id, last_seen, battery_level").in("child_id", childIds)
+        ? await adminSupabase.from("devices").select("device_id, child_id, last_seen, battery_level, device_model, device_manufacturer" as any).in("child_id", childIds)
+        : { data: [] };
+
+      // Fetch permission alerts for children
+      const { data: permAlerts } = childIds.length > 0
+        ? await adminSupabase.from("alerts").select("child_id, parent_message, created_at").eq("category", "PERMISSION_MISSING").is("acknowledged_at", null).in("child_id", childIds)
         : { data: [] };
 
       const childrenWithDevices: ChildDetail[] = (children || []).map(child => ({
         ...child,
-        devices: (devices || []).filter(d => d.child_id === child.id).map(d => ({
+        devices: (devices || []).filter((d: any) => d.child_id === child.id).map((d: any) => ({
           device_id: d.device_id,
           last_seen: d.last_seen,
           battery_level: d.battery_level,
+          device_model: d.device_model || null,
+          device_manufacturer: d.device_manufacturer || null,
+        })),
+        permissionAlerts: (permAlerts || []).filter((a: any) => a.child_id === child.id).map((a: any) => ({
+          parent_message: a.parent_message,
+          created_at: a.created_at,
         })),
       }));
 
@@ -672,15 +684,40 @@ export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: Adm
                                 )}
                               </div>
                               {child.devices.length > 0 && (
-                                <div className="text-xs text-muted-foreground flex gap-2 mt-1">
-                                  {child.devices.map(d => (
-                                    <Badge key={d.device_id} variant="outline" className="text-xs font-mono">
-                                      {d.device_id.slice(0, 8)}...
-                                      {d.battery_level != null && ` 🔋${d.battery_level}%`}
-                                    </Badge>
-                                  ))}
+                                <div className="space-y-1 mt-1">
+                                  {child.devices.map(d => {
+                                    const modelDisplay = d.device_manufacturer || d.device_model
+                                      ? `${d.device_manufacturer || ''} ${d.device_model || ''}`.trim()
+                                      : null;
+                                    return (
+                                      <div key={d.device_id} className="flex items-center gap-2 text-xs text-muted-foreground">
+                                        <Smartphone className="w-3 h-3" />
+                                        <span className="font-medium">{modelDisplay || `מכשיר ${d.device_id.slice(0, 8)}...`}</span>
+                                        {d.battery_level != null && (
+                                          <Badge variant="outline" className="text-xs h-5 px-1.5">
+                                            🔋 {d.battery_level}%
+                                          </Badge>
+                                        )}
+                                        {d.last_seen && (
+                                          <span className="text-muted-foreground/70">
+                                            נראה {formatDistanceToNow(new Date(d.last_seen), { addSuffix: true, locale: he })}
+                                          </span>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
                                 </div>
                               )}
+                              {/* Permission alerts */}
+                              {child.permissionAlerts.length > 0 ? (
+                                <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30 text-xs mt-1">
+                                  ⚠️ הרשאות חסרות
+                                </Badge>
+                              ) : child.devices.length > 0 ? (
+                                <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs mt-1">
+                                  ✅ הרשאות תקינות
+                                </Badge>
+                              ) : null}
                             </>
                           )}
                         </div>
