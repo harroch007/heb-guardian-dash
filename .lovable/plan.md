@@ -1,57 +1,64 @@
 
 
-## אבחון הבעיה
+## הבעיה: חוסר סנכרון בין מד הרגישות לבין שליחת Push
 
-בדקתי את הלוגים של edge function `impersonate-user` ומצאתי שהוא החזיר **403 (Forbidden)** — כלומר ה-JWT הגיע אבל `is_admin()` החזיר false.
+### מצב נוכחי
 
-### מה קרה
+1. **מד הרגישות** (NotificationSettings) — שומר `alert_threshold` בטבלת `settings` (50/65/85)
+2. **הצגת התראות בדף Alerts** — מסנן בצד הלקוח לפי `alert_threshold` ✅ עובד
+3. **שליחת Push** (`analyze-alert`, שורה 1016) — שולח Push לכל `notify` או `review` **ללא בדיקת threshold** ❌ לא מסונכרן
+4. **view `parent_alerts_effective`** — מסנן רק `notify` (לא `review`) ❌ חלקי
+5. **הורה חדש** — אם אין שורה ב-`settings`, הדיפולט הוא 65 (מאוזן) ✅ תקין
 
-לפי לוגי ה-auth:
-1. **15:14** — התחברת כ-`yariv@kippyai.com` (אדמין)
-2. **15:18:46** — התנתקת מהאדמין
-3. **15:18:51** — התחברת כ-`yarivtm@gmail.com` (הורה)
-4. **15:20** — ניסית להתחזות → Edge Function קיבל טוקן ללא הרשאת admin → 403
+### שינויים נדרשים
 
-אחרי השינוי שלנו (הפרדת admin client), סשן האדמין הישן (ששמור תחת המפתח הישן ב-localStorage) לא זמין ל-`adminSupabase` שמחפש תחת `sb-admin-auth-token`. דף האדמין נשאר פתוח מהסשן הקודם אבל בפועל אין סשן אדמין תקף.
+#### 1. `analyze-alert` Edge Function — סינון Push לפי threshold
 
-### הפתרון
+בשורה ~1016, לפני שליחת Push, לשלוף את `alert_threshold` מ-`settings` עבור הילד ולבדוק אם `ai_risk_score >= threshold`:
 
-הוספת בדיקת סשן אדמין לפני קריאת ההתחזות, עם הודעה ברורה אם הסשן פג:
-
-**שינויים:**
-
-1. **`src/pages/admin/AdminUsers.tsx`** — ב-`handleImpersonate`, לפני קריאת `functions.invoke`, לבדוק `adminSupabase.auth.getSession()`. אם אין סשן תקף → הודעת שגיאה "הסשן פג, יש להתחבר מחדש" והפניה ל-`/admin-login`.
-
-2. **`src/pages/admin/AdminCustomerProfile.tsx`** — אותה בדיקה ב-`handleImpersonate`.
-
-3. **`src/pages/Admin.tsx`** — הוספת listener ל-`adminSupabase.auth.onAuthStateChange` שמפנה ל-`/admin-login` כשהסשן מסתיים, כדי שדף האדמין לא יישאר פתוח בלי סשן.
-
-### פרטים טכניים
-
-```typescript
-// Before calling functions.invoke:
-const { data: { session } } = await adminSupabase.auth.getSession();
-if (!session) {
-  toast({ variant: 'destructive', title: 'הסשן פג', description: 'יש להתחבר מחדש' });
-  navigate('/admin-login');
-  return;
-}
+```text
+┌─ AI analysis complete ─┐
+│ verdict = notify/review │
+│ ai_risk_score = 72      │
+└────────────┬────────────┘
+             │
+     ┌───────▼────────┐
+     │ Fetch threshold │  ← settings.alert_threshold (default 65)
+     │ for child_id    │
+     └───────┬────────┘
+             │
+     ┌───────▼──────────────┐
+     │ risk_score >= threshold? │
+     │  72 >= 65 → YES → Push  │
+     │  72 >= 85 → NO → Skip   │
+     └─────────────────────────┘
 ```
 
-בנוסף, ב-Admin.tsx:
-```typescript
-useEffect(() => {
-  const { data: { subscription } } = adminSupabase.auth.onAuthStateChange((event) => {
-    if (event === 'SIGNED_OUT') {
-      navigate('/admin-login', { replace: true });
-    }
-  });
-  return () => subscription.unsubscribe();
-}, []);
+- שלוף `alert_threshold` מ-`settings` (`child_id = X`, `device_id IS NULL`) עם fallback ל-65
+- אם `ai_risk_score < threshold` → דלג על Push, סמן `processing_status = 'below_threshold'`
+- אם `ai_risk_score >= threshold` → שלח Push כרגיל
+
+#### 2. עדכון `parent_alerts_effective` view
+
+ה-view הנוכחי מסנן רק `ai_verdict = 'notify'`. צריך לעדכן אותו לכלול גם `review`:
+
+```sql
+WHERE (a.ai_verdict IN ('notify', 'review'))
+  AND a.ai_risk_score >= COALESCE(s.alert_threshold, 65)
 ```
 
-### תוצאה
-- אם סשן האדמין פג, המשתמש יקבל הודעה ברורה ויופנה להתחברות מחדש
-- דף האדמין לא יישאר "תקוע" בלי סשן תקף
-- ההתחזות תעבוד כרגיל אחרי התחברות מחדש
+זה יבטיח שהדשבורד, הדוח היומי, וה-badge כולם יציגו מספרים עקביים.
+
+#### 3. ללא שינוי בדף Alerts ובדף NotificationSettings
+
+הלוגיקה הקיימת בצד הלקוח כבר עובדת נכון — מסננת לפי threshold מ-settings.
+
+### סיכום
+
+| רכיב | לפני | אחרי |
+|---|---|---|
+| Push notification | כל notify/review | רק אם risk_score ≥ threshold |
+| `parent_alerts_effective` view | רק notify | notify + review שעוברים threshold |
+| דשבורד badge | לא תואם | תואם לדף Alerts |
+| דיפולט להורה חדש | 65 (מאוזן) | 65 (מאוזן) — ללא שינוי |
 
