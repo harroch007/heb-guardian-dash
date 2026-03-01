@@ -1639,6 +1639,7 @@ export type Database = {
           parent_message: string | null
           remind_at: string | null
           risk_score: number | null
+          saved_at: string | null
           sender: string | null
           sender_display: string | null
           should_alert: boolean | null
