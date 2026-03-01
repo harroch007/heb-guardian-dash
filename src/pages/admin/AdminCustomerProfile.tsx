@@ -181,6 +181,26 @@ export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: Adm
         ? await adminSupabase.from("alerts").select("child_id, parent_message, created_at").eq("category", "PERMISSION_MISSING").is("acknowledged_at", null).in("child_id", childIds)
         : { data: [] };
 
+      // Smart permission detection: fetch app_usage and real alerts counts per device (last 7 days)
+      const deviceIds = (devices || []).map((d: any) => d.device_id);
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const sevenDaysAgoStr = sevenDaysAgo.toISOString().split("T")[0]; // date only for usage_date
+
+      const { data: appUsageCounts } = deviceIds.length > 0
+        ? await adminSupabase.from("app_usage").select("device_id").in("device_id", deviceIds).gte("usage_date", sevenDaysAgoStr)
+        : { data: [] };
+
+      const { data: realAlertsCounts } = deviceIds.length > 0
+        ? await adminSupabase.from("alerts").select("device_id").in("device_id", deviceIds).gte("created_at", sevenDaysAgo.toISOString()).neq("category", "PERMISSION_MISSING")
+        : { data: [] };
+
+      // Count per device
+      const appUsageByDevice: Record<string, number> = {};
+      (appUsageCounts || []).forEach((r: any) => { appUsageByDevice[r.device_id] = (appUsageByDevice[r.device_id] || 0) + 1; });
+      const realAlertsByDevice: Record<string, number> = {};
+      (realAlertsCounts || []).forEach((r: any) => { realAlertsByDevice[r.device_id] = (realAlertsByDevice[r.device_id] || 0) + 1; });
+
       const childrenWithDevices: ChildDetail[] = (children || []).map(child => ({
         ...child,
         devices: (devices || []).filter((d: any) => d.child_id === child.id).map((d: any) => ({
@@ -189,6 +209,8 @@ export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: Adm
           battery_level: d.battery_level,
           device_model: d.device_model || null,
           device_manufacturer: d.device_manufacturer || null,
+          appUsage7d: appUsageByDevice[d.device_id] || 0,
+          realAlerts7d: realAlertsByDevice[d.device_id] || 0,
         })),
         permissionAlerts: (permAlerts || []).filter((a: any) => a.child_id === child.id).map((a: any) => ({
           parent_message: a.parent_message,
