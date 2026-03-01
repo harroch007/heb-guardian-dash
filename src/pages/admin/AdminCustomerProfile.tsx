@@ -684,15 +684,40 @@ export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: Adm
                                 )}
                               </div>
                               {child.devices.length > 0 && (
-                                <div className="text-xs text-muted-foreground flex gap-2 mt-1">
-                                  {child.devices.map(d => (
-                                    <Badge key={d.device_id} variant="outline" className="text-xs font-mono">
-                                      {d.device_id.slice(0, 8)}...
-                                      {d.battery_level != null && ` 🔋${d.battery_level}%`}
-                                    </Badge>
-                                  ))}
+                                <div className="space-y-1 mt-1">
+                                  {child.devices.map(d => {
+                                    const modelDisplay = d.device_manufacturer || d.device_model
+                                      ? `${d.device_manufacturer || ''} ${d.device_model || ''}`.trim()
+                                      : null;
+                                    return (
+                                      <div key={d.device_id} className="flex items-center gap-2 text-xs text-muted-foreground">
+                                        <Smartphone className="w-3 h-3" />
+                                        <span className="font-medium">{modelDisplay || `מכשיר ${d.device_id.slice(0, 8)}...`}</span>
+                                        {d.battery_level != null && (
+                                          <Badge variant="outline" className="text-xs h-5 px-1.5">
+                                            🔋 {d.battery_level}%
+                                          </Badge>
+                                        )}
+                                        {d.last_seen && (
+                                          <span className="text-muted-foreground/70">
+                                            נראה {formatDistanceToNow(new Date(d.last_seen), { addSuffix: true, locale: he })}
+                                          </span>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
                                 </div>
                               )}
+                              {/* Permission alerts */}
+                              {child.permissionAlerts.length > 0 ? (
+                                <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30 text-xs mt-1">
+                                  ⚠️ הרשאות חסרות
+                                </Badge>
+                              ) : child.devices.length > 0 ? (
+                                <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs mt-1">
+                                  ✅ הרשאות תקינות
+                                </Badge>
+                              ) : null}
                             </>
                           )}
                         </div>
