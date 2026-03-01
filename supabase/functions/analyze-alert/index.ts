@@ -997,6 +997,8 @@ async function processAlert(
     ai_patterns: aiResult.patterns || null,
     ai_classification: aiResult.classification || null,
     ai_confidence: typeof aiResult.confidence === 'number' ? aiResult.confidence : null,
+    ai_status: 'success',
+    ai_error: null,
   };
 
   const { error: updateError } = await supabase
@@ -1283,10 +1285,10 @@ serve(async (req) => {
         .update({ status: 'failed', last_error: errMsg, updated_at: new Date().toISOString() })
         .eq('id', queueId);
 
-      // Also update the alert's processing status
+      // Also update the alert's processing status + ai_status
       await supabase
         .from('alerts')
-        .update({ processing_status: 'failed', last_error: errMsg })
+        .update({ processing_status: 'failed', last_error: errMsg, ai_status: 'failed', ai_error: errMsg })
         .eq('id', alertId);
 
       return new Response(
@@ -1404,6 +1406,17 @@ serve(async (req) => {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error(`ANALYZE_ALERT_FAIL alert_id=${alertId || 'unknown'} reason=${errorMessage}`);
+
+    // Update ai_status on the alert if we have an alertId and supabase client
+    if (alertId) {
+      try {
+        const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+        const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+        const sb = createClient(supabaseUrl, supabaseServiceKey);
+        await sb.from('alerts').update({ ai_status: 'failed', ai_error: errorMessage }).eq('id', alertId);
+      } catch (_) { /* best-effort */ }
+    }
+
     return new Response(
       JSON.stringify({ error: errorMessage }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
