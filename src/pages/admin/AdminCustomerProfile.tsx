@@ -714,7 +714,7 @@ export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: Adm
                                     return (
                                       <div key={d.device_id} className="flex items-center gap-2 text-xs text-muted-foreground">
                                         <Smartphone className="w-3 h-3" />
-                                        <span className="font-medium">{modelDisplay || `מכשיר ${d.device_id.slice(0, 8)}...`}</span>
+                                        <span className="font-medium">{modelDisplay || "📱 דגם לא דווח"}</span>
                                         {d.battery_level != null && (
                                           <Badge variant="outline" className="text-xs h-5 px-1.5">
                                             🔋 {d.battery_level}%
