@@ -42,7 +42,7 @@ interface ChildDetail {
   phone_number: string;
   subscription_tier: string | null;
   subscription_expires_at: string | null;
-  devices: { device_id: string; last_seen: string | null; battery_level: number | null; device_model: string | null; device_manufacturer: string | null }[];
+  devices: { device_id: string; last_seen: string | null; battery_level: number | null; device_model: string | null; device_manufacturer: string | null; appUsage7d: number; realAlerts7d: number }[];
   permissionAlerts: { parent_message: string | null; created_at: string }[];
 }
 
@@ -181,6 +181,26 @@ export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: Adm
         ? await adminSupabase.from("alerts").select("child_id, parent_message, created_at").eq("category", "PERMISSION_MISSING").is("acknowledged_at", null).in("child_id", childIds)
         : { data: [] };
 
+      // Smart permission detection: fetch app_usage and real alerts counts per device (last 7 days)
+      const deviceIds = (devices || []).map((d: any) => d.device_id);
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const sevenDaysAgoStr = sevenDaysAgo.toISOString().split("T")[0]; // date only for usage_date
+
+      const { data: appUsageCounts } = deviceIds.length > 0
+        ? await adminSupabase.from("app_usage").select("device_id").in("device_id", deviceIds).gte("usage_date", sevenDaysAgoStr)
+        : { data: [] };
+
+      const { data: realAlertsCounts } = deviceIds.length > 0
+        ? await adminSupabase.from("alerts").select("device_id").in("device_id", deviceIds).gte("created_at", sevenDaysAgo.toISOString()).neq("category", "PERMISSION_MISSING")
+        : { data: [] };
+
+      // Count per device
+      const appUsageByDevice: Record<string, number> = {};
+      (appUsageCounts || []).forEach((r: any) => { appUsageByDevice[r.device_id] = (appUsageByDevice[r.device_id] || 0) + 1; });
+      const realAlertsByDevice: Record<string, number> = {};
+      (realAlertsCounts || []).forEach((r: any) => { realAlertsByDevice[r.device_id] = (realAlertsByDevice[r.device_id] || 0) + 1; });
+
       const childrenWithDevices: ChildDetail[] = (children || []).map(child => ({
         ...child,
         devices: (devices || []).filter((d: any) => d.child_id === child.id).map((d: any) => ({
@@ -189,6 +209,8 @@ export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: Adm
           battery_level: d.battery_level,
           device_model: d.device_model || null,
           device_manufacturer: d.device_manufacturer || null,
+          appUsage7d: appUsageByDevice[d.device_id] || 0,
+          realAlerts7d: realAlertsByDevice[d.device_id] || 0,
         })),
         permissionAlerts: (permAlerts || []).filter((a: any) => a.child_id === child.id).map((a: any) => ({
           parent_message: a.parent_message,
@@ -692,7 +714,7 @@ export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: Adm
                                     return (
                                       <div key={d.device_id} className="flex items-center gap-2 text-xs text-muted-foreground">
                                         <Smartphone className="w-3 h-3" />
-                                        <span className="font-medium">{modelDisplay || `מכשיר ${d.device_id.slice(0, 8)}...`}</span>
+                                        <span className="font-medium">{modelDisplay || "📱 דגם לא דווח"}</span>
                                         {d.battery_level != null && (
                                           <Badge variant="outline" className="text-xs h-5 px-1.5">
                                             🔋 {d.battery_level}%
@@ -708,12 +730,16 @@ export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: Adm
                                   })}
                                 </div>
                               )}
-                              {/* Permission alerts */}
+                              {/* Permission status - smart detection */}
                               {child.permissionAlerts.length > 0 ? (
                                 <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30 text-xs mt-1">
                                   ⚠️ הרשאות חסרות
                                 </Badge>
-                              ) : child.devices.length > 0 ? (
+                              ) : child.devices.length > 0 && child.devices.some(d => d.appUsage7d > 0 && d.realAlerts7d === 0) ? (
+                                <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 text-xs mt-1" title="יש שימוש באפליקציות אבל אין התראות ב-7 ימים אחרונים">
+                                  ⚠️ חשד להרשאות חסרות
+                                </Badge>
+                              ) : child.devices.length > 0 && child.devices.some(d => d.appUsage7d > 0 && d.realAlerts7d > 0) ? (
                                 <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs mt-1">
                                   ✅ הרשאות תקינות
                                 </Badge>
