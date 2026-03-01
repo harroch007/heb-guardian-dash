@@ -1285,10 +1285,10 @@ serve(async (req) => {
         .update({ status: 'failed', last_error: errMsg, updated_at: new Date().toISOString() })
         .eq('id', queueId);
 
-      // Also update the alert's processing status
+      // Also update the alert's processing status + ai_status
       await supabase
         .from('alerts')
-        .update({ processing_status: 'failed', last_error: errMsg })
+        .update({ processing_status: 'failed', last_error: errMsg, ai_status: 'failed', ai_error: errMsg })
         .eq('id', alertId);
 
       return new Response(
