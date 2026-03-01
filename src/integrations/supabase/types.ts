@@ -1126,6 +1126,8 @@ export type Database = {
           child_id: string | null
           created_at: string | null
           device_id: string
+          device_manufacturer: string | null
+          device_model: string | null
           first_seen_at: string | null
           last_seen: string | null
           latitude: number | null
@@ -1137,6 +1139,8 @@ export type Database = {
           child_id?: string | null
           created_at?: string | null
           device_id: string
+          device_manufacturer?: string | null
+          device_model?: string | null
           first_seen_at?: string | null
           last_seen?: string | null
           latitude?: number | null
@@ -1148,6 +1152,8 @@ export type Database = {
           child_id?: string | null
           created_at?: string | null
           device_id?: string
+          device_manufacturer?: string | null
+          device_model?: string | null
           first_seen_at?: string | null
           last_seen?: string | null
           latitude?: number | null
@@ -1970,15 +1976,27 @@ export type Database = {
         Args: { p_device_id: string; p_settings: Json }
         Returns: Json
       }
-      update_device_status: {
-        Args: {
-          p_battery: number
-          p_device_id: string
-          p_lat: number
-          p_lon: number
-        }
-        Returns: undefined
-      }
+      update_device_status:
+        | {
+            Args: {
+              p_battery: number
+              p_device_id: string
+              p_lat: number
+              p_lon: number
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              p_battery: number
+              p_device_id: string
+              p_device_manufacturer?: string
+              p_device_model?: string
+              p_lat: number
+              p_lon: number
+            }
+            Returns: undefined
+          }
       upsert_app_usage: {
         Args: {
           p_app_name: string
