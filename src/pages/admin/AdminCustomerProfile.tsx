@@ -173,15 +173,26 @@ export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: Adm
       const childIds = children?.map(c => c.id) || [];
 
       const { data: devices } = childIds.length > 0
-        ? await adminSupabase.from("devices").select("device_id, child_id, last_seen, battery_level").in("child_id", childIds)
+        ? await adminSupabase.from("devices").select("device_id, child_id, last_seen, battery_level, device_model, device_manufacturer" as any).in("child_id", childIds)
+        : { data: [] };
+
+      // Fetch permission alerts for children
+      const { data: permAlerts } = childIds.length > 0
+        ? await adminSupabase.from("alerts").select("child_id, parent_message, created_at").eq("category", "PERMISSION_MISSING").is("acknowledged_at", null).in("child_id", childIds)
         : { data: [] };
 
       const childrenWithDevices: ChildDetail[] = (children || []).map(child => ({
         ...child,
-        devices: (devices || []).filter(d => d.child_id === child.id).map(d => ({
+        devices: (devices || []).filter((d: any) => d.child_id === child.id).map((d: any) => ({
           device_id: d.device_id,
           last_seen: d.last_seen,
           battery_level: d.battery_level,
+          device_model: d.device_model || null,
+          device_manufacturer: d.device_manufacturer || null,
+        })),
+        permissionAlerts: (permAlerts || []).filter((a: any) => a.child_id === child.id).map((a: any) => ({
+          parent_message: a.parent_message,
+          created_at: a.created_at,
         })),
       }));
 
