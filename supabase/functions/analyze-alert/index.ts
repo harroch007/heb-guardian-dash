@@ -997,6 +997,8 @@ async function processAlert(
     ai_patterns: aiResult.patterns || null,
     ai_classification: aiResult.classification || null,
     ai_confidence: typeof aiResult.confidence === 'number' ? aiResult.confidence : null,
+    ai_status: 'success',
+    ai_error: null,
   };
 
   const { error: updateError } = await supabase
