@@ -705,6 +705,10 @@ export default function Admin() {
             <Microscope className="w-4 h-4" />
             <span className="hidden sm:inline">QA</span>
           </TabsTrigger>
+          <TabsTrigger value="help" className="gap-2">
+            <HelpCircle className="w-4 h-4" />
+            <span className="hidden sm:inline">מרכז עזרה</span>
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
