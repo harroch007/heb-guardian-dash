@@ -7,7 +7,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, RefreshCw, Eye, RotateCcw, Play } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Loader2, RefreshCw, Eye, RotateCcw, Play, MessageCircle, Camera } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { AdminModelComparison } from "./AdminModelComparison";
@@ -30,6 +31,7 @@ interface AlertQARow {
   ai_confidence: number | null;
   ai_meaning: string | null;
   ai_context: string | null;
+  platform: string;
 }
 
 const VERDICT_COLORS: Record<string, string> = {
@@ -37,6 +39,23 @@ const VERDICT_COLORS: Record<string, string> = {
   monitor: "bg-purple-500/20 text-purple-400",
   review: "bg-yellow-500/20 text-yellow-400",
   notify: "bg-red-500/20 text-red-400",
+};
+
+const PlatformBadge = ({ platform }: { platform: string }) => {
+  if (platform === "INSTAGRAM") {
+    return (
+      <Badge className="bg-pink-500/20 text-pink-400 gap-1">
+        <Camera className="w-3 h-3" />
+        Instagram
+      </Badge>
+    );
+  }
+  return (
+    <Badge className="bg-green-500/20 text-green-400 gap-1">
+      <MessageCircle className="w-3 h-3" />
+      WhatsApp
+    </Badge>
+  );
 };
 
 export function AdminAlertQA() {
@@ -48,19 +67,26 @@ export function AdminAlertQA() {
   const [rangeTo, setRangeTo] = useState("");
   const [rangeRunning, setRangeRunning] = useState(false);
   const [rangeProgress, setRangeProgress] = useState("");
+  const [platformFilter, setPlatformFilter] = useState<"all" | "WHATSAPP" | "INSTAGRAM">("all");
 
   useEffect(() => {
     fetchAlerts();
-  }, []);
+  }, [platformFilter]);
 
   const fetchAlerts = async () => {
     setLoading(true);
     try {
-      const { data, error } = await adminSupabase
+      let query = adminSupabase
         .from("alerts")
-        .select("id, created_at, chat_name, chat_type, ai_verdict, ai_risk_score, child_role, ai_analysis, ai_social_context, ai_title, ai_summary, ai_recommendation, ai_patterns, ai_classification, ai_confidence, ai_meaning, ai_context")
+        .select("id, created_at, chat_name, chat_type, ai_verdict, ai_risk_score, child_role, ai_analysis, ai_social_context, ai_title, ai_summary, ai_recommendation, ai_patterns, ai_classification, ai_confidence, ai_meaning, ai_context, platform")
         .order("id", { ascending: false })
         .limit(50);
+
+      if (platformFilter !== "all") {
+        query = query.eq("platform", platformFilter);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setAlerts((data as unknown as AlertQARow[]) || []);
@@ -183,11 +209,26 @@ export function AdminAlertQA() {
       {/* Alerts Table */}
       <Card>
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-3">
             <CardTitle className="text-lg">QA התראות (50 אחרונות)</CardTitle>
-            <Button variant="outline" size="sm" onClick={fetchAlerts} disabled={loading}>
-              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
-            </Button>
+            <div className="flex items-center gap-2">
+              <Select
+                value={platformFilter}
+                onValueChange={(v) => setPlatformFilter(v as "all" | "WHATSAPP" | "INSTAGRAM")}
+              >
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue placeholder="פלטפורמה" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">הכול</SelectItem>
+                  <SelectItem value="WHATSAPP">WhatsApp</SelectItem>
+                  <SelectItem value="INSTAGRAM">Instagram</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button variant="outline" size="sm" onClick={fetchAlerts} disabled={loading}>
+                <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -201,6 +242,7 @@ export function AdminAlertQA() {
                 <TableRow>
                   <TableHead className="text-right">ID</TableHead>
                   <TableHead className="text-right">תאריך</TableHead>
+                  <TableHead className="text-right">פלטפורמה</TableHead>
                   <TableHead className="text-right">צ׳אט</TableHead>
                   <TableHead className="text-right">סוג</TableHead>
                   <TableHead className="text-right">Verdict</TableHead>
@@ -215,6 +257,9 @@ export function AdminAlertQA() {
                     <TableCell className="font-mono text-xs">{alert.id}</TableCell>
                     <TableCell className="text-xs">
                       {format(new Date(alert.created_at), "dd/MM HH:mm")}
+                    </TableCell>
+                    <TableCell>
+                      <PlatformBadge platform={alert.platform} />
                     </TableCell>
                     <TableCell className="text-xs max-w-[120px] truncate">
                       {alert.chat_name || "—"}
@@ -281,11 +326,15 @@ export function AdminAlertQA() {
           {selectedAlert && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">פלטפורמה:</span>
+                  <PlatformBadge platform={selectedAlert.platform} />
+                </div>
+                <div><span className="text-muted-foreground">סוג צ׳אט:</span> {selectedAlert.chat_type || "—"}</div>
                 <div><span className="text-muted-foreground">Verdict:</span> {selectedAlert.ai_verdict}</div>
                 <div><span className="text-muted-foreground">Risk Score:</span> {selectedAlert.ai_risk_score}</div>
                 <div><span className="text-muted-foreground">Child Role:</span> {selectedAlert.child_role}</div>
                 <div><span className="text-muted-foreground">Confidence:</span> {selectedAlert.ai_confidence}</div>
-                <div><span className="text-muted-foreground">Chat Type:</span> {selectedAlert.chat_type}</div>
                 <div><span className="text-muted-foreground">Chat Name:</span> {selectedAlert.chat_name}</div>
               </div>
 
