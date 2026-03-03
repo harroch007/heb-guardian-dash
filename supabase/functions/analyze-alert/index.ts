@@ -886,7 +886,13 @@ async function processAlert(
     aiResult.verdict = mappedVerdict;
   }
 
-  // 4. Copy to anonymous training_dataset
+  // 4. Copy to anonymous training_dataset (include platform from alert)
+  const { data: alertForPlatform } = await supabase
+    .from('alerts')
+    .select('platform')
+    .eq('id', alertId)
+    .single();
+
   const { error: trainingError } = await supabase
     .from('training_dataset')
     .insert({
@@ -895,6 +901,7 @@ async function processAlert(
       gender: childGender,
       raw_text: content,
       ai_verdict: aiResult,
+      platform: alertForPlatform?.platform || 'WHATSAPP',
     });
 
   if (trainingError) {
