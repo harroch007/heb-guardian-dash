@@ -114,6 +114,7 @@ export type Database = {
           created_at: string
           device_id: string
           id: string
+          platform: string
           stack_size: number
           trigger_reason: string | null
         }
@@ -124,6 +125,7 @@ export type Database = {
           created_at?: string
           device_id: string
           id?: string
+          platform?: string
           stack_size: number
           trigger_reason?: string | null
         }
@@ -134,6 +136,7 @@ export type Database = {
           created_at?: string
           device_id?: string
           id?: string
+          platform?: string
           stack_size?: number
           trigger_reason?: string | null
         }
@@ -315,6 +318,7 @@ export type Database = {
           last_error: string | null
           message_count: number | null
           parent_message: string | null
+          platform: string
           processing_status: string | null
           remind_at: string | null
           retry_count: number | null
@@ -366,6 +370,7 @@ export type Database = {
           last_error?: string | null
           message_count?: number | null
           parent_message?: string | null
+          platform?: string
           processing_status?: string | null
           remind_at?: string | null
           retry_count?: number | null
@@ -417,6 +422,7 @@ export type Database = {
           last_error?: string | null
           message_count?: number | null
           parent_message?: string | null
+          platform?: string
           processing_status?: string | null
           remind_at?: string | null
           retry_count?: number | null
@@ -848,6 +854,7 @@ export type Database = {
           device_id: string
           id: string
           message_count: number
+          platform: string
           stat_date: string
           updated_at: string
         }
@@ -858,6 +865,7 @@ export type Database = {
           device_id: string
           id?: string
           message_count?: number
+          platform?: string
           stat_date: string
           updated_at?: string
         }
@@ -868,6 +876,7 @@ export type Database = {
           device_id?: string
           id?: string
           message_count?: number
+          platform?: string
           stat_date?: string
           updated_at?: string
         }
@@ -1529,6 +1538,7 @@ export type Database = {
           created_at: string
           gender: string | null
           id: string
+          platform: string
           raw_text: string
         }
         Insert: {
@@ -1538,6 +1548,7 @@ export type Database = {
           created_at?: string
           gender?: string | null
           id?: string
+          platform?: string
           raw_text: string
         }
         Update: {
@@ -1547,6 +1558,7 @@ export type Database = {
           created_at?: string
           gender?: string | null
           id?: string
+          platform?: string
           raw_text?: string
         }
         Relationships: [
@@ -1856,6 +1868,7 @@ export type Database = {
           p_message: string
           p_message_count?: number
           p_pii_redacted_count?: number
+          p_platform?: string
           p_risk_level: number
           p_sender_display?: string
           p_source: string
@@ -1946,6 +1959,7 @@ export type Database = {
           p_child_id: string
           p_delta?: number
           p_device_id: string
+          p_platform?: string
           p_stat_date?: string
         }
         Returns: Json
