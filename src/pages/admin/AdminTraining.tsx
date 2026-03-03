@@ -206,7 +206,7 @@ export function AdminTraining({ stats, records, loading }: AdminTrainingProps) {
 
       {/* Record Detail Dialog */}
       <Dialog open={!!selectedRecord} onOpenChange={(open) => !open && setSelectedRecord(null)}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col" dir="rtl">
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto flex flex-col" dir="rtl">
           <DialogHeader className="text-right">
             <DialogTitle className="flex items-center gap-2">
               {selectedRecord?.alert_id ? (
@@ -248,7 +248,7 @@ export function AdminTraining({ stats, records, loading }: AdminTrainingProps) {
           </div>
 
           {/* Full text */}
-          <ScrollArea className="flex-1 min-h-0 max-h-[40vh]">
+          <ScrollArea className="flex-1 min-h-0 max-h-[30vh]">
             <div className="whitespace-pre-wrap text-sm leading-relaxed p-4 bg-muted rounded-md" dir="rtl">
               {selectedRecord?.raw_text}
             </div>
@@ -258,7 +258,7 @@ export function AdminTraining({ stats, records, loading }: AdminTrainingProps) {
           {selectedRecord?.ai_verdict && Object.keys(selectedRecord.ai_verdict).length > 0 && (
             <div className="space-y-1">
               <p className="text-sm font-medium text-muted-foreground">AI Verdict (JSON)</p>
-              <ScrollArea className="max-h-[150px]">
+              <ScrollArea className="max-h-[200px]">
                 <pre className="text-xs bg-muted p-3 rounded-md overflow-x-auto" dir="ltr">
                   {JSON.stringify(selectedRecord.ai_verdict, null, 2)}
                 </pre>
