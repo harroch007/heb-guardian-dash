@@ -1,57 +1,107 @@
 
 
-## אבחון הבעיה
+## סיכום מצב קיים
 
-בדקתי את הלוגים של edge function `impersonate-user` ומצאתי שהוא החזיר **403 (Forbidden)** — כלומר ה-JWT הגיע אבל `is_admin()` החזיר false.
+**טבלאות רלוונטיות** שצריכות עמודת `platform`:
+1. **`alerts`** — כאן נשמרים כל האלרטים. יש unique index על `(device_id, client_event_id)`.
+2. **`training_dataset`** — נתוני אימון אנונימיים. אין constraints מיוחדים.
+3. **`ai_stack_requests`** — בקשות stack ל-AI. אין unique, יש index על `(device_id, created_at)`.
+4. **`daily_chat_stats`** — סטטיסטיקות צ'אט יומיות. יש unique על `(stat_date, device_id, chat_name)`.
 
-### מה קרה
+**אין טבלת `message_buffers`** — ההודעות מגיעות ישירות דרך ה-RPC `create_alert` (פונקציית DB), שמכניסה שורה ל-`alerts`.
 
-לפי לוגי ה-auth:
-1. **15:14** — התחברת כ-`yariv@kippyai.com` (אדמין)
-2. **15:18:46** — התנתקת מהאדמין
-3. **15:18:51** — התחברת כ-`yarivtm@gmail.com` (הורה)
-4. **15:20** — ניסית להתחזות → Edge Function קיבל טוקן ללא הרשאת admin → 403
+**Endpoint** שאליו האפליקציה שולחת: ה-RPC `create_alert` — בעל 12 פרמטרים. זה ה-API היחיד שאפליקציית האנדרואיד קוראת ליצירת alerts.
 
-אחרי השינוי שלנו (הפרדת admin client), סשן האדמין הישן (ששמור תחת המפתח הישן ב-localStorage) לא זמין ל-`adminSupabase` שמחפש תחת `sb-admin-auth-token`. דף האדמין נשאר פתוח מהסשן הקודם אבל בפועל אין סשן אדמין תקף.
+---
 
-### הפתרון
+## משימה 1 — הרחבת סכמה
 
-הוספת בדיקת סשן אדמין לפני קריאת ההתחזות, עם הודעה ברורה אם הסשן פג:
+### מיגרציה: הוספת עמודת `platform`
 
-**שינויים:**
+```sql
+-- 1. alerts
+ALTER TABLE public.alerts
+  ADD COLUMN IF NOT EXISTS platform text NOT NULL DEFAULT 'WHATSAPP';
 
-1. **`src/pages/admin/AdminUsers.tsx`** — ב-`handleImpersonate`, לפני קריאת `functions.invoke`, לבדוק `adminSupabase.auth.getSession()`. אם אין סשן תקף → הודעת שגיאה "הסשן פג, יש להתחבר מחדש" והפניה ל-`/admin-login`.
+-- 2. training_dataset
+ALTER TABLE public.training_dataset
+  ADD COLUMN IF NOT EXISTS platform text NOT NULL DEFAULT 'WHATSAPP';
 
-2. **`src/pages/admin/AdminCustomerProfile.tsx`** — אותה בדיקה ב-`handleImpersonate`.
+-- 3. ai_stack_requests
+ALTER TABLE public.ai_stack_requests
+  ADD COLUMN IF NOT EXISTS platform text NOT NULL DEFAULT 'WHATSAPP';
 
-3. **`src/pages/Admin.tsx`** — הוספת listener ל-`adminSupabase.auth.onAuthStateChange` שמפנה ל-`/admin-login` כשהסשן מסתיים, כדי שדף האדמין לא יישאר פתוח בלי סשן.
-
-### פרטים טכניים
-
-```typescript
-// Before calling functions.invoke:
-const { data: { session } } = await adminSupabase.auth.getSession();
-if (!session) {
-  toast({ variant: 'destructive', title: 'הסשן פג', description: 'יש להתחבר מחדש' });
-  navigate('/admin-login');
-  return;
-}
+-- 4. daily_chat_stats
+ALTER TABLE public.daily_chat_stats
+  ADD COLUMN IF NOT EXISTS platform text NOT NULL DEFAULT 'WHATSAPP';
 ```
 
-בנוסף, ב-Admin.tsx:
-```typescript
-useEffect(() => {
-  const { data: { subscription } } = adminSupabase.auth.onAuthStateChange((event) => {
-    if (event === 'SIGNED_OUT') {
-      navigate('/admin-login', { replace: true });
-    }
-  });
-  return () => subscription.unsubscribe();
-}, []);
+### עדכון unique indexes
+
+```sql
+-- alerts: הוספת platform ל-unique index (device_id, client_event_id)
+DROP INDEX IF EXISTS public.alerts_device_event_unique;
+CREATE UNIQUE INDEX alerts_device_event_unique
+  ON public.alerts (device_id, client_event_id, platform)
+  WHERE client_event_id IS NOT NULL;
+
+-- daily_chat_stats: הוספת platform ל-unique (stat_date, device_id, chat_name)
+ALTER TABLE public.daily_chat_stats
+  DROP CONSTRAINT IF EXISTS daily_chat_stats_stat_date_device_id_chat_name_key;
+CREATE UNIQUE INDEX daily_chat_stats_stat_date_device_id_chat_name_platform_key
+  ON public.daily_chat_stats (stat_date, device_id, chat_name, platform);
 ```
 
-### תוצאה
-- אם סשן האדמין פג, המשתמש יקבל הודעה ברורה ויופנה להתחברות מחדש
-- דף האדמין לא יישאר "תקוע" בלי סשן תקף
-- ההתחזות תעבוד כרגיל אחרי התחברות מחדש
+---
+
+## משימה 2 — עדכון ה-RPC `create_alert`
+
+ה-RPC `create_alert` הוא הנקודה שאליה האנדרואיד שולח הודעות. צריך:
+
+1. **הוספת פרמטר `p_platform`** (עם default `'WHATSAPP'`) ל-RPC.
+2. **כתיבת הערך** לעמודת `platform` ב-INSERT.
+3. **עדכון ה-ON CONFLICT** לכלול `platform`.
+
+```sql
+DROP FUNCTION IF EXISTS public.create_alert(text, integer, text, text, text, integer, text, integer, text, text, text, text);
+
+CREATE OR REPLACE FUNCTION public.create_alert(
+  p_message text,
+  p_risk_level integer,
+  p_source text,
+  p_device_id text,
+  p_chat_type text DEFAULT 'PRIVATE',
+  p_message_count integer DEFAULT 0,
+  p_contact_hash text DEFAULT NULL,
+  p_pii_redacted_count integer DEFAULT 0,
+  p_sender_display text DEFAULT NULL,
+  p_author_type text DEFAULT 'UNKNOWN',
+  p_chat_name text DEFAULT NULL,
+  p_client_event_id text DEFAULT NULL,
+  p_platform text DEFAULT 'WHATSAPP'
+) RETURNS bigint ...
+```
+
+ה-INSERT ישתמש ב-`p_platform` ב-`platform` column, וה-ON CONFLICT ישתנה ל-`(device_id, client_event_id, platform)`.
+
+4. **עדכון `increment_daily_chat_stat`** — הוספת `p_platform` ועדכון ON CONFLICT בהתאם.
+
+### שינויים ב-Edge Functions
+
+**`analyze-alert/index.ts`** — כשה-function מעתיקה לתוך `training_dataset`, צריך להעביר גם את `platform` מה-alert לשורה ב-training_dataset.
+
+### שינויים ב-Frontend
+
+**`src/integrations/supabase/types.ts`** — ייוצר אוטומטית אחרי המיגרציה, אין צורך לערוך ידנית.
+
+**אין שינויים נדרשים ב-UI** — ה-platform הוא שדה backend בלבד בשלב זה.
+
+---
+
+## סיכום קבצים
+
+| קובץ | שינוי |
+|---|---|
+| מיגרציית SQL | עמודת platform ב-4 טבלאות + indexes + RPCs |
+| `supabase/functions/analyze-alert/index.ts` | העברת platform ל-training_dataset |
 
