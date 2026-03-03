@@ -1,57 +1,60 @@
 
 
-## אבחון הבעיה
+## Investigation Results: `create_alert` returning HTTP 300
 
-בדקתי את הלוגים של edge function `impersonate-user` ומצאתי שהוא החזיר **403 (Forbidden)** — כלומר ה-JWT הגיע אבל `is_admin()` החזיר false.
+### ROOT CAUSE FOUND: Two overloaded `create_alert` functions
 
-### מה קרה
+There are **two** functions named `public.create_alert` in the database:
 
-לפי לוגי ה-auth:
-1. **15:14** — התחברת כ-`yariv@kippyai.com` (אדמין)
-2. **15:18:46** — התנתקת מהאדמין
-3. **15:18:51** — התחברת כ-`yarivtm@gmail.com` (הורה)
-4. **15:20** — ניסית להתחזות → Edge Function קיבל טוקן ללא הרשאת admin → 403
+```text
+OID 37671 (11 args): create_alert(p_message, p_risk_level, p_source, p_device_id, p_chat_type, p_message_count, p_contact_hash, p_pii_redacted_count, p_sender_display, p_author_type, p_chat_name)
 
-אחרי השינוי שלנו (הפרדת admin client), סשן האדמין הישן (ששמור תחת המפתח הישן ב-localStorage) לא זמין ל-`adminSupabase` שמחפש תחת `sb-admin-auth-token`. דף האדמין נשאר פתוח מהסשן הקודם אבל בפועל אין סשן אדמין תקף.
-
-### הפתרון
-
-הוספת בדיקת סשן אדמין לפני קריאת ההתחזות, עם הודעה ברורה אם הסשן פג:
-
-**שינויים:**
-
-1. **`src/pages/admin/AdminUsers.tsx`** — ב-`handleImpersonate`, לפני קריאת `functions.invoke`, לבדוק `adminSupabase.auth.getSession()`. אם אין סשן תקף → הודעת שגיאה "הסשן פג, יש להתחבר מחדש" והפניה ל-`/admin-login`.
-
-2. **`src/pages/admin/AdminCustomerProfile.tsx`** — אותה בדיקה ב-`handleImpersonate`.
-
-3. **`src/pages/Admin.tsx`** — הוספת listener ל-`adminSupabase.auth.onAuthStateChange` שמפנה ל-`/admin-login` כשהסשן מסתיים, כדי שדף האדמין לא יישאר פתוח בלי סשן.
-
-### פרטים טכניים
-
-```typescript
-// Before calling functions.invoke:
-const { data: { session } } = await adminSupabase.auth.getSession();
-if (!session) {
-  toast({ variant: 'destructive', title: 'הסשן פג', description: 'יש להתחבר מחדש' });
-  navigate('/admin-login');
-  return;
-}
+OID 98975 (12 args): create_alert(p_message, p_risk_level, p_source, p_device_id, p_chat_type, p_message_count, p_contact_hash, p_pii_redacted_count, p_sender_display, p_author_type, p_chat_name, p_client_event_id)
 ```
 
-בנוסף, ב-Admin.tsx:
-```typescript
-useEffect(() => {
-  const { data: { subscription } } = adminSupabase.auth.onAuthStateChange((event) => {
-    if (event === 'SIGNED_OUT') {
-      navigate('/admin-login', { replace: true });
-    }
-  });
-  return () => subscription.unsubscribe();
-}, []);
+The only difference is `p_client_event_id` (added for idempotency in a recent migration).
+
+### Why HTTP 300?
+
+PostgREST cannot disambiguate overloaded functions when both signatures match the incoming parameters. Since all shared parameters have defaults and `p_client_event_id` also has a default (`NULL`), **both functions match any call**. PostgREST responds with **HTTP 300 Multiple Choices** — it refuses to guess which overload to call.
+
+This is a well-documented PostgREST behavior: https://postgrest.org/en/stable/references/api/functions.html#overloaded-functions
+
+### Why it broke all devices simultaneously
+
+The older function (OID 37671, 11 args) was the original. When the migration added the new 12-arg version with `p_client_event_id`, it did NOT drop the old one. From that moment, every `rpc('create_alert', ...)` call from the Android app gets a 300 response and **no row is inserted**.
+
+### The fix (for implementation mode)
+
+Drop the old 11-arg function. The 12-arg version is a superset (the extra param defaults to `NULL`):
+
+```sql
+DROP FUNCTION public.create_alert(text, integer, text, text, text, integer, text, integer, text, text, text);
 ```
 
-### תוצאה
-- אם סשן האדמין פג, המשתמש יקבל הודעה ברורה ויופנה להתחברות מחדש
-- דף האדמין לא יישאר "תקוע" בלי סשן תקף
-- ההתחזות תעבוד כרגיל אחרי התחברות מחדש
+This single statement will resolve:
+- HTTP 300 errors on all `create_alert` RPC calls
+- The alert stall across all devices
+- No Android code changes needed
+
+### Task 1: API Logs
+
+The Supabase analytics logs system does not index by PostgREST RPC path, so I could not pull the specific HTTP 300 response bodies from logs. However, the function catalog query above proves the ambiguity exists. Any client calling `/rest/v1/rpc/create_alert` will get a 300 because PostgREST finds 2 matching candidates.
+
+### Task 2: Function Signature Summary
+
+| Property | Old (OID 37671) | New (OID 98975) |
+|---|---|---|
+| Schema | public | public |
+| Args | 11 (all with defaults except first 4) | 12 (same + `p_client_event_id text DEFAULT NULL`) |
+| Return | bigint | bigint |
+| Writes to | `public.alerts` | `public.alerts` |
+| ON CONFLICT | No | Yes (`device_id, client_event_id`) |
+
+Both are `SECURITY DEFINER`, both do the same core logic. The old one is simply obsolete.
+
+### Parameter names (both functions use snake_case with `p_` prefix)
+`p_message`, `p_risk_level`, `p_source`, `p_device_id`, `p_chat_type`, `p_message_count`, `p_contact_hash`, `p_pii_redacted_count`, `p_sender_display`, `p_author_type`, `p_chat_name` (+ `p_client_event_id` in new version only)
+
+No camelCase mismatch. The Android app likely sends snake_case params which match both functions — causing the 300.
 
