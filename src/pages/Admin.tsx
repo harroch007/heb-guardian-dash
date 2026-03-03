@@ -11,6 +11,7 @@ import { AdminAlertsAndAI } from "./admin/AdminAlertsAndAI";
 import { AdminQueue } from "./admin/AdminQueue";
 import { AdminAIAnalyst } from "./admin/AdminAIAnalyst";
 import { AdminAlertQA } from "./admin/AdminAlertQA";
+import { AdminHelpCenter } from "./admin/AdminHelpCenter";
 import { format, subDays } from "date-fns";
 
 interface TrainingRecord {
