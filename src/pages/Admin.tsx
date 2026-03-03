@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { adminSupabase } from "@/integrations/supabase/admin-client";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, LogOut, Shield, LayoutDashboard, Users, Bell, Database, Brain, Microscope } from "lucide-react";
+import { Loader2, LogOut, Shield, LayoutDashboard, Users, Bell, Database, Brain, Microscope, HelpCircle } from "lucide-react";
 import kippyLogo from "@/assets/kippy-logo.svg";
 import { AdminOverview } from "./admin/AdminOverview";
 import { AdminUsersHub } from "./admin/AdminUsersHub";
