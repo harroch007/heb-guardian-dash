@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { adminSupabase } from "@/integrations/supabase/admin-client";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, LogOut, Shield, LayoutDashboard, Users, Bell, Database, Brain, Microscope } from "lucide-react";
+import { Loader2, LogOut, Shield, LayoutDashboard, Users, Bell, Database, Brain, Microscope, HelpCircle } from "lucide-react";
 import kippyLogo from "@/assets/kippy-logo.svg";
 import { AdminOverview } from "./admin/AdminOverview";
 import { AdminUsersHub } from "./admin/AdminUsersHub";
@@ -11,6 +11,7 @@ import { AdminAlertsAndAI } from "./admin/AdminAlertsAndAI";
 import { AdminQueue } from "./admin/AdminQueue";
 import { AdminAIAnalyst } from "./admin/AdminAIAnalyst";
 import { AdminAlertQA } from "./admin/AdminAlertQA";
+import { AdminHelpCenter } from "./admin/AdminHelpCenter";
 import { format, subDays } from "date-fns";
 
 interface TrainingRecord {
@@ -676,7 +677,7 @@ export default function Admin() {
 
       {/* Tabs - 5 instead of 7 */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:inline-flex">
+        <TabsList className="grid w-full grid-cols-7 lg:w-auto lg:inline-flex">
           <TabsTrigger value="overview" className="gap-2">
             <LayoutDashboard className="w-4 h-4" />
             <span className="hidden sm:inline">סקירה כללית</span>
@@ -703,6 +704,10 @@ export default function Admin() {
           <TabsTrigger value="qa" className="gap-2">
             <Microscope className="w-4 h-4" />
             <span className="hidden sm:inline">QA</span>
+          </TabsTrigger>
+          <TabsTrigger value="help" className="gap-2">
+            <HelpCircle className="w-4 h-4" />
+            <span className="hidden sm:inline">מרכז עזרה</span>
           </TabsTrigger>
         </TabsList>
 
@@ -758,6 +763,12 @@ export default function Admin() {
         <TabsContent value="qa">
           <div>
             <AdminAlertQA />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="help">
+          <div>
+            <AdminHelpCenter />
           </div>
         </TabsContent>
       </Tabs>
