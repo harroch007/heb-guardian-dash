@@ -677,7 +677,7 @@ export default function Admin() {
 
       {/* Tabs - 5 instead of 7 */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:inline-flex">
+        <TabsList className="grid w-full grid-cols-7 lg:w-auto lg:inline-flex">
           <TabsTrigger value="overview" className="gap-2">
             <LayoutDashboard className="w-4 h-4" />
             <span className="hidden sm:inline">סקירה כללית</span>
