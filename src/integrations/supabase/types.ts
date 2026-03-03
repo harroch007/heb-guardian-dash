@@ -1119,6 +1119,33 @@ export type Database = {
           },
         ]
       }
+      device_heartbeats_raw: {
+        Row: {
+          child_id: string | null
+          device: Json
+          device_id: string
+          id: number
+          permissions: Json
+          reported_at: string
+        }
+        Insert: {
+          child_id?: string | null
+          device: Json
+          device_id: string
+          id?: number
+          permissions: Json
+          reported_at?: string
+        }
+        Update: {
+          child_id?: string | null
+          device?: Json
+          device_id?: string
+          id?: number
+          permissions?: Json
+          reported_at?: string
+        }
+        Relationships: []
+      }
       devices: {
         Row: {
           address: string | null
@@ -1933,6 +1960,16 @@ export type Database = {
           error_message: string
           success: boolean
         }[]
+      }
+      report_device_heartbeat: {
+        Args: {
+          p_child_id: string
+          p_device: Json
+          p_device_id: string
+          p_permissions: Json
+          p_timestamp: string
+        }
+        Returns: undefined
       }
       report_nightly_usage: {
         Args: {
