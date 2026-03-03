@@ -206,7 +206,7 @@ export function AdminTraining({ stats, records, loading }: AdminTrainingProps) {
 
       {/* Record Detail Dialog */}
       <Dialog open={!!selectedRecord} onOpenChange={(open) => !open && setSelectedRecord(null)}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col" dir="rtl">
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto flex flex-col" dir="rtl">
           <DialogHeader className="text-right">
             <DialogTitle className="flex items-center gap-2">
               {selectedRecord?.alert_id ? (
