@@ -765,6 +765,12 @@ export default function Admin() {
             <AdminAlertQA />
           </div>
         </TabsContent>
+
+        <TabsContent value="help">
+          <div>
+            <AdminHelpCenter />
+          </div>
+        </TabsContent>
       </Tabs>
     </div>
   );
