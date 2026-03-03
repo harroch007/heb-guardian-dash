@@ -887,9 +887,11 @@ async function processAlert(
   }
 
   // 4. Copy to anonymous training_dataset (include platform from alert)
-  const { data: alertForPlatform } = await supabase
+  // 5. Build title with smart chat_type fallback
+  // Fetch alert record once for both steps
+  const { data: alertRecord } = await supabase
     .from('alerts')
-    .select('platform')
+    .select('chat_name, chat_type, platform')
     .eq('id', alertId)
     .single();
 
@@ -901,19 +903,8 @@ async function processAlert(
       gender: childGender,
       raw_text: content,
       ai_verdict: aiResult,
-      platform: alertForPlatform?.platform || 'WHATSAPP',
+      platform: alertRecord?.platform || 'WHATSAPP',
     });
-
-  if (trainingError) {
-    console.error('Training dataset insert error:', trainingError);
-  }
-
-  // 5. Build title with smart chat_type fallback
-  const { data: alertRecord } = await supabase
-    .from('alerts')
-    .select('chat_name, chat_type')
-    .eq('id', alertId)
-    .single();
 
   let chatName = alertRecord?.chat_name || 'איש קשר';
   chatName = chatName
