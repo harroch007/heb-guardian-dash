@@ -258,7 +258,7 @@ export function AdminTraining({ stats, records, loading }: AdminTrainingProps) {
           {selectedRecord?.ai_verdict && Object.keys(selectedRecord.ai_verdict).length > 0 && (
             <div className="space-y-1">
               <p className="text-sm font-medium text-muted-foreground">AI Verdict (JSON)</p>
-              <ScrollArea className="max-h-[150px]">
+              <ScrollArea className="max-h-[200px]">
                 <pre className="text-xs bg-muted p-3 rounded-md overflow-x-auto" dir="ltr">
                   {JSON.stringify(selectedRecord.ai_verdict, null, 2)}
                 </pre>
