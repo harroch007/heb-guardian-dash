@@ -248,7 +248,7 @@ export function AdminTraining({ stats, records, loading }: AdminTrainingProps) {
           </div>
 
           {/* Full text */}
-          <ScrollArea className="flex-1 min-h-0 max-h-[40vh]">
+          <ScrollArea className="flex-1 min-h-0 max-h-[30vh]">
             <div className="whitespace-pre-wrap text-sm leading-relaxed p-4 bg-muted rounded-md" dir="rtl">
               {selectedRecord?.raw_text}
             </div>
