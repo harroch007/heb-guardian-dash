@@ -212,22 +212,35 @@ export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: Adm
         ? await adminSupabase.from("alerts").select("device_id").in("device_id", deviceIds).gte("created_at", sevenDaysAgo.toISOString()).neq("category", "PERMISSION_MISSING")
         : { data: [] };
 
-      // Fetch latest heartbeat per device
+      // Fetch latest heartbeat per device + warmup start (first heartbeat with appVersionCode >= 8)
       const heartbeatByDevice: Record<string, HeartbeatData> = {};
+      const warmupStartByDevice: Record<string, string> = {};
       if (deviceIds.length > 0) {
         for (const did of deviceIds) {
-          const { data: hbRows } = await adminSupabase
-            .from("device_heartbeats_raw")
-            .select("device, permissions, reported_at")
-            .eq("device_id", did)
-            .order("reported_at", { ascending: false })
-            .limit(1);
+          const [{ data: hbRows }, { data: warmupRows }] = await Promise.all([
+            adminSupabase
+              .from("device_heartbeats_raw")
+              .select("device, permissions, reported_at")
+              .eq("device_id", did)
+              .order("reported_at", { ascending: false })
+              .limit(1),
+            adminSupabase
+              .from("device_heartbeats_raw")
+              .select("reported_at")
+              .eq("device_id", did)
+              .gte("device->>appVersionCode", "8")
+              .order("reported_at", { ascending: true })
+              .limit(1),
+          ]);
           if (hbRows && hbRows.length > 0) {
             heartbeatByDevice[did] = {
               device: hbRows[0].device as any,
               permissions: hbRows[0].permissions as any,
               reported_at: hbRows[0].reported_at,
             };
+          }
+          if (warmupRows && warmupRows.length > 0) {
+            warmupStartByDevice[did] = warmupRows[0].reported_at;
           }
         }
       }
