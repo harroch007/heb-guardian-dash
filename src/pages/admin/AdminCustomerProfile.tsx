@@ -311,7 +311,24 @@ export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: Adm
     }
   };
 
-  const logActivity = async (actionType: string, details: Record<string, unknown> = {}) => {
+  // === REQUEST HEARTBEAT ===
+  const handleRequestHeartbeat = async (deviceId: string) => {
+    setRequestingHeartbeat(prev => ({ ...prev, [deviceId]: true }));
+    try {
+      const { error } = await adminSupabase.from("device_commands").insert({
+        device_id: deviceId,
+        command_type: "REPORT_HEARTBEAT",
+        status: "PENDING",
+      } as any);
+      if (error) throw error;
+      toast({ title: "פקודה נשלחה", description: "המכשיר יבצע דיווח הרשאות בתוך שניות (אם מחובר)" });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "שגיאה", description: err.message });
+    } finally {
+      setRequestingHeartbeat(prev => ({ ...prev, [deviceId]: false }));
+    }
+  };
+
     const { data: { user: adminUser } } = await adminSupabase.auth.getUser();
     if (!adminUser) return;
     await adminSupabase.from("admin_activity_log").insert([{
