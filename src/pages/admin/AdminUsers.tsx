@@ -61,6 +61,7 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
   // Fetch groups
   const [groups, setGroups] = useState<GroupInfo[]>([]);
   const [notUpgradedCount, setNotUpgradedCount] = useState<number | null>(null);
+  const [totalPremiumDevices, setTotalPremiumDevices] = useState<number | null>(null);
 
   useEffect(() => {
     (adminSupabase.from("customer_groups") as any).select("id, name, color").order("created_at").then(({ data }: any) => {
