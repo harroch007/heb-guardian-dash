@@ -315,9 +315,9 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
             <Users className="w-5 h-5" />
-            רשימת משתמשים
+            {activeCardLabel[activeCard]}
           </CardTitle>
-          <CardDescription>{filteredUsers.length} תוצאות</CardDescription>
+          <CardDescription>{filteredUsers.length} תוצאות{activeCard !== 'all' && <Button variant="ghost" size="sm" className="text-xs h-6 mr-2" onClick={() => setActiveCard('all')}>נקה סינון</Button>}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-4 mb-4">
