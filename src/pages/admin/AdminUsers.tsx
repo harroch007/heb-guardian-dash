@@ -157,6 +157,8 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
     no_device: 'ללא מכשיר',
     not_upgraded: 'לא שדרגו (פרימיום)',
   };
+  const getStatusBadge = (status: string) => {
+    switch (status) {
       case 'online':
         return <Badge className="bg-green-500/20 text-green-400 border-green-500/30">🟢 אונליין</Badge>;
       case 'today':
