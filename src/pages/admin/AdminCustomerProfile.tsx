@@ -55,7 +55,7 @@ interface ChildDetail {
   phone_number: string;
   subscription_tier: string | null;
   subscription_expires_at: string | null;
-  devices: { device_id: string; last_seen: string | null; battery_level: number | null; device_model: string | null; device_manufacturer: string | null; appUsage7d: number; realAlerts7d: number; heartbeat: HeartbeatData | null }[];
+  devices: { device_id: string; last_seen: string | null; battery_level: number | null; device_model: string | null; device_manufacturer: string | null; appUsage7d: number; realAlerts7d: number; heartbeat: HeartbeatData | null; warmupStartedAt: string | null }[];
   permissionAlerts: { parent_message: string | null; created_at: string }[];
 }
 
@@ -212,22 +212,40 @@ export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: Adm
         ? await adminSupabase.from("alerts").select("device_id").in("device_id", deviceIds).gte("created_at", sevenDaysAgo.toISOString()).neq("category", "PERMISSION_MISSING")
         : { data: [] };
 
-      // Fetch latest heartbeat per device
+      // Fetch latest heartbeat per device + warmup start (first heartbeat with appVersionCode >= 8)
       const heartbeatByDevice: Record<string, HeartbeatData> = {};
+      const warmupStartByDevice: Record<string, string> = {};
       if (deviceIds.length > 0) {
         for (const did of deviceIds) {
-          const { data: hbRows } = await adminSupabase
-            .from("device_heartbeats_raw")
-            .select("device, permissions, reported_at")
-            .eq("device_id", did)
-            .order("reported_at", { ascending: false })
-            .limit(1);
+          const [{ data: hbRows }, { data: warmupRows }] = await Promise.all([
+            adminSupabase
+              .from("device_heartbeats_raw")
+              .select("device, permissions, reported_at")
+              .eq("device_id", did)
+              .order("reported_at", { ascending: false })
+              .limit(1),
+            adminSupabase
+              .from("device_heartbeats_raw")
+              .select("reported_at, device")
+              .eq("device_id", did)
+              .order("reported_at", { ascending: true })
+              .limit(50),
+          ]);
           if (hbRows && hbRows.length > 0) {
             heartbeatByDevice[did] = {
               device: hbRows[0].device as any,
               permissions: hbRows[0].permissions as any,
               reported_at: hbRows[0].reported_at,
             };
+          }
+          if (warmupRows && warmupRows.length > 0) {
+            const firstV18 = warmupRows.find((r: any) => {
+              const vCode = (r.device as any)?.appVersionCode;
+              return typeof vCode === 'number' ? vCode >= 8 : parseInt(vCode, 10) >= 8;
+            });
+            if (firstV18) {
+              warmupStartByDevice[did] = firstV18.reported_at;
+            }
           }
         }
       }
@@ -257,6 +275,7 @@ export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: Adm
             appUsage7d: appUsageByDevice[d.device_id] || 0,
             realAlerts7d: realAlertsByDevice[d.device_id] || 0,
             heartbeat: heartbeatByDevice[d.device_id] || null,
+            warmupStartedAt: warmupStartByDevice[d.device_id] || null,
           })),
         permissionAlerts: (permAlerts || []).filter((a: any) => a.child_id === child.id).map((a: any) => ({
           parent_message: a.parent_message,
@@ -848,6 +867,33 @@ export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: Adm
                                               🔋 {d.battery_level}%
                                             </Badge>
                                           )}
+                                          {/* Warmup countdown */}
+                                          {(() => {
+                                            if (!d.warmupStartedAt) {
+                                              return (
+                                                <Badge variant="outline" className="text-[10px] h-5 px-1.5 bg-muted text-muted-foreground">
+                                                  ממתין לגרסה 1.8+
+                                                </Badge>
+                                              );
+                                            }
+                                            const warmupEnd = new Date(d.warmupStartedAt).getTime() + 48 * 60 * 60 * 1000;
+                                            const now = Date.now();
+                                            const remaining = warmupEnd - now;
+                                            if (remaining <= 0) {
+                                              return (
+                                                <Badge className="text-[10px] h-5 px-1.5 bg-green-500/20 text-green-400 border-green-500/30">
+                                                  ✓ Warmup הושלם
+                                                </Badge>
+                                              );
+                                            }
+                                            const hours = Math.floor(remaining / (1000 * 60 * 60));
+                                            const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+                                            return (
+                                              <Badge className="text-[10px] h-5 px-1.5 bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
+                                                ⏳ נותרו {hours}ש׳ {minutes}ד׳
+                                              </Badge>
+                                            );
+                                          })()}
                                           {d.last_seen && (
                                             <span className="text-muted-foreground/70">
                                               נראה {formatDistanceToNow(new Date(d.last_seen), { addSuffix: true, locale: he })}
