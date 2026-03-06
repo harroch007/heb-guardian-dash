@@ -263,6 +263,17 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
             </p>
           </CardContent>
         </Card>
+        <Card className="border-orange-500/20">
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-2">
+              <ArrowUpCircle className="w-4 h-4 text-orange-500" />
+              <span className="text-sm text-muted-foreground">לא שדרגו (פרימיום)</span>
+            </div>
+            <p className="text-2xl font-bold mt-1 text-orange-500">
+              {notUpgradedCount ?? "—"}
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Filters */}
