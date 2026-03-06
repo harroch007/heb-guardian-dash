@@ -155,6 +155,7 @@ export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: Adm
 
   // Heartbeat request state
   const [requestingHeartbeat, setRequestingHeartbeat] = useState<Record<string, boolean>>({});
+  const [awaitingHeartbeat, setAwaitingHeartbeat] = useState<Record<string, boolean>>({});
 
   const { toast } = useToast();
 
@@ -321,10 +322,55 @@ export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: Adm
         status: "PENDING",
       } as any);
       if (error) throw error;
-      toast({ title: "פקודה נשלחה", description: "המכשיר יבצע דיווח הרשאות בתוך שניות (אם מחובר)" });
+
+      // Switch to "awaiting" state
+      setRequestingHeartbeat(prev => ({ ...prev, [deviceId]: false }));
+      setAwaitingHeartbeat(prev => ({ ...prev, [deviceId]: true }));
+
+      const commandSentAt = new Date().toISOString();
+      let pollCount = 0;
+      const maxPolls = 10; // 10 * 3s = 30s
+
+      const interval = setInterval(async () => {
+        pollCount++;
+        try {
+          const { data } = await adminSupabase
+            .from("device_heartbeats_raw")
+            .select("device, permissions, reported_at")
+            .eq("device_id", deviceId)
+            .gt("reported_at", commandSentAt)
+            .order("reported_at", { ascending: false })
+            .limit(1);
+
+          if (data && data.length > 0) {
+            clearInterval(interval);
+            const newHb = data[0] as any;
+
+            // Update childrenDetails state with new heartbeat
+            setChildrenDetails(prev => prev.map(child => ({
+              ...child,
+              devices: child.devices.map(d =>
+                d.device_id === deviceId
+                  ? { ...d, heartbeat: { device: newHb.device, permissions: newHb.permissions, reported_at: newHb.reported_at } }
+                  : d
+              )
+            })));
+
+            setAwaitingHeartbeat(prev => ({ ...prev, [deviceId]: false }));
+            toast({ title: "✓ התקבל דיווח הרשאות", description: "נתוני ההרשאות עודכנו בהצלחה" });
+          }
+        } catch {
+          // ignore polling errors
+        }
+
+        if (pollCount >= maxPolls) {
+          clearInterval(interval);
+          setAwaitingHeartbeat(prev => ({ ...prev, [deviceId]: false }));
+          toast({ variant: "destructive", title: "המכשיר לא הגיב", description: "ייתכן שהמכשיר אינו מחובר לאינטרנט" });
+        }
+      }, 3000);
     } catch (err: any) {
       toast({ variant: "destructive", title: "שגיאה", description: err.message });
-    } finally {
       setRequestingHeartbeat(prev => ({ ...prev, [deviceId]: false }));
     }
   };
@@ -829,15 +875,15 @@ export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: Adm
                                           size="sm"
                                           variant="ghost"
                                           className="h-5 text-[10px] gap-1 px-1.5 text-muted-foreground hover:text-primary"
-                                          disabled={!!requestingHeartbeat[d.device_id]}
+                                          disabled={!!requestingHeartbeat[d.device_id] || !!awaitingHeartbeat[d.device_id]}
                                           onClick={() => handleRequestHeartbeat(d.device_id)}
                                         >
-                                          {requestingHeartbeat[d.device_id] ? (
+                                          {requestingHeartbeat[d.device_id] || awaitingHeartbeat[d.device_id] ? (
                                             <Loader2 className="w-3 h-3 animate-spin" />
                                           ) : (
                                             <RefreshCw className="w-3 h-3" />
                                           )}
-                                          בדוק הרשאות
+                                          {awaitingHeartbeat[d.device_id] ? "ממתין לתשובה..." : "בדוק הרשאות"}
                                         </Button>
                                       </div>
                                     );

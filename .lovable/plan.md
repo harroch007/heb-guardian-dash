@@ -1,49 +1,57 @@
 
 
-## תוכנית: חיווי תוצאה + רענון אוטומטי אחרי "בדוק הרשאות"
+## אבחון הבעיה
 
-### הבעיה
-הכפתור שולח את הפקודה בהצלחה, האנדרואיד מגיב ושולח heartbeat — אבל הדשבורד לא מתרענן ולא מראה את התוצאה החדשה.
+בדקתי את הלוגים של edge function `impersonate-user` ומצאתי שהוא החזיר **403 (Forbidden)** — כלומר ה-JWT הגיע אבל `is_admin()` החזיר false.
+
+### מה קרה
+
+לפי לוגי ה-auth:
+1. **15:14** — התחברת כ-`yariv@kippyai.com` (אדמין)
+2. **15:18:46** — התנתקת מהאדמין
+3. **15:18:51** — התחברת כ-`yarivtm@gmail.com` (הורה)
+4. **15:20** — ניסית להתחזות → Edge Function קיבל טוקן ללא הרשאת admin → 403
+
+אחרי השינוי שלנו (הפרדת admin client), סשן האדמין הישן (ששמור תחת המפתח הישן ב-localStorage) לא זמין ל-`adminSupabase` שמחפש תחת `sb-admin-auth-token`. דף האדמין נשאר פתוח מהסשן הקודם אבל בפועל אין סשן אדמין תקף.
 
 ### הפתרון
-שני שינויים ב-`AdminCustomerProfile.tsx`:
 
-1. **Polling אחרי לחיצה** — אחרי ה-INSERT המוצלח, הכפתור נשאר במצב "ממתין..." (עם ספינר וטקסט "ממתין לתשובה..."), ומתחיל polling כל 3 שניות למשך 30 שניות על `device_heartbeats_raw` לאותו `device_id`. ברגע שמופיע heartbeat חדש (עם `reported_at` > הזמן שבו נשלחה הפקודה):
-   - מעדכן את ה-`childrenDetails` state עם ה-heartbeat החדש
-   - מציג toast הצלחה "התקבל דיווח הרשאות מהמכשיר ✓"
-   - מחזיר את הכפתור למצב רגיל
-   - אם עברו 30 שניות בלי תשובה — toast אזהרה "המכשיר לא הגיב, ייתכן שאינו מחובר"
+הוספת בדיקת סשן אדמין לפני קריאת ההתחזות, עם הודעה ברורה אם הסשן פג:
 
-2. **עדכון ה-heartbeat data ב-state** — כשהpolling מקבל תוצאה, מעדכן ישירות את ה-badges של ההרשאות בממשק (ללא צורך בסגירה ופתיחה מחדש של הפרופיל).
+**שינויים:**
 
-### שינויים טכניים
+1. **`src/pages/admin/AdminUsers.tsx`** — ב-`handleImpersonate`, לפני קריאת `functions.invoke`, לבדוק `adminSupabase.auth.getSession()`. אם אין סשן תקף → הודעת שגיאה "הסשן פג, יש להתחבר מחדש" והפניה ל-`/admin-login`.
 
-| # | מה | איפה |
-|---|---|---|
-| 1 | שינוי `handleRequestHeartbeat` — אחרי INSERT מוצלח, הפעלת polling loop | `AdminCustomerProfile.tsx` שורות 315-329 |
-| 2 | הוספת state `awaitingHeartbeat` (Record<string, boolean>) לחיווי "ממתין לתשובה" | ליד שורה 157 |
-| 3 | עדכון טקסט הכפתור — "ממתין לתשובה..." כש-awaiting | שורות 831-840 |
+2. **`src/pages/admin/AdminCustomerProfile.tsx`** — אותה בדיקה ב-`handleImpersonate`.
 
-### לוגיקת ה-polling
+3. **`src/pages/Admin.tsx`** — הוספת listener ל-`adminSupabase.auth.onAuthStateChange` שמפנה ל-`/admin-login` כשהסשן מסתיים, כדי שדף האדמין לא יישאר פתוח בלי סשן.
+
+### פרטים טכניים
 
 ```typescript
-const commandSentAt = new Date().toISOString();
-// poll every 3s for up to 30s
-const interval = setInterval(async () => {
-  const { data } = await adminSupabase
-    .from("device_heartbeats_raw")
-    .select("device, permissions, reported_at")
-    .eq("device_id", deviceId)
-    .gt("reported_at", commandSentAt)
-    .order("reported_at", { ascending: false })
-    .limit(1);
-  if (data?.length) {
-    // update childrenDetails state with new heartbeat
-    clearInterval(interval);
-    // success toast + reset state
-  }
-}, 3000);
-// timeout after 30s
-setTimeout(() => { clearInterval(interval); /* warning toast */ }, 30000);
+// Before calling functions.invoke:
+const { data: { session } } = await adminSupabase.auth.getSession();
+if (!session) {
+  toast({ variant: 'destructive', title: 'הסשן פג', description: 'יש להתחבר מחדש' });
+  navigate('/admin-login');
+  return;
+}
 ```
+
+בנוסף, ב-Admin.tsx:
+```typescript
+useEffect(() => {
+  const { data: { subscription } } = adminSupabase.auth.onAuthStateChange((event) => {
+    if (event === 'SIGNED_OUT') {
+      navigate('/admin-login', { replace: true });
+    }
+  });
+  return () => subscription.unsubscribe();
+}, []);
+```
+
+### תוצאה
+- אם סשן האדמין פג, המשתמש יקבל הודעה ברורה ויופנה להתחברות מחדש
+- דף האדמין לא יישאר "תקוע" בלי סשן תקף
+- ההתחזות תעבוד כרגיל אחרי התחברות מחדש
 
