@@ -226,11 +226,10 @@ export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: Adm
               .limit(1),
             adminSupabase
               .from("device_heartbeats_raw")
-              .select("reported_at")
+              .select("reported_at, device")
               .eq("device_id", did)
-              .gte("device->>appVersionCode", "8")
               .order("reported_at", { ascending: true })
-              .limit(1),
+              .limit(50),
           ]);
           if (hbRows && hbRows.length > 0) {
             heartbeatByDevice[did] = {
