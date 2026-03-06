@@ -1,57 +1,43 @@
 
 
-## אבחון הבעיה
+## אבחון מדויק מהנתונים
 
-בדקתי את הלוגים של edge function `impersonate-user` ומצאתי שהוא החזיר **403 (Forbidden)** — כלומר ה-JWT הגיע אבל `is_admin()` החזיר false.
+**עובדות מה-DB:**
+- 7+ פקודות REPORT_HEARTBEAT — **כולן COMPLETED** (המכשיר קיבל ועיבד)
+- רק **3 heartbeats** נכתבו ל-DB (כולן מ-07:49-07:54, לפני שביטלת את הרשאת המיקום)
+- **אפס** התראות system נוצרו למכשיר
 
-### מה קרה
+**מה קרה:**
+- Heartbeat #1: location=false, #2: location=true, #3: location=true — **אין שינוי הרשאות שלילי → הכל עבד**
+- מ-heartbeat #4 ואילך: ביטלת location, הטריגר `on_heartbeat_insert` מזהה שינוי true→false, מנסה ליצור התראה → **ההתראה לא נוצרה = הטריגר נכשל = ה-INSERT של ה-heartbeat עצמו מתבטל (rollback)**
 
-לפי לוגי ה-auth:
-1. **15:14** — התחברת כ-`yariv@kippyai.com` (אדמין)
-2. **15:18:46** — התנתקת מהאדמין
-3. **15:18:51** — התחברת כ-`yarivtm@gmail.com` (הורה)
-4. **15:20** — ניסית להתחזות → Edge Function קיבל טוקן ללא הרשאת admin → 403
+### שורש הבעיה
 
-אחרי השינוי שלנו (הפרדת admin client), סשן האדמין הישן (ששמור תחת המפתח הישן ב-localStorage) לא זמין ל-`adminSupabase` שמחפש תחת `sb-admin-auth-token`. דף האדמין נשאר פתוח מהסשן הקודם אבל בפועל אין סשן אדמין תקף.
+הטריגר `on_heartbeat_insert` מנסה ליצור alert כשהרשאה מתבטלת. ה-INSERT של ה-alert מפעיל טריגרים נוספים (`enqueue_ai_analyze_on_alert_insert`, `trigger_analyze_alert`). אם **אחד מהם נכשל**, כל השרשרת מתבטלת — כולל ה-heartbeat המקורי.
 
-### הפתרון
+התוצאה: ה-heartbeat נבלע בשקט, ה-polling לא מוצא כלום, וקופצת השגיאה "המכשיר לא הגיב".
 
-הוספת בדיקת סשן אדמין לפני קריאת ההתחזות, עם הודעה ברורה אם הסשן פג:
+### התיקון
 
-**שינויים:**
+עטיפת חלק ההשוואה והיצירה של אלרטים ב-`on_heartbeat_insert` בבלוק `BEGIN...EXCEPTION`, כך שכשלון ביצירת אלרט **לא ימנע** את שמירת ה-heartbeat:
 
-1. **`src/pages/admin/AdminUsers.tsx`** — ב-`handleImpersonate`, לפני קריאת `functions.invoke`, לבדוק `adminSupabase.auth.getSession()`. אם אין סשן תקף → הודעת שגיאה "הסשן פג, יש להתחבר מחדש" והפניה ל-`/admin-login`.
+```sql
+-- בתוך on_heartbeat_insert, עטיפת הלולאה:
+BEGIN
+  FOR v_perm_key IN SELECT jsonb_object_keys(v_perm_labels) LOOP
+    -- ... permission comparison and alert creation ...
+  END LOOP;
+EXCEPTION WHEN OTHERS THEN
+  RAISE WARNING 'on_heartbeat_insert: alert creation failed err=%', SQLERRM;
+END;
+```
 
-2. **`src/pages/admin/AdminCustomerProfile.tsx`** — אותה בדיקה ב-`handleImpersonate`.
-
-3. **`src/pages/Admin.tsx`** — הוספת listener ל-`adminSupabase.auth.onAuthStateChange` שמפנה ל-`/admin-login` כשהסשן מסתיים, כדי שדף האדמין לא יישאר פתוח בלי סשן.
+**שינוי אחד בלבד** — migration שמחליפה את הפונקציה `on_heartbeat_insert` עם הגנת EXCEPTION סביב יצירת האלרטים. ה-heartbeat תמיד יישמר, גם אם ההתראה נכשלת.
 
 ### פרטים טכניים
 
-```typescript
-// Before calling functions.invoke:
-const { data: { session } } = await adminSupabase.auth.getSession();
-if (!session) {
-  toast({ variant: 'destructive', title: 'הסשן פג', description: 'יש להתחבר מחדש' });
-  navigate('/admin-login');
-  return;
-}
-```
-
-בנוסף, ב-Admin.tsx:
-```typescript
-useEffect(() => {
-  const { data: { subscription } } = adminSupabase.auth.onAuthStateChange((event) => {
-    if (event === 'SIGNED_OUT') {
-      navigate('/admin-login', { replace: true });
-    }
-  });
-  return () => subscription.unsubscribe();
-}, []);
-```
-
-### תוצאה
-- אם סשן האדמין פג, המשתמש יקבל הודעה ברורה ויופנה להתחברות מחדש
-- דף האדמין לא יישאר "תקוע" בלי סשן תקף
-- ההתחזות תעבוד כרגיל אחרי התחברות מחדש
+- הקוד הקיים כבר עוטף את ה-push notification ב-EXCEPTION
+- צריך להרחיב את ההגנה לכל הלולאה (השוואת הרשאות + INSERT alert)
+- שום שינוי בצד הלקוח — הבעיה היא 100% בטריגר בצד ה-DB
+- ה-UPDATE של metadata (device_model, last_seen) נשאר מחוץ ל-EXCEPTION כי הוא לא אמור להיכשל
 
