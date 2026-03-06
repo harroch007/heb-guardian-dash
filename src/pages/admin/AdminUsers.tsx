@@ -255,7 +255,7 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
     <div className="space-y-4">
       {/* Stats Summary */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <Card className="border-primary/20">
+        <Card className={`border-primary/20 cursor-pointer transition hover:bg-muted/30 ${activeCard === 'all' ? 'ring-2 ring-primary' : ''}`} onClick={() => toggleCard('all')}>
           <CardContent className="pt-4">
             <div className="flex items-center gap-2">
               <Users className="w-4 h-4 text-primary" />
@@ -264,7 +264,7 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
             <p className="text-2xl font-bold mt-1">{users.length}</p>
           </CardContent>
         </Card>
-        <Card className="border-green-500/20">
+        <Card className={`border-green-500/20 cursor-pointer transition hover:bg-muted/30 ${activeCard === 'online' ? 'ring-2 ring-green-500' : ''}`} onClick={() => toggleCard('online')}>
           <CardContent className="pt-4">
             <div className="flex items-center gap-2">
               <Smartphone className="w-4 h-4 text-green-500" />
@@ -275,7 +275,7 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
             </p>
           </CardContent>
         </Card>
-        <Card className="border-yellow-500/20">
+        <Card className={`border-yellow-500/20 cursor-pointer transition hover:bg-muted/30 ${activeCard === 'today' ? 'ring-2 ring-yellow-500' : ''}`} onClick={() => toggleCard('today')}>
           <CardContent className="pt-4">
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4 text-yellow-500" />
@@ -286,7 +286,7 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
             </p>
           </CardContent>
         </Card>
-        <Card className="border-red-500/20">
+        <Card className={`border-red-500/20 cursor-pointer transition hover:bg-muted/30 ${activeCard === 'no_device' ? 'ring-2 ring-red-500' : ''}`} onClick={() => toggleCard('no_device')}>
           <CardContent className="pt-4">
             <div className="flex items-center gap-2">
               <Baby className="w-4 h-4 text-red-500" />
@@ -297,7 +297,7 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
             </p>
           </CardContent>
         </Card>
-        <Card className="border-orange-500/20">
+        <Card className={`border-orange-500/20 cursor-pointer transition hover:bg-muted/30 ${activeCard === 'not_upgraded' ? 'ring-2 ring-orange-500' : ''}`} onClick={() => toggleCard('not_upgraded')}>
           <CardContent className="pt-4">
             <div className="flex items-center gap-2">
               <ArrowUpCircle className="w-4 h-4 text-orange-500" />
