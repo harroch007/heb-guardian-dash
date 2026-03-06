@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { Users, Search, Smartphone, Baby, Clock, UserCheck, Loader2, X } from "lucide-react";
+import { Users, Search, Smartphone, Baby, Clock, UserCheck, Loader2, X, ArrowUpCircle } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { he } from "date-fns/locale";
 import { adminSupabase } from "@/integrations/supabase/admin-client";
