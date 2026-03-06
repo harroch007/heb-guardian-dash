@@ -272,7 +272,7 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
               <span className="text-sm text-muted-foreground">לא שדרגו (פרימיום)</span>
             </div>
             <p className="text-2xl font-bold mt-1 text-orange-500">
-              {notUpgradedCount ?? "—"}
+              {notUpgradedCount ?? "—"} / {totalPremiumDevices ?? "—"}
             </p>
           </CardContent>
         </Card>
