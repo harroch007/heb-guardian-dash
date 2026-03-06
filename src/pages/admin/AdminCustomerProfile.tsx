@@ -335,7 +335,7 @@ export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: Adm
       setRequestingHeartbeat(prev => ({ ...prev, [deviceId]: false }));
       setAwaitingHeartbeat(prev => ({ ...prev, [deviceId]: true }));
 
-      const commandSentAt = new Date().toISOString();
+      const commandSentAt = new Date(Date.now() - 30000).toISOString();
       let pollCount = 0;
       const maxPolls = 10; // 10 * 3s = 30s
 
