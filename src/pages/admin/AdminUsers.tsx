@@ -80,9 +80,12 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
     const premiumGroupId = groups.find(g => g.name.toLowerCase().includes('premium') || g.name.includes('פרימיום'))?.id;
     if (!premiumGroupId) return;
 
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const premiumDeviceIds = users
       .filter(u => u.group_id === premiumGroupId)
-      .flatMap(u => u.devices.map(d => d.device_id));
+      .flatMap(u => u.devices
+        .filter(d => d.last_seen && new Date(d.last_seen) > sevenDaysAgo)
+        .map(d => d.device_id));
 
     setTotalPremiumDevices(premiumDeviceIds.length);
     if (!premiumDeviceIds.length) {
