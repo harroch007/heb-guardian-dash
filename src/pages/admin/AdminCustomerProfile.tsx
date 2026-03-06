@@ -324,6 +324,16 @@ export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: Adm
   const handleRequestHeartbeat = async (deviceId: string) => {
     setRequestingHeartbeat(prev => ({ ...prev, [deviceId]: true }));
     try {
+      // 1. Fetch baseline ID FIRST (before sending command) — clock-independent polling
+      const { data: lastHb } = await adminSupabase
+        .from("device_heartbeats_raw")
+        .select("id")
+        .eq("device_id", deviceId)
+        .order("id", { ascending: false })
+        .limit(1);
+      const lastHbId = lastHb?.[0]?.id ?? 0;
+
+      // 2. THEN send the command
       const { error } = await adminSupabase.from("device_commands").insert({
         device_id: deviceId,
         command_type: "REPORT_HEARTBEAT",
@@ -334,15 +344,6 @@ export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: Adm
       // Switch to "awaiting" state
       setRequestingHeartbeat(prev => ({ ...prev, [deviceId]: false }));
       setAwaitingHeartbeat(prev => ({ ...prev, [deviceId]: true }));
-
-      // Fetch last heartbeat ID before sending command (ID-based polling, clock-independent)
-      const { data: lastHb } = await adminSupabase
-        .from("device_heartbeats_raw")
-        .select("id")
-        .eq("device_id", deviceId)
-        .order("id", { ascending: false })
-        .limit(1);
-      const lastHbId = lastHb?.[0]?.id ?? 0;
 
       let pollCount = 0;
       const maxPolls = 10; // 10 * 3s = 30s
