@@ -1,63 +1,57 @@
 
 
-## תוכנית עבודה: עיבוד Heartbeat והצגת הרשאות אמיתיות ב-Admin
+## אבחון הבעיה
 
-### מה כבר קיים
-- טבלת `device_heartbeats_raw` עם עמודות: `child_id`, `device_id`, `device` (JSONB), `permissions` (JSONB), `reported_at`
-- RPC `report_device_heartbeat` שמכניס שורות לטבלה
-- RPC `create_permission_alert` שיוצר התראת הרשאות (אבל כותב לעמודות ישנות `raw_message`/`parent_message` שלא קיימות בסכמה הנוכחית — צריך תיקון)
-- `AdminCustomerProfile` מציג הרשאות בהיוריסטיקה (app_usage vs alerts) ודגם מכשיר מטבלת `devices`
-- `analyze-alert` כבר שולח push notification להורה כשהוא מעבד התראה
-- `send-push-notification` edge function קיים ועובד
+בדקתי את הלוגים של edge function `impersonate-user` ומצאתי שהוא החזיר **403 (Forbidden)** — כלומר ה-JWT הגיע אבל `is_admin()` החזיר false.
 
-### מה חסר / צריך לבנות
+### מה קרה
 
----
+לפי לוגי ה-auth:
+1. **15:14** — התחברת כ-`yariv@kippyai.com` (אדמין)
+2. **15:18:46** — התנתקת מהאדמין
+3. **15:18:51** — התחברת כ-`yarivtm@gmail.com` (הורה)
+4. **15:20** — ניסית להתחזות → Edge Function קיבל טוקן ללא הרשאת admin → 403
 
-### משימה 1: DB Trigger לזיהוי שינוי הרשאות
+אחרי השינוי שלנו (הפרדת admin client), סשן האדמין הישן (ששמור תחת המפתח הישן ב-localStorage) לא זמין ל-`adminSupabase` שמחפש תחת `sb-admin-auth-token`. דף האדמין נשאר פתוח מהסשן הקודם אבל בפועל אין סשן אדמין תקף.
 
-**מיגרציה SQL** — יצירת trigger function על `device_heartbeats_raw`:
+### הפתרון
 
-- ב-`AFTER INSERT` על `device_heartbeats_raw`, הפונקציה:
-  1. שולפת את השורה הקודמת לאותו `device_id` (לפי `reported_at DESC`, `id < NEW.id`)
-  2. אם אין שורה קודמת — דילוג (heartbeat ראשון)
-  3. משווה כל שדה ב-`permissions` JSONB: accessibility, notificationListener, usageStats, location, batteryOptimization
-  4. לכל שדה שהשתנה מ-`true` ל-`false`:
-     - שולפת `child_name` מ-`children` דרך `devices`
-     - מכניסה שורה ל-`alerts` עם: `category='system'`, `sender='SYSTEM'`, `ai_verdict='notify'`, `is_processed=true`, `content` עם הודעה בעברית
-- בנוסף, מעדכנת `devices.device_model` ו-`devices.device_manufacturer` מ-`NEW.device`
+הוספת בדיקת סשן אדמין לפני קריאת ההתחזות, עם הודעה ברורה אם הסשן פג:
 
-### משימה 2: Edge Function לשליחת Push על התראת הרשאות
+**שינויים:**
 
-**מיגרציה SQL** — trigger נוסף (או חלק מאותו trigger):
-- כשנוצרת התראת `category='system'` עם `sender='SYSTEM'`, לקרוא ל-`send-push-notification` דרך `net.http_post` (כמו ב-`trigger_analyze_alert`)
-- **או** לחלופין — להוסיף את הלוגיקה ישירות בתוך ה-trigger function שיוצר את ההתראה, באמצעות `net.http_post` ל-`send-push-notification`
+1. **`src/pages/admin/AdminUsers.tsx`** — ב-`handleImpersonate`, לפני קריאת `functions.invoke`, לבדוק `adminSupabase.auth.getSession()`. אם אין סשן תקף → הודעת שגיאה "הסשן פג, יש להתחבר מחדש" והפניה ל-`/admin-login`.
 
-### משימה 3: עדכון AdminCustomerProfile — הרשאות אמיתיות
+2. **`src/pages/admin/AdminCustomerProfile.tsx`** — אותה בדיקה ב-`handleImpersonate`.
 
-**קובץ: `src/pages/admin/AdminCustomerProfile.tsx`**
+3. **`src/pages/Admin.tsx`** — הוספת listener ל-`adminSupabase.auth.onAuthStateChange` שמפנה ל-`/admin-login` כשהסשן מסתיים, כדי שדף האדמין לא יישאר פתוח בלי סשן.
 
-- ב-`fetchCustomerData`: שליפת ה-heartbeat האחרון לכל `device_id` מ-`device_heartbeats_raw` (סידור לפי `reported_at DESC`, `limit 1` לכל מכשיר)
-- הוספת `latestHeartbeat` ל-interface `ChildDetail.devices[]`
-- בתצוגה — אם יש heartbeat:
-  - הצגת `device.manufacturer + device.model` מתוך ה-JSONB (במקום מ-`devices` table)
-  - הצגת `device.appVersionName` כ-badge
-  - הצגת כל הרשאה כ-badge ירוק/אדום: Accessibility, NotificationListener, UsageStats, Location, BatteryOptimization
-- אם אין heartbeat — fallback לדגם מטבלת `devices` או "דגם לא דווח", ולוגיקת ההיוריסטיקה הנוכחית
+### פרטים טכניים
 
-### משימה 4: תיקון `create_permission_alert` RPC
+```typescript
+// Before calling functions.invoke:
+const { data: { session } } = await adminSupabase.auth.getSession();
+if (!session) {
+  toast({ variant: 'destructive', title: 'הסשן פג', description: 'יש להתחבר מחדש' });
+  navigate('/admin-login');
+  return;
+}
+```
 
-- ה-RPC הקיים כותב ל-`raw_message` ו-`parent_message` — עמודות שלא קיימות בסכמה
-- צריך לעדכן אותו לכתוב ל-`content` ול-`parent_message` (שכן קיים) או להסיר אותו לטובת הלוגיקה בתוך ה-trigger
+בנוסף, ב-Admin.tsx:
+```typescript
+useEffect(() => {
+  const { data: { subscription } } = adminSupabase.auth.onAuthStateChange((event) => {
+    if (event === 'SIGNED_OUT') {
+      navigate('/admin-login', { replace: true });
+    }
+  });
+  return () => subscription.unsubscribe();
+}, []);
+```
 
----
-
-### סדר ביצוע
-
-| # | משימה | סוג |
-|---|--------|-----|
-| 1 | מיגרציה: Trigger function `on_heartbeat_insert` — השוואת הרשאות, יצירת system alert, עדכון device metadata | SQL Migration |
-| 2 | מיגרציה: בתוך אותו trigger — `net.http_post` ל-`send-push-notification` לשליחת push להורה | SQL Migration |
-| 3 | עדכון `AdminCustomerProfile.tsx` — שליפת heartbeat אחרון, הצגת הרשאות כ-badges, הצגת דגם+גרסה | Frontend |
-| 4 | הסרת/עדכון `create_permission_alert` RPC (כבר לא נחוץ — ה-trigger עושה את העבודה) | SQL Migration |
+### תוצאה
+- אם סשן האדמין פג, המשתמש יקבל הודעה ברורה ויופנה להתחברות מחדש
+- דף האדמין לא יישאר "תקוע" בלי סשן תקף
+- ההתחזות תעבוד כרגיל אחרי התחברות מחדש
 
