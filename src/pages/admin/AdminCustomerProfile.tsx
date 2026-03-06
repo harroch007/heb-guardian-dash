@@ -862,6 +862,33 @@ export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: Adm
                                               🔋 {d.battery_level}%
                                             </Badge>
                                           )}
+                                          {/* Warmup countdown */}
+                                          {(() => {
+                                            if (!d.warmupStartedAt) {
+                                              return (
+                                                <Badge variant="outline" className="text-[10px] h-5 px-1.5 bg-muted text-muted-foreground">
+                                                  ממתין לגרסה 1.8+
+                                                </Badge>
+                                              );
+                                            }
+                                            const warmupEnd = new Date(d.warmupStartedAt).getTime() + 48 * 60 * 60 * 1000;
+                                            const now = Date.now();
+                                            const remaining = warmupEnd - now;
+                                            if (remaining <= 0) {
+                                              return (
+                                                <Badge className="text-[10px] h-5 px-1.5 bg-green-500/20 text-green-400 border-green-500/30">
+                                                  ✓ Warmup הושלם
+                                                </Badge>
+                                              );
+                                            }
+                                            const hours = Math.floor(remaining / (1000 * 60 * 60));
+                                            const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+                                            return (
+                                              <Badge className="text-[10px] h-5 px-1.5 bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
+                                                ⏳ נותרו {hours}ש׳ {minutes}ד׳
+                                              </Badge>
+                                            );
+                                          })()}
                                           {d.last_seen && (
                                             <span className="text-muted-foreground/70">
                                               נראה {formatDistanceToNow(new Date(d.last_seen), { addSuffix: true, locale: he })}
