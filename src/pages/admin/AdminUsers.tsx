@@ -220,7 +220,7 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
   return (
     <div className="space-y-4">
       {/* Stats Summary */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card className="border-primary/20">
           <CardContent className="pt-4">
             <div className="flex items-center gap-2">
