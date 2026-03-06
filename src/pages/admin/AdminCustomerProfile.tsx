@@ -153,6 +153,9 @@ export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: Adm
   const [groups, setGroups] = useState<{ id: string; name: string; color: string }[]>([]);
   const [savingGroup, setSavingGroup] = useState(false);
 
+  // Heartbeat request state
+  const [requestingHeartbeat, setRequestingHeartbeat] = useState<Record<string, boolean>>({});
+
   const { toast } = useToast();
 
   useEffect(() => {
