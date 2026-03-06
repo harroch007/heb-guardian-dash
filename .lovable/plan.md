@@ -1,30 +1,57 @@
 
 
-## תוכנית: הסתרת מכשירים ישנים/כפולים
+## אבחון הבעיה
 
-### הבעיה
-כשיש לילד שני מכשירים (למשל אחרי החלפת טלפון), המכשיר הישן עדיין מוצג — בלי דגם, עם נתונים ישנים. צריך להציג רק את המכשיר העדכני ביותר, או לסנן מכשירים לא פעילים.
+בדקתי את הלוגים של edge function `impersonate-user` ומצאתי שהוא החזיר **403 (Forbidden)** — כלומר ה-JWT הגיע אבל `is_admin()` החזיר false.
+
+### מה קרה
+
+לפי לוגי ה-auth:
+1. **15:14** — התחברת כ-`yariv@kippyai.com` (אדמין)
+2. **15:18:46** — התנתקת מהאדמין
+3. **15:18:51** — התחברת כ-`yarivtm@gmail.com` (הורה)
+4. **15:20** — ניסית להתחזות → Edge Function קיבל טוקן ללא הרשאת admin → 403
+
+אחרי השינוי שלנו (הפרדת admin client), סשן האדמין הישן (ששמור תחת המפתח הישן ב-localStorage) לא זמין ל-`adminSupabase` שמחפש תחת `sb-admin-auth-token`. דף האדמין נשאר פתוח מהסשן הקודם אבל בפועל אין סשן אדמין תקף.
 
 ### הפתרון
-ב-`AdminCustomerProfile.tsx`, בעת בניית `childrenWithDevices` (שורות 241-257), מיין את המכשירים לפי `last_seen` (יורד) ולקח רק את הראשון — **או** סנן מכשירים שלא נראו מעל 7 ימים כשיש מכשיר חדש יותר.
 
-### שינוי אחד
+הוספת בדיקת סשן אדמין לפני קריאת ההתחזות, עם הודעה ברורה אם הסשן פג:
 
-**קובץ:** `src/pages/admin/AdminCustomerProfile.tsx` (~שורה 243)
+**שינויים:**
 
-בפילטור המכשירים לכל ילד, מיין לפי `last_seen` יורד ולקח רק את המכשיר הראשון (העדכני ביותר):
+1. **`src/pages/admin/AdminUsers.tsx`** — ב-`handleImpersonate`, לפני קריאת `functions.invoke`, לבדוק `adminSupabase.auth.getSession()`. אם אין סשן תקף → הודעת שגיאה "הסשן פג, יש להתחבר מחדש" והפניה ל-`/admin-login`.
+
+2. **`src/pages/admin/AdminCustomerProfile.tsx`** — אותה בדיקה ב-`handleImpersonate`.
+
+3. **`src/pages/Admin.tsx`** — הוספת listener ל-`adminSupabase.auth.onAuthStateChange` שמפנה ל-`/admin-login` כשהסשן מסתיים, כדי שדף האדמין לא יישאר פתוח בלי סשן.
+
+### פרטים טכניים
 
 ```typescript
-devices: (devices || [])
-  .filter((d: any) => d.child_id === child.id)
-  .sort((a: any, b: any) => {
-    const aTime = a.last_seen ? new Date(a.last_seen).getTime() : 0;
-    const bTime = b.last_seen ? new Date(b.last_seen).getTime() : 0;
-    return bTime - aTime;
-  })
-  .slice(0, 1)  // keep only the most recent device
-  .map((d: any) => ({ ... }))
+// Before calling functions.invoke:
+const { data: { session } } = await adminSupabase.auth.getSession();
+if (!session) {
+  toast({ variant: 'destructive', title: 'הסשן פג', description: 'יש להתחבר מחדש' });
+  navigate('/admin-login');
+  return;
+}
 ```
 
-זה מסיר את המכשיר הישן מהתצוגה ומשאיר רק את הפעיל ביותר.
+בנוסף, ב-Admin.tsx:
+```typescript
+useEffect(() => {
+  const { data: { subscription } } = adminSupabase.auth.onAuthStateChange((event) => {
+    if (event === 'SIGNED_OUT') {
+      navigate('/admin-login', { replace: true });
+    }
+  });
+  return () => subscription.unsubscribe();
+}, []);
+```
+
+### תוצאה
+- אם סשן האדמין פג, המשתמש יקבל הודעה ברורה ויופנה להתחברות מחדש
+- דף האדמין לא יישאר "תקוע" בלי סשן תקף
+- ההתחזות תעבוד כרגיל אחרי התחברות מחדש
 

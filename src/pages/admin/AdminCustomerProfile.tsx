@@ -240,16 +240,24 @@ export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: Adm
 
       const childrenWithDevices: ChildDetail[] = (children || []).map(child => ({
         ...child,
-        devices: (devices || []).filter((d: any) => d.child_id === child.id).map((d: any) => ({
-          device_id: d.device_id,
-          last_seen: d.last_seen,
-          battery_level: d.battery_level,
-          device_model: d.device_model || null,
-          device_manufacturer: d.device_manufacturer || null,
-          appUsage7d: appUsageByDevice[d.device_id] || 0,
-          realAlerts7d: realAlertsByDevice[d.device_id] || 0,
-          heartbeat: heartbeatByDevice[d.device_id] || null,
-        })),
+        devices: (devices || [])
+          .filter((d: any) => d.child_id === child.id)
+          .sort((a: any, b: any) => {
+            const aTime = a.last_seen ? new Date(a.last_seen).getTime() : 0;
+            const bTime = b.last_seen ? new Date(b.last_seen).getTime() : 0;
+            return bTime - aTime;
+          })
+          .slice(0, 1)
+          .map((d: any) => ({
+            device_id: d.device_id,
+            last_seen: d.last_seen,
+            battery_level: d.battery_level,
+            device_model: d.device_model || null,
+            device_manufacturer: d.device_manufacturer || null,
+            appUsage7d: appUsageByDevice[d.device_id] || 0,
+            realAlerts7d: realAlertsByDevice[d.device_id] || 0,
+            heartbeat: heartbeatByDevice[d.device_id] || null,
+          })),
         permissionAlerts: (permAlerts || []).filter((a: any) => a.child_id === child.id).map((a: any) => ({
           parent_message: a.parent_message,
           created_at: a.created_at,
