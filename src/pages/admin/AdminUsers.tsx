@@ -48,9 +48,12 @@ interface AdminUsersProps {
   onSelectUser?: (user: UserData) => void;
 }
 
+type ActiveCard = 'all' | 'online' | 'today' | 'no_device' | 'not_upgraded';
+
 export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplied, onSelectUser }: AdminUsersProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>(initialStatusFilter || "all");
+  const [activeCard, setActiveCard] = useState<ActiveCard>('all');
   const [impersonatingId, setImpersonatingId] = useState<string | null>(null);
   const [iframeOpen, setIframeOpen] = useState(false);
   const [iframeUserName, setIframeUserName] = useState("");
@@ -62,6 +65,7 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
   const [groups, setGroups] = useState<GroupInfo[]>([]);
   const [notUpgradedCount, setNotUpgradedCount] = useState<number | null>(null);
   const [totalPremiumDevices, setTotalPremiumDevices] = useState<number | null>(null);
+  const [notUpgradedUserIds, setNotUpgradedUserIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     (adminSupabase.from("customer_groups") as any).select("id, name, color").order("created_at").then(({ data }: any) => {
@@ -87,7 +91,6 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
     }
 
     (async () => {
-      // Get device_ids that have sent at least one heartbeat with appVersionCode >= 8
       const { data: heartbeats } = await (adminSupabase.from("device_heartbeats_raw") as any)
         .select("device_id, device")
         .in("device_id", premiumDeviceIds);
@@ -100,8 +103,19 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
         }
       });
 
-      const notUpgraded = premiumDeviceIds.filter(id => !upgradedIds.has(id));
-      setNotUpgradedCount(notUpgraded.length);
+      const notUpgradedDeviceIds = premiumDeviceIds.filter(id => !upgradedIds.has(id));
+      setNotUpgradedCount(notUpgradedDeviceIds.length);
+
+      // Track which users own those not-upgraded devices
+      const userIdsWithNotUpgraded = new Set<string>();
+      users
+        .filter(u => u.group_id === premiumGroupId)
+        .forEach(u => {
+          if (u.devices.some(d => notUpgradedDeviceIds.includes(d.device_id))) {
+            userIdsWithNotUpgraded.add(u.id);
+          }
+        });
+      setNotUpgradedUserIds(userIdsWithNotUpgraded);
     })();
   }, [users, groups]);
 
@@ -122,9 +136,27 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
       statusFilter === "all" || 
       user.device_status === statusFilter;
 
-    return matchesSearch && matchesStatus;
+    // Active card filter
+    let matchesCard = true;
+    if (activeCard === 'online') matchesCard = user.device_status === 'online';
+    else if (activeCard === 'today') matchesCard = user.device_status === 'online' || user.device_status === 'today';
+    else if (activeCard === 'no_device') matchesCard = user.device_status === 'no_device';
+    else if (activeCard === 'not_upgraded') matchesCard = notUpgradedUserIds.has(user.id);
+
+    return matchesSearch && matchesStatus && matchesCard;
   });
 
+  const toggleCard = (card: ActiveCard) => {
+    setActiveCard(prev => prev === card ? 'all' : card);
+  };
+
+  const activeCardLabel: Record<ActiveCard, string> = {
+    all: 'רשימת משתמשים',
+    online: 'אונליין עכשיו',
+    today: 'פעילים היום',
+    no_device: 'ללא מכשיר',
+    not_upgraded: 'לא שדרגו (פרימיום)',
+  };
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'online':
@@ -223,7 +255,7 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
     <div className="space-y-4">
       {/* Stats Summary */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <Card className="border-primary/20">
+        <Card className={`border-primary/20 cursor-pointer transition hover:bg-muted/30 ${activeCard === 'all' ? 'ring-2 ring-primary' : ''}`} onClick={() => toggleCard('all')}>
           <CardContent className="pt-4">
             <div className="flex items-center gap-2">
               <Users className="w-4 h-4 text-primary" />
@@ -232,7 +264,7 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
             <p className="text-2xl font-bold mt-1">{users.length}</p>
           </CardContent>
         </Card>
-        <Card className="border-green-500/20">
+        <Card className={`border-green-500/20 cursor-pointer transition hover:bg-muted/30 ${activeCard === 'online' ? 'ring-2 ring-green-500' : ''}`} onClick={() => toggleCard('online')}>
           <CardContent className="pt-4">
             <div className="flex items-center gap-2">
               <Smartphone className="w-4 h-4 text-green-500" />
@@ -243,7 +275,7 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
             </p>
           </CardContent>
         </Card>
-        <Card className="border-yellow-500/20">
+        <Card className={`border-yellow-500/20 cursor-pointer transition hover:bg-muted/30 ${activeCard === 'today' ? 'ring-2 ring-yellow-500' : ''}`} onClick={() => toggleCard('today')}>
           <CardContent className="pt-4">
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4 text-yellow-500" />
@@ -254,7 +286,7 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
             </p>
           </CardContent>
         </Card>
-        <Card className="border-red-500/20">
+        <Card className={`border-red-500/20 cursor-pointer transition hover:bg-muted/30 ${activeCard === 'no_device' ? 'ring-2 ring-red-500' : ''}`} onClick={() => toggleCard('no_device')}>
           <CardContent className="pt-4">
             <div className="flex items-center gap-2">
               <Baby className="w-4 h-4 text-red-500" />
@@ -265,7 +297,7 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
             </p>
           </CardContent>
         </Card>
-        <Card className="border-orange-500/20">
+        <Card className={`border-orange-500/20 cursor-pointer transition hover:bg-muted/30 ${activeCard === 'not_upgraded' ? 'ring-2 ring-orange-500' : ''}`} onClick={() => toggleCard('not_upgraded')}>
           <CardContent className="pt-4">
             <div className="flex items-center gap-2">
               <ArrowUpCircle className="w-4 h-4 text-orange-500" />
@@ -283,9 +315,9 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
             <Users className="w-5 h-5" />
-            רשימת משתמשים
+            {activeCardLabel[activeCard]}
           </CardTitle>
-          <CardDescription>{filteredUsers.length} תוצאות</CardDescription>
+          <CardDescription>{filteredUsers.length} תוצאות{activeCard !== 'all' && <Button variant="ghost" size="sm" className="text-xs h-6 mr-2" onClick={() => setActiveCard('all')}>נקה סינון</Button>}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-4 mb-4">
