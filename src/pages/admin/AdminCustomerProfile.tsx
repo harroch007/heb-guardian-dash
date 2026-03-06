@@ -270,6 +270,7 @@ export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: Adm
             appUsage7d: appUsageByDevice[d.device_id] || 0,
             realAlerts7d: realAlertsByDevice[d.device_id] || 0,
             heartbeat: heartbeatByDevice[d.device_id] || null,
+            warmupStartedAt: warmupStartByDevice[d.device_id] || null,
           })),
         permissionAlerts: (permAlerts || []).filter((a: any) => a.child_id === child.id).map((a: any) => ({
           parent_message: a.parent_message,
