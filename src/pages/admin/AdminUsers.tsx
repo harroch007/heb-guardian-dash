@@ -48,9 +48,12 @@ interface AdminUsersProps {
   onSelectUser?: (user: UserData) => void;
 }
 
+type ActiveCard = 'all' | 'online' | 'today' | 'no_device' | 'not_upgraded';
+
 export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplied, onSelectUser }: AdminUsersProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>(initialStatusFilter || "all");
+  const [activeCard, setActiveCard] = useState<ActiveCard>('all');
   const [impersonatingId, setImpersonatingId] = useState<string | null>(null);
   const [iframeOpen, setIframeOpen] = useState(false);
   const [iframeUserName, setIframeUserName] = useState("");
@@ -62,6 +65,7 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
   const [groups, setGroups] = useState<GroupInfo[]>([]);
   const [notUpgradedCount, setNotUpgradedCount] = useState<number | null>(null);
   const [totalPremiumDevices, setTotalPremiumDevices] = useState<number | null>(null);
+  const [notUpgradedUserIds, setNotUpgradedUserIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     (adminSupabase.from("customer_groups") as any).select("id, name, color").order("created_at").then(({ data }: any) => {
