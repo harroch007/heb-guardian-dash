@@ -823,6 +823,21 @@ export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: Adm
                                             </Badge>
                                           ) : null
                                         )}
+                                        {/* Request Heartbeat button */}
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          className="h-5 text-[10px] gap-1 px-1.5 text-muted-foreground hover:text-primary"
+                                          disabled={!!requestingHeartbeat[d.device_id]}
+                                          onClick={() => handleRequestHeartbeat(d.device_id)}
+                                        >
+                                          {requestingHeartbeat[d.device_id] ? (
+                                            <Loader2 className="w-3 h-3 animate-spin" />
+                                          ) : (
+                                            <RefreshCw className="w-3 h-3" />
+                                          )}
+                                          בדוק הרשאות
+                                        </Button>
                                       </div>
                                     );
                                   })}
