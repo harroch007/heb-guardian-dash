@@ -740,44 +740,80 @@ export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: Adm
                                 )}
                               </div>
                               {child.devices.length > 0 && (
-                                <div className="space-y-1 mt-1">
+                                <div className="space-y-2 mt-1">
                                   {child.devices.map(d => {
-                                    const modelDisplay = d.device_manufacturer || d.device_model
-                                      ? `${d.device_manufacturer || ''} ${d.device_model || ''}`.trim()
-                                      : null;
+                                    const hb = d.heartbeat;
+                                    // Prefer heartbeat data for model display
+                                    const modelDisplay = hb?.device?.manufacturer || hb?.device?.model
+                                      ? `${hb.device.manufacturer || ''} ${hb.device.model || ''}`.trim()
+                                      : d.device_manufacturer || d.device_model
+                                        ? `${d.device_manufacturer || ''} ${d.device_model || ''}`.trim()
+                                        : null;
                                     return (
-                                      <div key={d.device_id} className="flex items-center gap-2 text-xs text-muted-foreground">
-                                        <Smartphone className="w-3 h-3" />
-                                        <span className="font-medium">{modelDisplay || "📱 דגם לא דווח"}</span>
-                                        {d.battery_level != null && (
-                                          <Badge variant="outline" className="text-xs h-5 px-1.5">
-                                            🔋 {d.battery_level}%
-                                          </Badge>
-                                        )}
-                                        {d.last_seen && (
-                                          <span className="text-muted-foreground/70">
-                                            נראה {formatDistanceToNow(new Date(d.last_seen), { addSuffix: true, locale: he })}
-                                          </span>
+                                      <div key={d.device_id} className="space-y-1.5">
+                                        <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+                                          <Smartphone className="w-3 h-3" />
+                                          <span className="font-medium">{modelDisplay || "📱 דגם לא דווח"}</span>
+                                          {hb?.device?.appVersionName && (
+                                            <Badge variant="outline" className="text-xs h-5 px-1.5">
+                                              v{hb.device.appVersionName}
+                                            </Badge>
+                                          )}
+                                          {d.battery_level != null && (
+                                            <Badge variant="outline" className="text-xs h-5 px-1.5">
+                                              🔋 {d.battery_level}%
+                                            </Badge>
+                                          )}
+                                          {d.last_seen && (
+                                            <span className="text-muted-foreground/70">
+                                              נראה {formatDistanceToNow(new Date(d.last_seen), { addSuffix: true, locale: he })}
+                                            </span>
+                                          )}
+                                        </div>
+                                        {/* Permission badges from heartbeat */}
+                                        {hb ? (
+                                          <div className="flex flex-wrap gap-1">
+                                            {([
+                                              ['accessibilityEnabled', 'Accessibility'],
+                                              ['notificationListenerEnabled', 'Notifications'],
+                                              ['usageStatsGranted', 'Usage Stats'],
+                                              ['locationPermissionGranted', 'Location'],
+                                              ['batteryOptimizationIgnored', 'Battery Opt'],
+                                            ] as const).map(([key, label]) => {
+                                              const val = (hb.permissions as any)?.[key];
+                                              if (val === undefined) return null;
+                                              return (
+                                                <Badge
+                                                  key={key}
+                                                  className={`text-[10px] h-4 px-1.5 ${val ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-red-500/20 text-red-400 border-red-500/30'}`}
+                                                >
+                                                  {val ? '✓' : '✗'} {label}
+                                                </Badge>
+                                              );
+                                            })}
+                                            <span className="text-[10px] text-muted-foreground/50">
+                                              ({formatDistanceToNow(new Date(hb.reported_at), { addSuffix: true, locale: he })})
+                                            </span>
+                                          </div>
+                                        ) : (
+                                          // Fallback: heuristic-based detection
+                                          d.appUsage7d > 0 && d.realAlerts7d === 0 ? (
+                                            <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 text-[10px] h-4 px-1.5" title="יש שימוש באפליקציות אבל אין התראות ב-7 ימים אחרונים">
+                                              ⚠️ חשד להרשאות חסרות (אין heartbeat)
+                                            </Badge>
+                                          ) : null
                                         )}
                                       </div>
                                     );
                                   })}
                                 </div>
                               )}
-                              {/* Permission status - smart detection */}
-                              {child.permissionAlerts.length > 0 ? (
+                              {/* Legacy permission alerts from DB */}
+                              {child.permissionAlerts.length > 0 && !child.devices.some(d => d.heartbeat) && (
                                 <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30 text-xs mt-1">
                                   ⚠️ הרשאות חסרות
                                 </Badge>
-                              ) : child.devices.length > 0 && child.devices.some(d => d.appUsage7d > 0 && d.realAlerts7d === 0) ? (
-                                <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 text-xs mt-1" title="יש שימוש באפליקציות אבל אין התראות ב-7 ימים אחרונים">
-                                  ⚠️ חשד להרשאות חסרות
-                                </Badge>
-                              ) : child.devices.length > 0 && child.devices.some(d => d.appUsage7d > 0 && d.realAlerts7d > 0) ? (
-                                <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs mt-1">
-                                  ✅ הרשאות תקינות
-                                </Badge>
-                              ) : null}
+                              )}
                             </>
                           )}
                         </div>
