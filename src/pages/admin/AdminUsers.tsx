@@ -60,11 +60,48 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
 
   // Fetch groups
   const [groups, setGroups] = useState<GroupInfo[]>([]);
+  const [notUpgradedCount, setNotUpgradedCount] = useState<number | null>(null);
+
   useEffect(() => {
     (adminSupabase.from("customer_groups") as any).select("id, name, color").order("created_at").then(({ data }: any) => {
       setGroups((data || []) as GroupInfo[]);
     });
   }, []);
+
+  // Count premium devices not upgraded to v1.8+
+  useEffect(() => {
+    if (!users.length || !groups.length) return;
+
+    const premiumGroupId = groups.find(g => g.name.toLowerCase().includes('premium') || g.name.includes('פרימיום'))?.id;
+    if (!premiumGroupId) return;
+
+    const premiumDeviceIds = users
+      .filter(u => u.group_id === premiumGroupId)
+      .flatMap(u => u.devices.map(d => d.device_id));
+
+    if (!premiumDeviceIds.length) {
+      setNotUpgradedCount(0);
+      return;
+    }
+
+    (async () => {
+      // Get device_ids that have sent at least one heartbeat with appVersionCode >= 8
+      const { data: heartbeats } = await (adminSupabase.from("device_heartbeats_raw") as any)
+        .select("device_id, device")
+        .in("device_id", premiumDeviceIds);
+
+      const upgradedIds = new Set<string>();
+      (heartbeats || []).forEach((hb: any) => {
+        const versionCode = hb.device?.appVersionCode;
+        if (typeof versionCode === 'number' && versionCode >= 8) {
+          upgradedIds.add(hb.device_id);
+        }
+      });
+
+      const notUpgraded = premiumDeviceIds.filter(id => !upgradedIds.has(id));
+      setNotUpgradedCount(notUpgraded.length);
+    })();
+  }, [users, groups]);
 
   useEffect(() => {
     if (initialStatusFilter) {
