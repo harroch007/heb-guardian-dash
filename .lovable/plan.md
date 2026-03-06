@@ -1,57 +1,57 @@
 
 
-## אבחון הבעיה
+## תיקון: בדיקת גרסה לפי heartbeat אחרון בלבד
 
-בדקתי את הלוגים של edge function `impersonate-user` ומצאתי שהוא החזיר **403 (Forbidden)** — כלומר ה-JWT הגיע אבל `is_admin()` החזיר false.
-
-### מה קרה
-
-לפי לוגי ה-auth:
-1. **15:14** — התחברת כ-`yariv@kippyai.com` (אדמין)
-2. **15:18:46** — התנתקת מהאדמין
-3. **15:18:51** — התחברת כ-`yarivtm@gmail.com` (הורה)
-4. **15:20** — ניסית להתחזות → Edge Function קיבל טוקן ללא הרשאת admin → 403
-
-אחרי השינוי שלנו (הפרדת admin client), סשן האדמין הישן (ששמור תחת המפתח הישן ב-localStorage) לא זמין ל-`adminSupabase` שמחפש תחת `sb-admin-auth-token`. דף האדמין נשאר פתוח מהסשן הקודם אבל בפועל אין סשן אדמין תקף.
+### הבעיה
+השאילתה הנוכחית שולפת **את כל** ה-heartbeats של כל מכשירי הפרימיום:
+```ts
+.select("device_id, device")
+.in("device_id", premiumDeviceIds)
+```
+- סופאבייס מגביל ל-1000 שורות כברירת מחדל — אם יש הרבה heartbeats, לא כולם חוזרים
+- מכשיר שהגרסה שלו **כרגע** היא 1.8+ עלול להיראות כ"לא שדרג" כי ה-heartbeat הרלוונטי לא נכלל ב-1000 השורות
 
 ### הפתרון
+לכל מכשיר, נשלוף רק את ה-**heartbeat האחרון** ונבדוק את הגרסה שלו. במקום שאילתה אחת גדולה, נעשה שאילתה **לכל מכשיר בנפרד** עם `.order("reported_at", { ascending: false }).limit(1)`, או לחלופין נשלוף את כולם עם `.order("reported_at")` ונשמור רק את האחרון בצד הקליינט.
 
-הוספת בדיקת סשן אדמין לפני קריאת ההתחזות, עם הודעה ברורה אם הסשן פג:
+**גישה מועדפת**: שאילתה אחת עם סדר יורד + עיבוד קליינט — לכל `device_id` נשמור רק את ה-heartbeat הראשון (האחרון כרונולוגית):
 
-**שינויים:**
-
-1. **`src/pages/admin/AdminUsers.tsx`** — ב-`handleImpersonate`, לפני קריאת `functions.invoke`, לבדוק `adminSupabase.auth.getSession()`. אם אין סשן תקף → הודעת שגיאה "הסשן פג, יש להתחבר מחדש" והפניה ל-`/admin-login`.
-
-2. **`src/pages/admin/AdminCustomerProfile.tsx`** — אותה בדיקה ב-`handleImpersonate`.
-
-3. **`src/pages/Admin.tsx`** — הוספת listener ל-`adminSupabase.auth.onAuthStateChange` שמפנה ל-`/admin-login` כשהסשן מסתיים, כדי שדף האדמין לא יישאר פתוח בלי סשן.
-
-### פרטים טכניים
-
-```typescript
-// Before calling functions.invoke:
-const { data: { session } } = await adminSupabase.auth.getSession();
-if (!session) {
-  toast({ variant: 'destructive', title: 'הסשן פג', description: 'יש להתחבר מחדש' });
-  navigate('/admin-login');
-  return;
-}
+```ts
+const { data: heartbeats } = await adminSupabase
+  .from("device_heartbeats_raw")
+  .select("device_id, device")
+  .in("device_id", premiumDeviceIds)
+  .order("reported_at", { ascending: false })
+  .limit(premiumDeviceIds.length * 1);  // heartbeat אחד לכל מכשיר - מספיק
 ```
 
-בנוסף, ב-Admin.tsx:
-```typescript
-useEffect(() => {
-  const { data: { subscription } } = adminSupabase.auth.onAuthStateChange((event) => {
-    if (event === 'SIGNED_OUT') {
-      navigate('/admin-login', { replace: true });
-    }
-  });
-  return () => subscription.unsubscribe();
-}, []);
+**אבל** זה לא מבטיח heartbeat אחד לכל מכשיר. הפתרון הנכון:
+
+שולפים עם `limit` גבוה מספיק, ובקליינט שומרים רק את ה-heartbeat הראשון (=אחרון כרונולוגית) לכל device_id:
+
+```ts
+const { data: heartbeats } = await adminSupabase
+  .from("device_heartbeats_raw")
+  .select("device_id, device, reported_at")
+  .in("device_id", premiumDeviceIds)
+  .order("reported_at", { ascending: false });
+
+const latestByDevice = new Map<string, any>();
+(heartbeats || []).forEach((hb: any) => {
+  if (!latestByDevice.has(hb.device_id)) {
+    latestByDevice.set(hb.device_id, hb);
+  }
+});
+
+const upgradedIds = new Set<string>();
+latestByDevice.forEach((hb, deviceId) => {
+  const versionCode = hb.device?.appVersionCode;
+  if (typeof versionCode === 'number' && versionCode >= 8) {
+    upgradedIds.add(deviceId);
+  }
+});
 ```
 
-### תוצאה
-- אם סשן האדמין פג, המשתמש יקבל הודעה ברורה ויופנה להתחברות מחדש
-- דף האדמין לא יישאר "תקוע" בלי סשן תקף
-- ההתחזות תעבוד כרגיל אחרי התחברות מחדש
+### קובץ
+`src/pages/admin/AdminUsers.tsx` — שינוי בלוק ה-useEffect של ספירת השדרוג בלבד.
 
