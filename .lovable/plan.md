@@ -1,46 +1,57 @@
 
 
-## תוכנית: כפתור "בדוק הרשאות עכשיו" + ניקוי פקודות ישנות
+## אבחון הבעיה
 
-### מה צריך
+בדקתי את הלוגים של edge function `impersonate-user` ומצאתי שהוא החזיר **403 (Forbidden)** — כלומר ה-JWT הגיע אבל `is_admin()` החזיר false.
 
-1. **כפתור בדשבורד Admin** — ב-`AdminCustomerProfile.tsx`, לכל מכשיר של ילד, כפתור "בדוק הרשאות" שמבצע `INSERT` ל-`device_commands` עם `command_type = 'REPORT_HEARTBEAT'`, `status = 'PENDING'`.
+### מה קרה
 
-2. **ניקוי פקודות ישנות** — מיגרציה SQL ש:
-   - יוצרת trigger על `device_commands` שמוחק פקודות `REPORT_HEARTBEAT` ישנות (מעל 5 דקות) לאותו `device_id` בכל `INSERT` חדש
-   - או לחלופין, trigger שמוחק פקודות `PENDING` ישנות (מעל שעה) מכל סוג — למנוע הצפה
+לפי לוגי ה-auth:
+1. **15:14** — התחברת כ-`yariv@kippyai.com` (אדמין)
+2. **15:18:46** — התנתקת מהאדמין
+3. **15:18:51** — התחברת כ-`yarivtm@gmail.com` (הורה)
+4. **15:20** — ניסית להתחזות → Edge Function קיבל טוקן ללא הרשאת admin → 403
 
-### שינויים
+אחרי השינוי שלנו (הפרדת admin client), סשן האדמין הישן (ששמור תחת המפתח הישן ב-localStorage) לא זמין ל-`adminSupabase` שמחפש תחת `sb-admin-auth-token`. דף האדמין נשאר פתוח מהסשן הקודם אבל בפועל אין סשן אדמין תקף.
 
-| # | קובץ / סוג | מה |
-|---|---|---|
-| 1 | SQL Migration | Trigger `cleanup_old_heartbeat_commands` — ב-`BEFORE INSERT` על `device_commands`, מוחק פקודות `REPORT_HEARTBEAT` ישנות (>5 דק׳) לאותו `device_id` |
-| 2 | `AdminCustomerProfile.tsx` | כפתור ליד כל מכשיר — INSERT ל-`device_commands`, עם loading state ו-toast |
+### הפתרון
+
+הוספת בדיקת סשן אדמין לפני קריאת ההתחזות, עם הודעה ברורה אם הסשן פג:
+
+**שינויים:**
+
+1. **`src/pages/admin/AdminUsers.tsx`** — ב-`handleImpersonate`, לפני קריאת `functions.invoke`, לבדוק `adminSupabase.auth.getSession()`. אם אין סשן תקף → הודעת שגיאה "הסשן פג, יש להתחבר מחדש" והפניה ל-`/admin-login`.
+
+2. **`src/pages/admin/AdminCustomerProfile.tsx`** — אותה בדיקה ב-`handleImpersonate`.
+
+3. **`src/pages/Admin.tsx`** — הוספת listener ל-`adminSupabase.auth.onAuthStateChange` שמפנה ל-`/admin-login` כשהסשן מסתיים, כדי שדף האדמין לא יישאר פתוח בלי סשן.
 
 ### פרטים טכניים
 
-**Migration:**
-```sql
-CREATE OR REPLACE FUNCTION public.cleanup_old_heartbeat_commands()
-RETURNS trigger LANGUAGE plpgsql AS $$
-BEGIN
-  DELETE FROM public.device_commands
-  WHERE device_id = NEW.device_id
-    AND command_type = 'REPORT_HEARTBEAT'
-    AND created_at < now() - interval '5 minutes';
-  RETURN NEW;
-END;
-$$;
-
-CREATE TRIGGER trg_cleanup_heartbeat_commands
-  BEFORE INSERT ON public.device_commands
-  FOR EACH ROW
-  WHEN (NEW.command_type = 'REPORT_HEARTBEAT')
-  EXECUTE FUNCTION public.cleanup_old_heartbeat_commands();
+```typescript
+// Before calling functions.invoke:
+const { data: { session } } = await adminSupabase.auth.getSession();
+if (!session) {
+  toast({ variant: 'destructive', title: 'הסשן פג', description: 'יש להתחבר מחדש' });
+  navigate('/admin-login');
+  return;
+}
 ```
 
-**Frontend (AdminCustomerProfile.tsx):**
-- הוספת state `requestingHeartbeat` (Record<string, boolean>) למעקב אחרי מכשירים בטעינה
-- פונקציה `handleRequestHeartbeat(deviceId)` שעושה `adminSupabase.from('device_commands').insert(...)` 
-- כפתור עם אייקון `RefreshCw` ליד כל מכשיר, בין ה-badges להרשאות
+בנוסף, ב-Admin.tsx:
+```typescript
+useEffect(() => {
+  const { data: { subscription } } = adminSupabase.auth.onAuthStateChange((event) => {
+    if (event === 'SIGNED_OUT') {
+      navigate('/admin-login', { replace: true });
+    }
+  });
+  return () => subscription.unsubscribe();
+}, []);
+```
+
+### תוצאה
+- אם סשן האדמין פג, המשתמש יקבל הודעה ברורה ויופנה להתחברות מחדש
+- דף האדמין לא יישאר "תקוע" בלי סשן תקף
+- ההתחזות תעבוד כרגיל אחרי התחברות מחדש
 

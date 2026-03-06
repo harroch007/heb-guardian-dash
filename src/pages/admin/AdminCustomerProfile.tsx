@@ -15,7 +15,7 @@ import { Separator } from "@/components/ui/separator";
 import {
   ArrowRight, User, Mail, Phone, Calendar, Baby, Smartphone,
   UserCheck, Crown, StickyNote, History, Loader2, X, Send,
-  Gift, Lock, Unlock, MessageSquare, Pencil, Save, Trash2, Users
+  Gift, Lock, Unlock, MessageSquare, Pencil, Save, Trash2, Users, RefreshCw
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { he } from "date-fns/locale";
@@ -152,6 +152,9 @@ export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: Adm
   const [groupId, setGroupId] = useState<string | null>(null);
   const [groups, setGroups] = useState<{ id: string; name: string; color: string }[]>([]);
   const [savingGroup, setSavingGroup] = useState(false);
+
+  // Heartbeat request state
+  const [requestingHeartbeat, setRequestingHeartbeat] = useState<Record<string, boolean>>({});
 
   const { toast } = useToast();
 
@@ -308,7 +311,24 @@ export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: Adm
     }
   };
 
-  const logActivity = async (actionType: string, details: Record<string, unknown> = {}) => {
+  // === REQUEST HEARTBEAT ===
+  const handleRequestHeartbeat = async (deviceId: string) => {
+    setRequestingHeartbeat(prev => ({ ...prev, [deviceId]: true }));
+    try {
+      const { error } = await adminSupabase.from("device_commands").insert({
+        device_id: deviceId,
+        command_type: "REPORT_HEARTBEAT",
+        status: "PENDING",
+      } as any);
+      if (error) throw error;
+      toast({ title: "פקודה נשלחה", description: "המכשיר יבצע דיווח הרשאות בתוך שניות (אם מחובר)" });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "שגיאה", description: err.message });
+    } finally {
+      setRequestingHeartbeat(prev => ({ ...prev, [deviceId]: false }));
+    }
+  };
+
     const { data: { user: adminUser } } = await adminSupabase.auth.getUser();
     if (!adminUser) return;
     await adminSupabase.from("admin_activity_log").insert([{
@@ -803,6 +823,21 @@ export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: Adm
                                             </Badge>
                                           ) : null
                                         )}
+                                        {/* Request Heartbeat button */}
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          className="h-5 text-[10px] gap-1 px-1.5 text-muted-foreground hover:text-primary"
+                                          disabled={!!requestingHeartbeat[d.device_id]}
+                                          onClick={() => handleRequestHeartbeat(d.device_id)}
+                                        >
+                                          {requestingHeartbeat[d.device_id] ? (
+                                            <Loader2 className="w-3 h-3 animate-spin" />
+                                          ) : (
+                                            <RefreshCw className="w-3 h-3" />
+                                          )}
+                                          בדוק הרשאות
+                                        </Button>
                                       </div>
                                     );
                                   })}
