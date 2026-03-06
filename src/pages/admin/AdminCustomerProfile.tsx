@@ -155,6 +155,7 @@ export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: Adm
 
   // Heartbeat request state
   const [requestingHeartbeat, setRequestingHeartbeat] = useState<Record<string, boolean>>({});
+  const [awaitingHeartbeat, setAwaitingHeartbeat] = useState<Record<string, boolean>>({});
 
   const { toast } = useToast();
 
