@@ -80,6 +80,7 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
       .filter(u => u.group_id === premiumGroupId)
       .flatMap(u => u.devices.map(d => d.device_id));
 
+    setTotalPremiumDevices(premiumDeviceIds.length);
     if (!premiumDeviceIds.length) {
       setNotUpgradedCount(0);
       return;
