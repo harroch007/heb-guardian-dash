@@ -91,7 +91,6 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
     }
 
     (async () => {
-      // Get device_ids that have sent at least one heartbeat with appVersionCode >= 8
       const { data: heartbeats } = await (adminSupabase.from("device_heartbeats_raw") as any)
         .select("device_id, device")
         .in("device_id", premiumDeviceIds);
@@ -104,8 +103,19 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
         }
       });
 
-      const notUpgraded = premiumDeviceIds.filter(id => !upgradedIds.has(id));
-      setNotUpgradedCount(notUpgraded.length);
+      const notUpgradedDeviceIds = premiumDeviceIds.filter(id => !upgradedIds.has(id));
+      setNotUpgradedCount(notUpgradedDeviceIds.length);
+
+      // Track which users own those not-upgraded devices
+      const userIdsWithNotUpgraded = new Set<string>();
+      users
+        .filter(u => u.group_id === premiumGroupId)
+        .forEach(u => {
+          if (u.devices.some(d => notUpgradedDeviceIds.includes(d.device_id))) {
+            userIdsWithNotUpgraded.add(u.id);
+          }
+        });
+      setNotUpgradedUserIds(userIdsWithNotUpgraded);
     })();
   }, [users, groups]);
 
