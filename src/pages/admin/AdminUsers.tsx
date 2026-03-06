@@ -136,11 +136,27 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
       statusFilter === "all" || 
       user.device_status === statusFilter;
 
-    return matchesSearch && matchesStatus;
+    // Active card filter
+    let matchesCard = true;
+    if (activeCard === 'online') matchesCard = user.device_status === 'online';
+    else if (activeCard === 'today') matchesCard = user.device_status === 'online' || user.device_status === 'today';
+    else if (activeCard === 'no_device') matchesCard = user.device_status === 'no_device';
+    else if (activeCard === 'not_upgraded') matchesCard = notUpgradedUserIds.has(user.id);
+
+    return matchesSearch && matchesStatus && matchesCard;
   });
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
+  const toggleCard = (card: ActiveCard) => {
+    setActiveCard(prev => prev === card ? 'all' : card);
+  };
+
+  const activeCardLabel: Record<ActiveCard, string> = {
+    all: 'רשימת משתמשים',
+    online: 'אונליין עכשיו',
+    today: 'פעילים היום',
+    no_device: 'ללא מכשיר',
+    not_upgraded: 'לא שדרגו (פרימיום)',
+  };
       case 'online':
         return <Badge className="bg-green-500/20 text-green-400 border-green-500/30">🟢 אונליין</Badge>;
       case 'today':
