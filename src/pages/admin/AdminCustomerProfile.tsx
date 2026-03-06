@@ -239,7 +239,13 @@ export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: Adm
             };
           }
           if (warmupRows && warmupRows.length > 0) {
-            warmupStartByDevice[did] = warmupRows[0].reported_at;
+            const firstV18 = warmupRows.find((r: any) => {
+              const vCode = (r.device as any)?.appVersionCode;
+              return typeof vCode === 'number' ? vCode >= 8 : parseInt(vCode, 10) >= 8;
+            });
+            if (firstV18) {
+              warmupStartByDevice[did] = firstV18.reported_at;
+            }
           }
         }
       }
