@@ -1883,14 +1883,6 @@ export type Database = {
         }
         Returns: string
       }
-      create_permission_alert: {
-        Args: {
-          p_alert_message: string
-          p_device_id: string
-          p_missing_permissions: string
-        }
-        Returns: undefined
-      }
       delete_all_my_data: { Args: never; Returns: Json }
       delete_child_data: { Args: { p_child_id: string }; Returns: Json }
       export_my_data: { Args: never; Returns: Json }
