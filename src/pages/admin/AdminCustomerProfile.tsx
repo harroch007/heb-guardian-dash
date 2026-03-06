@@ -208,6 +208,26 @@ export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: Adm
         ? await adminSupabase.from("alerts").select("device_id").in("device_id", deviceIds).gte("created_at", sevenDaysAgo.toISOString()).neq("category", "PERMISSION_MISSING")
         : { data: [] };
 
+      // Fetch latest heartbeat per device
+      const heartbeatByDevice: Record<string, HeartbeatData> = {};
+      if (deviceIds.length > 0) {
+        for (const did of deviceIds) {
+          const { data: hbRows } = await adminSupabase
+            .from("device_heartbeats_raw")
+            .select("device, permissions, reported_at")
+            .eq("device_id", did)
+            .order("reported_at", { ascending: false })
+            .limit(1);
+          if (hbRows && hbRows.length > 0) {
+            heartbeatByDevice[did] = {
+              device: hbRows[0].device as any,
+              permissions: hbRows[0].permissions as any,
+              reported_at: hbRows[0].reported_at,
+            };
+          }
+        }
+      }
+
       // Count per device
       const appUsageByDevice: Record<string, number> = {};
       (appUsageCounts || []).forEach((r: any) => { appUsageByDevice[r.device_id] = (appUsageByDevice[r.device_id] || 0) + 1; });
@@ -224,6 +244,7 @@ export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: Adm
           device_manufacturer: d.device_manufacturer || null,
           appUsage7d: appUsageByDevice[d.device_id] || 0,
           realAlerts7d: realAlertsByDevice[d.device_id] || 0,
+          heartbeat: heartbeatByDevice[d.device_id] || null,
         })),
         permissionAlerts: (permAlerts || []).filter((a: any) => a.child_id === child.id).map((a: any) => ({
           parent_message: a.parent_message,
