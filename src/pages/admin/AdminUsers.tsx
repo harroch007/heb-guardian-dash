@@ -93,13 +93,22 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
     (async () => {
       const { data: heartbeats } = await (adminSupabase.from("device_heartbeats_raw") as any)
         .select("device_id, device")
-        .in("device_id", premiumDeviceIds);
+        .in("device_id", premiumDeviceIds)
+        .order("reported_at", { ascending: false });
+
+      // Keep only the latest heartbeat per device
+      const latestByDevice = new Map<string, any>();
+      (heartbeats || []).forEach((hb: any) => {
+        if (!latestByDevice.has(hb.device_id)) {
+          latestByDevice.set(hb.device_id, hb);
+        }
+      });
 
       const upgradedIds = new Set<string>();
-      (heartbeats || []).forEach((hb: any) => {
+      latestByDevice.forEach((hb, deviceId) => {
         const versionCode = hb.device?.appVersionCode;
         if (typeof versionCode === 'number' && versionCode >= 8) {
-          upgradedIds.add(hb.device_id);
+          upgradedIds.add(deviceId);
         }
       });
 
