@@ -61,6 +61,7 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
   // Fetch groups
   const [groups, setGroups] = useState<GroupInfo[]>([]);
   const [notUpgradedCount, setNotUpgradedCount] = useState<number | null>(null);
+  const [totalPremiumDevices, setTotalPremiumDevices] = useState<number | null>(null);
 
   useEffect(() => {
     (adminSupabase.from("customer_groups") as any).select("id, name, color").order("created_at").then(({ data }: any) => {
@@ -79,6 +80,7 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
       .filter(u => u.group_id === premiumGroupId)
       .flatMap(u => u.devices.map(d => d.device_id));
 
+    setTotalPremiumDevices(premiumDeviceIds.length);
     if (!premiumDeviceIds.length) {
       setNotUpgradedCount(0);
       return;
@@ -270,7 +272,7 @@ export function AdminUsers({ users, loading, initialStatusFilter, onFilterApplie
               <span className="text-sm text-muted-foreground">לא שדרגו (פרימיום)</span>
             </div>
             <p className="text-2xl font-bold mt-1 text-orange-500">
-              {notUpgradedCount ?? "—"}
+              {notUpgradedCount ?? "—"} / {totalPremiumDevices ?? "—"}
             </p>
           </CardContent>
         </Card>
