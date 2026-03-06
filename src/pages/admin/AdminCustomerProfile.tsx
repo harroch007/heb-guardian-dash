@@ -329,6 +329,7 @@ export function AdminCustomerProfile({ user, open, onClose, onUserDeleted }: Adm
     }
   };
 
+  const logActivity = async (actionType: string, details: Record<string, any> = {}) => {
     const { data: { user: adminUser } } = await adminSupabase.auth.getUser();
     if (!adminUser) return;
     await adminSupabase.from("admin_activity_log").insert([{
