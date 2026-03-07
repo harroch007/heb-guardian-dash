@@ -88,10 +88,20 @@ export default function ChildDashboard() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
   const [showReconnectModal, setShowReconnectModal] = useState(false);
+  const [screenTimeLimit, setScreenTimeLimit] = useState<number | null>(null);
 
   const [locateStatus, setLocateStatus] = useState<LocateStatus>("idle");
   const [locateCommandId, setLocateCommandId] = useState<string | null>(null);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
+
+  const {
+    appPolicies,
+    blockedAttempts,
+    deviceHealth,
+    toggleAppBlock,
+    updateDailyLimit,
+    loading: controlsLoading,
+  } = useChildControls(childId);
 
   const calculateAge = (dateOfBirth: string) => {
     const today = new Date();
