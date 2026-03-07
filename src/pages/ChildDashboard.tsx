@@ -44,7 +44,7 @@ import { useToast } from "@/hooks/use-toast";
 import { getDeviceStatus, getStatusColor, getStatusLabel, formatLastSeen } from "@/lib/deviceStatus";
 import { cn } from "@/lib/utils";
 import { useChildControls } from "@/hooks/useChildControls";
-import { DeviceHealthBanner, AppControlsList, DailyLimitControl } from "@/components/controls";
+import { DeviceHealthBanner, AppControlsList, DailyLimitControl, CommandStatusBanner } from "@/components/controls";
 
 interface Child {
   id: string;
@@ -98,6 +98,7 @@ export default function ChildDashboard() {
     appPolicies,
     blockedAttempts,
     deviceHealth,
+    recentCommands,
     toggleAppBlock,
     updateDailyLimit,
     loading: controlsLoading,
@@ -662,6 +663,8 @@ export default function ChildDashboard() {
             {deviceHealth && (
               <DeviceHealthBanner health={deviceHealth} />
             )}
+
+            <CommandStatusBanner commands={recentCommands} />
 
             <DailyLimitControl
               currentLimit={screenTimeLimit}

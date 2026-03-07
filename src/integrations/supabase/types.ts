@@ -1979,6 +1979,7 @@ export type Database = {
           stacks_sent_to_ai: number
         }[]
       }
+      get_child_device_health: { Args: { p_child_id: string }; Returns: Json }
       get_child_top_apps: {
         Args: { p_child_id: string; p_date: string; p_limit?: number }
         Returns: {
