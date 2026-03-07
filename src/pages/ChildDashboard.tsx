@@ -164,6 +164,16 @@ export default function ChildDashboard() {
         setAppUsage(topApps);
       }
 
+      // Fetch screen time limit from settings
+      const { data: settingsData } = await supabase
+        .from("settings")
+        .select("daily_screen_time_limit_minutes")
+        .eq("child_id", childId)
+        .maybeSingle();
+
+      if (settingsData) {
+        setScreenTimeLimit(settingsData.daily_screen_time_limit_minutes);
+      }
 
       setLoading(false);
     };
