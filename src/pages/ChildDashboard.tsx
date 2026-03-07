@@ -664,6 +664,8 @@ export default function ChildDashboard() {
               <DeviceHealthBanner health={deviceHealth} />
             )}
 
+            <CommandStatusBanner commands={recentCommands} />
+
             <DailyLimitControl
               currentLimit={screenTimeLimit}
               currentUsageMinutes={appUsage.reduce((sum, app) => sum + (app.usage_minutes || 0), 0)}
