@@ -553,6 +553,50 @@ export type Database = {
           },
         ]
       }
+      app_policies: {
+        Row: {
+          app_name: string | null
+          blocked_at: string | null
+          blocked_by: string | null
+          child_id: string
+          created_at: string
+          id: string
+          is_blocked: boolean
+          package_name: string
+          updated_at: string
+        }
+        Insert: {
+          app_name?: string | null
+          blocked_at?: string | null
+          blocked_by?: string | null
+          child_id: string
+          created_at?: string
+          id?: string
+          is_blocked?: boolean
+          package_name: string
+          updated_at?: string
+        }
+        Update: {
+          app_name?: string | null
+          blocked_at?: string | null
+          blocked_by?: string | null
+          child_id?: string
+          created_at?: string
+          id?: string
+          is_blocked?: boolean
+          package_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_policies_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_usage: {
         Row: {
           app_name: string | null
@@ -622,6 +666,41 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "parent_home_snapshot"
             referencedColumns: ["device_id"]
+          },
+        ]
+      }
+      blocked_app_attempts: {
+        Row: {
+          app_name: string | null
+          attempted_at: string
+          child_id: string
+          device_id: string
+          id: string
+          package_name: string
+        }
+        Insert: {
+          app_name?: string | null
+          attempted_at?: string
+          child_id: string
+          device_id: string
+          id?: string
+          package_name: string
+        }
+        Update: {
+          app_name?: string | null
+          attempted_at?: string
+          child_id?: string
+          device_id?: string
+          id?: string
+          package_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blocked_app_attempts_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -888,6 +967,7 @@ export type Database = {
           created_at: string
           device_id: string
           id: string
+          result: string | null
           status: string
         }
         Insert: {
@@ -895,6 +975,7 @@ export type Database = {
           created_at?: string
           device_id: string
           id?: string
+          result?: string | null
           status?: string
         }
         Update: {
@@ -902,6 +983,7 @@ export type Database = {
           created_at?: string
           device_id?: string
           id?: string
+          result?: string | null
           status?: string
         }
         Relationships: [
