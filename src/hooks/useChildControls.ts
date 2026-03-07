@@ -26,9 +26,11 @@ export interface DeviceHealthInfo {
   reportedAt: string | null;
 }
 
-interface PendingCommand {
+export interface DeviceCommand {
   id: string;
   status: string;
+  device_id: string;
+  result: string | null;
   created_at: string;
 }
 
@@ -37,44 +39,33 @@ export function useChildControls(childId: string | undefined) {
   const [appPolicies, setAppPolicies] = useState<AppPolicy[]>([]);
   const [blockedAttempts, setBlockedAttempts] = useState<BlockedAttemptSummary[]>([]);
   const [deviceHealth, setDeviceHealth] = useState<DeviceHealthInfo | null>(null);
-  const [pendingCommands, setPendingCommands] = useState<PendingCommand[]>([]);
+  const [recentCommands, setRecentCommands] = useState<DeviceCommand[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
     if (!childId || !user) return;
 
-    // Fetch all data in parallel
-    const [policiesRes, attemptsRes, heartbeatRes, commandsRes] = await Promise.all([
-      // App policies
+    // Step 1: Fetch policies, attempts, devices, and health in parallel
+    const [policiesRes, attemptsRes, devicesRes, healthRes] = await Promise.all([
       supabase
         .from("app_policies")
         .select("*")
         .eq("child_id", childId)
         .order("app_name"),
 
-      // Blocked attempts today
       supabase
         .from("blocked_app_attempts")
         .select("package_name, attempted_at")
         .eq("child_id", childId)
         .gte("attempted_at", new Date(new Date().setHours(0, 0, 0, 0)).toISOString()),
 
-      // Latest heartbeat for device health
       supabase
         .from("devices")
         .select("device_id")
-        .eq("child_id", childId)
-        .order("last_seen", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
+        .eq("child_id", childId),
 
-      // Pending REFRESH_SETTINGS commands
-      supabase
-        .from("device_commands")
-        .select("id, status, created_at")
-        .eq("command_type", "REFRESH_SETTINGS")
-        .in("status", ["PENDING", "ACKNOWLEDGED"])
-        .order("created_at", { ascending: false }),
+      // Gap 1 fix: use RPC instead of direct heartbeat query
+      supabase.rpc("get_child_device_health", { p_child_id: childId }),
     ]);
 
     if (policiesRes.data) {
@@ -102,34 +93,36 @@ export function useChildControls(childId: string | undefined) {
       );
     }
 
-    // Fetch heartbeat if device exists
-    if (heartbeatRes.data?.device_id) {
-      const deviceId = heartbeatRes.data.device_id;
-      
-      // Filter commands for this device
-      if (commandsRes.data) {
-        const deviceCommands = commandsRes.data.filter((cmd: any) => true); // all REFRESH_SETTINGS
-        setPendingCommands(deviceCommands as PendingCommand[]);
-      }
+    // Gap 1 fix: parse RPC result for device health
+    if (healthRes.data) {
+      const hb = healthRes.data as Record<string, any>;
+      const device = hb.device as Record<string, any> | null;
+      const permissions = hb.permissions as Record<string, boolean> | null;
+      setDeviceHealth({
+        permissions: permissions || {},
+        deviceVersion: device?.appVersionName || null,
+        deviceModel: device?.model || null,
+        reportedAt: hb.reported_at || null,
+      });
+    } else {
+      setDeviceHealth(null);
+    }
 
-      const { data: hbData } = await supabase
-        .from("device_heartbeats_raw")
-        .select("permissions, device, reported_at")
-        .eq("device_id", deviceId)
-        .order("reported_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+    // Gap 2 fix: fetch commands scoped to child's devices only
+    const childDeviceIds = devicesRes.data?.map((d) => d.device_id) || [];
+    if (childDeviceIds.length > 0) {
+      const { data: commandsData } = await supabase
+        .from("device_commands")
+        .select("id, status, device_id, result, created_at")
+        .eq("command_type", "REFRESH_SETTINGS")
+        .in("device_id", childDeviceIds)
+        .in("status", ["PENDING", "ACKNOWLEDGED", "FAILED", "TIMED_OUT"])
+        .order("created_at", { ascending: false })
+        .limit(10);
 
-      if (hbData) {
-        const device = hbData.device as Record<string, any>;
-        const permissions = hbData.permissions as Record<string, boolean>;
-        setDeviceHealth({
-          permissions: permissions || {},
-          deviceVersion: device?.appVersionName || null,
-          deviceModel: device?.model || null,
-          reportedAt: hbData.reported_at,
-        });
-      }
+      setRecentCommands((commandsData as DeviceCommand[]) || []);
+    } else {
+      setRecentCommands([]);
     }
 
     setLoading(false);
@@ -139,12 +132,28 @@ export function useChildControls(childId: string | undefined) {
     fetchData();
   }, [fetchData]);
 
+  const sendRefreshToAllDevices = async () => {
+    const { data: devices } = await supabase
+      .from("devices")
+      .select("device_id")
+      .eq("child_id", childId!);
+
+    if (devices) {
+      for (const dev of devices) {
+        await supabase.from("device_commands").insert({
+          device_id: dev.device_id,
+          command_type: "REFRESH_SETTINGS",
+          status: "PENDING",
+        });
+      }
+    }
+  };
+
   const toggleAppBlock = async (packageName: string, appName: string | null, currentlyBlocked: boolean) => {
     if (!childId || !user) return;
 
     const newBlocked = !currentlyBlocked;
 
-    // Upsert app policy
     const { error } = await supabase
       .from("app_policies")
       .upsert(
@@ -164,22 +173,7 @@ export function useChildControls(childId: string | undefined) {
       return;
     }
 
-    // Send REFRESH_SETTINGS to all active devices of this child
-    const { data: devices } = await supabase
-      .from("devices")
-      .select("device_id")
-      .eq("child_id", childId);
-
-    if (devices) {
-      for (const dev of devices) {
-        await supabase.from("device_commands").insert({
-          device_id: dev.device_id,
-          command_type: "REFRESH_SETTINGS",
-          status: "PENDING",
-        });
-      }
-    }
-
+    await sendRefreshToAllDevices();
     toast.success(newBlocked ? "האפליקציה נחסמה" : "האפליקציה שוחררה");
     fetchData();
   };
@@ -187,7 +181,6 @@ export function useChildControls(childId: string | undefined) {
   const updateDailyLimit = async (minutes: number | null) => {
     if (!childId || !user) return;
 
-    // Find or create settings for this child
     const { data: existing } = await supabase
       .from("settings")
       .select("id")
@@ -207,22 +200,7 @@ export function useChildControls(childId: string | undefined) {
       });
     }
 
-    // Send REFRESH_SETTINGS
-    const { data: devices } = await supabase
-      .from("devices")
-      .select("device_id")
-      .eq("child_id", childId);
-
-    if (devices) {
-      for (const dev of devices) {
-        await supabase.from("device_commands").insert({
-          device_id: dev.device_id,
-          command_type: "REFRESH_SETTINGS",
-          status: "PENDING",
-        });
-      }
-    }
-
+    await sendRefreshToAllDevices();
     toast.success(minutes ? "מגבלת זמן מסך עודכנה" : "מגבלת זמן מסך הוסרה");
   };
 
@@ -230,7 +208,7 @@ export function useChildControls(childId: string | undefined) {
     appPolicies,
     blockedAttempts,
     deviceHealth,
-    pendingCommands,
+    recentCommands,
     loading,
     toggleAppBlock,
     updateDailyLimit,
