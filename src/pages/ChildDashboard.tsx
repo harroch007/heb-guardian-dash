@@ -657,6 +657,28 @@ export default function ChildDashboard() {
               appUsage={appUsage}
               showChart={true}
             />
+
+            {/* Parent Controls Section */}
+            {deviceHealth && (
+              <DeviceHealthBanner health={deviceHealth} />
+            )}
+
+            <DailyLimitControl
+              currentLimit={screenTimeLimit}
+              currentUsageMinutes={appUsage.reduce((sum, app) => sum + (app.usage_minutes || 0), 0)}
+              onUpdateLimit={async (minutes) => {
+                await updateDailyLimit(minutes);
+                setScreenTimeLimit(minutes);
+              }}
+            />
+
+            <AppControlsList
+              childName={child?.name || ""}
+              appPolicies={appPolicies}
+              appUsage={appUsage}
+              blockedAttempts={blockedAttempts}
+              onToggleBlock={toggleAppBlock}
+            />
           </div>
         )}
 
