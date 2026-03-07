@@ -43,6 +43,8 @@ import { toast as sonnerToast } from "sonner";
 import { useToast } from "@/hooks/use-toast";
 import { getDeviceStatus, getStatusColor, getStatusLabel, formatLastSeen } from "@/lib/deviceStatus";
 import { cn } from "@/lib/utils";
+import { useChildControls } from "@/hooks/useChildControls";
+import { DeviceHealthBanner, AppControlsList, DailyLimitControl } from "@/components/controls";
 
 interface Child {
   id: string;
@@ -86,10 +88,20 @@ export default function ChildDashboard() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
   const [showReconnectModal, setShowReconnectModal] = useState(false);
+  const [screenTimeLimit, setScreenTimeLimit] = useState<number | null>(null);
 
   const [locateStatus, setLocateStatus] = useState<LocateStatus>("idle");
   const [locateCommandId, setLocateCommandId] = useState<string | null>(null);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
+
+  const {
+    appPolicies,
+    blockedAttempts,
+    deviceHealth,
+    toggleAppBlock,
+    updateDailyLimit,
+    loading: controlsLoading,
+  } = useChildControls(childId);
 
   const calculateAge = (dateOfBirth: string) => {
     const today = new Date();
@@ -152,6 +164,16 @@ export default function ChildDashboard() {
         setAppUsage(topApps);
       }
 
+      // Fetch screen time limit from settings
+      const { data: settingsData } = await supabase
+        .from("settings")
+        .select("daily_screen_time_limit_minutes")
+        .eq("child_id", childId)
+        .maybeSingle();
+
+      if (settingsData) {
+        setScreenTimeLimit(settingsData.daily_screen_time_limit_minutes);
+      }
 
       setLoading(false);
     };
@@ -634,6 +656,28 @@ export default function ChildDashboard() {
             <ScreenTimeCard
               appUsage={appUsage}
               showChart={true}
+            />
+
+            {/* Parent Controls Section */}
+            {deviceHealth && (
+              <DeviceHealthBanner health={deviceHealth} />
+            )}
+
+            <DailyLimitControl
+              currentLimit={screenTimeLimit}
+              currentUsageMinutes={appUsage.reduce((sum, app) => sum + (app.usage_minutes || 0), 0)}
+              onUpdateLimit={async (minutes) => {
+                await updateDailyLimit(minutes);
+                setScreenTimeLimit(minutes);
+              }}
+            />
+
+            <AppControlsList
+              childName={child?.name || ""}
+              appPolicies={appPolicies}
+              appUsage={appUsage}
+              blockedAttempts={blockedAttempts}
+              onToggleBlock={toggleAppBlock}
             />
           </div>
         )}
