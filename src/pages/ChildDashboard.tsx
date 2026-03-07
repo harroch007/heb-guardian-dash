@@ -98,6 +98,7 @@ export default function ChildDashboard() {
     appPolicies,
     blockedAttempts,
     deviceHealth,
+    recentCommands,
     toggleAppBlock,
     updateDailyLimit,
     loading: controlsLoading,
