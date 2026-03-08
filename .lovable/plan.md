@@ -1,5 +1,5 @@
 
-# Kippy Control — Phase A Status
+# Kippy Control — Phase A Status: ✅ COMPLETE
 
 ## Completed ✅
 
@@ -10,8 +10,11 @@
 - `report_installed_apps` RPC — SECURITY DEFINER, device bulk upserts
 - `get_device_settings` RPC — extended to include `schedule_windows` array + `next_shabbat` object
 
+### Data Population
+- `shabbat_zmanim` populated with 118 rows (2026-01-02 → 2028-03-31)
+- Source: Hebcal API, Jerusalem, havdalah = sunset + 40 min (product policy)
+
 ## Next Steps (Phase B)
-- Populate `shabbat_zmanim` with 24 months of data
 - Refactor ChildDashboard into 4-tab layout (סקירה / אפליקציות / זמן מסך / מכשיר)
 - Move existing components to their respective tabs
 
