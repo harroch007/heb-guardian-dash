@@ -16,10 +16,10 @@ import {
   Smartphone,
   X,
   QrCode,
-  User,
   Trash2,
   Pencil,
   AlertTriangle,
+  Battery,
 } from "lucide-react";
 import {
   AlertDialog,
