@@ -1,57 +1,28 @@
 
+# Kippy Control — Phase A Status
 
-## אבחון הבעיה
+## Completed ✅
 
-בדקתי את הלוגים של edge function `impersonate-user` ומצאתי שהוא החזיר **403 (Forbidden)** — כלומר ה-JWT הגיע אבל `is_admin()` החזיר false.
+### Data Model Migration
+- `installed_apps` table — full device app inventory with RLS
+- `schedule_windows` table — school/bedtime/shabbat schedules with RLS + CRUD policies
+- `shabbat_zmanim` table — date-based (YYYY-MM-DD) candle lighting / havdalah lookup
+- `report_installed_apps` RPC — SECURITY DEFINER, device bulk upserts
+- `get_device_settings` RPC — extended to include `schedule_windows` array + `next_shabbat` object
 
-### מה קרה
+## Next Steps (Phase B)
+- Populate `shabbat_zmanim` with 24 months of data
+- Refactor ChildDashboard into 4-tab layout (סקירה / אפליקציות / זמן מסך / מכשיר)
+- Move existing components to their respective tabs
 
-לפי לוגי ה-auth:
-1. **15:14** — התחברת כ-`yariv@kippyai.com` (אדמין)
-2. **15:18:46** — התנתקת מהאדמין
-3. **15:18:51** — התחברת כ-`yarivtm@gmail.com` (הורה)
-4. **15:20** — ניסית להתחזות → Edge Function קיבל טוקן ללא הרשאת admin → 403
+## Phase C (after B)
+- Apps tab: installed_apps inventory UI
+- Screen Time tab: schedule windows CRUD UI + Shabbat toggle
+- Device tab: polished health view
 
-אחרי השינוי שלנו (הפרדת admin client), סשן האדמין הישן (ששמור תחת המפתח הישן ב-localStorage) לא זמין ל-`adminSupabase` שמחפש תחת `sb-admin-auth-token`. דף האדמין נשאר פתוח מהסשן הקודם אבל בפועל אין סשן אדמין תקף.
-
-### הפתרון
-
-הוספת בדיקת סשן אדמין לפני קריאת ההתחזות, עם הודעה ברורה אם הסשן פג:
-
-**שינויים:**
-
-1. **`src/pages/admin/AdminUsers.tsx`** — ב-`handleImpersonate`, לפני קריאת `functions.invoke`, לבדוק `adminSupabase.auth.getSession()`. אם אין סשן תקף → הודעת שגיאה "הסשן פג, יש להתחבר מחדש" והפניה ל-`/admin-login`.
-
-2. **`src/pages/admin/AdminCustomerProfile.tsx`** — אותה בדיקה ב-`handleImpersonate`.
-
-3. **`src/pages/Admin.tsx`** — הוספת listener ל-`adminSupabase.auth.onAuthStateChange` שמפנה ל-`/admin-login` כשהסשן מסתיים, כדי שדף האדמין לא יישאר פתוח בלי סשן.
-
-### פרטים טכניים
-
-```typescript
-// Before calling functions.invoke:
-const { data: { session } } = await adminSupabase.auth.getSession();
-if (!session) {
-  toast({ variant: 'destructive', title: 'הסשן פג', description: 'יש להתחבר מחדש' });
-  navigate('/admin-login');
-  return;
-}
-```
-
-בנוסף, ב-Admin.tsx:
-```typescript
-useEffect(() => {
-  const { data: { subscription } } = adminSupabase.auth.onAuthStateChange((event) => {
-    if (event === 'SIGNED_OUT') {
-      navigate('/admin-login', { replace: true });
-    }
-  });
-  return () => subscription.unsubscribe();
-}, []);
-```
-
-### תוצאה
-- אם סשן האדמין פג, המשתמש יקבל הודעה ברורה ויופנה להתחברות מחדש
-- דף האדמין לא יישאר "תקוע" בלי סשן תקף
-- ההתחזות תעבוד כרגיל אחרי התחברות מחדש
-
+## Key Decisions
+- `havdalah` = policy-defined exit time from device block, not a halachic statement
+- Schedule windows are total blocks (no `allowed_apps` in MVP)
+- Bonus time = Phase 2 only, no workaround
+- Installed apps = user-installed + has launcher icon only
+- Shabbat times = Israel-based (Asia/Jerusalem), date-keyed, no GPS dependency
