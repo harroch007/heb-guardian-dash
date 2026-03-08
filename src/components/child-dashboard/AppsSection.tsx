@@ -33,7 +33,7 @@ export function AppsSection({
   installedApps,
   onToggleBlock,
 }: AppsSectionProps) {
-  const [search, setSearch] = useState("");
+  const search = "";
   const [filter, setFilter] = useState<Filter>("all");
 
   // Filter app usage based on search and filter
