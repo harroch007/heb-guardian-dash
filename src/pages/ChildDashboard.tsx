@@ -45,7 +45,7 @@ import {
   SchedulesSection,
   LocationSection,
 } from "@/components/child-dashboard";
-import { Battery } from "lucide-react";
+
 
 interface Child {
   id: string;
