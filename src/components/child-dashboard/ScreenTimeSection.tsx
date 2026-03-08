@@ -63,17 +63,10 @@ export function ScreenTimeSection({
     setDirty(false);
   };
 
-  const handleSliderChange = (value: number[]) => {
-    setSliderValue(value[0]);
+  const handleSelectChange = (value: string) => {
+    const minutes = parseInt(value, 10);
+    setSliderValue(minutes);
     setDirty(true);
-  };
-
-  const handleSaveLimit = async () => {
-    if (!limitEnabled) return;
-    setSaving(true);
-    await onUpdateLimit(sliderValue);
-    setSaving(false);
-    setDirty(false);
   };
 
   const effectiveLimit = limitEnabled ? sliderValue : screenTimeLimit;
