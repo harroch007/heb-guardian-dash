@@ -369,7 +369,7 @@ export default function ChildDashboard() {
                   <MoreVertical className="w-4 h-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" dir="rtl">
+              <DropdownMenuContent align="start">
                 <DropdownMenuItem onClick={() => setShowReconnectModal(true)} className="gap-2">
                   <RefreshCw className="w-4 h-4" />
                   חבר מחדש
