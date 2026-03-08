@@ -392,14 +392,6 @@ export default function ChildDashboard() {
           </Card>
         ) : (
           <div className="space-y-4">
-            <StatusStrip
-              status={status}
-              batteryLevel={device.battery_level}
-              totalUsageMinutes={totalUsageMinutes}
-              screenTimeLimit={screenTimeLimit}
-              blockedCount={blockedCount}
-            />
-
             <ProblemBanner
               deviceHealth={deviceHealth}
               status={status}
@@ -407,12 +399,6 @@ export default function ChildDashboard() {
             />
 
             <SyncNotice commands={recentCommands} />
-
-            <QuickActionsGrid
-              blockedCount={blockedCount}
-              totalUsageMinutes={totalUsageMinutes}
-              screenTimeLimit={screenTimeLimit}
-            />
 
             <AppsSection
               childId={childId!}

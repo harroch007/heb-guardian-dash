@@ -76,47 +76,64 @@ export function AppsSection({
     { key: "new", label: "חדשות היום" },
   ];
 
+  const blockedTotal = appPolicies.filter((p) => p.is_blocked).length;
+
   return (
-    <div id="apps-section" className="space-y-3 scroll-mt-4">
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input
-          placeholder="חיפוש אפליקציה..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pr-9 h-9 text-sm"
-        />
-      </div>
+    <div id="apps-section" className="scroll-mt-4">
+      <Card className="border-border/50">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Shield className="w-5 h-5 text-primary" />
+            ניהול אפליקציות
+            {blockedTotal > 0 && (
+              <Badge variant="outline" className="text-xs border-destructive/30 text-destructive mr-auto">
+                {blockedTotal} חסומות
+              </Badge>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="חיפוש אפליקציה..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pr-9 h-9 text-sm"
+            />
+          </div>
 
-      {/* Filter chips */}
-      <div className="flex gap-1.5 flex-wrap">
-        {filters.map((f) => (
-          <Badge
-            key={f.key}
-            variant={filter === f.key ? "default" : "outline"}
-            className="cursor-pointer text-xs"
-            onClick={() => setFilter(f.key)}
-          >
-            {f.label}
-          </Badge>
-        ))}
-      </div>
+          {/* Filter chips */}
+          <div className="flex gap-1.5 flex-wrap">
+            {filters.map((f) => (
+              <Badge
+                key={f.key}
+                variant={filter === f.key ? "default" : "outline"}
+                className="cursor-pointer text-xs"
+                onClick={() => setFilter(f.key)}
+              >
+                {f.label}
+              </Badge>
+            ))}
+          </div>
 
-      {/* New apps banner (only in "new" filter or "all") */}
-      {(filter === "all" || filter === "new") && <NewAppsCard childId={childId} />}
+          {/* New apps banner (only in "new" filter or "all") */}
+          {(filter === "all" || filter === "new") && <NewAppsCard childId={childId} />}
 
-      {/* App list */}
-      {filter !== "new" && (
-        <AppControlsList
-          childName={childName}
-          appPolicies={filteredPolicies}
-          appUsage={filteredUsage}
-          blockedAttempts={blockedAttempts}
-          installedApps={filteredInstalled}
-          onToggleBlock={onToggleBlock}
-        />
-      )}
+          {/* App list — flat, no extra card wrapper */}
+          {filter !== "new" && (
+            <AppControlsList
+              childName={childName}
+              appPolicies={filteredPolicies}
+              appUsage={filteredUsage}
+              blockedAttempts={blockedAttempts}
+              installedApps={filteredInstalled}
+              onToggleBlock={onToggleBlock}
+            />
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
