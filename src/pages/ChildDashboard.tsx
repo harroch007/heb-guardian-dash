@@ -313,17 +313,17 @@ export default function ChildDashboard() {
   return (
     <DashboardLayout>
       <div className="p-4 sm:p-6 md:p-8">
-        <div className="flex items-center gap-3 mb-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/family")} className="shrink-0">
-            <ArrowRight className="w-5 h-5" />
+        <div className="flex items-center gap-2 mb-3">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/family")} className="shrink-0 h-8 w-8">
+            <ArrowRight className="w-4 h-4" />
           </Button>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold text-foreground truncate">{child?.name}</h1>
+            <div className="flex items-center gap-1.5">
+              <h1 className="text-lg font-bold text-foreground truncate">{child?.name}</h1>
               <Badge
                 variant="secondary"
                 className={cn(
-                  "text-xs shrink-0",
+                  "text-[10px] px-1.5 py-0 h-4 shrink-0",
                   status === "connected" && "bg-success/20 text-success",
                   status === "inactive" && "bg-warning/20 text-warning",
                   status === "not_connected" && "bg-destructive/20 text-destructive",
@@ -333,10 +333,10 @@ export default function ChildDashboard() {
                 {getStatusLabel(status)}
               </Badge>
             </div>
-            <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
+            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
               {device?.battery_level !== null && device?.battery_level !== undefined && (
                 <>
-                  <Battery className={cn("w-3.5 h-3.5", device.battery_level <= 20 ? "text-destructive" : device.battery_level <= 50 ? "text-warning" : "text-success")} />
+                  <Battery className={cn("w-3 h-3", device.battery_level <= 20 ? "text-destructive" : device.battery_level <= 50 ? "text-warning" : "text-success")} />
                   <span>{device.battery_level}%</span>
                   <span className="text-border">•</span>
                 </>
@@ -344,8 +344,8 @@ export default function ChildDashboard() {
               <span>סונכרן {formatLastSeen(device?.last_seen ?? null)}</span>
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={() => setShowEditModal(true)} className="text-muted-foreground hover:text-foreground shrink-0">
-            <Pencil className="w-4 h-4" />
+          <Button variant="ghost" size="icon" onClick={() => setShowEditModal(true)} className="text-muted-foreground hover:text-foreground shrink-0 h-7 w-7">
+            <Pencil className="w-3.5 h-3.5" />
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>

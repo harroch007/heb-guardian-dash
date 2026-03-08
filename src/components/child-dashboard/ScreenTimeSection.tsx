@@ -116,7 +116,7 @@ export function ScreenTimeSection({
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Daily limit control — inline */}
-          <div className="flex items-center justify-between py-2 border-b border-border/30">
+          <div className="flex items-center justify-between py-1.5">
             <span className="text-sm text-muted-foreground">מגבלה יומית</span>
             <div dir="ltr">
               <Switch

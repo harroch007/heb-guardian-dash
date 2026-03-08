@@ -87,23 +87,17 @@ export function SchedulesSection({
             לוחות זמנים
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2">
+        <CardContent className="space-y-0.5">
           {/* Shabbat row */}
-          <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-            <div className="flex items-center gap-3 flex-1 min-w-0">
-              <div className="p-1.5 rounded-lg bg-primary/10">
-                <Calendar className="w-4 h-4 text-primary" />
-              </div>
+          <div className="flex items-center justify-between py-2.5 px-1">
+            <div className="flex items-center gap-2.5 flex-1 min-w-0">
+              <Calendar className="w-4 h-4 text-primary shrink-0" />
               <div className="min-w-0 flex-1">
-                <span className="text-sm font-medium text-foreground block">שבת</span>
-                {shabbatRule?.is_active && nextShabbat ? (
-                  <span className="text-xs text-muted-foreground">
-                    שבת הקרובה ({formatShabbatDate(nextShabbat.friday_date)}): כניסה {formatShabbatTime(nextShabbat.candle_lighting)} • יציאה {formatShabbatTime(nextShabbat.havdalah)}
+                <span className="text-sm font-medium text-foreground">שבת</span>
+                {shabbatRule?.is_active && nextShabbat && (
+                  <span className="text-[11px] text-muted-foreground block truncate">
+                    כניסה {formatShabbatTime(nextShabbat.candle_lighting)} · יציאה {formatShabbatTime(nextShabbat.havdalah)}
                   </span>
-                ) : !shabbatRule ? (
-                  <span className="text-xs text-muted-foreground">הפעל כדי לחסום את המכשיר בשבת</span>
-                ) : (
-                  <span className="text-xs text-muted-foreground">מצב שבת כבוי</span>
                 )}
               </div>
             </div>
@@ -121,28 +115,28 @@ export function SchedulesSection({
             </div>
           </div>
 
+          <div className="border-t border-border/20" />
+
           {/* Bedtime row */}
           {bedtimeRule ? (
-            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-              <div className="flex items-center gap-3 flex-1 min-w-0">
-                <div className="p-1.5 rounded-lg bg-accent/10">
-                  <Moon className="w-4 h-4 text-accent" />
-                </div>
+            <div className="flex items-center justify-between py-2.5 px-1">
+              <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                <Moon className="w-4 h-4 text-muted-foreground shrink-0" />
                 <div className="min-w-0 flex-1">
-                  <span className="text-sm font-medium text-foreground block">שעת שינה</span>
-                  <span className="text-xs text-muted-foreground">
-                    {bedtimeRule.start_time}–{bedtimeRule.end_time} • {renderDays(bedtimeRule.days_of_week)}
+                  <span className="text-sm font-medium text-foreground">שעת שינה</span>
+                  <span className="text-[11px] text-muted-foreground block">
+                    {bedtimeRule.start_time}–{bedtimeRule.end_time} · {renderDays(bedtimeRule.days_of_week)}
                   </span>
                 </div>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-1.5 shrink-0">
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-7 w-7"
+                  className="h-6 w-6"
                   onClick={() => setEditModal({ open: true, type: "bedtime", existing: bedtimeRule })}
                 >
-                  <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+                  <Pencil className="w-3 h-3 text-muted-foreground" />
                 </Button>
                 <div dir="ltr">
                   <Switch
@@ -155,40 +149,38 @@ export function SchedulesSection({
           ) : (
             <button
               onClick={() => setEditModal({ open: true, type: "bedtime", existing: null })}
-              className="flex items-center justify-between p-3 rounded-lg bg-muted/20 hover:bg-muted/40 transition-colors w-full text-right"
+              className="flex items-center justify-between py-2.5 px-1 w-full text-right hover:bg-muted/20 rounded transition-colors"
             >
-              <div className="flex items-center gap-3">
-                <div className="p-1.5 rounded-lg bg-accent/10">
-                  <Moon className="w-4 h-4 text-accent" />
-                </div>
+              <div className="flex items-center gap-2.5">
+                <Moon className="w-4 h-4 text-muted-foreground" />
                 <span className="text-sm text-muted-foreground">הגדר שעת שינה</span>
               </div>
-              <Plus className="w-4 h-4 text-muted-foreground" />
+              <Plus className="w-3.5 h-3.5 text-muted-foreground" />
             </button>
           )}
 
+          <div className="border-t border-border/20" />
+
           {/* School row */}
           {schoolRule ? (
-            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-              <div className="flex items-center gap-3 flex-1 min-w-0">
-                <div className="p-1.5 rounded-lg bg-warning/10">
-                  <BookOpen className="w-4 h-4 text-warning" />
-                </div>
+            <div className="flex items-center justify-between py-2.5 px-1">
+              <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                <BookOpen className="w-4 h-4 text-muted-foreground shrink-0" />
                 <div className="min-w-0 flex-1">
-                  <span className="text-sm font-medium text-foreground block">בית ספר</span>
-                  <span className="text-xs text-muted-foreground">
-                    {schoolRule.start_time}–{schoolRule.end_time} • {renderDays(schoolRule.days_of_week)}
+                  <span className="text-sm font-medium text-foreground">בית ספר</span>
+                  <span className="text-[11px] text-muted-foreground block">
+                    {schoolRule.start_time}–{schoolRule.end_time} · {renderDays(schoolRule.days_of_week)}
                   </span>
                 </div>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-1.5 shrink-0">
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-7 w-7"
+                  className="h-6 w-6"
                   onClick={() => setEditModal({ open: true, type: "school", existing: schoolRule })}
                 >
-                  <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+                  <Pencil className="w-3 h-3 text-muted-foreground" />
                 </Button>
                 <div dir="ltr">
                   <Switch
@@ -201,27 +193,25 @@ export function SchedulesSection({
           ) : (
             <button
               onClick={() => setEditModal({ open: true, type: "school", existing: null })}
-              className="flex items-center justify-between p-3 rounded-lg bg-muted/20 hover:bg-muted/40 transition-colors w-full text-right"
+              className="flex items-center justify-between py-2.5 px-1 w-full text-right hover:bg-muted/20 rounded transition-colors"
             >
-              <div className="flex items-center gap-3">
-                <div className="p-1.5 rounded-lg bg-warning/10">
-                  <BookOpen className="w-4 h-4 text-warning" />
-                </div>
+              <div className="flex items-center gap-2.5">
+                <BookOpen className="w-4 h-4 text-muted-foreground" />
                 <span className="text-sm text-muted-foreground">הגדר שעות בית ספר</span>
               </div>
-              <Plus className="w-4 h-4 text-muted-foreground" />
+              <Plus className="w-3.5 h-3.5 text-muted-foreground" />
             </button>
           )}
 
-          {/* Bonus Time - muted placeholder */}
-          <div className="flex items-center justify-between p-3 rounded-lg bg-muted/10 opacity-50">
-            <div className="flex items-center gap-3">
-              <div className="p-1.5 rounded-lg bg-success/10">
-                <Gift className="w-4 h-4 text-success" />
-              </div>
+          <div className="border-t border-border/20" />
+
+          {/* Bonus Time */}
+          <div className="flex items-center justify-between py-2.5 px-1 opacity-40">
+            <div className="flex items-center gap-2.5">
+              <Gift className="w-4 h-4 text-muted-foreground" />
               <span className="text-sm text-muted-foreground">זמן בונוס</span>
             </div>
-            <span className="text-xs text-muted-foreground">בקרוב</span>
+            <span className="text-[10px] text-muted-foreground">בקרוב</span>
           </div>
         </CardContent>
       </Card>
