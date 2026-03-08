@@ -45,6 +45,8 @@ import { getDeviceStatus, getStatusColor, getStatusLabel, formatLastSeen } from 
 import { cn } from "@/lib/utils";
 import { useChildControls } from "@/hooks/useChildControls";
 import { DeviceHealthBanner, AppControlsList, DailyLimitControl, CommandStatusBanner } from "@/components/controls";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { NewAppsCard } from "@/components/dashboard/NewAppsCard";
 
 interface Child {
   id: string;
@@ -509,6 +511,7 @@ export default function ChildDashboard() {
           </Card>
         ) : (
           <div className="space-y-4">
+            {/* Child Info Card */}
             <Card className="border-primary/20">
               <CardContent className="p-6">
                 <div className="flex items-center gap-4">
@@ -576,112 +579,141 @@ export default function ChildDashboard() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-primary" />
-                    מיקום אחרון
-                  </CardTitle>
-                  <Button
-                    onClick={handleLocateNow}
-                    size="sm"
-                    variant={locateStatus === "failed" ? "destructive" : "outline"}
-                    disabled={locateStatus === "locating"}
-                  >
-                    {getLocateButtonContent()}
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {locateStatus === "failed" && (
-                  <div className="mb-3 p-3 rounded-lg bg-destructive/10 border border-destructive/30 flex items-center gap-2">
-                    <AlertTriangle className="w-5 h-5 text-destructive shrink-0" />
-                    <p className="text-sm text-destructive">
-                      לא ניתן להתחבר למכשיר. ייתכן שהאפליקציה הוסרה או שאין חיבור לאינטרנט.
-                    </p>
-                  </div>
-                )}
+            {/* Tabs */}
+            <Tabs defaultValue="overview" dir="rtl">
+              <TabsList className="w-full grid grid-cols-4">
+                <TabsTrigger value="overview">סקירה</TabsTrigger>
+                <TabsTrigger value="apps">אפליקציות</TabsTrigger>
+                <TabsTrigger value="screentime">זמן מסך</TabsTrigger>
+                <TabsTrigger value="device">מכשיר</TabsTrigger>
+              </TabsList>
 
-                {locateStatus === "locating" && (
-                  <div className="mb-3 p-4 rounded-lg bg-primary/5 border border-primary/20 flex flex-col items-center gap-2">
-                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                    <p className="text-sm text-muted-foreground">מאתר את המכשיר...</p>
-                    <p className="text-xs text-muted-foreground">זה עשוי לקחת עד 2 דקות</p>
-                  </div>
-                )}
+              {/* Tab 1: סקירה (Overview) */}
+              <TabsContent value="overview" className="space-y-4">
+                <CommandStatusBanner commands={recentCommands} />
 
-                {device.latitude && device.longitude && locateStatus !== "locating" ? (
-                  <>
-                    {showMap && (
-                      <div className="mb-3 animate-fade-in">
-                        <LocationMap latitude={device.latitude} longitude={device.longitude} name={child?.name} />
-                        <div className="flex gap-2 mt-3">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex-1 text-xs sm:text-sm"
-                            onClick={() => {
-                              navigator.clipboard.writeText(`${device.latitude},${device.longitude}`);
-                              sonnerToast.success("המיקום הועתק!");
-                            }}
-                          >
-                            <Copy className="w-3.5 h-3.5 ml-1.5" />
-                            העתק
-                          </Button>
-                          <Button variant="outline" size="sm" className="flex-1 text-xs sm:text-sm" asChild>
-                            <a
-                              href={`https://www.google.com/maps/search/?api=1&query=${device.latitude},${device.longitude}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              <MapPin className="w-3.5 h-3.5 ml-1.5" />
-                              מפות
-                            </a>
-                          </Button>
-                        </div>
+                <Card>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <MapPin className="w-4 h-4 text-primary" />
+                        מיקום אחרון
+                      </CardTitle>
+                      <Button
+                        onClick={handleLocateNow}
+                        size="sm"
+                        variant={locateStatus === "failed" ? "destructive" : "outline"}
+                        disabled={locateStatus === "locating"}
+                      >
+                        {getLocateButtonContent()}
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {locateStatus === "failed" && (
+                      <div className="mb-3 p-3 rounded-lg bg-destructive/10 border border-destructive/30 flex items-center gap-2">
+                        <AlertTriangle className="w-5 h-5 text-destructive shrink-0" />
+                        <p className="text-sm text-destructive">
+                          לא ניתן להתחבר למכשיר. ייתכן שהאפליקציה הוסרה או שאין חיבור לאינטרנט.
+                        </p>
                       </div>
                     )}
-                    {!showMap && locateStatus !== "failed" && (
-                      <p className="text-sm text-foreground">{device.address || "מיקום ידוע"}</p>
+
+                    {locateStatus === "locating" && (
+                      <div className="mb-3 p-4 rounded-lg bg-primary/5 border border-primary/20 flex flex-col items-center gap-2">
+                        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                        <p className="text-sm text-muted-foreground">מאתר את המכשיר...</p>
+                        <p className="text-xs text-muted-foreground">זה עשוי לקחת עד 2 דקות</p>
+                      </div>
                     )}
-                    <p className="text-xs text-muted-foreground mt-1">עודכן: {formatLastSeen(device.last_seen)}</p>
-                  </>
+
+                    {device.latitude && device.longitude && locateStatus !== "locating" ? (
+                      <>
+                        {showMap && (
+                          <div className="mb-3 animate-fade-in">
+                            <LocationMap latitude={device.latitude} longitude={device.longitude} name={child?.name} />
+                            <div className="flex gap-2 mt-3">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="flex-1 text-xs sm:text-sm"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(`${device.latitude},${device.longitude}`);
+                                  sonnerToast.success("המיקום הועתק!");
+                                }}
+                              >
+                                <Copy className="w-3.5 h-3.5 ml-1.5" />
+                                העתק
+                              </Button>
+                              <Button variant="outline" size="sm" className="flex-1 text-xs sm:text-sm" asChild>
+                                <a
+                                  href={`https://www.google.com/maps/search/?api=1&query=${device.latitude},${device.longitude}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  <MapPin className="w-3.5 h-3.5 ml-1.5" />
+                                  מפות
+                                </a>
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                        {!showMap && locateStatus !== "failed" && (
+                          <p className="text-sm text-foreground">{device.address || "מיקום ידוע"}</p>
+                        )}
+                        <p className="text-xs text-muted-foreground mt-1">עודכן: {formatLastSeen(device.last_seen)}</p>
+                      </>
+                    ) : (
+                      locateStatus !== "locating" &&
+                      locateStatus !== "failed" && <p className="text-muted-foreground text-sm">אין מיקום זמין</p>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {childId && <NewAppsCard childId={childId} />}
+              </TabsContent>
+
+              {/* Tab 2: אפליקציות (Apps) */}
+              <TabsContent value="apps" className="space-y-4">
+                <AppControlsList
+                  childName={child?.name || ""}
+                  appPolicies={appPolicies}
+                  appUsage={appUsage}
+                  blockedAttempts={blockedAttempts}
+                  onToggleBlock={toggleAppBlock}
+                />
+              </TabsContent>
+
+              {/* Tab 3: זמן מסך (Screen Time) */}
+              <TabsContent value="screentime" className="space-y-4">
+                <ScreenTimeCard
+                  appUsage={appUsage}
+                  showChart={true}
+                />
+
+                <DailyLimitControl
+                  currentLimit={screenTimeLimit}
+                  currentUsageMinutes={appUsage.reduce((sum, app) => sum + (app.usage_minutes || 0), 0)}
+                  onUpdateLimit={async (minutes) => {
+                    await updateDailyLimit(minutes);
+                    setScreenTimeLimit(minutes);
+                  }}
+                />
+              </TabsContent>
+
+              {/* Tab 4: מכשיר (Device) */}
+              <TabsContent value="device" className="space-y-4">
+                {deviceHealth && !Object.values(deviceHealth.permissions).every(v => v === true) ? (
+                  <DeviceHealthBanner health={deviceHealth} />
+                ) : deviceHealth ? (
+                  <div className="flex items-center gap-2 p-3 rounded-lg border border-success/30 bg-success/5 text-sm text-success">
+                    <span className="font-medium">✓ המכשיר תקין — כל ההרשאות פעילות</span>
+                  </div>
                 ) : (
-                  locateStatus !== "locating" &&
-                  locateStatus !== "failed" && <p className="text-muted-foreground text-sm">אין מיקום זמין</p>
+                  <p className="text-sm text-muted-foreground">אין מידע על המכשיר</p>
                 )}
-              </CardContent>
-            </Card>
-
-            <ScreenTimeCard
-              appUsage={appUsage}
-              showChart={true}
-            />
-
-            {/* Parent Controls Section */}
-            {deviceHealth && (
-              <DeviceHealthBanner health={deviceHealth} />
-            )}
-
-            <CommandStatusBanner commands={recentCommands} />
-
-            <DailyLimitControl
-              currentLimit={screenTimeLimit}
-              currentUsageMinutes={appUsage.reduce((sum, app) => sum + (app.usage_minutes || 0), 0)}
-              onUpdateLimit={async (minutes) => {
-                await updateDailyLimit(minutes);
-                setScreenTimeLimit(minutes);
-              }}
-            />
-
-            <AppControlsList
-              childName={child?.name || ""}
-              appPolicies={appPolicies}
-              appUsage={appUsage}
-              blockedAttempts={blockedAttempts}
-              onToggleBlock={toggleAppBlock}
-            />
+              </TabsContent>
+            </Tabs>
           </div>
         )}
 
