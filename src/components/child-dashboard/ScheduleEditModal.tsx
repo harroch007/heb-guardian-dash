@@ -160,21 +160,11 @@ export function ScheduleEditModal({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>שעת התחלה</Label>
-              <Input
-                type="time"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                dir="ltr"
-              />
+              <TimeInput24h value={startTime} onChange={setStartTime} />
             </div>
             <div className="space-y-1.5">
               <Label>שעת סיום</Label>
-              <Input
-                type="time"
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-                dir="ltr"
-              />
+              <TimeInput24h value={endTime} onChange={setEndTime} />
             </div>
           </div>
         </div>
