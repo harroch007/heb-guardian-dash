@@ -105,9 +105,6 @@ export function ScreenTimeSection({
               {formatScreenTime(currentUsageMinutes)}
             </span>
           </div>
-          {usagePercent !== null && (
-            <Progress value={usagePercent} className="h-1.5 mt-2" />
-          )}
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Daily limit control — inline */}
