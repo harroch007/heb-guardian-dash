@@ -113,25 +113,38 @@ export function ScreenTimeSection({
 
           {limitEnabled && (
             <div className="space-y-3">
-              <div dir="ltr">
-                <Slider
-                  value={[sliderValue]}
-                  onValueChange={handleSliderChange}
-                  min={30}
-                  max={480}
-                  step={15}
-                  className="w-full"
-                />
-              </div>
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>0:30</span>
-                <span className="font-medium text-foreground text-sm">
-                  מגבלה: {formatScreenTime(sliderValue)}
-                </span>
-                <span>8:00</span>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">מגבלה:</span>
+                <Select
+                  value={sliderValue.toString()}
+                  onValueChange={handleSelectChange}
+                  dir="rtl"
+                >
+                  <SelectTrigger className="w-28 h-8 text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[30, 45, 60, 90, 120, 150, 180, 240, 300, 360, 420, 480].map((m) => (
+                      <SelectItem key={m} value={m.toString()}>
+                        {formatScreenTime(m)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               {dirty && (
-                <Button onClick={handleSaveLimit} disabled={saving} size="sm" className="w-full">
+                <Button
+                  onClick={async () => {
+                    if (!limitEnabled) return;
+                    setSaving(true);
+                    await onUpdateLimit(sliderValue);
+                    setSaving(false);
+                    setDirty(false);
+                  }}
+                  disabled={saving}
+                  size="sm"
+                  className="w-full"
+                >
                   {saving && <Loader2 className="w-4 h-4 animate-spin ml-2" />}
                   שמור מגבלה
                 </Button>
