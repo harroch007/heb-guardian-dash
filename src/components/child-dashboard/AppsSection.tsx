@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Search } from "lucide-react";
+import { Search, Shield } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AppControlsList } from "@/components/controls";
 import { NewAppsCard } from "@/components/dashboard/NewAppsCard";
 import type { AppPolicy, BlockedAttemptSummary, InstalledApp } from "@/hooks/useChildControls";
