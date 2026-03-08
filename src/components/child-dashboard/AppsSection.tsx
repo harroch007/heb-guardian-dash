@@ -33,40 +33,26 @@ export function AppsSection({
   installedApps,
   onToggleBlock,
 }: AppsSectionProps) {
-  const search = "";
   const [filter, setFilter] = useState<Filter>("all");
 
-  // Filter app usage based on search and filter
   const filteredUsage = appUsage.filter((app) => {
-    const name = (app.app_name || app.package_name).toLowerCase();
-    if (search && !name.includes(search.toLowerCase())) return false;
     if (filter === "blocked") {
       return appPolicies.some((p) => p.package_name === app.package_name && p.is_blocked);
     }
-    if (filter === "top") return true; // sorted by usage already
     return true;
   });
 
-  // Filter installed apps based on search and filter
   const filteredInstalled = installedApps.filter((app) => {
-    const name = (app.app_name || app.package_name).toLowerCase();
-    if (search && !name.includes(search.toLowerCase())) return false;
     if (filter === "blocked") {
       return appPolicies.some((p) => p.package_name === app.package_name && p.is_blocked);
     }
     return true;
   });
 
-  // Filter policies for blocked-only view
   const filteredPolicies =
     filter === "blocked"
       ? appPolicies.filter((p) => p.is_blocked)
-      : search
-        ? appPolicies.filter((p) => {
-            const name = (p.app_name || p.package_name).toLowerCase();
-            return name.includes(search.toLowerCase());
-          })
-        : appPolicies;
+      : appPolicies;
 
   const filters: { key: Filter; label: string }[] = [
     { key: "all", label: "הכל" },
