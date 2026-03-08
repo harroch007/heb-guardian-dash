@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { Clock, Loader2 } from "lucide-react";
+import { Clock, Loader2, Gift } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { formatScreenTime } from "@/components/ScreenTimeCard";
 import { getAppIconInfo } from "@/lib/appIcons";
 import { cn } from "@/lib/utils";
@@ -18,7 +19,9 @@ interface ScreenTimeSectionProps {
   appUsage: AppUsageEntry[];
   screenTimeLimit: number | null;
   currentUsageMinutes: number;
+  todayBonusMinutes: number;
   onUpdateLimit: (minutes: number | null) => Promise<void>;
+  onGrantBonus: (minutes: number) => Promise<void>;
 }
 
 const SYSTEM_FILTER = [
@@ -39,16 +42,21 @@ const isSystem = (pkg: string) =>
   pkg.toLowerCase().includes("systemui") ||
   pkg.toLowerCase().includes("devicecare");
 
+const BONUS_OPTIONS = [15, 30, 45, 60];
+
 export function ScreenTimeSection({
   appUsage,
   screenTimeLimit,
   currentUsageMinutes,
+  todayBonusMinutes,
   onUpdateLimit,
+  onGrantBonus,
 }: ScreenTimeSectionProps) {
   const [limitEnabled, setLimitEnabled] = useState(screenTimeLimit !== null);
   const [sliderValue, setSliderValue] = useState(screenTimeLimit || 120);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [grantingBonus, setGrantingBonus] = useState<number | null>(null);
 
   useEffect(() => {
     setLimitEnabled(screenTimeLimit !== null);
@@ -69,20 +77,29 @@ export function ScreenTimeSection({
     setDirty(true);
   };
 
-  const effectiveLimit = limitEnabled ? sliderValue : screenTimeLimit;
+  const handleGrantBonus = async (minutes: number) => {
+    setGrantingBonus(minutes);
+    await onGrantBonus(minutes);
+    setGrantingBonus(null);
+  };
+
+  const effectiveLimit = limitEnabled
+    ? sliderValue + todayBonusMinutes
+    : screenTimeLimit
+      ? screenTimeLimit + todayBonusMinutes
+      : null;
+
   const usagePercent =
     effectiveLimit && effectiveLimit > 0
       ? Math.min(100, (currentUsageMinutes / effectiveLimit) * 100)
       : null;
 
-  const isOverLimit = limitEnabled && currentUsageMinutes > sliderValue;
+  const isOverLimit = limitEnabled && currentUsageMinutes > (sliderValue + todayBonusMinutes);
 
   const filteredApps = appUsage
     .filter((a) => !isSystem(a.package_name))
     .sort((a, b) => b.usage_minutes - a.usage_minutes)
     .slice(0, 5);
-
-  
 
   return (
     <div id="screentime-section" className="space-y-3 scroll-mt-4">
@@ -132,6 +149,18 @@ export function ScreenTimeSection({
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Effective limit display when bonus is active */}
+              {todayBonusMinutes > 0 && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/30 rounded-md px-2.5 py-1.5">
+                  <Gift className="w-3.5 h-3.5 text-amber-500" />
+                  <span>
+                    מגבלה אפקטיבית להיום: <strong className="text-foreground">{formatScreenTime(sliderValue + todayBonusMinutes)}</strong>
+                    {" "}(+{todayBonusMinutes} דק׳ בונוס)
+                  </span>
+                </div>
+              )}
+
               {dirty && (
                 <Button
                   onClick={async () => {
@@ -149,6 +178,37 @@ export function ScreenTimeSection({
                   שמור מגבלה
                 </Button>
               )}
+
+              {/* Bonus Time */}
+              <div className="border-t border-border/20 pt-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Gift className="w-4 h-4 text-amber-500" />
+                  <span className="text-sm font-medium">זמן בונוס</span>
+                  {todayBonusMinutes > 0 && (
+                    <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-600 mr-auto">
+                      +{todayBonusMinutes} דק׳ היום
+                    </Badge>
+                  )}
+                </div>
+                <div className="flex gap-1.5">
+                  {BONUS_OPTIONS.map((mins) => (
+                    <Button
+                      key={mins}
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 text-xs h-8"
+                      disabled={grantingBonus !== null}
+                      onClick={() => handleGrantBonus(mins)}
+                    >
+                      {grantingBonus === mins ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        `+${mins}`
+                      )}
+                    </Button>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 

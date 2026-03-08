@@ -3,7 +3,6 @@ import { Shield } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AppControlsList } from "@/components/controls";
-import { NewAppsCard } from "@/components/dashboard/NewAppsCard";
 import type { AppPolicy, BlockedAttemptSummary, InstalledApp } from "@/hooks/useChildControls";
 
 interface AppUsageEntry {
@@ -22,6 +21,8 @@ interface AppsSectionProps {
   blockedAttempts: BlockedAttemptSummary[];
   installedApps: InstalledApp[];
   onToggleBlock: (packageName: string, appName: string | null, currentlyBlocked: boolean) => Promise<void>;
+  onApproveApp: (packageName: string, appName: string | null) => Promise<void>;
+  onBlockApp: (packageName: string, appName: string | null) => Promise<void>;
 }
 
 export function AppsSection({
@@ -32,8 +33,14 @@ export function AppsSection({
   blockedAttempts,
   installedApps,
   onToggleBlock,
+  onApproveApp,
+  onBlockApp,
 }: AppsSectionProps) {
   const [filter, setFilter] = useState<Filter>("all");
+
+  // Derive pending apps: installed but no policy row
+  const policyPackages = new Set(appPolicies.map((p) => p.package_name));
+  const pendingApps = installedApps.filter((app) => !policyPackages.has(app.package_name));
 
   const filteredUsage = appUsage.filter((app) => {
     if (filter === "blocked") {
@@ -46,6 +53,9 @@ export function AppsSection({
     if (filter === "blocked") {
       return appPolicies.some((p) => p.package_name === app.package_name && p.is_blocked);
     }
+    if (filter === "new") {
+      return !policyPackages.has(app.package_name);
+    }
     return true;
   });
 
@@ -54,11 +64,11 @@ export function AppsSection({
       ? appPolicies.filter((p) => p.is_blocked)
       : appPolicies;
 
-  const filters: { key: Filter; label: string }[] = [
+  const filters: { key: Filter; label: string; count?: number }[] = [
     { key: "all", label: "הכל" },
     { key: "blocked", label: "חסומות" },
     { key: "top", label: "הכי בשימוש" },
-    { key: "new", label: "חדשות היום" },
+    { key: "new", label: "חדשות", count: pendingApps.length },
   ];
 
   const blockedTotal = appPolicies.filter((p) => p.is_blocked).length;
@@ -88,24 +98,27 @@ export function AppsSection({
                 onClick={() => setFilter(f.key)}
               >
                 {f.label}
+                {f.count !== undefined && f.count > 0 && (
+                  <span className="mr-1 bg-amber-500/20 text-amber-600 rounded-full px-1 text-[9px]">
+                    {f.count}
+                  </span>
+                )}
               </Badge>
             ))}
           </div>
 
-          {/* New apps banner (only in "new" filter or "all") */}
-          {(filter === "all" || filter === "new") && <NewAppsCard childId={childId} />}
-
-          {/* App list — flat, no extra card wrapper */}
-          {filter !== "new" && (
-            <AppControlsList
-              childName={childName}
-              appPolicies={filteredPolicies}
-              appUsage={filteredUsage}
-              blockedAttempts={blockedAttempts}
-              installedApps={filteredInstalled}
-              onToggleBlock={onToggleBlock}
-            />
-          )}
+          {/* App list */}
+          <AppControlsList
+            childName={childName}
+            appPolicies={filteredPolicies}
+            appUsage={filteredUsage}
+            blockedAttempts={blockedAttempts}
+            installedApps={filteredInstalled}
+            onToggleBlock={onToggleBlock}
+            onApproveApp={onApproveApp}
+            onBlockApp={onBlockApp}
+            showPendingOnly={filter === "new"}
+          />
         </CardContent>
       </Card>
     </div>
