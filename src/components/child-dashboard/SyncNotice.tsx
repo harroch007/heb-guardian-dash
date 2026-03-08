@@ -17,7 +17,7 @@ export function SyncNotice({ commands }: SyncNoticeProps) {
   if (!hasPending && !hasTimedOut) return null;
 
   const text = hasPending
-    ? "מעדכן נתונים..."
+    ? "מחיל שינויים..."
     : "השינויים ייושמו כשהמכשיר יתחבר";
 
   const Icon = hasPending ? Loader2 : WifiOff;
