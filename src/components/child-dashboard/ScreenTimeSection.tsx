@@ -103,15 +103,10 @@ export function ScreenTimeSection({
             </CardTitle>
             <span className={cn("text-lg font-bold", isOverLimit ? "text-destructive" : "text-foreground")}>
               {formatScreenTime(currentUsageMinutes)}
-              {effectiveLimit && (
-                <span className="text-sm font-normal text-muted-foreground">
-                  {" "}/ {formatScreenTime(effectiveLimit)}
-                </span>
-              )}
             </span>
           </div>
           {usagePercent !== null && (
-            <Progress value={usagePercent} className="h-2 mt-2" />
+            <Progress value={usagePercent} className="h-1.5 mt-2" />
           )}
         </CardHeader>
         <CardContent className="space-y-4">

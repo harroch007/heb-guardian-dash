@@ -400,6 +400,16 @@ export default function ChildDashboard() {
 
             <SyncNotice commands={recentCommands} />
 
+            <LocationSection
+              device={device}
+              childName={child?.name || ""}
+              locateStatus={locateStatus}
+              showMap={showMap}
+              setShowMap={setShowMap}
+              handleLocateNow={handleLocateNow}
+              getLocateButtonContent={getLocateButtonContent}
+            />
+
             <AppsSection
               childId={childId!}
               childName={child?.name || ""}
@@ -427,16 +437,6 @@ export default function ChildDashboard() {
               onCreateSchedule={createSchedule}
               onUpdateSchedule={updateSchedule}
               onDeleteSchedule={deleteSchedule}
-            />
-
-            <LocationSection
-              device={device}
-              childName={child?.name || ""}
-              locateStatus={locateStatus}
-              showMap={showMap}
-              setShowMap={setShowMap}
-              handleLocateNow={handleLocateNow}
-              getLocateButtonContent={getLocateButtonContent}
             />
           </div>
         )}

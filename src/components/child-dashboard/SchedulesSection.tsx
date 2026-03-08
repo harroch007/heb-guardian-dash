@@ -33,14 +33,15 @@ interface SchedulesSectionProps {
 
 const DAY_LABELS = ["א׳", "ב׳", "ג׳", "ד׳", "ה׳", "ו׳", "ש׳"];
 
-function formatShabbatTime(isoString: string): string {
-  const d = new Date(isoString);
-  return d.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" });
-}
-
-function formatShabbatDate(fridayDate: string): string {
-  const d = new Date(fridayDate + "T00:00:00");
-  return d.toLocaleDateString("he-IL", { day: "numeric", month: "long" });
+function formatShabbatTime(timeOrIso: string): string {
+  // Handle time-only strings like "16:44" or "16:44:00"
+  if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(timeOrIso)) {
+    return timeOrIso.substring(0, 5);
+  }
+  // Handle full ISO strings
+  const d = new Date(timeOrIso);
+  if (isNaN(d.getTime())) return timeOrIso;
+  return d.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Jerusalem" });
 }
 
 export function SchedulesSection({
