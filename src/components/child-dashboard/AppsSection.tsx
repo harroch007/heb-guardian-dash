@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { Search, Shield } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { Shield } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AppControlsList } from "@/components/controls";
