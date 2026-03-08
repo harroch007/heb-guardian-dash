@@ -1546,6 +1546,9 @@ export type Database = {
           end_time: string | null
           id: string
           is_active: boolean
+          manual_end_time: string | null
+          manual_start_time: string | null
+          mode: string
           name: string
           schedule_type: string
           start_time: string | null
@@ -1558,6 +1561,9 @@ export type Database = {
           end_time?: string | null
           id?: string
           is_active?: boolean
+          manual_end_time?: string | null
+          manual_start_time?: string | null
+          mode?: string
           name: string
           schedule_type: string
           start_time?: string | null
@@ -1570,6 +1576,9 @@ export type Database = {
           end_time?: string | null
           id?: string
           is_active?: boolean
+          manual_end_time?: string | null
+          manual_start_time?: string | null
+          mode?: string
           name?: string
           schedule_type?: string
           start_time?: string | null
