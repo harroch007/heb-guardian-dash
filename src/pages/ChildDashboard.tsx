@@ -45,6 +45,8 @@ import { getDeviceStatus, getStatusColor, getStatusLabel, formatLastSeen } from 
 import { cn } from "@/lib/utils";
 import { useChildControls } from "@/hooks/useChildControls";
 import { DeviceHealthBanner, AppControlsList, DailyLimitControl, CommandStatusBanner } from "@/components/controls";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { NewAppsCard } from "@/components/dashboard/NewAppsCard";
 
 interface Child {
   id: string;
