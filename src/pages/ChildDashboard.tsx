@@ -101,8 +101,15 @@ export default function ChildDashboard() {
     blockedAttempts,
     deviceHealth,
     recentCommands,
+    installedApps,
+    scheduleWindows,
+    nextShabbat,
     toggleAppBlock,
     updateDailyLimit,
+    toggleShabbat,
+    createSchedule,
+    updateSchedule,
+    deleteSchedule,
     loading: controlsLoading,
   } = useChildControls(childId);
 
@@ -419,6 +426,7 @@ export default function ChildDashboard() {
               appPolicies={appPolicies}
               appUsage={appUsage}
               blockedAttempts={blockedAttempts}
+              installedApps={installedApps}
               onToggleBlock={toggleAppBlock}
             />
 
@@ -432,7 +440,14 @@ export default function ChildDashboard() {
               }}
             />
 
-            <SchedulesSection />
+            <SchedulesSection
+              scheduleWindows={scheduleWindows}
+              nextShabbat={nextShabbat}
+              onToggleShabbat={toggleShabbat}
+              onCreateSchedule={createSchedule}
+              onUpdateSchedule={updateSchedule}
+              onDeleteSchedule={deleteSchedule}
+            />
 
             <LocationSection
               device={device}

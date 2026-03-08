@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { AppControlsList } from "@/components/controls";
 import { NewAppsCard } from "@/components/dashboard/NewAppsCard";
-import type { AppPolicy, BlockedAttemptSummary } from "@/hooks/useChildControls";
+import type { AppPolicy, BlockedAttemptSummary, InstalledApp } from "@/hooks/useChildControls";
 
 interface AppUsageEntry {
   app_name: string | null;
@@ -20,6 +20,7 @@ interface AppsSectionProps {
   appPolicies: AppPolicy[];
   appUsage: AppUsageEntry[];
   blockedAttempts: BlockedAttemptSummary[];
+  installedApps: InstalledApp[];
   onToggleBlock: (packageName: string, appName: string | null, currentlyBlocked: boolean) => Promise<void>;
 }
 
@@ -29,6 +30,7 @@ export function AppsSection({
   appPolicies,
   appUsage,
   blockedAttempts,
+  installedApps,
   onToggleBlock,
 }: AppsSectionProps) {
   const [search, setSearch] = useState("");
@@ -42,6 +44,16 @@ export function AppsSection({
       return appPolicies.some((p) => p.package_name === app.package_name && p.is_blocked);
     }
     if (filter === "top") return true; // sorted by usage already
+    return true;
+  });
+
+  // Filter installed apps based on search and filter
+  const filteredInstalled = installedApps.filter((app) => {
+    const name = (app.app_name || app.package_name).toLowerCase();
+    if (search && !name.includes(search.toLowerCase())) return false;
+    if (filter === "blocked") {
+      return appPolicies.some((p) => p.package_name === app.package_name && p.is_blocked);
+    }
     return true;
   });
 
@@ -100,6 +112,7 @@ export function AppsSection({
           appPolicies={filteredPolicies}
           appUsage={filteredUsage}
           blockedAttempts={blockedAttempts}
+          installedApps={filteredInstalled}
           onToggleBlock={onToggleBlock}
         />
       )}

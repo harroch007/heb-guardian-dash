@@ -34,19 +34,53 @@ export interface DeviceCommand {
   created_at: string;
 }
 
+export interface InstalledApp {
+  id: string;
+  child_id: string;
+  package_name: string;
+  app_name: string | null;
+  is_system: boolean;
+  category: string | null;
+  first_seen_at: string;
+  last_seen_at: string;
+}
+
+export interface ScheduleWindow {
+  id: string;
+  child_id: string;
+  name: string;
+  schedule_type: string;
+  days_of_week: number[] | null;
+  start_time: string | null;
+  end_time: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface NextShabbat {
+  friday_date: string;
+  candle_lighting: string;
+  havdalah: string;
+}
+
 export function useChildControls(childId: string | undefined) {
   const { user } = useAuth();
   const [appPolicies, setAppPolicies] = useState<AppPolicy[]>([]);
   const [blockedAttempts, setBlockedAttempts] = useState<BlockedAttemptSummary[]>([]);
   const [deviceHealth, setDeviceHealth] = useState<DeviceHealthInfo | null>(null);
   const [recentCommands, setRecentCommands] = useState<DeviceCommand[]>([]);
+  const [installedApps, setInstalledApps] = useState<InstalledApp[]>([]);
+  const [scheduleWindows, setScheduleWindows] = useState<ScheduleWindow[]>([]);
+  const [nextShabbat, setNextShabbat] = useState<NextShabbat | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
     if (!childId || !user) return;
 
-    // Step 1: Fetch policies, attempts, devices, and health in parallel
-    const [policiesRes, attemptsRes, devicesRes, healthRes] = await Promise.all([
+    const today = new Date().toISOString().split("T")[0];
+
+    const [policiesRes, attemptsRes, devicesRes, healthRes, installedRes, schedulesRes, shabbatRes] = await Promise.all([
       supabase
         .from("app_policies")
         .select("*")
@@ -64,8 +98,26 @@ export function useChildControls(childId: string | undefined) {
         .select("device_id")
         .eq("child_id", childId),
 
-      // Gap 1 fix: use RPC instead of direct heartbeat query
       supabase.rpc("get_child_device_health", { p_child_id: childId }),
+
+      supabase
+        .from("installed_apps")
+        .select("*")
+        .eq("child_id", childId)
+        .eq("is_system", false)
+        .order("app_name"),
+
+      supabase
+        .from("schedule_windows")
+        .select("*")
+        .eq("child_id", childId),
+
+      supabase
+        .from("shabbat_zmanim")
+        .select("friday_date, candle_lighting, havdalah")
+        .gte("friday_date", today)
+        .order("friday_date")
+        .limit(1),
     ]);
 
     if (policiesRes.data) {
@@ -93,7 +145,7 @@ export function useChildControls(childId: string | undefined) {
       );
     }
 
-    // Gap 1 fix: parse RPC result for device health
+    // Device health
     if (healthRes.data) {
       const hb = healthRes.data as Record<string, any>;
       const device = hb.device as Record<string, any> | null;
@@ -108,7 +160,20 @@ export function useChildControls(childId: string | undefined) {
       setDeviceHealth(null);
     }
 
-    // Gap 2 fix: fetch commands scoped to child's devices only
+    // Installed apps
+    setInstalledApps((installedRes.data as InstalledApp[]) || []);
+
+    // Schedule windows
+    setScheduleWindows((schedulesRes.data as ScheduleWindow[]) || []);
+
+    // Next shabbat
+    if (shabbatRes.data && shabbatRes.data.length > 0) {
+      setNextShabbat(shabbatRes.data[0] as NextShabbat);
+    } else {
+      setNextShabbat(null);
+    }
+
+    // Commands scoped to child's devices only
     const childDeviceIds = devicesRes.data?.map((d) => d.device_id) || [];
     if (childDeviceIds.length > 0) {
       const { data: commandsData } = await supabase
@@ -204,14 +269,134 @@ export function useChildControls(childId: string | undefined) {
     toast.success(minutes ? "מגבלת זמן מסך עודכנה" : "מגבלת זמן מסך הוסרה");
   };
 
+  // --- Schedule CRUD ---
+
+  const toggleShabbat = async () => {
+    if (!childId || !user) return;
+
+    const existing = scheduleWindows.find((s) => s.schedule_type === "shabbat");
+
+    if (existing) {
+      const { error } = await supabase
+        .from("schedule_windows")
+        .update({ is_active: !existing.is_active })
+        .eq("id", existing.id);
+
+      if (error) {
+        toast.error("שגיאה בעדכון מצב שבת");
+        return;
+      }
+    } else {
+      const { error } = await supabase.from("schedule_windows").insert({
+        child_id: childId,
+        name: "שבת",
+        schedule_type: "shabbat",
+        is_active: true,
+        days_of_week: null,
+        start_time: null,
+        end_time: null,
+      });
+
+      if (error) {
+        toast.error("שגיאה ביצירת חוק שבת");
+        return;
+      }
+    }
+
+    await sendRefreshToAllDevices();
+    toast.success(existing?.is_active ? "מצב שבת כובה" : "מצב שבת הופעל");
+    fetchData();
+  };
+
+  const createSchedule = async (params: {
+    schedule_type: string;
+    name: string;
+    days_of_week: number[];
+    start_time: string;
+    end_time: string;
+  }) => {
+    if (!childId || !user) return;
+
+    const { error } = await supabase.from("schedule_windows").insert({
+      child_id: childId,
+      name: params.name,
+      schedule_type: params.schedule_type,
+      days_of_week: params.days_of_week,
+      start_time: params.start_time,
+      end_time: params.end_time,
+      is_active: true,
+    });
+
+    if (error) {
+      toast.error("שגיאה ביצירת לוח זמנים");
+      return;
+    }
+
+    await sendRefreshToAllDevices();
+    toast.success("לוח זמנים נוצר בהצלחה");
+    fetchData();
+  };
+
+  const updateSchedule = async (
+    scheduleId: string,
+    params: {
+      name?: string;
+      days_of_week?: number[];
+      start_time?: string;
+      end_time?: string;
+      is_active?: boolean;
+    }
+  ) => {
+    if (!childId) return;
+
+    const { error } = await supabase
+      .from("schedule_windows")
+      .update(params)
+      .eq("id", scheduleId);
+
+    if (error) {
+      toast.error("שגיאה בעדכון לוח זמנים");
+      return;
+    }
+
+    await sendRefreshToAllDevices();
+    toast.success("לוח זמנים עודכן בהצלחה");
+    fetchData();
+  };
+
+  const deleteSchedule = async (scheduleId: string) => {
+    if (!childId) return;
+
+    const { error } = await supabase
+      .from("schedule_windows")
+      .delete()
+      .eq("id", scheduleId);
+
+    if (error) {
+      toast.error("שגיאה במחיקת לוח זמנים");
+      return;
+    }
+
+    await sendRefreshToAllDevices();
+    toast.success("לוח זמנים נמחק");
+    fetchData();
+  };
+
   return {
     appPolicies,
     blockedAttempts,
     deviceHealth,
     recentCommands,
+    installedApps,
+    scheduleWindows,
+    nextShabbat,
     loading,
     toggleAppBlock,
     updateDailyLimit,
+    toggleShabbat,
+    createSchedule,
+    updateSchedule,
+    deleteSchedule,
     refetch: fetchData,
   };
 }

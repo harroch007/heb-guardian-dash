@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { Shield, Loader2, AlertTriangle } from "lucide-react";
+import { Shield, Loader2, AlertTriangle, Smartphone } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { getAppIconInfo } from "@/lib/appIcons";
-import type { AppPolicy, BlockedAttemptSummary } from "@/hooks/useChildControls";
+import type { AppPolicy, BlockedAttemptSummary, InstalledApp } from "@/hooks/useChildControls";
 
 interface AppUsageEntry {
   app_name: string | null;
@@ -18,6 +18,7 @@ interface AppControlsListProps {
   appPolicies: AppPolicy[];
   appUsage: AppUsageEntry[];
   blockedAttempts: BlockedAttemptSummary[];
+  installedApps: InstalledApp[];
   onToggleBlock: (packageName: string, appName: string | null, currentlyBlocked: boolean) => Promise<void>;
 }
 
@@ -51,21 +52,47 @@ export function AppControlsList({
   appPolicies,
   appUsage,
   blockedAttempts,
+  installedApps,
   onToggleBlock,
 }: AppControlsListProps) {
   const [togglingPkg, setTogglingPkg] = useState<string | null>(null);
 
-  // Build a merged list: all known apps from usage + policies
+  const hasInventory = installedApps.length > 0;
+
+  // Build a merged list: primary source is installedApps, fallback to appUsage
   const appsMap = new Map<string, { appName: string | null; isBlocked: boolean; usageMinutes: number }>();
 
-  // Add from usage (visible apps)
-  for (const app of appUsage) {
-    if (!isSystemApp(app.package_name)) {
-      appsMap.set(app.package_name, {
-        appName: app.app_name,
-        isBlocked: false,
-        usageMinutes: app.usage_minutes,
-      });
+  if (hasInventory) {
+    // Primary: installed_apps
+    for (const app of installedApps) {
+      if (!isSystemApp(app.package_name)) {
+        appsMap.set(app.package_name, {
+          appName: app.app_name,
+          isBlocked: false,
+          usageMinutes: 0,
+        });
+      }
+    }
+  } else {
+    // Fallback: appUsage (from snapshot)
+    for (const app of appUsage) {
+      if (!isSystemApp(app.package_name)) {
+        appsMap.set(app.package_name, {
+          appName: app.app_name,
+          isBlocked: false,
+          usageMinutes: app.usage_minutes,
+        });
+      }
+    }
+  }
+
+  // Enrich with usage data when using inventory
+  if (hasInventory) {
+    for (const app of appUsage) {
+      const existing = appsMap.get(app.package_name);
+      if (existing) {
+        existing.usageMinutes = app.usage_minutes;
+      }
     }
   }
 
@@ -108,13 +135,21 @@ export function AppControlsList({
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <Shield className="w-5 h-5 text-primary" />
-            אפליקציות חסומות — {childName}
+            אפליקציות — {childName}
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground text-center py-6">
-            אין נתוני אפליקציות זמינים עדיין
-          </p>
+          <div className="flex flex-col items-center py-8 text-center">
+            <div className="p-3 rounded-full bg-muted/50 mb-3">
+              <Smartphone className="w-6 h-6 text-muted-foreground" />
+            </div>
+            <p className="text-sm font-medium text-foreground mb-1">
+              המכשיר עדיין לא דיווח על אפליקציות מותקנות
+            </p>
+            <p className="text-xs text-muted-foreground max-w-xs">
+              לאחר חיבור המכשיר, רשימת האפליקציות תופיע כאן באופן אוטומטי
+            </p>
+          </div>
         </CardContent>
       </Card>
     );
@@ -125,7 +160,7 @@ export function AppControlsList({
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base">
           <Shield className="w-5 h-5 text-primary" />
-          אפליקציות חסומות — {childName}
+          אפליקציות — {childName}
         </CardTitle>
         <p className="text-xs text-muted-foreground">חסימה חלה על כל המכשירים של הילד/ה</p>
       </CardHeader>
