@@ -20,7 +20,17 @@ import {
   Pencil,
   AlertTriangle,
   Battery,
+  MoreVertical,
+  RefreshCw,
+  Unplug,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -353,11 +363,32 @@ export default function ChildDashboard() {
             <Pencil className="w-3.5 h-3.5" />
           </Button>
           <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10">
-                <Trash2 className="w-5 h-5" />
-              </Button>
-            </AlertDialogTrigger>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground shrink-0 h-7 w-7">
+                  <MoreVertical className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem onClick={() => setShowReconnectModal(true)} className="gap-2">
+                  <RefreshCw className="w-4 h-4" />
+                  חבר מחדש
+                </DropdownMenuItem>
+                {device && (
+                  <DropdownMenuItem onClick={handleDisconnectDevice} disabled={disconnecting} className="gap-2">
+                    <Unplug className="w-4 h-4" />
+                    נתק מכשיר
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+                <AlertDialogTrigger asChild>
+                  <DropdownMenuItem className="gap-2 text-destructive focus:text-destructive focus:bg-destructive/10">
+                    <Trash2 className="w-4 h-4" />
+                    מחק ילד
+                  </DropdownMenuItem>
+                </AlertDialogTrigger>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>האם להסיר את {child?.name}?</AlertDialogTitle>

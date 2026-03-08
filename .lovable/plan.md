@@ -1,33 +1,31 @@
 
+# Kippy Control — Phase A Status: ✅ COMPLETE
 
-## Problem
+## Completed ✅
 
-The header shows only Pencil (edit) and Trash2 (delete child) icons. There's no visible "reconnect" button. The `ReconnectChildModal` exists and works, but `showReconnectModal` is never set to `true` — no UI element triggers it.
+### Data Model Migration
+- `installed_apps` table — full device app inventory with RLS
+- `schedule_windows` table — school/bedtime/shabbat schedules with RLS + CRUD policies
+- `shabbat_zmanim` table — date-based (YYYY-MM-DD) candle lighting / havdalah lookup
+- `report_installed_apps` RPC — SECURITY DEFINER, device bulk upserts
+- `get_device_settings` RPC — extended to include `schedule_windows` array + `next_shabbat` object
 
-When a parent uninstalls the app and wants to reconnect, the only red icon they see is Trash2 (delete child permanently), which is terrifying.
+### Data Population
+- `shabbat_zmanim` populated with 118 rows (2026-01-02 → 2028-03-31)
+- Source: Hebcal API, Jerusalem, havdalah = sunset + 40 min (product policy)
 
-## Plan
+## Next Steps (Phase B)
+- Refactor ChildDashboard into 4-tab layout (סקירה / אפליקציות / זמן מסך / מכשיר)
+- Move existing components to their respective tabs
 
-**File: `src/pages/ChildDashboard.tsx`** — two changes:
+## Phase C (after B)
+- Apps tab: installed_apps inventory UI
+- Screen Time tab: schedule windows CRUD UI + Shabbat toggle
+- Device tab: polished health view
 
-### 1. Add a "חבר מחדש" (Reconnect) button in the device-connected section
-
-Place a `RefreshCw` icon button next to the Pencil/Trash in the header bar, between Pencil and Trash. This button sets `showReconnectModal(true)` and opens the existing `ReconnectChildModal` which generates a new 6-digit pairing code.
-
-### 2. Move delete (Trash2) behind a dropdown or make it less prominent
-
-Move the delete action into a small dropdown menu (DropdownMenu from shadcn) triggered by a MoreVertical icon. This prevents accidental clicks and reduces visual anxiety. The dropdown will contain:
-- "חבר מחדש" (reconnect) — triggers `setShowReconnectModal(true)`
-- "נתק מכשיר" (disconnect device) — existing `handleDisconnectDevice` with confirmation
-- Separator
-- "מחק ילד" (delete child) — existing delete flow with AlertDialog confirmation
-
-This way the header becomes: `← [name + status] [pencil] [⋮ menu]` — clean and safe.
-
-### Summary of changes
-- **1 file modified**: `src/pages/ChildDashboard.tsx`
-- Add `MoreVertical` import from lucide-react
-- Add `DropdownMenu` imports from shadcn
-- Replace Trash2 button with DropdownMenu containing reconnect, disconnect, and delete options
-- Delete confirmation remains via AlertDialog (unchanged logic)
-
+## Key Decisions
+- `havdalah` = policy-defined exit time from device block, not a halachic statement
+- Schedule windows are total blocks (no `allowed_apps` in MVP)
+- Bonus time = Phase 2 only, no workaround
+- Installed apps = user-installed + has launcher icon only
+- Shabbat times = Israel-based (Asia/Jerusalem), date-keyed, no GPS dependency
