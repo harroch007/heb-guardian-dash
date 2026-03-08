@@ -38,15 +38,14 @@ import { getDeviceStatus, getStatusColor, getStatusLabel, formatLastSeen } from 
 import { cn } from "@/lib/utils";
 import { useChildControls } from "@/hooks/useChildControls";
 import {
-  StatusStrip,
   ProblemBanner,
   SyncNotice,
-  QuickActionsGrid,
   AppsSection,
   ScreenTimeSection,
   SchedulesSection,
   LocationSection,
 } from "@/components/child-dashboard";
+import { Battery } from "lucide-react";
 
 interface Child {
   id: string;
