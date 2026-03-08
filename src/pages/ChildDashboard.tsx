@@ -440,7 +440,14 @@ export default function ChildDashboard() {
               }}
             />
 
-            <SchedulesSection />
+            <SchedulesSection
+              scheduleWindows={scheduleWindows}
+              nextShabbat={nextShabbat}
+              onToggleShabbat={toggleShabbat}
+              onCreateSchedule={createSchedule}
+              onUpdateSchedule={updateSchedule}
+              onDeleteSchedule={deleteSchedule}
+            />
 
             <LocationSection
               device={device}
