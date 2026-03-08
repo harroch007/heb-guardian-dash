@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { Search, Shield } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { Shield } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AppControlsList } from "@/components/controls";
@@ -34,40 +33,26 @@ export function AppsSection({
   installedApps,
   onToggleBlock,
 }: AppsSectionProps) {
-  const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
 
-  // Filter app usage based on search and filter
   const filteredUsage = appUsage.filter((app) => {
-    const name = (app.app_name || app.package_name).toLowerCase();
-    if (search && !name.includes(search.toLowerCase())) return false;
     if (filter === "blocked") {
       return appPolicies.some((p) => p.package_name === app.package_name && p.is_blocked);
     }
-    if (filter === "top") return true; // sorted by usage already
     return true;
   });
 
-  // Filter installed apps based on search and filter
   const filteredInstalled = installedApps.filter((app) => {
-    const name = (app.app_name || app.package_name).toLowerCase();
-    if (search && !name.includes(search.toLowerCase())) return false;
     if (filter === "blocked") {
       return appPolicies.some((p) => p.package_name === app.package_name && p.is_blocked);
     }
     return true;
   });
 
-  // Filter policies for blocked-only view
   const filteredPolicies =
     filter === "blocked"
       ? appPolicies.filter((p) => p.is_blocked)
-      : search
-        ? appPolicies.filter((p) => {
-            const name = (p.app_name || p.package_name).toLowerCase();
-            return name.includes(search.toLowerCase());
-          })
-        : appPolicies;
+      : appPolicies;
 
   const filters: { key: Filter; label: string }[] = [
     { key: "all", label: "הכל" },
@@ -93,29 +78,18 @@ export function AppsSection({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {/* Search + Filter chips — compact row */}
-          <div className="flex items-center gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-              <Input
-                placeholder="חיפוש..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pr-8 h-8 text-xs"
-              />
-            </div>
-            <div className="flex gap-1 shrink-0">
-              {filters.map((f) => (
-                <Badge
-                  key={f.key}
-                  variant={filter === f.key ? "default" : "outline"}
-                  className="cursor-pointer text-[10px] px-2 py-0.5"
-                  onClick={() => setFilter(f.key)}
-                >
-                  {f.label}
-                </Badge>
-              ))}
-            </div>
+          {/* Filter chips */}
+          <div className="flex gap-1">
+            {filters.map((f) => (
+              <Badge
+                key={f.key}
+                variant={filter === f.key ? "default" : "outline"}
+                className="cursor-pointer text-[10px] px-2 py-0.5"
+                onClick={() => setFilter(f.key)}
+              >
+                {f.label}
+              </Badge>
+            ))}
           </div>
 
           {/* New apps banner (only in "new" filter or "all") */}
