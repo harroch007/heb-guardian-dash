@@ -135,11 +135,11 @@ export function ScreenTimeSection({
                 />
               </div>
               <div className="flex justify-between text-xs text-muted-foreground">
-                <span>30 דק׳</span>
+                <span>0:30</span>
                 <span className="font-medium text-foreground text-sm">
-                  {formatScreenTime(sliderValue)}
+                  מגבלה: {formatScreenTime(sliderValue)}
                 </span>
-                <span>8 שעות</span>
+                <span>8:00</span>
               </div>
               {dirty && (
                 <Button onClick={handleSaveLimit} disabled={saving} size="sm" className="w-full">
