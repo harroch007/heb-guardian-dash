@@ -1322,6 +1322,47 @@ export type Database = {
           },
         ]
       }
+      installed_apps: {
+        Row: {
+          app_name: string | null
+          category: string | null
+          child_id: string
+          first_seen_at: string
+          id: string
+          is_system: boolean
+          last_seen_at: string
+          package_name: string
+        }
+        Insert: {
+          app_name?: string | null
+          category?: string | null
+          child_id: string
+          first_seen_at?: string
+          id?: string
+          is_system?: boolean
+          last_seen_at?: string
+          package_name: string
+        }
+        Update: {
+          app_name?: string | null
+          category?: string | null
+          child_id?: string
+          first_seen_at?: string
+          id?: string
+          is_system?: boolean
+          last_seen_at?: string
+          package_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "installed_apps_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       nightly_usage_reports: {
         Row: {
           child_id: string | null
@@ -1494,6 +1535,53 @@ export type Database = {
         }
         Relationships: []
       }
+      schedule_windows: {
+        Row: {
+          child_id: string
+          created_at: string
+          days_of_week: number[] | null
+          end_time: string | null
+          id: string
+          is_active: boolean
+          name: string
+          schedule_type: string
+          start_time: string | null
+          updated_at: string
+        }
+        Insert: {
+          child_id: string
+          created_at?: string
+          days_of_week?: number[] | null
+          end_time?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          schedule_type: string
+          start_time?: string | null
+          updated_at?: string
+        }
+        Update: {
+          child_id?: string
+          created_at?: string
+          days_of_week?: number[] | null
+          end_time?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          schedule_type?: string
+          start_time?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedule_windows_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       settings: {
         Row: {
           accessibility_service_enabled: boolean | null
@@ -1611,6 +1699,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      shabbat_zmanim: {
+        Row: {
+          candle_lighting: string
+          friday_date: string
+          havdalah: string
+        }
+        Insert: {
+          candle_lighting: string
+          friday_date: string
+          havdalah: string
+        }
+        Update: {
+          candle_lighting?: string
+          friday_date?: string
+          havdalah?: string
+        }
+        Relationships: []
       }
       training_dataset: {
         Row: {
@@ -2058,6 +2164,10 @@ export type Database = {
           p_permissions: Json
           p_timestamp: string
         }
+        Returns: undefined
+      }
+      report_installed_apps: {
+        Args: { p_apps: Json; p_device_id: string }
         Returns: undefined
       }
       report_nightly_usage: {
