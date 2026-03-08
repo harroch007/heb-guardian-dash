@@ -103,15 +103,10 @@ export function ScreenTimeSection({
             </CardTitle>
             <span className={cn("text-lg font-bold", isOverLimit ? "text-destructive" : "text-foreground")}>
               {formatScreenTime(currentUsageMinutes)}
-              {effectiveLimit && (
-                <span className="text-sm font-normal text-muted-foreground">
-                  {" "}/ {formatScreenTime(effectiveLimit)}
-                </span>
-              )}
             </span>
           </div>
           {usagePercent !== null && (
-            <Progress value={usagePercent} className="h-2 mt-2" />
+            <Progress value={usagePercent} className="h-1.5 mt-2" />
           )}
         </CardHeader>
         <CardContent className="space-y-4">
@@ -140,11 +135,11 @@ export function ScreenTimeSection({
                 />
               </div>
               <div className="flex justify-between text-xs text-muted-foreground">
-                <span>30 דק׳</span>
+                <span>0:30</span>
                 <span className="font-medium text-foreground text-sm">
-                  {formatScreenTime(sliderValue)}
+                  מגבלה: {formatScreenTime(sliderValue)}
                 </span>
-                <span>8 שעות</span>
+                <span>8:00</span>
               </div>
               {dirty && (
                 <Button onClick={handleSaveLimit} disabled={saving} size="sm" className="w-full">

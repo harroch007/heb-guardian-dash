@@ -73,12 +73,11 @@ const getAppCategory = (packageName: string): { name: string; color: string; ico
   return { name: 'אחר', color: CATEGORY_COLORS.other, icon: Globe };
 };
 
-// Format minutes to readable time (Hebrew)
+// Format minutes to readable time — pure H:MM 24h format
 export const formatScreenTime = (minutes: number): string => {
-  if (minutes < 60) return `${minutes}ד'`;
   const hours = Math.floor(minutes / 60);
   const mins = minutes % 60;
-  return mins > 0 ? `${hours}ש' ${mins}ד'` : `${hours}ש'`;
+  return `${hours}:${mins.toString().padStart(2, "0")}`;
 };
 
 // Get emoji for app category
