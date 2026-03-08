@@ -313,44 +313,39 @@ export default function ChildDashboard() {
   return (
     <DashboardLayout>
       <div className="p-4 sm:p-6 md:p-8">
-        <div className="flex items-center gap-4 mb-4">
+        <div className="flex items-center gap-3 mb-4">
           <Button variant="ghost" size="icon" onClick={() => navigate("/family")} className="shrink-0">
             <ArrowRight className="w-5 h-5" />
           </Button>
-          <div className="flex-1">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                {child?.gender === "male" ? (
-                  <div className="p-1.5 rounded-full bg-blue-500/10">
-                    <User className="w-5 h-5 text-blue-500" />
-                  </div>
-                ) : child?.gender === "female" ? (
-                  <div className="p-1.5 rounded-full bg-pink-500/10">
-                    <User className="w-5 h-5 text-pink-500" />
-                  </div>
-                ) : null}
-                <h1 className="text-2xl md:text-3xl font-bold text-foreground">{child?.name}</h1>
-              </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-bold text-foreground truncate">{child?.name}</h1>
               <Badge
                 variant="secondary"
                 className={cn(
+                  "text-xs shrink-0",
                   status === "connected" && "bg-success/20 text-success",
                   status === "inactive" && "bg-warning/20 text-warning",
                   status === "not_connected" && "bg-destructive/20 text-destructive",
                 )}
               >
-                <div className={cn("w-2 h-2 rounded-full ml-1.5", getStatusColor(status))} />
+                <div className={cn("w-1.5 h-1.5 rounded-full ml-1", getStatusColor(status))} />
                 {getStatusLabel(status)}
               </Badge>
             </div>
-            {child && (
-              <p className="text-sm text-muted-foreground mt-1">
-                {calculateAge(child.date_of_birth)} שנים • נראה לאחרונה: {formatLastSeen(device?.last_seen ?? null)}
-              </p>
-            )}
+            <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
+              {device?.battery_level !== null && device?.battery_level !== undefined && (
+                <>
+                  <Battery className={cn("w-3.5 h-3.5", device.battery_level <= 20 ? "text-destructive" : device.battery_level <= 50 ? "text-warning" : "text-success")} />
+                  <span>{device.battery_level}%</span>
+                  <span className="text-border">•</span>
+                </>
+              )}
+              <span>סונכרן {formatLastSeen(device?.last_seen ?? null)}</span>
+            </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={() => setShowEditModal(true)} className="text-muted-foreground hover:text-foreground">
-            <Pencil className="w-5 h-5" />
+          <Button variant="ghost" size="icon" onClick={() => setShowEditModal(true)} className="text-muted-foreground hover:text-foreground shrink-0">
+            <Pencil className="w-4 h-4" />
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
