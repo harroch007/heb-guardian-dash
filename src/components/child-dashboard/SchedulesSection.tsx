@@ -1,28 +1,82 @@
-import { Calendar, Moon, BookOpen, Gift } from "lucide-react";
+import { useState } from "react";
+import { Calendar, Moon, BookOpen, Gift, Plus, Pencil, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
+import { ScheduleEditModal } from "./ScheduleEditModal";
+import type { ScheduleWindow, NextShabbat } from "@/hooks/useChildControls";
 
-export function SchedulesSection() {
-  const rows = [
-    {
-      icon: Calendar,
-      label: "שבת",
-      color: "text-primary",
-      bgColor: "bg-primary/10",
-    },
-    {
-      icon: Moon,
-      label: "שעת שינה",
-      color: "text-accent",
-      bgColor: "bg-accent/10",
-    },
-    {
-      icon: BookOpen,
-      label: "בית ספר",
-      color: "text-warning",
-      bgColor: "bg-warning/10",
-    },
-  ];
+interface SchedulesSectionProps {
+  scheduleWindows: ScheduleWindow[];
+  nextShabbat: NextShabbat | null;
+  onToggleShabbat: () => Promise<void>;
+  onCreateSchedule: (params: {
+    schedule_type: string;
+    name: string;
+    days_of_week: number[];
+    start_time: string;
+    end_time: string;
+  }) => Promise<void>;
+  onUpdateSchedule: (
+    scheduleId: string,
+    params: {
+      name?: string;
+      days_of_week?: number[];
+      start_time?: string;
+      end_time?: string;
+      is_active?: boolean;
+    }
+  ) => Promise<void>;
+  onDeleteSchedule: (scheduleId: string) => Promise<void>;
+}
+
+const DAY_LABELS = ["א׳", "ב׳", "ג׳", "ד׳", "ה׳", "ו׳", "ש׳"];
+
+function formatShabbatTime(isoString: string): string {
+  const d = new Date(isoString);
+  return d.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" });
+}
+
+function formatShabbatDate(fridayDate: string): string {
+  const d = new Date(fridayDate + "T00:00:00");
+  return d.toLocaleDateString("he-IL", { day: "numeric", month: "long" });
+}
+
+export function SchedulesSection({
+  scheduleWindows,
+  nextShabbat,
+  onToggleShabbat,
+  onCreateSchedule,
+  onUpdateSchedule,
+  onDeleteSchedule,
+}: SchedulesSectionProps) {
+  const [togglingShabbat, setTogglingShabbat] = useState(false);
+  const [editModal, setEditModal] = useState<{ open: boolean; type: "bedtime" | "school"; existing?: ScheduleWindow | null }>({
+    open: false,
+    type: "bedtime",
+    existing: null,
+  });
+
+  const shabbatRule = scheduleWindows.find((s) => s.schedule_type === "shabbat");
+  const bedtimeRule = scheduleWindows.find((s) => s.schedule_type === "bedtime");
+  const schoolRule = scheduleWindows.find((s) => s.schedule_type === "school");
+
+  const handleShabbatToggle = async () => {
+    setTogglingShabbat(true);
+    await onToggleShabbat();
+    setTogglingShabbat(false);
+  };
+
+  const handleToggleRule = async (rule: ScheduleWindow) => {
+    await onUpdateSchedule(rule.id, { is_active: !rule.is_active });
+  };
+
+  const renderDays = (days: number[] | null) => {
+    if (!days || days.length === 0) return null;
+    if (days.length === 7) return "כל יום";
+    return days.sort((a, b) => a - b).map((d) => DAY_LABELS[d]).join(", ");
+  };
 
   return (
     <div id="schedules-section" className="scroll-mt-4">
@@ -34,25 +88,130 @@ export function SchedulesSection() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-          {rows.map((row) => {
-            const Icon = row.icon;
-            return (
-              <div
-                key={row.label}
-                className="flex items-center justify-between p-3 rounded-lg bg-muted/30"
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`p-1.5 rounded-lg ${row.bgColor}`}>
-                    <Icon className={`w-4 h-4 ${row.color}`} />
-                  </div>
-                  <span className="text-sm font-medium text-foreground">{row.label}</span>
-                </div>
-                <Badge variant="outline" className="text-xs text-muted-foreground border-muted-foreground/30">
-                  בקרוב
-                </Badge>
+          {/* Shabbat row */}
+          <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div className="p-1.5 rounded-lg bg-primary/10">
+                <Calendar className="w-4 h-4 text-primary" />
               </div>
-            );
-          })}
+              <div className="min-w-0 flex-1">
+                <span className="text-sm font-medium text-foreground block">שבת</span>
+                {shabbatRule?.is_active && nextShabbat ? (
+                  <span className="text-xs text-muted-foreground">
+                    שבת הקרובה ({formatShabbatDate(nextShabbat.friday_date)}): כניסה {formatShabbatTime(nextShabbat.candle_lighting)} • יציאה {formatShabbatTime(nextShabbat.havdalah)}
+                  </span>
+                ) : !shabbatRule ? (
+                  <span className="text-xs text-muted-foreground">הפעל כדי לחסום את המכשיר בשבת</span>
+                ) : (
+                  <span className="text-xs text-muted-foreground">מצב שבת כבוי</span>
+                )}
+              </div>
+            </div>
+            <div className="shrink-0">
+              {togglingShabbat ? (
+                <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+              ) : (
+                <div dir="ltr">
+                  <Switch
+                    checked={shabbatRule?.is_active ?? false}
+                    onCheckedChange={handleShabbatToggle}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Bedtime row */}
+          {bedtimeRule ? (
+            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <div className="p-1.5 rounded-lg bg-accent/10">
+                  <Moon className="w-4 h-4 text-accent" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <span className="text-sm font-medium text-foreground block">שעת שינה</span>
+                  <span className="text-xs text-muted-foreground">
+                    {bedtimeRule.start_time}–{bedtimeRule.end_time} • {renderDays(bedtimeRule.days_of_week)}
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => setEditModal({ open: true, type: "bedtime", existing: bedtimeRule })}
+                >
+                  <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+                </Button>
+                <div dir="ltr">
+                  <Switch
+                    checked={bedtimeRule.is_active}
+                    onCheckedChange={() => handleToggleRule(bedtimeRule)}
+                  />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => setEditModal({ open: true, type: "bedtime", existing: null })}
+              className="flex items-center justify-between p-3 rounded-lg bg-muted/20 hover:bg-muted/40 transition-colors w-full text-right"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-1.5 rounded-lg bg-accent/10">
+                  <Moon className="w-4 h-4 text-accent" />
+                </div>
+                <span className="text-sm text-muted-foreground">הגדר שעת שינה</span>
+              </div>
+              <Plus className="w-4 h-4 text-muted-foreground" />
+            </button>
+          )}
+
+          {/* School row */}
+          {schoolRule ? (
+            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <div className="p-1.5 rounded-lg bg-warning/10">
+                  <BookOpen className="w-4 h-4 text-warning" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <span className="text-sm font-medium text-foreground block">בית ספר</span>
+                  <span className="text-xs text-muted-foreground">
+                    {schoolRule.start_time}–{schoolRule.end_time} • {renderDays(schoolRule.days_of_week)}
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => setEditModal({ open: true, type: "school", existing: schoolRule })}
+                >
+                  <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+                </Button>
+                <div dir="ltr">
+                  <Switch
+                    checked={schoolRule.is_active}
+                    onCheckedChange={() => handleToggleRule(schoolRule)}
+                  />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => setEditModal({ open: true, type: "school", existing: null })}
+              className="flex items-center justify-between p-3 rounded-lg bg-muted/20 hover:bg-muted/40 transition-colors w-full text-right"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-1.5 rounded-lg bg-warning/10">
+                  <BookOpen className="w-4 h-4 text-warning" />
+                </div>
+                <span className="text-sm text-muted-foreground">הגדר שעות בית ספר</span>
+              </div>
+              <Plus className="w-4 h-4 text-muted-foreground" />
+            </button>
+          )}
 
           {/* Bonus Time - muted placeholder */}
           <div className="flex items-center justify-between p-3 rounded-lg bg-muted/10 opacity-50">
@@ -66,6 +225,16 @@ export function SchedulesSection() {
           </div>
         </CardContent>
       </Card>
+
+      <ScheduleEditModal
+        open={editModal.open}
+        onOpenChange={(open) => setEditModal((prev) => ({ ...prev, open }))}
+        scheduleType={editModal.type}
+        existing={editModal.existing}
+        onCreate={onCreateSchedule}
+        onUpdate={onUpdateSchedule}
+        onDelete={onDeleteSchedule}
+      />
     </div>
   );
 }
