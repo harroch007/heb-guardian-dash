@@ -398,7 +398,7 @@ export default function ChildDashboard() {
               lastSeen={device.last_seen}
             />
 
-            <SyncNotice commands={recentCommands} />
+            
 
             <LocationSection
               device={device}
