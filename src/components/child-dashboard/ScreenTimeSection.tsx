@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Clock, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
@@ -105,9 +104,6 @@ export function ScreenTimeSection({
               {formatScreenTime(currentUsageMinutes)}
             </span>
           </div>
-          {usagePercent !== null && (
-            <Progress value={usagePercent} className="h-1.5 mt-2" />
-          )}
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Daily limit control — inline */}
