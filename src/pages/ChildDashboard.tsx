@@ -20,7 +20,17 @@ import {
   Pencil,
   AlertTriangle,
   Battery,
+  MoreVertical,
+  RefreshCw,
+  Unplug,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
