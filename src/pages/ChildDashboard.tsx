@@ -101,8 +101,15 @@ export default function ChildDashboard() {
     blockedAttempts,
     deviceHealth,
     recentCommands,
+    installedApps,
+    scheduleWindows,
+    nextShabbat,
     toggleAppBlock,
     updateDailyLimit,
+    toggleShabbat,
+    createSchedule,
+    updateSchedule,
+    deleteSchedule,
     loading: controlsLoading,
   } = useChildControls(childId);
 
