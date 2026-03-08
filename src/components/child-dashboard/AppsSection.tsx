@@ -93,29 +93,29 @@ export function AppsSection({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="חיפוש אפליקציה..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pr-9 h-9 text-sm"
-            />
-          </div>
-
-          {/* Filter chips */}
-          <div className="flex gap-1.5 flex-wrap">
-            {filters.map((f) => (
-              <Badge
-                key={f.key}
-                variant={filter === f.key ? "default" : "outline"}
-                className="cursor-pointer text-xs"
-                onClick={() => setFilter(f.key)}
-              >
-                {f.label}
-              </Badge>
-            ))}
+          {/* Search + Filter chips — compact row */}
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+              <Input
+                placeholder="חיפוש..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pr-8 h-8 text-xs"
+              />
+            </div>
+            <div className="flex gap-1 shrink-0">
+              {filters.map((f) => (
+                <Badge
+                  key={f.key}
+                  variant={filter === f.key ? "default" : "outline"}
+                  className="cursor-pointer text-[10px] px-2 py-0.5"
+                  onClick={() => setFilter(f.key)}
+                >
+                  {f.label}
+                </Badge>
+              ))}
+            </div>
           </div>
 
           {/* New apps banner (only in "new" filter or "all") */}

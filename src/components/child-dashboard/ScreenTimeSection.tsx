@@ -90,7 +90,7 @@ export function ScreenTimeSection({
     .sort((a, b) => b.usage_minutes - a.usage_minutes)
     .slice(0, 5);
 
-  const maxMinutes = filteredApps[0]?.usage_minutes || 1;
+  
 
   return (
     <div id="screentime-section" className="space-y-3 scroll-mt-4">
@@ -116,7 +116,7 @@ export function ScreenTimeSection({
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Daily limit control — inline */}
-          <div className="flex items-center justify-between py-2 border-b border-border/30">
+          <div className="flex items-center justify-between py-1.5">
             <span className="text-sm text-muted-foreground">מגבלה יומית</span>
             <div dir="ltr">
               <Switch
@@ -155,41 +155,30 @@ export function ScreenTimeSection({
             </div>
           )}
 
-          {/* Top apps */}
+          {/* Top apps — compact list, no bars */}
           {filteredApps.length > 0 && (
-            <div className="space-y-1.5 pt-1">
+            <div className="space-y-0.5">
               {filteredApps.map((app) => {
                 const iconInfo = getAppIconInfo(app.package_name);
                 const Icon = iconInfo.icon;
-                const barPercent = (app.usage_minutes / maxMinutes) * 100;
 
                 return (
                   <div
                     key={app.package_name}
-                    className="flex items-center gap-3 p-2 rounded-lg bg-muted/30"
+                    className="flex items-center gap-2.5 py-1.5 px-1"
                   >
                     <div
-                      className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+                      className="w-6 h-6 rounded-md flex items-center justify-center shrink-0"
                       style={{ backgroundColor: iconInfo.bgColor }}
                     >
-                      <Icon className="w-3.5 h-3.5" style={{ color: iconInfo.color }} />
+                      <Icon className="w-3 h-3" style={{ color: iconInfo.color }} />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs font-medium truncate">
-                          {app.app_name || app.package_name.split(".").pop()}
-                        </span>
-                        <span className="text-xs text-muted-foreground shrink-0 mr-2">
-                          {formatScreenTime(app.usage_minutes)}
-                        </span>
-                      </div>
-                      <div className="h-1.5 w-full rounded-full bg-muted">
-                        <div
-                          className="h-full rounded-full bg-primary/60 transition-all"
-                          style={{ width: `${barPercent}%` }}
-                        />
-                      </div>
-                    </div>
+                    <span className="text-xs font-medium truncate flex-1">
+                      {app.app_name || app.package_name.split(".").pop()}
+                    </span>
+                    <span className="text-xs text-muted-foreground shrink-0">
+                      {formatScreenTime(app.usage_minutes)}
+                    </span>
                   </div>
                 );
               })}
