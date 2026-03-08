@@ -426,6 +426,7 @@ export default function ChildDashboard() {
               appPolicies={appPolicies}
               appUsage={appUsage}
               blockedAttempts={blockedAttempts}
+              installedApps={installedApps}
               onToggleBlock={toggleAppBlock}
             />
 
