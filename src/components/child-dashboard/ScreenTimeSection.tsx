@@ -90,7 +90,7 @@ export function ScreenTimeSection({
     .sort((a, b) => b.usage_minutes - a.usage_minutes)
     .slice(0, 5);
 
-  const maxMinutes = filteredApps[0]?.usage_minutes || 1;
+  
 
   return (
     <div id="screentime-section" className="space-y-3 scroll-mt-4">
