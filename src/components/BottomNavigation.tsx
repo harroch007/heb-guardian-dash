@@ -25,21 +25,50 @@ export const BottomNavigation = forwardRef<HTMLElement, object>(function BottomN
 
   useEffect(() => {
     const fetchAlertsCount = async () => {
-      const { count } = await supabase
-        .from('parent_alerts_effective')
-        .select('*', { count: 'exact', head: true })
-        .is('acknowledged_at', null)
+      // 1. Fetch per-child alert thresholds from settings
+      const { data: settingsData } = await supabase
+        .from('settings')
+        .select('child_id, alert_threshold')
+        .not('child_id', 'is', null);
+
+      const thresholds: Record<string, number> = {};
+      settingsData?.forEach(s => {
+        if (s.child_id) {
+          thresholds[s.child_id] = s.alert_threshold ?? 65;
+        }
+      });
+
+      // 2. Fetch alerts with same filters as Alerts page
+      const { data } = await supabase
+        .from('alerts')
+        .select('id, child_id, ai_risk_score, remind_at')
         .eq('is_processed', true)
-        .is('parent_message', null)
+        .is('acknowledged_at', null)
         .is('saved_at', null)
+        .is('parent_message', null)
         .eq('alert_type', 'warning')
         .in('ai_verdict', ['notify', 'review']);
-      setAlertsCount(count || 0);
+
+      if (!data) {
+        setAlertsCount(0);
+        return;
+      }
+
+      // 3. Client-side filtering: threshold + remind_at (same as Alerts page)
+      const now = new Date();
+      const filtered = data.filter(a => {
+        // Filter snoozed alerts
+        if (a.remind_at && new Date(a.remind_at) >= now) return false;
+        // Filter by sensitivity threshold
+        const threshold = a.child_id ? (thresholds[a.child_id] ?? 65) : 65;
+        return (a.ai_risk_score ?? 0) >= threshold;
+      });
+
+      setAlertsCount(filtered.length);
     };
 
     fetchAlertsCount();
 
-    // Listen for realtime updates
     const channel = supabase
       .channel('alerts-count')
       .on(
