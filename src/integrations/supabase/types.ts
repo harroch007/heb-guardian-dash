@@ -707,6 +707,41 @@ export type Database = {
           },
         ]
       }
+      bonus_time_grants: {
+        Row: {
+          bonus_minutes: number
+          child_id: string
+          created_at: string
+          grant_date: string
+          granted_by: string | null
+          id: string
+        }
+        Insert: {
+          bonus_minutes: number
+          child_id: string
+          created_at?: string
+          grant_date?: string
+          granted_by?: string | null
+          id?: string
+        }
+        Update: {
+          bonus_minutes?: number
+          child_id?: string
+          created_at?: string
+          grant_date?: string
+          granted_by?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bonus_time_grants_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       child_daily_insights: {
         Row: {
           child_id: string

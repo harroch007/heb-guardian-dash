@@ -103,9 +103,14 @@ export default function ChildDashboard() {
     installedApps,
     scheduleWindows,
     nextShabbat,
+    todayBonusMinutes,
     toggleAppBlock,
+    approveApp,
+    blockApp,
     updateDailyLimit,
+    grantBonusTime,
     toggleShabbat,
+    updateShabbatMode,
     createSchedule,
     updateSchedule,
     deleteSchedule,
@@ -418,22 +423,27 @@ export default function ChildDashboard() {
               blockedAttempts={blockedAttempts}
               installedApps={installedApps}
               onToggleBlock={toggleAppBlock}
+              onApproveApp={approveApp}
+              onBlockApp={blockApp}
             />
 
             <ScreenTimeSection
               appUsage={appUsage}
               screenTimeLimit={screenTimeLimit}
               currentUsageMinutes={totalUsageMinutes}
+              todayBonusMinutes={todayBonusMinutes}
               onUpdateLimit={async (minutes) => {
                 await updateDailyLimit(minutes);
                 setScreenTimeLimit(minutes);
               }}
+              onGrantBonus={grantBonusTime}
             />
 
             <SchedulesSection
               scheduleWindows={scheduleWindows}
               nextShabbat={nextShabbat}
               onToggleShabbat={toggleShabbat}
+              onUpdateShabbatMode={updateShabbatMode}
               onCreateSchedule={createSchedule}
               onUpdateSchedule={updateSchedule}
               onDeleteSchedule={deleteSchedule}

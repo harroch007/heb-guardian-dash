@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Loader2, AlertTriangle, Smartphone } from "lucide-react";
+import { Loader2, AlertTriangle, Smartphone, Check, X } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getAppIconInfo } from "@/lib/appIcons";
 import type { AppPolicy, BlockedAttemptSummary, InstalledApp } from "@/hooks/useChildControls";
@@ -19,6 +20,9 @@ interface AppControlsListProps {
   blockedAttempts: BlockedAttemptSummary[];
   installedApps: InstalledApp[];
   onToggleBlock: (packageName: string, appName: string | null, currentlyBlocked: boolean) => Promise<void>;
+  onApproveApp: (packageName: string, appName: string | null) => Promise<void>;
+  onBlockApp: (packageName: string, appName: string | null) => Promise<void>;
+  showPendingOnly?: boolean;
 }
 
 const SYSTEM_APPS_TO_HIDE = [
@@ -52,23 +56,40 @@ export function AppControlsList({
   blockedAttempts,
   installedApps,
   onToggleBlock,
+  onApproveApp,
+  onBlockApp,
+  showPendingOnly = false,
 }: AppControlsListProps) {
   const [togglingPkg, setTogglingPkg] = useState<string | null>(null);
+  const [actionPkg, setActionPkg] = useState<string | null>(null);
 
   const hasInventory = installedApps.length > 0;
+  const policyPackages = new Set(appPolicies.map((p) => p.package_name));
 
-  const appsMap = new Map<string, { appName: string | null; isBlocked: boolean; usageMinutes: number }>();
+  // Build apps map
+  const appsMap = new Map<string, { appName: string | null; isBlocked: boolean; usageMinutes: number; isPending: boolean }>();
 
   if (hasInventory) {
     for (const app of installedApps) {
       if (!isSystemApp(app.package_name)) {
-        appsMap.set(app.package_name, { appName: app.app_name, isBlocked: false, usageMinutes: 0 });
+        const hasPolicyRow = policyPackages.has(app.package_name);
+        appsMap.set(app.package_name, {
+          appName: app.app_name,
+          isBlocked: false,
+          usageMinutes: 0,
+          isPending: !hasPolicyRow,
+        });
       }
     }
   } else {
     for (const app of appUsage) {
       if (!isSystemApp(app.package_name)) {
-        appsMap.set(app.package_name, { appName: app.app_name, isBlocked: false, usageMinutes: app.usage_minutes });
+        appsMap.set(app.package_name, {
+          appName: app.app_name,
+          isBlocked: false,
+          usageMinutes: app.usage_minutes,
+          isPending: false,
+        });
       }
     }
   }
@@ -84,14 +105,29 @@ export function AppControlsList({
     const existing = appsMap.get(policy.package_name);
     if (existing) {
       existing.isBlocked = policy.is_blocked;
+      existing.isPending = false; // has a policy row = not pending
     } else if (!isSystemApp(policy.package_name)) {
-      appsMap.set(policy.package_name, { appName: policy.app_name, isBlocked: policy.is_blocked, usageMinutes: 0 });
+      appsMap.set(policy.package_name, {
+        appName: policy.app_name,
+        isBlocked: policy.is_blocked,
+        usageMinutes: 0,
+        isPending: false,
+      });
     }
   }
 
   const attemptsMap = new Map(blockedAttempts.map((a) => [a.package_name, a]));
 
-  const sortedApps = Array.from(appsMap.entries()).sort((a, b) => {
+  let sortedApps = Array.from(appsMap.entries());
+
+  // If showing pending only, filter to pending apps
+  if (showPendingOnly) {
+    sortedApps = sortedApps.filter(([, app]) => app.isPending);
+  }
+
+  sortedApps.sort((a, b) => {
+    // Pending first
+    if (a[1].isPending !== b[1].isPending) return a[1].isPending ? -1 : 1;
     if (a[1].isBlocked !== b[1].isBlocked) return a[1].isBlocked ? -1 : 1;
     return b[1].usageMinutes - a[1].usageMinutes;
   });
@@ -100,6 +136,18 @@ export function AppControlsList({
     setTogglingPkg(pkg);
     await onToggleBlock(pkg, appName, currentlyBlocked);
     setTogglingPkg(null);
+  };
+
+  const handleApprove = async (pkg: string, appName: string | null) => {
+    setActionPkg(pkg);
+    await onApproveApp(pkg, appName);
+    setActionPkg(null);
+  };
+
+  const handleBlock = async (pkg: string, appName: string | null) => {
+    setActionPkg(pkg);
+    await onBlockApp(pkg, appName);
+    setActionPkg(null);
   };
 
   const formatTime = (date: string) =>
@@ -112,10 +160,14 @@ export function AppControlsList({
           <Smartphone className="w-6 h-6 text-muted-foreground" />
         </div>
         <p className="text-sm font-medium text-foreground mb-1">
-          המכשיר עדיין לא דיווח על אפליקציות מותקנות
+          {showPendingOnly
+            ? "אין אפליקציות חדשות ממתינות לאישור"
+            : "המכשיר עדיין לא דיווח על אפליקציות מותקנות"}
         </p>
         <p className="text-xs text-muted-foreground max-w-xs">
-          לאחר חיבור המכשיר, רשימת האפליקציות תופיע כאן באופן אוטומטי
+          {showPendingOnly
+            ? "כל האפליקציות אושרו או נחסמו"
+            : "לאחר חיבור המכשיר, רשימת האפליקציות תופיע כאן באופן אוטומטי"}
         </p>
       </div>
     );
@@ -128,13 +180,18 @@ export function AppControlsList({
         const Icon = iconInfo.icon;
         const attempts = attemptsMap.get(pkg);
         const isToggling = togglingPkg === pkg;
+        const isActioning = actionPkg === pkg;
 
         return (
           <div
             key={pkg}
             className={cn(
               "flex items-center justify-between p-2.5 rounded-lg transition-colors gap-2",
-              app.isBlocked ? "bg-destructive/5" : "bg-muted/30 hover:bg-muted/50"
+              app.isPending
+                ? "bg-amber-500/5 border border-amber-500/20"
+                : app.isBlocked
+                  ? "bg-destructive/5"
+                  : "bg-muted/30 hover:bg-muted/50"
             )}
           >
             <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -148,6 +205,11 @@ export function AppControlsList({
                 <p className="font-medium text-sm truncate">
                   {app.appName || pkg.split(".").pop()}
                 </p>
+                {app.isPending && (
+                  <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-600 px-1.5 py-0 h-4 mt-0.5">
+                    ממתינה לאישור
+                  </Badge>
+                )}
                 {attempts && attempts.attempts_today > 0 && (
                   <div className="flex items-center gap-1 mt-0.5">
                     <AlertTriangle className="w-3 h-3 text-warning" />
@@ -161,20 +223,47 @@ export function AppControlsList({
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
-              {app.isBlocked && (
-                <Badge variant="outline" className="text-xs border-destructive/30 text-destructive">
-                  חסום
-                </Badge>
-              )}
-              {isToggling ? (
-                <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+              {app.isPending ? (
+                isActioning ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                ) : (
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-success hover:text-success hover:bg-success/10"
+                      onClick={() => handleApprove(pkg, app.appName)}
+                    >
+                      <Check className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={() => handleBlock(pkg, app.appName)}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </>
+                )
               ) : (
-                <div dir="ltr">
-                  <Switch
-                    checked={app.isBlocked}
-                    onCheckedChange={() => handleToggle(pkg, app.appName, app.isBlocked)}
-                  />
-                </div>
+                <>
+                  {app.isBlocked && (
+                    <Badge variant="outline" className="text-xs border-destructive/30 text-destructive">
+                      חסום
+                    </Badge>
+                  )}
+                  {isToggling ? (
+                    <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                  ) : (
+                    <div dir="ltr">
+                      <Switch
+                        checked={app.isBlocked}
+                        onCheckedChange={() => handleToggle(pkg, app.appName, app.isBlocked)}
+                      />
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>

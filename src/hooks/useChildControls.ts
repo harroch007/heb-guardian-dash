@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { getIsraelDate } from "@/lib/utils";
 
 export interface AppPolicy {
   id: string;
@@ -11,6 +12,7 @@ export interface AppPolicy {
   is_blocked: boolean;
   blocked_at: string | null;
   blocked_by: string | null;
+  policy_status: "approved" | "blocked";
 }
 
 export interface BlockedAttemptSummary {
@@ -56,6 +58,9 @@ export interface ScheduleWindow {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  mode: string;
+  manual_start_time: string | null;
+  manual_end_time: string | null;
 }
 
 export interface NextShabbat {
@@ -73,14 +78,16 @@ export function useChildControls(childId: string | undefined) {
   const [installedApps, setInstalledApps] = useState<InstalledApp[]>([]);
   const [scheduleWindows, setScheduleWindows] = useState<ScheduleWindow[]>([]);
   const [nextShabbat, setNextShabbat] = useState<NextShabbat | null>(null);
+  const [todayBonusMinutes, setTodayBonusMinutes] = useState(0);
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
     if (!childId || !user) return;
 
     const today = new Date().toISOString().split("T")[0];
+    const todayIsrael = getIsraelDate();
 
-    const [policiesRes, attemptsRes, devicesRes, healthRes, installedRes, schedulesRes, shabbatRes] = await Promise.all([
+    const [policiesRes, attemptsRes, devicesRes, healthRes, installedRes, schedulesRes, shabbatRes, bonusRes] = await Promise.all([
       supabase
         .from("app_policies")
         .select("*")
@@ -118,6 +125,12 @@ export function useChildControls(childId: string | undefined) {
         .gte("friday_date", today)
         .order("friday_date")
         .limit(1),
+
+      supabase
+        .from("bonus_time_grants")
+        .select("bonus_minutes")
+        .eq("child_id", childId)
+        .eq("grant_date", todayIsrael),
     ]);
 
     if (policiesRes.data) {
@@ -171,6 +184,14 @@ export function useChildControls(childId: string | undefined) {
       setNextShabbat(shabbatRes.data[0] as NextShabbat);
     } else {
       setNextShabbat(null);
+    }
+
+    // Today's bonus
+    if (bonusRes.data) {
+      const total = bonusRes.data.reduce((sum: number, r: any) => sum + (r.bonus_minutes || 0), 0);
+      setTodayBonusMinutes(total);
+    } else {
+      setTodayBonusMinutes(0);
     }
 
     // Commands scoped to child's devices only
@@ -227,6 +248,7 @@ export function useChildControls(childId: string | undefined) {
           package_name: packageName,
           app_name: appName,
           is_blocked: newBlocked,
+          policy_status: newBlocked ? "blocked" : "approved",
           blocked_at: newBlocked ? new Date().toISOString() : null,
           blocked_by: newBlocked ? user.id : null,
         },
@@ -240,6 +262,64 @@ export function useChildControls(childId: string | undefined) {
 
     await sendRefreshToAllDevices();
     toast.success(newBlocked ? "האפליקציה נחסמה" : "האפליקציה שוחררה");
+    fetchData();
+  };
+
+  /** Approve a pending app — creates policy row with approved status */
+  const approveApp = async (packageName: string, appName: string | null) => {
+    if (!childId || !user) return;
+
+    const { error } = await supabase
+      .from("app_policies")
+      .upsert(
+        {
+          child_id: childId,
+          package_name: packageName,
+          app_name: appName,
+          is_blocked: false,
+          policy_status: "approved",
+          blocked_at: null,
+          blocked_by: null,
+        },
+        { onConflict: "child_id,package_name" }
+      );
+
+    if (error) {
+      toast.error("שגיאה באישור האפליקציה");
+      return;
+    }
+
+    await sendRefreshToAllDevices();
+    toast.success("האפליקציה אושרה");
+    fetchData();
+  };
+
+  /** Block a pending app — creates policy row with blocked status */
+  const blockApp = async (packageName: string, appName: string | null) => {
+    if (!childId || !user) return;
+
+    const { error } = await supabase
+      .from("app_policies")
+      .upsert(
+        {
+          child_id: childId,
+          package_name: packageName,
+          app_name: appName,
+          is_blocked: true,
+          policy_status: "blocked",
+          blocked_at: new Date().toISOString(),
+          blocked_by: user.id,
+        },
+        { onConflict: "child_id,package_name" }
+      );
+
+    if (error) {
+      toast.error("שגיאה בחסימת האפליקציה");
+      return;
+    }
+
+    await sendRefreshToAllDevices();
+    toast.success("האפליקציה נחסמה");
     fetchData();
   };
 
@@ -269,6 +349,31 @@ export function useChildControls(childId: string | undefined) {
     toast.success(minutes ? "מגבלת זמן מסך עודכנה" : "מגבלת זמן מסך הוסרה");
   };
 
+  /** Grant bonus time for today (Israel TZ) */
+  const grantBonusTime = async (minutes: number) => {
+    if (!childId || !user) return;
+
+    const todayIsrael = getIsraelDate();
+
+    const { error } = await supabase
+      .from("bonus_time_grants")
+      .insert({
+        child_id: childId,
+        grant_date: todayIsrael,
+        bonus_minutes: minutes,
+        granted_by: user.id,
+      });
+
+    if (error) {
+      toast.error("שגיאה בהוספת זמן בונוס");
+      return;
+    }
+
+    await sendRefreshToAllDevices();
+    toast.success(`נוסף זמן בונוס של ${minutes} דקות להיום`);
+    fetchData();
+  };
+
   // --- Schedule CRUD ---
 
   const toggleShabbat = async () => {
@@ -295,6 +400,7 @@ export function useChildControls(childId: string | undefined) {
         days_of_week: null,
         start_time: null,
         end_time: null,
+        mode: "default",
       });
 
       if (error) {
@@ -305,6 +411,39 @@ export function useChildControls(childId: string | undefined) {
 
     await sendRefreshToAllDevices();
     toast.success(existing?.is_active ? "מצב שבת כובה" : "מצב שבת הופעל");
+    fetchData();
+  };
+
+  /** Update shabbat mode (default/manual) and optional manual times */
+  const updateShabbatMode = async (
+    scheduleId: string,
+    mode: "default" | "manual",
+    manualStartTime?: string,
+    manualEndTime?: string
+  ) => {
+    if (!childId) return;
+
+    const updateData: Record<string, any> = { mode };
+    if (mode === "manual") {
+      updateData.manual_start_time = manualStartTime || null;
+      updateData.manual_end_time = manualEndTime || null;
+    } else {
+      updateData.manual_start_time = null;
+      updateData.manual_end_time = null;
+    }
+
+    const { error } = await supabase
+      .from("schedule_windows")
+      .update(updateData)
+      .eq("id", scheduleId);
+
+    if (error) {
+      toast.error("שגיאה בעדכון מצב שבת");
+      return;
+    }
+
+    await sendRefreshToAllDevices();
+    toast.success(mode === "manual" ? "זמני שבת ידניים נשמרו" : "חזרה לזמני שבת אוטומטיים");
     fetchData();
   };
 
@@ -390,10 +529,15 @@ export function useChildControls(childId: string | undefined) {
     installedApps,
     scheduleWindows,
     nextShabbat,
+    todayBonusMinutes,
     loading,
     toggleAppBlock,
+    approveApp,
+    blockApp,
     updateDailyLimit,
+    grantBonusTime,
     toggleShabbat,
+    updateShabbatMode,
     createSchedule,
     updateSchedule,
     deleteSchedule,
