@@ -312,6 +312,7 @@ export function SchedulesSection({
             </button>
           )}
         </CardContent>
+        )}
       </Card>
 
       <ScheduleEditModal
