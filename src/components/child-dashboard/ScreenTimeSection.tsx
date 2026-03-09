@@ -121,8 +121,9 @@ export function ScreenTimeSection({
 
   const isOverLimit = limitEnabled && currentUsageMinutes > (sliderValue + todayBonusMinutes);
 
-  const filteredApps = appUsage
-    .filter((a) => !isSystem(a.package_name))
+  const userApps = appUsage.filter((a) => !isSystem(a.package_name));
+  const filteredTotal = userApps.reduce((sum, a) => sum + a.usage_minutes, 0);
+  const filteredApps = userApps
     .sort((a, b) => b.usage_minutes - a.usage_minutes)
     .slice(0, 5);
 

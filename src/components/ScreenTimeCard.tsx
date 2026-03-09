@@ -36,17 +36,32 @@ const SYSTEM_APPS_TO_FILTER = [
   'com.facebook.appmanager',
   'com.android.vending',
   'com.google.android.packageinstaller',
+  'com.samsung.accessibility',
+  'com.samsung.android.messaging',
+  'com.sec.android.gallery3d',
+  'com.sec.android.app.myfiles',
+  'com.samsung.android.dialer',
+  'com.samsung.android.contacts',
+  'com.samsung.android.calendar',
+  'com.samsung.android.app.camera',
+  'com.samsung.android.incallui',
+  'com.samsung.android.app.notes',
+  'com.samsung.android.app.clock',
+  'com.samsung.android.app.calculator',
+  'com.samsung.android.app.soundpicker',
+];
+
+const SYSTEM_KEYWORDS = [
+  'systemui', 'devicecare', 'accessibility', 'gallery', 'dialer',
+  'contacts', 'calendar', 'camera', 'launcher', 'incallui',
+  'maintenance', 'devicehealth', 'setupwizard', 'inputmethod', 'lool',
 ];
 
 // Check if app is a system app that should be filtered
 const isSystemApp = (packageName: string): boolean => {
   const pkg = packageName.toLowerCase();
   return SYSTEM_APPS_TO_FILTER.some(systemPkg => pkg.startsWith(systemPkg.toLowerCase())) ||
-    pkg.includes('lool') ||
-    pkg.includes('devicecare') ||
-    pkg.includes('maintenance') ||
-    pkg.includes('devicehealth') ||
-    pkg.includes('systemui');
+    SYSTEM_KEYWORDS.some(kw => pkg.includes(kw));
 };
 
 // Category colors using design system colors
