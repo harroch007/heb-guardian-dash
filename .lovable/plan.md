@@ -1,31 +1,32 @@
 
-# Kippy Control — Phase A Status: ✅ COMPLETE
 
-## Completed ✅
+## Analysis: Schedules System - Bugs Found
 
-### Data Model Migration
-- `installed_apps` table — full device app inventory with RLS
-- `schedule_windows` table — school/bedtime/shabbat schedules with RLS + CRUD policies
-- `shabbat_zmanim` table — date-based (YYYY-MM-DD) candle lighting / havdalah lookup
-- `report_installed_apps` RPC — SECURITY DEFINER, device bulk upserts
-- `get_device_settings` RPC — extended to include `schedule_windows` array + `next_shabbat` object
+### Root Cause
+The `schedule_windows` table has a CHECK constraint that only allows these values:
+```
+'daily_recurring', 'weekly_recurring', 'shabbat'
+```
 
-### Data Population
-- `shabbat_zmanim` populated with 118 rows (2026-01-02 → 2028-03-31)
-- Source: Hebcal API, Jerusalem, havdalah = sunset + 40 min (product policy)
+But the UI code (in `ScheduleEditModal` and `SchedulesSection`) sends `'bedtime'` and `'school'` as `schedule_type` values. This is why saving fails with a 400 error - the DB rejects the insert.
 
-## Next Steps (Phase B)
-- Refactor ChildDashboard into 4-tab layout (סקירה / אפליקציות / זמן מסך / מכשיר)
-- Move existing components to their respective tabs
+The network request confirms this:
+```
+POST schedule_windows → 400
+"new row violates check constraint schedule_windows_schedule_type_check"
+```
 
-## Phase C (after B)
-- Apps tab: installed_apps inventory UI
-- Screen Time tab: schedule windows CRUD UI + Shabbat toggle
-- Device tab: polished health view
+### Fix Plan
 
-## Key Decisions
-- `havdalah` = policy-defined exit time from device block, not a halachic statement
-- Schedule windows are total blocks (no `allowed_apps` in MVP)
-- Bonus time = Phase 2 only, no workaround
-- Installed apps = user-installed + has launcher icon only
-- Shabbat times = Israel-based (Asia/Jerusalem), date-keyed, no GPS dependency
+**1. Update DB check constraint** (migration)
+- Drop the existing constraint and replace it with one that allows: `'daily_recurring'`, `'weekly_recurring'`, `'shabbat'`, `'bedtime'`, `'school'`
+
+**2. Verify `get_device_settings` RPC**
+- Already confirmed: the RPC sends all active `schedule_windows` to the Android device regardless of `schedule_type` value. So once the constraint is fixed, bedtime and school schedules will be included automatically in the device sync.
+
+**3. Verify Shabbat schedule**
+- Shabbat already works (the existing row in DB has `schedule_type: 'shabbat'` and toggles correctly). Its times come from `shabbat_zmanim` lookup or manual mode - both are wired up.
+
+### Summary
+This is a single migration fix. The UI code, hook logic, and `get_device_settings` RPC are all correct. The only blocker is the DB check constraint rejecting `'bedtime'` and `'school'` values.
+
