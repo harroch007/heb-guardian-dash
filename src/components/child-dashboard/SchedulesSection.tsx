@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Calendar, Moon, BookOpen, Plus, Pencil, Loader2 } from "lucide-react";
+import { Calendar, Moon, BookOpen, Plus, Pencil, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
