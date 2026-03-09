@@ -1,0 +1,2 @@
+ALTER TABLE public.schedule_windows DROP CONSTRAINT IF EXISTS schedule_windows_schedule_type_check;
+ALTER TABLE public.schedule_windows ADD CONSTRAINT schedule_windows_schedule_type_check CHECK (schedule_type IN ('daily_recurring', 'weekly_recurring', 'shabbat', 'bedtime', 'school'));
