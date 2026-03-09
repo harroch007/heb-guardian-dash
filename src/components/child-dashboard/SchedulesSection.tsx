@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Calendar, Moon, BookOpen, Plus, Pencil, Loader2 } from "lucide-react";
+import { Calendar, Moon, BookOpen, Plus, Pencil, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
@@ -67,6 +67,7 @@ export function SchedulesSection({
     type: "bedtime",
     existing: null,
   });
+  const [expanded, setExpanded] = useState(false);
 
   const shabbatRule = scheduleWindows.find((s) => s.schedule_type === "shabbat");
   const bedtimeRule = scheduleWindows.find((s) => s.schedule_type === "bedtime");
@@ -111,15 +112,36 @@ export function SchedulesSection({
     return days.sort((a, b) => a - b).map((d) => DAY_LABELS[d]).join(", ");
   };
 
+  const activeCount = scheduleWindows.filter((s) => s.is_active).length;
+
   return (
     <div id="schedules-section" className="scroll-mt-4">
       <Card className="border-border/50">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Calendar className="w-5 h-5 text-primary" />
-            לוחות זמנים
-          </CardTitle>
+        <CardHeader
+          className="pb-3 cursor-pointer"
+          onClick={() => setExpanded(!expanded)}
+        >
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Calendar className="w-5 h-5 text-primary" />
+              לוחות זמנים
+            </CardTitle>
+            <div className="flex items-center gap-2">
+              {!expanded && activeCount > 0 && (
+                <span className="text-xs text-muted-foreground">
+                  {activeCount} פעילים
+                </span>
+              )}
+              {expanded ? (
+                <ChevronUp className="w-4 h-4 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-muted-foreground" />
+              )}
+            </div>
+          </div>
         </CardHeader>
+
+        {expanded && (
         <CardContent className="space-y-0.5">
           {/* Shabbat row */}
           <div className="py-2.5 px-1">
@@ -290,6 +312,7 @@ export function SchedulesSection({
             </button>
           )}
         </CardContent>
+        )}
       </Card>
 
       <ScheduleEditModal

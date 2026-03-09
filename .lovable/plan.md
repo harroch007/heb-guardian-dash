@@ -1,29 +1,31 @@
 
+# Kippy Control — Phase A Status: ✅ COMPLETE
 
-## Plan: Make Apps, Screen Time, and Schedules sections collapsible (closed by default)
+## Completed ✅
 
-Apply the same collapsible pattern used in `LocationSection` to the three other sections. Each section will start collapsed, showing only a compact header with a summary and chevron. Clicking the header expands/collapses the content.
+### Data Model Migration
+- `installed_apps` table — full device app inventory with RLS
+- `schedule_windows` table — school/bedtime/shabbat schedules with RLS + CRUD policies
+- `shabbat_zmanim` table — date-based (YYYY-MM-DD) candle lighting / havdalah lookup
+- `report_installed_apps` RPC — SECURITY DEFINER, device bulk upserts
+- `get_device_settings` RPC — extended to include `schedule_windows` array + `next_shabbat` object
 
-### Changes
+### Data Population
+- `shabbat_zmanim` populated with 118 rows (2026-01-02 → 2028-03-31)
+- Source: Hebcal API, Jerusalem, havdalah = sunset + 40 min (product policy)
 
-**`src/components/child-dashboard/AppsSection.tsx`**
-- Add `expanded` state, default `false`
-- Make `CardHeader` clickable with `cursor-pointer` and `onClick` toggle
-- Add chevron icon (ChevronDown/ChevronUp) on the left side of the header
-- Show summary text when collapsed (e.g. "3 חסומות" or number of installed apps)
-- Wrap `CardContent` in `{expanded && (...)}`
+## Next Steps (Phase B)
+- Refactor ChildDashboard into 4-tab layout (סקירה / אפליקציות / זמן מסך / מכשיר)
+- Move existing components to their respective tabs
 
-**`src/components/child-dashboard/ScreenTimeSection.tsx`**
-- Add `expanded` state, default `false`
-- Make `CardHeader` clickable with toggle
-- Add chevron icon; show the formatted total time as summary when collapsed (already visible in header)
-- Wrap `CardContent` in `{expanded && (...)}`
+## Phase C (after B)
+- Apps tab: installed_apps inventory UI
+- Screen Time tab: schedule windows CRUD UI + Shabbat toggle
+- Device tab: polished health view
 
-**`src/components/child-dashboard/SchedulesSection.tsx`**
-- Add `expanded` state, default `false`
-- Make `CardHeader` clickable with toggle
-- Add chevron icon; show a brief summary when collapsed (e.g. active schedule count)
-- Wrap `CardContent` in `{expanded && (...)}`
-
-All three sections will follow the exact same UX pattern as `LocationSection`: collapsed card with icon + title + summary + chevron, expanding on click.
-
+## Key Decisions
+- `havdalah` = policy-defined exit time from device block, not a halachic statement
+- Schedule windows are total blocks (no `allowed_apps` in MVP)
+- Bonus time = Phase 2 only, no workaround
+- Installed apps = user-installed + has launcher icon only
+- Shabbat times = Israel-based (Asia/Jerusalem), date-keyed, no GPS dependency
