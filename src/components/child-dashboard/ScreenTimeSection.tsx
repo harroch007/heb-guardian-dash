@@ -135,8 +135,8 @@ export function ScreenTimeSection({
               <Clock className="w-5 h-5 text-primary" />
               זמן מסך
             </CardTitle>
-            <span className={cn("text-lg font-bold", isOverLimit ? "text-destructive" : "text-foreground")}>
-              {formatScreenTime(currentUsageMinutes)}
+          <span className={cn("text-lg font-bold", isOverLimit ? "text-destructive" : "text-foreground")}>
+              {formatScreenTime(filteredTotal)}
             </span>
           </div>
         </CardHeader>
