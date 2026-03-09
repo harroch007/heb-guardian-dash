@@ -35,12 +35,37 @@ const SYSTEM_FILTER = [
   "com.miui.home",
   "com.android.launcher",
   "com.android.packageinstaller",
+  "com.samsung.accessibility",
+  "com.samsung.android.messaging",
+  "com.sec.android.gallery3d",
+  "com.sec.android.app.launcher",
+  "com.sec.android.app.myfiles",
+  "com.samsung.android.dialer",
+  "com.samsung.android.contacts",
+  "com.samsung.android.calendar",
+  "com.samsung.android.app.camera",
+  "com.samsung.android.incallui",
+  "com.samsung.android.app.notes",
+  "com.samsung.android.app.clock",
+  "com.samsung.android.app.calculator",
+  "com.samsung.android.app.soundpicker",
+  "com.android.bluetooth",
+  "com.android.nfc",
+  "com.android.vending",
+  "com.google.android.packageinstaller",
 ];
 
-const isSystem = (pkg: string) =>
-  SYSTEM_FILTER.some((s) => pkg.toLowerCase().startsWith(s.toLowerCase())) ||
-  pkg.toLowerCase().includes("systemui") ||
-  pkg.toLowerCase().includes("devicecare");
+const SYSTEM_KEYWORDS = [
+  "systemui", "devicecare", "accessibility", "gallery", "dialer",
+  "contacts", "calendar", "camera", "launcher", "incallui",
+  "maintenance", "devicehealth", "setupwizard", "inputmethod",
+];
+
+const isSystem = (pkg: string) => {
+  const lower = pkg.toLowerCase();
+  return SYSTEM_FILTER.some((s) => lower.startsWith(s.toLowerCase())) ||
+    SYSTEM_KEYWORDS.some((kw) => lower.includes(kw));
+};
 
 const BONUS_OPTIONS = [15, 30, 45, 60];
 
@@ -96,8 +121,9 @@ export function ScreenTimeSection({
 
   const isOverLimit = limitEnabled && currentUsageMinutes > (sliderValue + todayBonusMinutes);
 
-  const filteredApps = appUsage
-    .filter((a) => !isSystem(a.package_name))
+  const userApps = appUsage.filter((a) => !isSystem(a.package_name));
+  const filteredTotal = userApps.reduce((sum, a) => sum + a.usage_minutes, 0);
+  const filteredApps = userApps
     .sort((a, b) => b.usage_minutes - a.usage_minutes)
     .slice(0, 5);
 
@@ -110,8 +136,8 @@ export function ScreenTimeSection({
               <Clock className="w-5 h-5 text-primary" />
               זמן מסך
             </CardTitle>
-            <span className={cn("text-lg font-bold", isOverLimit ? "text-destructive" : "text-foreground")}>
-              {formatScreenTime(currentUsageMinutes)}
+          <span className={cn("text-lg font-bold", isOverLimit ? "text-destructive" : "text-foreground")}>
+              {formatScreenTime(filteredTotal)}
             </span>
           </div>
         </CardHeader>
