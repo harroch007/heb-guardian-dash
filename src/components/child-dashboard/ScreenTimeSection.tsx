@@ -35,12 +35,37 @@ const SYSTEM_FILTER = [
   "com.miui.home",
   "com.android.launcher",
   "com.android.packageinstaller",
+  "com.samsung.accessibility",
+  "com.samsung.android.messaging",
+  "com.sec.android.gallery3d",
+  "com.sec.android.app.launcher",
+  "com.sec.android.app.myfiles",
+  "com.samsung.android.dialer",
+  "com.samsung.android.contacts",
+  "com.samsung.android.calendar",
+  "com.samsung.android.app.camera",
+  "com.samsung.android.incallui",
+  "com.samsung.android.app.notes",
+  "com.samsung.android.app.clock",
+  "com.samsung.android.app.calculator",
+  "com.samsung.android.app.soundpicker",
+  "com.android.bluetooth",
+  "com.android.nfc",
+  "com.android.vending",
+  "com.google.android.packageinstaller",
 ];
 
-const isSystem = (pkg: string) =>
-  SYSTEM_FILTER.some((s) => pkg.toLowerCase().startsWith(s.toLowerCase())) ||
-  pkg.toLowerCase().includes("systemui") ||
-  pkg.toLowerCase().includes("devicecare");
+const SYSTEM_KEYWORDS = [
+  "systemui", "devicecare", "accessibility", "gallery", "dialer",
+  "contacts", "calendar", "camera", "launcher", "incallui",
+  "maintenance", "devicehealth", "setupwizard", "inputmethod",
+];
+
+const isSystem = (pkg: string) => {
+  const lower = pkg.toLowerCase();
+  return SYSTEM_FILTER.some((s) => lower.startsWith(s.toLowerCase())) ||
+    SYSTEM_KEYWORDS.some((kw) => lower.includes(kw));
+};
 
 const BONUS_OPTIONS = [15, 30, 45, 60];
 
