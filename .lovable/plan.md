@@ -1,47 +1,43 @@
 
 
-## Audit Result: No Lovable/Supabase Fix Needed
+## Fix: Exclude launcher/infrastructure packages from screen-time total
 
-### Current data path (already correct)
+### Problem
+The `app_usage` table contains rows for home screen launchers (`com.sec.android.app.launcher` = 508 min, `com.android.systemui` = 52 min, `com.miui.home`, etc.). These are "always on" infrastructure processes that Android Digital Wellbeing itself excludes. Including them inflates the parent total to 15:26 instead of ~5:00.
 
-```text
-app_usage table (all rows, no filter)
-  → parent_home_snapshot view: SUM(usage_minutes) with zero WHERE clauses
-    → ChildDashboard.tsx fetches total_usage_minutes from view
-      → passes as currentUsageMinutes to ScreenTimeSection
-        → headline displays currentUsageMinutes directly
+### Evidence from DB
+Launcher packages currently in `app_usage`:
+- `com.sec.android.app.launcher` (Samsung) — "דף הבית של One UI"
+- `com.miui.home` (Xiaomi)
+- `com.android.systemui` — "ממשק המערכת"
+
+### Fix: One migration to update two views
+
+**Update `parent_home_snapshot`** — add WHERE exclusion to `app_usage_sum` CTE:
+```sql
+WHERE au.package_name NOT IN (
+  'com.sec.android.app.launcher',
+  'com.samsung.android.app.launcher',
+  'com.miui.home',
+  'com.android.launcher',
+  'com.android.launcher3',
+  'com.huawei.android.launcher',
+  'com.oppo.launcher',
+  'com.android.systemui',
+  'com.google.android.permissioncontroller',
+  'com.google.android.gms',
+  'com.google.android.gsf'
+)
 ```
 
-### Evidence
+**Update `parent_daily_report`** — same exclusion in `usage_sum` CTE.
 
-1. **View `parent_home_snapshot`** — the `app_usage_sum` CTE sums ALL `app_usage` rows for today's date, grouped by `device_id`. No system-app filter. No policy filter. No package exclusion.
+These are infrastructure-only packages (launchers, system UI chrome, background services) that no device OS counts in its screen-time total. User-facing apps like Settings, Gallery, Play Store remain included.
 
-2. **ChildDashboard.tsx line 469** — `currentUsageMinutes={totalUsageFromDb}` where `totalUsageFromDb` comes from `parent_home_snapshot.total_usage_minutes`.
+### No frontend changes needed
+- `ScreenTimeSection.tsx` headline already uses `currentUsageMinutes` from the view
+- The `SYSTEM_FILTER` / `isSystem()` in ScreenTimeSection only affects the app list display, not the total
 
-3. **ScreenTimeSection.tsx line 146** — headline displays `formatScreenTime(currentUsageMinutes)` — the raw DB total, not the filtered app list sum.
-
-4. **App list filtering** — `isSystem()` filter on lines 64-68 only applies to the app list display (lines 124-128), NOT the headline total.
-
-### Why the ~48 minute gap remains
-
-The `app_usage` table is missing rows that the device OS counts. Specifically, the Android APK does not upload usage for:
-- **Kippy itself** (~76 min)
-- **Play Store** (~3 min)  
-- **Settings** (~3 min)
-
-The Lovable/Supabase path faithfully displays everything in `app_usage`. The gap is an **Android upload gap**, not a display/filter gap.
-
-### Required fix (Android-side, out of Lovable scope)
-
-The Android usage-stats collector must include ALL packages in its upload to `upsert_app_usage`, including its own package and system utilities like Play Store and Settings.
-
-### Sharp verdicts
-
-- Parent display now mirrors raw uploaded device usage: **yes** (it sums all rows without filtering)
-- No additional filtering remains on headline total: **yes** (confirmed in view SQL and component code)
-- Parent and device OS expected to speak the same screen-time language: **no** — because the Android APK does not upload all packages. Once the APK uploads all packages, the totals will match automatically with zero Lovable changes.
-
-### Recommendation
-
-No code changes needed on Lovable/Supabase side. The fix must happen in the Android APK's usage reporting. Alternatively, if you want a faster fix without touching Android: have the Android APK report a single `total_os_usage_minutes` field (the raw `UsageStatsManager` daily total) in the heartbeat or a dedicated RPC, store it in a column, and display that instead of the per-app sum.
+### Files changed
+- One Supabase migration: recreate both views with the launcher exclusion
 
