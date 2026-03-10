@@ -466,7 +466,7 @@ export default function ChildDashboard() {
             <ScreenTimeSection
               appUsage={appUsage}
               screenTimeLimit={screenTimeLimit}
-              currentUsageMinutes={totalUsageMinutes}
+              currentUsageMinutes={totalUsageFromDb}
               todayBonusMinutes={todayBonusMinutes}
               onUpdateLimit={async (minutes) => {
                 await updateDailyLimit(minutes);
