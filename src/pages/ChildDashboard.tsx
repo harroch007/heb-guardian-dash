@@ -172,12 +172,15 @@ export default function ChildDashboard() {
 
       const { data: snapshotData } = await supabase
         .from("parent_home_snapshot")
-        .select("top_apps")
+        .select("top_apps, total_usage_minutes")
         .eq("child_id", childId)
         .maybeSingle();
 
       if (snapshotData?.top_apps && Array.isArray(snapshotData.top_apps)) {
         setAppUsage(snapshotData.top_apps as unknown as AppUsage[]);
+      }
+      if (snapshotData?.total_usage_minutes != null) {
+        setTotalUsageFromDb(snapshotData.total_usage_minutes);
       }
 
       const { data: settingsData } = await supabase
