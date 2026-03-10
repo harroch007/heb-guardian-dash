@@ -100,6 +100,7 @@ export default function ChildDashboard() {
   const [disconnecting, setDisconnecting] = useState(false);
   const [showReconnectModal, setShowReconnectModal] = useState(false);
   const [screenTimeLimit, setScreenTimeLimit] = useState<number | null>(null);
+  const [totalUsageFromDb, setTotalUsageFromDb] = useState<number>(0);
 
   const [locateStatus, setLocateStatus] = useState<LocateStatus>("idle");
   const [locateCommandId, setLocateCommandId] = useState<string | null>(null);
@@ -172,12 +173,15 @@ export default function ChildDashboard() {
 
       const { data: snapshotData } = await supabase
         .from("parent_home_snapshot")
-        .select("top_apps")
+        .select("top_apps, total_usage_minutes")
         .eq("child_id", childId)
         .maybeSingle();
 
       if (snapshotData?.top_apps && Array.isArray(snapshotData.top_apps)) {
         setAppUsage(snapshotData.top_apps as unknown as AppUsage[]);
+      }
+      if (snapshotData?.total_usage_minutes != null) {
+        setTotalUsageFromDb(snapshotData.total_usage_minutes);
       }
 
       const { data: settingsData } = await supabase
@@ -462,7 +466,7 @@ export default function ChildDashboard() {
             <ScreenTimeSection
               appUsage={appUsage}
               screenTimeLimit={screenTimeLimit}
-              currentUsageMinutes={totalUsageMinutes}
+              currentUsageMinutes={totalUsageFromDb}
               todayBonusMinutes={todayBonusMinutes}
               onUpdateLimit={async (minutes) => {
                 await updateDailyLimit(minutes);

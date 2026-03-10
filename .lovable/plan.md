@@ -1,49 +1,31 @@
 
+# Kippy Control — Phase A Status: ✅ COMPLETE
 
-## Screen-Time Source-of-Truth Alignment
+## Completed ✅
 
-### Root Cause
+### Data Model Migration
+- `installed_apps` table — full device app inventory with RLS
+- `schedule_windows` table — school/bedtime/shabbat schedules with RLS + CRUD policies
+- `shabbat_zmanim` table — date-based (YYYY-MM-DD) candle lighting / havdalah lookup
+- `report_installed_apps` RPC — SECURITY DEFINER, device bulk upserts
+- `get_device_settings` RPC — extended to include `schedule_windows` array + `next_shabbat` object
 
-The parent UI shows a filtered screen-time total that excludes system apps. Android enforces against the full `app_usage` sum. The correct total already exists in `parent_home_snapshot.total_usage_minutes` but is never fetched.
+### Data Population
+- `shabbat_zmanim` populated with 118 rows (2026-01-02 → 2028-03-31)
+- Source: Hebcal API, Jerusalem, havdalah = sunset + 40 min (product policy)
 
-**Current path (broken):**
-```text
-parent_home_snapshot.top_apps (all apps as JSONB array)
-  → ChildDashboard reduces to sum client-side
-    → ScreenTimeSection filters out system apps via isSystem()
-      → parent sees ~98 min instead of ~668 min
-```
+## Next Steps (Phase B)
+- Refactor ChildDashboard into 4-tab layout (סקירה / אפליקציות / זמן מסך / מכשיר)
+- Move existing components to their respective tabs
 
-**Correct path (fix):**
-```text
-parent_home_snapshot.total_usage_minutes (full unfiltered sum, matches Android)
-  → pass directly to ScreenTimeSection as currentUsageMinutes
-  → app list stays filtered for display only
-```
+## Phase C (after B)
+- Apps tab: installed_apps inventory UI
+- Screen Time tab: schedule windows CRUD UI + Shabbat toggle
+- Device tab: polished health view
 
-### Changes
-
-**1. `src/pages/ChildDashboard.tsx`**
-- Fetch `total_usage_minutes` alongside `top_apps` from `parent_home_snapshot`
-- Store in new state `totalUsageFromDb`
-- Pass `totalUsageFromDb` to `ScreenTimeSection` as `currentUsageMinutes` instead of the client-side reduced value
-- Before: `currentUsageMinutes={totalUsageMinutes}` where `totalUsageMinutes = appUsage.reduce(...)`
-- After: `currentUsageMinutes={totalUsageFromDb}` where `totalUsageFromDb` comes directly from DB
-
-**2. `src/components/child-dashboard/ScreenTimeSection.tsx`**
-- The headline total (`formatScreenTime(filteredTotal)`) currently uses the system-app-filtered sum
-- Change: use `currentUsageMinutes` prop (the real DB total) for the headline display
-- Keep `filteredApps` list and `isSystem` filter for the app list only — UX stays the same
-- `filteredTotal` is no longer used for the headline; only `currentUsageMinutes` is
-
-### No changes needed
-- No Supabase migration (the view already has the correct column)
-- No Android changes
-- No RPC changes
-- No UI redesign
-
-### Verdicts
-- Parent UI was using filtered screen-time: **yes** (double-filtered via client reduce + isSystem)
-- Parent UI will now use the real enforced total: **yes** (from `parent_home_snapshot.total_usage_minutes`)
-- Parent and Android screen-time source of truth aligned: **yes**
-
+## Key Decisions
+- `havdalah` = policy-defined exit time from device block, not a halachic statement
+- Schedule windows are total blocks (no `allowed_apps` in MVP)
+- Bonus time = Phase 2 only, no workaround
+- Installed apps = user-installed + has launcher icon only
+- Shabbat times = Israel-based (Asia/Jerusalem), date-keyed, no GPS dependency
