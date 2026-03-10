@@ -100,6 +100,7 @@ export default function ChildDashboard() {
   const [disconnecting, setDisconnecting] = useState(false);
   const [showReconnectModal, setShowReconnectModal] = useState(false);
   const [screenTimeLimit, setScreenTimeLimit] = useState<number | null>(null);
+  const [totalUsageFromDb, setTotalUsageFromDb] = useState<number>(0);
 
   const [locateStatus, setLocateStatus] = useState<LocateStatus>("idle");
   const [locateCommandId, setLocateCommandId] = useState<string | null>(null);
