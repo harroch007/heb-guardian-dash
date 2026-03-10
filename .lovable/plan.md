@@ -1,31 +1,55 @@
 
-# Kippy Control — Phase A Status: ✅ COMPLETE
 
-## Completed ✅
+## Plan: Add `app_policies` array to `get_device_settings` response
 
-### Data Model Migration
-- `installed_apps` table — full device app inventory with RLS
-- `schedule_windows` table — school/bedtime/shabbat schedules with RLS + CRUD policies
-- `shabbat_zmanim` table — date-based (YYYY-MM-DD) candle lighting / havdalah lookup
-- `report_installed_apps` RPC — SECURITY DEFINER, device bulk upserts
-- `get_device_settings` RPC — extended to include `schedule_windows` array + `next_shabbat` object
+### Root Cause (confirmed)
+The RPC returns only `blocked_apps` (a flat array of package names where `is_blocked = true`). The Android client needs full `app_policies` objects for **all** apps (approved + blocked) to avoid treating unknown apps as `PENDING_APPROVAL`.
 
-### Data Population
-- `shabbat_zmanim` populated with 118 rows (2026-01-02 → 2028-03-31)
-- Source: Hebcal API, Jerusalem, havdalah = sunset + 40 min (product policy)
+### Change
 
-## Next Steps (Phase B)
-- Refactor ChildDashboard into 4-tab layout (סקירה / אפליקציות / זמן מסך / מכשיר)
-- Move existing components to their respective tabs
+**Single migration**: Redefine `get_device_settings` to add a new `app_policies` key alongside the existing `blocked_apps` (kept for backward compatibility).
 
-## Phase C (after B)
-- Apps tab: installed_apps inventory UI
-- Screen Time tab: schedule windows CRUD UI + Shabbat toggle
-- Device tab: polished health view
+New variable `v_app_policies JSONB` built from:
 
-## Key Decisions
-- `havdalah` = policy-defined exit time from device block, not a halachic statement
-- Schedule windows are total blocks (no `allowed_apps` in MVP)
-- Bonus time = Phase 2 only, no workaround
-- Installed apps = user-installed + has launcher icon only
-- Shabbat times = Israel-based (Asia/Jerusalem), date-keyed, no GPS dependency
+```sql
+SELECT COALESCE(jsonb_agg(
+  jsonb_build_object(
+    'package_name', ap.package_name,
+    'policy_status', CASE WHEN ap.is_blocked THEN 'blocked' ELSE 'approved' END,
+    'daily_limit_minutes', null
+  )
+), '[]'::jsonb)
+INTO v_app_policies
+FROM app_policies ap
+WHERE ap.child_id = v_child_id;
+```
+
+Injected into settings alongside existing `blocked_apps`:
+```sql
+v_settings := v_settings || jsonb_build_object(
+  'blocked_apps', v_blocked_apps,
+  'app_policies', v_app_policies
+);
+```
+
+`daily_limit_minutes` is `null` for now (no per-app limit column exists yet); the field is included to satisfy the Android contract and allow future extension.
+
+### Sample JSON shape (policy fields only)
+
+```json
+{
+  "blocked_apps": ["com.example.blocked"],
+  "app_policies": [
+    { "package_name": "com.whatsapp", "policy_status": "approved", "daily_limit_minutes": null },
+    { "package_name": "com.example.blocked", "policy_status": "blocked", "daily_limit_minutes": null }
+  ]
+}
+```
+
+### What stays unchanged
+- `blocked_apps` array remains for backward compatibility
+- All other fields (schedules, bonus time, shabbat, screen time limits) untouched
+
+### Files
+- 1 new Supabase migration redefining `get_device_settings`
+
