@@ -185,7 +185,7 @@ const Index = () => {
   const [snapshot, setSnapshot] = useState<HomeSnapshot | null>(null);
   const [snapshotLoading, setSnapshotLoading] = useState(true); // Start with loading to prevent flash
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const autoRefreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const autoRefreshIntervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [insights, setInsights] = useState<DailyInsights | null>(null);
   const [insightsLoading, setInsightsLoading] = useState(false);
   const [positiveAlert, setPositiveAlert] = useState<{id: number; ai_title: string; ai_summary: string} | null>(null);

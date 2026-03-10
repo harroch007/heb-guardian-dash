@@ -104,7 +104,7 @@ export default function ChildDashboard() {
 
   const [locateStatus, setLocateStatus] = useState<LocateStatus>("idle");
   const [locateCommandId, setLocateCommandId] = useState<string | null>(null);
-  const pollingRef = useRef<NodeJS.Timeout | null>(null);
+  const pollingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const {
     appPolicies,

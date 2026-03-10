@@ -12,7 +12,7 @@ export function useTripleEscape({
   timeWindow = 1500,
 }: UseTripleEscapeOptions): void {
   const escapeCountRef = useRef(0);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const resetCount = useCallback(() => {
     escapeCountRef.current = 0;

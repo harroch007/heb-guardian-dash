@@ -1,15 +1,31 @@
 
+# Kippy Control — Phase A Status: ✅ COMPLETE
 
-## Fix: `NodeJS.Timeout` TypeScript errors
+## Completed ✅
 
-The `NodeJS` namespace is not available in a Vite/browser TypeScript config. Three files use `NodeJS.Timeout` for timer refs.
+### Data Model Migration
+- `installed_apps` table — full device app inventory with RLS
+- `schedule_windows` table — school/bedtime/shabbat schedules with RLS + CRUD policies
+- `shabbat_zmanim` table — date-based (YYYY-MM-DD) candle lighting / havdalah lookup
+- `report_installed_apps` RPC — SECURITY DEFINER, device bulk upserts
+- `get_device_settings` RPC — extended to include `schedule_windows` array + `next_shabbat` object
 
-### Fix
-Replace `NodeJS.Timeout` with `ReturnType<typeof setTimeout>` in all three files:
+### Data Population
+- `shabbat_zmanim` populated with 118 rows (2026-01-02 → 2028-03-31)
+- Source: Hebcal API, Jerusalem, havdalah = sunset + 40 min (product policy)
 
-1. **`src/hooks/useTripleEscape.ts` line 15**: `useRef<ReturnType<typeof setTimeout> | null>(null)`
-2. **`src/pages/ChildDashboard.tsx` line 107**: `useRef<ReturnType<typeof setTimeout> | null>(null)`
-3. **`src/pages/Dashboard.tsx` line 188**: `useRef<ReturnType<typeof setTimeout> | null>(null)`
+## Next Steps (Phase B)
+- Refactor ChildDashboard into 4-tab layout (סקירה / אפליקציות / זמן מסך / מכשיר)
+- Move existing components to their respective tabs
 
-Three one-line changes. No logic changes.
+## Phase C (after B)
+- Apps tab: installed_apps inventory UI
+- Screen Time tab: schedule windows CRUD UI + Shabbat toggle
+- Device tab: polished health view
 
+## Key Decisions
+- `havdalah` = policy-defined exit time from device block, not a halachic statement
+- Schedule windows are total blocks (no `allowed_apps` in MVP)
+- Bonus time = Phase 2 only, no workaround
+- Installed apps = user-installed + has launcher icon only
+- Shabbat times = Israel-based (Asia/Jerusalem), date-keyed, no GPS dependency
