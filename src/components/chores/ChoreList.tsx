@@ -56,7 +56,7 @@ export function ChoreList({ chores, onApprove, onReject, onDelete, childName }: 
   );
 }
 
-function ChoreItem({ chore, onApprove, onReject, onDelete }: { chore: Chore } & Pick<ChoreListProps, "onApprove" | "onReject" | "onDelete">) {
+function ChoreItem({ chore, onApprove, onReject, onDelete, childName }: { chore: Chore; childName?: string } & Pick<ChoreListProps, "onApprove" | "onReject" | "onDelete">) {
   const config = STATUS_CONFIG[chore.status] || STATUS_CONFIG.pending;
 
   return (
@@ -69,9 +69,11 @@ function ChoreItem({ chore, onApprove, onReject, onDelete }: { chore: Chore } & 
             </span>
             {chore.is_recurring && <RotateCcw className="w-3 h-3 text-muted-foreground" />}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Badge variant="outline" className={config.color}>
-              {config.label}
+              {chore.status === "completed_by_child" && childName
+                ? `${childName} סימן/ה כבוצע`
+                : config.label}
             </Badge>
             <span className="text-xs text-primary font-medium">{chore.reward_minutes} דק׳</span>
           </div>
@@ -88,11 +90,9 @@ function ChoreItem({ chore, onApprove, onReject, onDelete }: { chore: Chore } & 
               </Button>
             </>
           )}
-          {(chore.status === "pending" || chore.status === "rejected") && (
-            <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => onDelete(chore.id)}>
-              <Trash2 className="w-4 h-4" />
-            </Button>
-          )}
+          <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => onDelete(chore.id)}>
+            <Trash2 className="w-4 h-4" />
+          </Button>
         </div>
       </CardContent>
     </Card>
