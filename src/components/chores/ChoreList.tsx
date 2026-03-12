@@ -9,7 +9,6 @@ interface ChoreListProps {
   onApprove: (id: string) => Promise<void>;
   onReject: (id: string) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
-  onSimulateComplete?: (id: string) => Promise<void>;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
