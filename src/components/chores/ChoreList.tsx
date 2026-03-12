@@ -56,7 +56,7 @@ export function ChoreList({ chores, onApprove, onReject, onDelete, onSimulateCom
   );
 }
 
-function ChoreItem({ chore, onApprove, onReject, onDelete }: { chore: Chore } & Pick<ChoreListProps, "onApprove" | "onReject" | "onDelete">) {
+function ChoreItem({ chore, onApprove, onReject, onDelete, onSimulateComplete }: { chore: Chore } & Pick<ChoreListProps, "onApprove" | "onReject" | "onDelete" | "onSimulateComplete">) {
   const config = STATUS_CONFIG[chore.status] || STATUS_CONFIG.pending;
 
   return (
