@@ -227,7 +227,10 @@ export default function ChildDashboard() {
   }, [device?.device_id]);
 
   useEffect(() => {
-    return () => { if (pollingRef.current) clearTimeout(pollingRef.current); };
+    return () => {
+      if (pollingRef.current) clearTimeout(pollingRef.current);
+      if (syncPollingRef.current) clearTimeout(syncPollingRef.current);
+    };
   }, []);
 
   useEffect(() => {
