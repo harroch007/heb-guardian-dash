@@ -1,42 +1,46 @@
 
-# Kippy Control — Phase A Status: ✅ COMPLETE
 
-## Completed ✅
+## אבחון ותוכנית תיקון — סנכרון משימות אנדרואיד ↔ דשבורד הורה
 
-### Data Model Migration
-- `installed_apps` table — full device app inventory with RLS
-- `schedule_windows` table — school/bedtime/shabbat schedules with RLS + CRUD policies
-- `shabbat_zmanim` table — date-based (YYYY-MM-DD) candle lighting / havdalah lookup
-- `report_installed_apps` RPC — SECURITY DEFINER, device bulk upserts
-- `get_device_settings` RPC — extended to include `schedule_windows` array + `next_shabbat` object
+### מה מצאתי
 
-### Data Population
-- `shabbat_zmanim` populated with 118 rows (2026-01-02 → 2028-03-31)
-- Source: Hebcal API, Jerusalem, havdalah = sunset + 40 min (product policy)
+**צד הווב תקין** — אין סינון לפי סטטוס, Realtime מוגדר, והממשק כבר מציג `completed_by_child` עם כפתורי אישור/דחייה.
 
-## Completed (Phase B - Sync Fixes) ✅
-- Dashboard auto-refresh every 60 seconds (polling `parent_home_snapshot`)
-- SyncNotice filters commands older than 5 minutes (`device_commands` query)
+**הבעיה בצד האנדרואיד** — המשימה עדיין `pending` ב-DB. ה-UPDATE מהאנדרואיד לא הגיע. הסיבות האפשריות:
+- האנדרואיד לא משתמש ב-anon key (אלא authenticated או מפתח אחר)
+- ה-UPDATE נכשל בשקט בגלל RLS ואין error handling
+- בעיית רשת שלא מטופלת
 
-## Chores & Rewards Feature ✅
-- 3 tables: `chores`, `reward_bank`, `reward_transactions` with RLS + Realtime
-- 3 RPCs: `approve_chore`, `reject_chore`, `redeem_reward_minutes`
-- UI: `/chores` page with ChoreForm, ChoreList, RewardBankCard
-- Navigation: "משימות" tab added to sidebar + bottom nav
-- Android contract: SELECT/UPDATE chores, reward_bank; RPC redeem_reward_minutes; Realtime subscriptions
+### הפתרון: RPC `complete_chore` במקום UPDATE ישיר
 
-## Android-side fixes (for Android agent):
-1. **Fix enforcement in AccessibilityService** — compare foreground app against blocked list
-2. **Add Realtime subscription** for `device_commands` in ForegroundService
-3. **Implement heartbeat reporting** — fill `sendDeviceHealthStatus` with `report_device_heartbeat` RPC
-4. **Add periodic usage reporting** — call `upsert_app_usage` every 5-10 minutes on a timer
-5. **Chores screen** — show pending chores, mark as completed, redeem bank minutes
+במקום שהאנדרואיד יעשה UPDATE ישיר (שנכשל בשקט), ניצור RPC ייעודי שמחזיר תשובה ברורה עם success/error. זה:
+1. עוקף RLS (SECURITY DEFINER) — עובד עם כל role
+2. מחזיר JSON ברור — האנדרואיד יכול להציג הודעת שגיאה
+3. מוודא שהסטטוס הנוכחי הוא `pending` — מונע updates כפולים
 
-## Next Steps (Phase B - UI)
-- Refactor ChildDashboard into 4-tab layout (סקירה / אפליקציות / זמן מסך / מכשיר)
-- Move existing components to their respective tabs
+### שינויים
 
-## Phase C (after B)
-- Apps tab: installed_apps inventory UI
-- Screen Time tab: schedule windows CRUD UI + Shabbat toggle
-- Device tab: polished health view
+**1. Migration — RPC חדש `complete_chore(p_chore_id uuid)`**
+```sql
+CREATE FUNCTION complete_chore(p_chore_id uuid) 
+RETURNS jsonb AS $$
+  -- validates status = 'pending'
+  -- updates to 'completed_by_child' + completed_at = now()
+  -- returns { success: true } or { success: false, error: '...' }
+$$ SECURITY DEFINER;
+```
+
+**2. `useChores.ts` — polling fallback**
+הוספת `setInterval` כל 30 שניות שקורא ל-`fetchChores()` ו-`fetchRewardBank()` כגיבוי ל-Realtime.
+
+**3. `ChoreList.tsx` — כפתור "סמן כבוצע" זמני**
+כפתור קטן ליד כל משימה `pending` שקורא ל-`complete_chore` RPC — כדי לבדוק את כל הזרימה (complete → approve → bank) בלי תלות באנדרואיד.
+
+### מה צריך לעדכן באנדרואיד
+
+אחרי היישום, האנדרואיד צריך לעבור מ-UPDATE ישיר לקריאת RPC:
+```kotlin
+supabase.postgrest.rpc("complete_chore", mapOf("p_chore_id" to choreId))
+```
+זה יעבוד עם כל role (anon/authenticated) ויחזיר תשובה ברורה.
+
