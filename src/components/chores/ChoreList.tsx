@@ -9,6 +9,7 @@ interface ChoreListProps {
   onApprove: (id: string) => Promise<void>;
   onReject: (id: string) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
+  childName?: string;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
@@ -18,7 +19,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   rejected: { label: "נדחה", color: "bg-red-500/20 text-red-400 border-red-500/30" },
 };
 
-export function ChoreList({ chores, onApprove, onReject, onDelete }: ChoreListProps) {
+export function ChoreList({ chores, onApprove, onReject, onDelete, childName }: ChoreListProps) {
   if (chores.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
@@ -38,7 +39,7 @@ export function ChoreList({ chores, onApprove, onReject, onDelete }: ChoreListPr
       {active.length > 0 && (
         <div className="space-y-2">
           {active.map(chore => (
-            <ChoreItem key={chore.id} chore={chore} onApprove={onApprove} onReject={onReject} onDelete={onDelete} />
+            <ChoreItem key={chore.id} chore={chore} onApprove={onApprove} onReject={onReject} onDelete={onDelete} childName={childName} />
           ))}
         </div>
       )}
@@ -47,7 +48,7 @@ export function ChoreList({ chores, onApprove, onReject, onDelete }: ChoreListPr
         <div className="space-y-2 mt-6">
           <h3 className="text-sm font-medium text-muted-foreground px-1">הושלמו</h3>
           {done.slice(0, 10).map(chore => (
-            <ChoreItem key={chore.id} chore={chore} onApprove={onApprove} onReject={onReject} onDelete={onDelete} />
+            <ChoreItem key={chore.id} chore={chore} onApprove={onApprove} onReject={onReject} onDelete={onDelete} childName={childName} />
           ))}
         </div>
       )}
@@ -55,7 +56,7 @@ export function ChoreList({ chores, onApprove, onReject, onDelete }: ChoreListPr
   );
 }
 
-function ChoreItem({ chore, onApprove, onReject, onDelete }: { chore: Chore } & Pick<ChoreListProps, "onApprove" | "onReject" | "onDelete">) {
+function ChoreItem({ chore, onApprove, onReject, onDelete, childName }: { chore: Chore; childName?: string } & Pick<ChoreListProps, "onApprove" | "onReject" | "onDelete">) {
   const config = STATUS_CONFIG[chore.status] || STATUS_CONFIG.pending;
 
   return (
@@ -68,9 +69,11 @@ function ChoreItem({ chore, onApprove, onReject, onDelete }: { chore: Chore } & 
             </span>
             {chore.is_recurring && <RotateCcw className="w-3 h-3 text-muted-foreground" />}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Badge variant="outline" className={config.color}>
-              {config.label}
+              {chore.status === "completed_by_child" && childName
+                ? `${childName} סימן/ה כבוצע`
+                : config.label}
             </Badge>
             <span className="text-xs text-primary font-medium">{chore.reward_minutes} דק׳</span>
           </div>
@@ -87,11 +90,9 @@ function ChoreItem({ chore, onApprove, onReject, onDelete }: { chore: Chore } & 
               </Button>
             </>
           )}
-          {(chore.status === "pending" || chore.status === "rejected") && (
-            <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => onDelete(chore.id)}>
-              <Trash2 className="w-4 h-4" />
-            </Button>
-          )}
+          <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => onDelete(chore.id)}>
+            <Trash2 className="w-4 h-4" />
+          </Button>
         </div>
       </CardContent>
     </Card>
