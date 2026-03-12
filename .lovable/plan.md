@@ -14,7 +14,17 @@
 - `shabbat_zmanim` populated with 118 rows (2026-01-02 → 2028-03-31)
 - Source: Hebcal API, Jerusalem, havdalah = sunset + 40 min (product policy)
 
-## Next Steps (Phase B)
+## Completed (Phase B - Sync Fixes) ✅
+- Dashboard auto-refresh every 60 seconds (polling `parent_home_snapshot`)
+- SyncNotice filters commands older than 5 minutes (`device_commands` query)
+
+## Android-side fixes (for Android agent):
+1. **Fix enforcement in AccessibilityService** — compare foreground app against blocked list
+2. **Add Realtime subscription** for `device_commands` in ForegroundService
+3. **Implement heartbeat reporting** — fill `sendDeviceHealthStatus` with `report_device_heartbeat` RPC
+4. **Add periodic usage reporting** — call `upsert_app_usage` every 5-10 minutes on a timer
+
+## Next Steps (Phase B - UI)
 - Refactor ChildDashboard into 4-tab layout (סקירה / אפליקציות / זמן מסך / מכשיר)
 - Move existing components to their respective tabs
 
@@ -22,10 +32,3 @@
 - Apps tab: installed_apps inventory UI
 - Screen Time tab: schedule windows CRUD UI + Shabbat toggle
 - Device tab: polished health view
-
-## Key Decisions
-- `havdalah` = policy-defined exit time from device block, not a halachic statement
-- Schedule windows are total blocks (no `allowed_apps` in MVP)
-- Bonus time = Phase 2 only, no workaround
-- Installed apps = user-installed + has launcher icon only
-- Shabbat times = Israel-based (Asia/Jerusalem), date-keyed, no GPS dependency
