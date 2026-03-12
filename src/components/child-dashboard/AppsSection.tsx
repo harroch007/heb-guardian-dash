@@ -43,27 +43,50 @@ export function AppsSection({
   const policyPackages = new Set(appPolicies.map((p) => p.package_name));
   const pendingApps = installedApps.filter((app) => !policyPackages.has(app.package_name) && !isSystemApp(app.package_name));
 
+  const usagePackages = new Set(
+    appUsage.filter((u) => u.usage_minutes > 0).map((u) => u.package_name)
+  );
+
   const filteredUsage = appUsage.filter((app) => {
     if (filter === "blocked") {
       return appPolicies.some((p) => p.package_name === app.package_name && p.is_blocked);
+    }
+    if (filter === "top") {
+      return app.usage_minutes > 0;
+    }
+    if (filter === "all") {
+      // Exclude blocked and pending from "all"
+      const policy = appPolicies.find((p) => p.package_name === app.package_name);
+      return policy && !policy.is_blocked;
     }
     return true;
   });
 
   const filteredInstalled = installedApps.filter((app) => {
+    if (isSystemApp(app.package_name)) return false;
     if (filter === "blocked") {
       return appPolicies.some((p) => p.package_name === app.package_name && p.is_blocked);
     }
     if (filter === "new") {
       return !policyPackages.has(app.package_name);
     }
+    if (filter === "all") {
+      // Only approved (has policy, not blocked, not pending)
+      return policyPackages.has(app.package_name)
+        && !appPolicies.some((p) => p.package_name === app.package_name && p.is_blocked);
+    }
+    if (filter === "top") {
+      return usagePackages.has(app.package_name);
+    }
     return true;
   });
 
-  const filteredPolicies =
-    filter === "blocked"
-      ? appPolicies.filter((p) => p.is_blocked)
-      : appPolicies;
+  const filteredPolicies = (() => {
+    if (filter === "blocked") return appPolicies.filter((p) => p.is_blocked);
+    if (filter === "all") return appPolicies.filter((p) => !p.is_blocked);
+    if (filter === "top") return appPolicies.filter((p) => usagePackages.has(p.package_name));
+    return appPolicies;
+  })();
 
   const filters: { key: Filter; label: string; count?: number }[] = [
     { key: "all", label: "הכל" },
