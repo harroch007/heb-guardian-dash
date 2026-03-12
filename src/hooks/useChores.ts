@@ -64,9 +64,16 @@ export function useChores(childId: string | null) {
       .on("postgres_changes", { event: "*", schema: "public", table: "reward_bank", filter: `child_id=eq.${childId}` }, () => fetchRewardBank())
       .subscribe();
 
+    // Polling fallback every 30 seconds
+    const pollInterval = setInterval(() => {
+      fetchChores();
+      fetchRewardBank();
+    }, 30_000);
+
     return () => {
       supabase.removeChannel(choresChannel);
       supabase.removeChannel(bankChannel);
+      clearInterval(pollInterval);
     };
   }, [childId, fetchChores, fetchRewardBank]);
 
