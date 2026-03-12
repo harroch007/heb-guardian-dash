@@ -38,7 +38,7 @@ export function ChoreList({ chores, onApprove, onReject, onDelete }: ChoreListPr
       {active.length > 0 && (
         <div className="space-y-2">
           {active.map(chore => (
-            <ChoreItem key={chore.id} chore={chore} onApprove={onApprove} onReject={onReject} onDelete={onDelete} onSimulateComplete={onSimulateComplete} />
+            <ChoreItem key={chore.id} chore={chore} onApprove={onApprove} onReject={onReject} onDelete={onDelete} />
           ))}
         </div>
       )}
@@ -47,7 +47,7 @@ export function ChoreList({ chores, onApprove, onReject, onDelete }: ChoreListPr
         <div className="space-y-2 mt-6">
           <h3 className="text-sm font-medium text-muted-foreground px-1">הושלמו</h3>
           {done.slice(0, 10).map(chore => (
-            <ChoreItem key={chore.id} chore={chore} onApprove={onApprove} onReject={onReject} onDelete={onDelete} onSimulateComplete={onSimulateComplete} />
+            <ChoreItem key={chore.id} chore={chore} onApprove={onApprove} onReject={onReject} onDelete={onDelete} />
           ))}
         </div>
       )}
