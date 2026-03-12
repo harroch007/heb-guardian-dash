@@ -18,11 +18,19 @@
 - Dashboard auto-refresh every 60 seconds (polling `parent_home_snapshot`)
 - SyncNotice filters commands older than 5 minutes (`device_commands` query)
 
+## Chores & Rewards Feature ✅
+- 3 tables: `chores`, `reward_bank`, `reward_transactions` with RLS + Realtime
+- 3 RPCs: `approve_chore`, `reject_chore`, `redeem_reward_minutes`
+- UI: `/chores` page with ChoreForm, ChoreList, RewardBankCard
+- Navigation: "משימות" tab added to sidebar + bottom nav
+- Android contract: SELECT/UPDATE chores, reward_bank; RPC redeem_reward_minutes; Realtime subscriptions
+
 ## Android-side fixes (for Android agent):
 1. **Fix enforcement in AccessibilityService** — compare foreground app against blocked list
 2. **Add Realtime subscription** for `device_commands` in ForegroundService
 3. **Implement heartbeat reporting** — fill `sendDeviceHealthStatus` with `report_device_heartbeat` RPC
 4. **Add periodic usage reporting** — call `upsert_app_usage` every 5-10 minutes on a timer
+5. **Chores screen** — show pending chores, mark as completed, redeem bank minutes
 
 ## Next Steps (Phase B - UI)
 - Refactor ChildDashboard into 4-tab layout (סקירה / אפליקציות / זמן מסך / מכשיר)
