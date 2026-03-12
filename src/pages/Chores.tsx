@@ -37,6 +37,9 @@ export default function Chores() {
 
   const { chores, rewardBank, loading, addChore, approveChore, rejectChore, deleteChore } = useChores(selectedChildId);
 
+  const selectedChild = children.find(c => c.id === selectedChildId);
+  const childName = selectedChild?.name || "";
+
   return (
     <DashboardLayout>
       <div className="max-w-2xl mx-auto p-4 space-y-6" dir="rtl">
@@ -46,8 +49,12 @@ export default function Chores() {
             <ClipboardList className="w-6 h-6 text-primary" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-foreground">משימות ותגמולים</h1>
-            <p className="text-sm text-muted-foreground">הגדר משימות והרוויח דקות שימוש</p>
+            <h1 className="text-xl font-bold text-foreground">
+              משימות ותגמולים{childName ? ` — ${childName}` : ""}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              {childName ? `המשימות מופיעות בטלפון של ${childName}` : "הגדר משימות והרוויח דקות שימוש"}
+            </p>
           </div>
         </div>
 
@@ -79,7 +86,7 @@ export default function Chores() {
             {[1, 2, 3].map(i => <Skeleton key={i} className="h-16 w-full" />)}
           </div>
         ) : (
-          <ChoreList chores={chores} onApprove={approveChore} onReject={rejectChore} onDelete={deleteChore} />
+          <ChoreList chores={chores} onApprove={approveChore} onReject={rejectChore} onDelete={deleteChore} childName={childName} />
         )}
       </div>
     </DashboardLayout>
