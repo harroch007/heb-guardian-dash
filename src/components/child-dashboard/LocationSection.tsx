@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MapPin, ChevronDown, ChevronUp, Copy, Loader2, AlertTriangle, LocateFixed } from "lucide-react";
+import { MapPin, ChevronDown, ChevronUp, Copy, Loader2, AlertTriangle, LocateFixed, Volume2, CheckCircle2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { LocationMap } from "@/components/LocationMap";
@@ -19,6 +19,8 @@ interface LocationSectionProps {
   setShowMap: (v: boolean) => void;
   handleLocateNow: () => void;
   getLocateButtonContent: () => React.ReactNode;
+  ringStatus: "idle" | "locating" | "success" | "failed";
+  handleRingDevice: () => void;
 }
 
 export function LocationSection({
@@ -29,10 +31,25 @@ export function LocationSection({
   setShowMap,
   handleLocateNow,
   getLocateButtonContent,
+  ringStatus,
+  handleRingDevice,
 }: LocationSectionProps) {
   const [expanded, setExpanded] = useState(false);
 
   const hasLocation = device.latitude !== null && device.longitude !== null;
+
+  const getRingButtonContent = () => {
+    switch (ringStatus) {
+      case "locating":
+        return (<><Loader2 className="w-4 h-4 animate-spin ml-1.5" />מצלצל...</>);
+      case "success":
+        return (<><CheckCircle2 className="w-4 h-4 ml-1.5 text-success" />מצלצל ✓</>);
+      case "failed":
+        return (<><AlertTriangle className="w-4 h-4 ml-1.5" />קרא למכשיר</>);
+      default:
+        return (<><Volume2 className="w-4 h-4 ml-1.5" />קרא למכשיר</>);
+    }
+  };
 
   return (
     <div id="location-section" className="scroll-mt-4">
@@ -63,19 +80,33 @@ export function LocationSection({
 
         {expanded && (
           <CardContent className="space-y-3">
-            {/* Locate button */}
-            <Button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleLocateNow();
-              }}
-              size="sm"
-              variant={locateStatus === "failed" ? "destructive" : "outline"}
-              disabled={locateStatus === "locating"}
-              className="w-full"
-            >
-              {getLocateButtonContent()}
-            </Button>
+            {/* Action buttons row */}
+            <div className="flex gap-2">
+              <Button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleLocateNow();
+                }}
+                size="sm"
+                variant={locateStatus === "failed" ? "destructive" : "outline"}
+                disabled={locateStatus === "locating"}
+                className="flex-1"
+              >
+                {getLocateButtonContent()}
+              </Button>
+              <Button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRingDevice();
+                }}
+                size="sm"
+                variant={ringStatus === "failed" ? "destructive" : ringStatus === "success" ? "outline" : "default"}
+                disabled={ringStatus === "locating" || ringStatus === "success"}
+                className="flex-1"
+              >
+                {getRingButtonContent()}
+              </Button>
+            </div>
 
             {/* Locating spinner */}
             {locateStatus === "locating" && (
@@ -86,12 +117,31 @@ export function LocationSection({
               </div>
             )}
 
+            {/* Ringing spinner */}
+            {ringStatus === "locating" && (
+              <div className="p-4 rounded-lg bg-primary/5 border border-primary/20 flex flex-col items-center gap-2">
+                <Volume2 className="w-8 h-8 text-primary animate-pulse" />
+                <p className="text-sm text-muted-foreground">שולח צלצול למכשיר...</p>
+                <p className="text-xs text-muted-foreground">זה עשוי לקחת עד 2 דקות</p>
+              </div>
+            )}
+
             {/* Failure notice */}
             {locateStatus === "failed" && (
               <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30 flex items-center gap-2">
                 <AlertTriangle className="w-5 h-5 text-destructive shrink-0" />
                 <p className="text-sm text-destructive">
                   לא ניתן להתחבר למכשיר. ייתכן שהאפליקציה הוסרה או שאין חיבור לאינטרנט.
+                </p>
+              </div>
+            )}
+
+            {/* Ring failure notice */}
+            {ringStatus === "failed" && locateStatus !== "failed" && (
+              <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30 flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-destructive shrink-0" />
+                <p className="text-sm text-destructive">
+                  לא ניתן לצלצל למכשיר. ייתכן שהמכשיר לא מחובר.
                 </p>
               </div>
             )}
