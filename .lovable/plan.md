@@ -1,52 +1,34 @@
 
+# Kippy Control — Phase A Status: ✅ COMPLETE
 
-## Analysis: "Last synced 33 min ago" is an Android-side problem
+## Completed ✅
 
-### What's actually happening
+### Data Model Migration
+- `installed_apps` table — full device app inventory with RLS
+- `schedule_windows` table — school/bedtime/shabbat schedules with RLS + CRUD policies
+- `shabbat_zmanim` table — date-based (YYYY-MM-DD) candle lighting / havdalah lookup
+- `report_installed_apps` RPC — SECURITY DEFINER, device bulk upserts
+- `get_device_settings` RPC — extended to include `schedule_windows` array + `next_shabbat` object
 
-The refresh/sync button on the parent Dashboard works correctly:
-1. `handleRefresh()` (Dashboard.tsx:483) calls `fetchSnapshot(false, true)` which queries `parent_home_snapshot`
-2. The toast "הנתונים עודכנו" confirms the web app successfully fetched fresh data from Supabase
-3. The 60-second polling in ChildDashboard is also working
+### Data Population
+- `shabbat_zmanim` populated with 118 rows (2026-01-02 → 2028-03-31)
+- Source: Hebcal API, Jerusalem, havdalah = sunset + 40 min (product policy)
 
-**But**: the `last_seen` timestamp displayed as "סונכרן לפני 33 דק" comes from `devices.last_seen`, which is only updated when the **Android device** calls one of these RPCs:
-- `update_device_status`
-- `upsert_app_usage` (stamps `first_seen_at`)
-- `report_device_heartbeat` (trigger updates `last_seen`)
+## Completed (Phase B - Sync Fixes) ✅
+- Dashboard auto-refresh every 60 seconds (polling `parent_home_snapshot`)
+- SyncNotice filters commands older than 5 minutes (`device_commands` query)
 
-If the child's phone hasn't called any of these in 33 minutes, the web dashboard will keep showing "33 דק" no matter how many times you press refresh.
+## Android-side fixes (for Android agent):
+1. **Fix enforcement in AccessibilityService** — compare foreground app against blocked list
+2. **Add Realtime subscription** for `device_commands` in ForegroundService
+3. **Implement heartbeat reporting** — fill `sendDeviceHealthStatus` with `report_device_heartbeat` RPC
+4. **Add periodic usage reporting** — call `upsert_app_usage` every 5-10 minutes on a timer
 
-### Two distinct "sync" concepts
+## Next Steps (Phase B - UI)
+- Refactor ChildDashboard into 4-tab layout (סקירה / אפליקציות / זמן מסך / מכשיר)
+- Move existing components to their respective tabs
 
-| Concept | What it means | Status |
-|---------|--------------|--------|
-| Web dashboard refresh | Parent app re-reads DB | Working (60s poll + manual button) |
-| Device sync | Child phone reports to server | Broken -- Android not reporting |
-
-### What can be improved on the web side
-
-There is one UX improvement we can make: **differentiate between "dashboard refresh" and "device sync"** so the parent understands that the data is stale because the device isn't reporting, not because the dashboard isn't fetching.
-
-#### Option A: Add a "Request Sync" button (recommended)
-When the parent taps it, send a `REFRESH_SETTINGS` or `REPORT_HEARTBEAT` command to `device_commands`. This nudges the Android device to wake up and report. The button would show:
-- "מבקש עדכון מהמכשיר..." while PENDING
-- "המכשיר עדכן בהצלחה" on COMPLETED
-- "המכשיר לא מגיב" on TIMED_OUT
-
-This already exists in ChildDashboard via `handleLocateNow` pattern but not for general sync.
-
-#### Option B: Show clearer status text
-Change "סונכרן לפני 33 דק" to something like "המכשיר דיווח לאחרונה לפני 33 דק" to make it clear this is the device's last report, not the dashboard's last refresh.
-
-### Root cause remains Android-side
-The Android agent needs to:
-1. Implement periodic heartbeat reporting (every 15 min)
-2. Add Realtime listener on `device_commands` to respond immediately
-3. Ensure `upsert_app_usage` runs on a timer, not just on app-switch events
-
-### Proposed implementation (web-side UX only)
-1. **Dashboard.tsx**: Add a "Request Device Sync" action that inserts a `REPORT_HEARTBEAT` command into `device_commands` and polls for completion (reusing the locate-now pattern from ChildDashboard)
-2. **Status text**: Update the "סונכרן" label to clarify it refers to the device's last report
-
-No database changes needed -- the `device_commands` table and `REPORT_HEARTBEAT` command type already exist.
-
+## Phase C (after B)
+- Apps tab: installed_apps inventory UI
+- Screen Time tab: schedule windows CRUD UI + Shabbat toggle
+- Device tab: polished health view

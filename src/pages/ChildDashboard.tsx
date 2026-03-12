@@ -106,6 +106,10 @@ export default function ChildDashboard() {
   const [locateCommandId, setLocateCommandId] = useState<string | null>(null);
   const pollingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const [syncStatus, setSyncStatus] = useState<LocateStatus>("idle");
+  const [syncCommandId, setSyncCommandId] = useState<string | null>(null);
+  const syncPollingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const {
     appPolicies,
     blockedAttempts,
@@ -223,7 +227,10 @@ export default function ChildDashboard() {
   }, [device?.device_id]);
 
   useEffect(() => {
-    return () => { if (pollingRef.current) clearTimeout(pollingRef.current); };
+    return () => {
+      if (pollingRef.current) clearTimeout(pollingRef.current);
+      if (syncPollingRef.current) clearTimeout(syncPollingRef.current);
+    };
   }, []);
 
   useEffect(() => {
@@ -271,6 +278,63 @@ export default function ChildDashboard() {
     pollCommand();
     return () => { if (pollingRef.current) clearTimeout(pollingRef.current); };
   }, [locateCommandId, locateStatus, device?.device_id, toast]);
+
+  // --- Request Device Sync (REPORT_HEARTBEAT) ---
+  useEffect(() => {
+    if (!syncCommandId || syncStatus !== "locating") return;
+    const startTime = Date.now();
+    const TIMEOUT_MS = 2 * 60 * 1000;
+    const POLL_INTERVAL = 5000;
+
+    const pollSync = async () => {
+      const { data: commandData } = await supabase
+        .from("device_commands")
+        .select("status")
+        .eq("id", syncCommandId)
+        .single();
+
+      if (commandData?.status === "COMPLETED") {
+        setSyncStatus("success");
+        setSyncCommandId(null);
+        fetchDashboardData(true);
+        toast({ title: "המכשיר עודכן", description: "התקבל עדכון מהמכשיר בהצלחה" });
+        setTimeout(() => setSyncStatus("idle"), 5000);
+        return;
+      }
+      if (commandData?.status === "FAILED") {
+        setSyncStatus("failed");
+        setSyncCommandId(null);
+        toast({ title: "המכשיר לא מגיב", description: "לא ניתן לקבל עדכון מהמכשיר", variant: "destructive" });
+        return;
+      }
+      if (Date.now() - startTime > TIMEOUT_MS) {
+        setSyncStatus("failed");
+        setSyncCommandId(null);
+        toast({ title: "המכשיר לא מגיב", description: "לא ניתן להתחבר למכשיר.", variant: "destructive" });
+        return;
+      }
+      syncPollingRef.current = setTimeout(pollSync, POLL_INTERVAL);
+    };
+    pollSync();
+    return () => { if (syncPollingRef.current) clearTimeout(syncPollingRef.current); };
+  }, [syncCommandId, syncStatus, toast]);
+
+  const handleRequestSync = async () => {
+    if (!device?.device_id) return;
+    setSyncStatus("locating");
+    const { data: command, error } = await supabase
+      .from("device_commands")
+      .insert({ device_id: device.device_id, command_type: "REPORT_HEARTBEAT", status: "PENDING" })
+      .select("id")
+      .single();
+    if (error || !command) {
+      toast({ title: "שגיאה", description: "לא ניתן לשלוח בקשת עדכון", variant: "destructive" });
+      setSyncStatus("failed");
+      return;
+    }
+    setSyncCommandId(command.id);
+    toast({ title: "מבקש עדכון מהמכשיר...", description: "אנא המתן, זה עשוי לקחת עד 2 דקות" });
+  };
 
   const handleLocateNow = async () => {
     if (!device?.device_id) return;
@@ -369,7 +433,17 @@ export default function ChildDashboard() {
                   <span className="text-border">•</span>
                 </>
               )}
-              <span>סונכרן {formatLastSeen(device?.last_seen ?? null)}</span>
+              <span>דיווח אחרון {formatLastSeen(device?.last_seen ?? null)}</span>
+              {device && (
+                <button
+                  onClick={handleRequestSync}
+                  disabled={syncStatus === "locating"}
+                  className="inline-flex items-center gap-1 text-primary hover:text-primary/80 disabled:opacity-50 transition-colors"
+                >
+                  <RefreshCw className={cn("w-3 h-3", syncStatus === "locating" && "animate-spin")} />
+                  <span>{syncStatus === "locating" ? "מעדכן..." : syncStatus === "success" ? "עודכן ✓" : "בקש עדכון"}</span>
+                </button>
+              )}
             </div>
           </div>
           <Button variant="ghost" size="icon" onClick={() => setShowEditModal(true)} className="text-muted-foreground hover:text-foreground shrink-0 h-7 w-7">
