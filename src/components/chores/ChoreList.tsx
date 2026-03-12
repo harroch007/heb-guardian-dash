@@ -18,7 +18,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   rejected: { label: "נדחה", color: "bg-red-500/20 text-red-400 border-red-500/30" },
 };
 
-export function ChoreList({ chores, onApprove, onReject, onDelete, onSimulateComplete }: ChoreListProps) {
+export function ChoreList({ chores, onApprove, onReject, onDelete }: ChoreListProps) {
   if (chores.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
