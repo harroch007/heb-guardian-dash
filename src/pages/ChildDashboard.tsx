@@ -433,7 +433,17 @@ export default function ChildDashboard() {
                   <span className="text-border">•</span>
                 </>
               )}
-              <span>סונכרן {formatLastSeen(device?.last_seen ?? null)}</span>
+              <span>דיווח אחרון {formatLastSeen(device?.last_seen ?? null)}</span>
+              {device && (
+                <button
+                  onClick={handleRequestSync}
+                  disabled={syncStatus === "locating"}
+                  className="inline-flex items-center gap-1 text-primary hover:text-primary/80 disabled:opacity-50 transition-colors"
+                >
+                  <RefreshCw className={cn("w-3 h-3", syncStatus === "locating" && "animate-spin")} />
+                  <span>{syncStatus === "locating" ? "מעדכן..." : syncStatus === "success" ? "עודכן ✓" : "בקש עדכון"}</span>
+                </button>
+              )}
             </div>
           </div>
           <Button variant="ghost" size="icon" onClick={() => setShowEditModal(true)} className="text-muted-foreground hover:text-foreground shrink-0 h-7 w-7">
