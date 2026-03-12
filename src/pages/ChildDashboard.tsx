@@ -341,6 +341,62 @@ export default function ChildDashboard() {
     toast({ title: "מבקש עדכון מהמכשיר...", description: "אנא המתן, זה עשוי לקחת עד 2 דקות" });
   };
 
+  // --- Ring Device polling ---
+  useEffect(() => {
+    if (!ringCommandId || ringStatus !== "locating") return;
+    const startTime = Date.now();
+    const TIMEOUT_MS = 2 * 60 * 1000;
+    const POLL_INTERVAL = 5000;
+
+    const pollRing = async () => {
+      const { data: commandData } = await supabase
+        .from("device_commands")
+        .select("status")
+        .eq("id", ringCommandId)
+        .single();
+
+      if (commandData?.status === "COMPLETED") {
+        setRingStatus("success");
+        setRingCommandId(null);
+        toast({ title: "המכשיר מצלצל", description: "הצליל הופעל בהצלחה על המכשיר" });
+        setTimeout(() => setRingStatus("idle"), 5000);
+        return;
+      }
+      if (commandData?.status === "FAILED") {
+        setRingStatus("failed");
+        setRingCommandId(null);
+        toast({ title: "לא ניתן לצלצל", description: "המכשיר לא הצליח להשמיע צליל", variant: "destructive" });
+        return;
+      }
+      if (Date.now() - startTime > TIMEOUT_MS) {
+        setRingStatus("failed");
+        setRingCommandId(null);
+        toast({ title: "המכשיר לא מגיב", description: "לא ניתן להתחבר למכשיר.", variant: "destructive" });
+        return;
+      }
+      ringPollingRef.current = setTimeout(pollRing, POLL_INTERVAL);
+    };
+    pollRing();
+    return () => { if (ringPollingRef.current) clearTimeout(ringPollingRef.current); };
+  }, [ringCommandId, ringStatus, toast]);
+
+  const handleRingDevice = async () => {
+    if (!device?.device_id) return;
+    setRingStatus("locating");
+    const { data: command, error } = await supabase
+      .from("device_commands")
+      .insert({ device_id: device.device_id, command_type: "RING_DEVICE", status: "PENDING" })
+      .select("id")
+      .single();
+    if (error || !command) {
+      toast({ title: "שגיאה", description: "לא ניתן לשלוח פקודת צלצול", variant: "destructive" });
+      setRingStatus("failed");
+      return;
+    }
+    setRingCommandId(command.id);
+    toast({ title: "שולח צלצול למכשיר...", description: "אנא המתן, זה עשוי לקחת עד 2 דקות" });
+  };
+
   const handleLocateNow = async () => {
     if (!device?.device_id) return;
     setLocateStatus("locating");
