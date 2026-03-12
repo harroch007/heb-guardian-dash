@@ -1,4 +1,4 @@
-import { Check, X, Trash2, Clock, RotateCcw, Loader2, Play } from "lucide-react";
+import { Check, X, Trash2, Clock, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,7 +9,6 @@ interface ChoreListProps {
   onApprove: (id: string) => Promise<void>;
   onReject: (id: string) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
-  onSimulateComplete?: (id: string) => Promise<void>;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
@@ -19,7 +18,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   rejected: { label: "נדחה", color: "bg-red-500/20 text-red-400 border-red-500/30" },
 };
 
-export function ChoreList({ chores, onApprove, onReject, onDelete, onSimulateComplete }: ChoreListProps) {
+export function ChoreList({ chores, onApprove, onReject, onDelete }: ChoreListProps) {
   if (chores.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
@@ -39,7 +38,7 @@ export function ChoreList({ chores, onApprove, onReject, onDelete, onSimulateCom
       {active.length > 0 && (
         <div className="space-y-2">
           {active.map(chore => (
-            <ChoreItem key={chore.id} chore={chore} onApprove={onApprove} onReject={onReject} onDelete={onDelete} onSimulateComplete={onSimulateComplete} />
+            <ChoreItem key={chore.id} chore={chore} onApprove={onApprove} onReject={onReject} onDelete={onDelete} />
           ))}
         </div>
       )}
@@ -48,7 +47,7 @@ export function ChoreList({ chores, onApprove, onReject, onDelete, onSimulateCom
         <div className="space-y-2 mt-6">
           <h3 className="text-sm font-medium text-muted-foreground px-1">הושלמו</h3>
           {done.slice(0, 10).map(chore => (
-            <ChoreItem key={chore.id} chore={chore} onApprove={onApprove} onReject={onReject} onDelete={onDelete} onSimulateComplete={onSimulateComplete} />
+            <ChoreItem key={chore.id} chore={chore} onApprove={onApprove} onReject={onReject} onDelete={onDelete} />
           ))}
         </div>
       )}
@@ -56,7 +55,7 @@ export function ChoreList({ chores, onApprove, onReject, onDelete, onSimulateCom
   );
 }
 
-function ChoreItem({ chore, onApprove, onReject, onDelete, onSimulateComplete }: { chore: Chore } & Pick<ChoreListProps, "onApprove" | "onReject" | "onDelete" | "onSimulateComplete">) {
+function ChoreItem({ chore, onApprove, onReject, onDelete }: { chore: Chore } & Pick<ChoreListProps, "onApprove" | "onReject" | "onDelete">) {
   const config = STATUS_CONFIG[chore.status] || STATUS_CONFIG.pending;
 
   return (
@@ -87,11 +86,6 @@ function ChoreItem({ chore, onApprove, onReject, onDelete, onSimulateComplete }:
                 <X className="w-4 h-4" />
               </Button>
             </>
-          )}
-          {chore.status === "pending" && onSimulateComplete && (
-            <Button size="icon" variant="ghost" className="h-8 w-8 text-blue-400 hover:text-blue-300 hover:bg-blue-500/10" onClick={() => onSimulateComplete(chore.id)} title="סמן כבוצע (סימולציה)">
-              <Play className="w-4 h-4" />
-            </Button>
           )}
           {(chore.status === "pending" || chore.status === "rejected") && (
             <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => onDelete(chore.id)}>
