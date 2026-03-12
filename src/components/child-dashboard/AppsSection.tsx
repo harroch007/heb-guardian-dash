@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Shield, ChevronDown, ChevronUp } from "lucide-react";
+import { isSystemApp } from "@/lib/appUtils";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AppControlsList } from "@/components/controls";
