@@ -1,38 +1,34 @@
 
+# Kippy Control — Phase A Status: ✅ COMPLETE
 
-## הוספת אפליקציות נוספות לרשימת הסינון
+## Completed ✅
 
-**קובץ: `src/lib/appUtils.ts`**
+### Data Model Migration
+- `installed_apps` table — full device app inventory with RLS
+- `schedule_windows` table — school/bedtime/shabbat schedules with RLS + CRUD policies
+- `shabbat_zmanim` table — date-based (YYYY-MM-DD) candle lighting / havdalah lookup
+- `report_installed_apps` RPC — SECURITY DEFINER, device bulk upserts
+- `get_device_settings` RPC — extended to include `schedule_windows` array + `next_shabbat` object
 
-### חבילות להוספה ל-`SYSTEM_APPS_TO_HIDE`:
-- `com.sec.android.app.clockpackage` — שעון (Samsung)
-- `com.google.android.deskclock` — שעון (Google)
-- `com.microsoft.appmanager` — קישור אל Windows
-- `com.samsung.android.app.dressroom` — עקבות מערכת (System Tracing)
-- `com.android.traceur` — System Tracing
-- `com.samsung.accessibility` — נגישות
-- `com.google.android.apps.maps` — מפות
-- `com.google.android.calendar` — לוח שנה
-- `com.samsung.android.calendar` — לוח שנה Samsung
-- `com.sec.android.app.myfiles` — הקבצים שלי
-- `com.samsung.android.arzone` — אזור AR
-- `com.samsung.android.app.watchmanagerstub` — Wearable Manager Installer
-- `com.samsung.android.samsungpass` — Samsung Pass
-- `com.microsoft.office.powerpoint` — PowerPoint
-- `com.google.android.apps.playconsole` — Play Console
-- `com.google.android.apps.photos` — תמונות
-- `com.microsoft.skydrive` — OneDrive
-- `com.google.android.apps.meetings` — Meet
-- `com.sec.android.app.samsungapps` — Galaxy Store
-- `com.samsung.android.bixby.agent` — Bixby Voice
-- `com.samsung.android.voc` — Bixby Voice (variant)
-- `android.autoinstalls.config` — Android Switch / auto config
+### Data Population
+- `shabbat_zmanim` populated with 118 rows (2026-01-02 → 2028-03-31)
+- Source: Hebcal API, Jerusalem, havdalah = sunset + 40 min (product policy)
 
-### מילות מפתח להוספה ל-`SYSTEM_KEYWORDS`:
-- `"bixby"` — כל אפליקציות Bixby
-- `"samsungpass"` — Samsung Pass variants
-- `"arzone"` — AR Zone variants
-- `"wearable"` — Wearable installers
+## Completed (Phase B - Sync Fixes) ✅
+- Dashboard auto-refresh every 60 seconds (polling `parent_home_snapshot`)
+- SyncNotice filters commands older than 5 minutes (`device_commands` query)
 
-שינוי בקובץ אחד בלבד.
+## Android-side fixes (for Android agent):
+1. **Fix enforcement in AccessibilityService** — compare foreground app against blocked list
+2. **Add Realtime subscription** for `device_commands` in ForegroundService
+3. **Implement heartbeat reporting** — fill `sendDeviceHealthStatus` with `report_device_heartbeat` RPC
+4. **Add periodic usage reporting** — call `upsert_app_usage` every 5-10 minutes on a timer
 
+## Next Steps (Phase B - UI)
+- Refactor ChildDashboard into 4-tab layout (סקירה / אפליקציות / זמן מסך / מכשיר)
+- Move existing components to their respective tabs
+
+## Phase C (after B)
+- Apps tab: installed_apps inventory UI
+- Screen Time tab: schedule windows CRUD UI + Shabbat toggle
+- Device tab: polished health view
