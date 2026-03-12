@@ -194,8 +194,9 @@ export function useChildControls(childId: string | undefined) {
       setTodayBonusMinutes(0);
     }
 
-    // Commands scoped to child's devices only
+    // Commands scoped to child's devices only (last 5 minutes to avoid stale UI)
     const childDeviceIds = devicesRes.data?.map((d) => d.device_id) || [];
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
     if (childDeviceIds.length > 0) {
       const { data: commandsData } = await supabase
         .from("device_commands")
@@ -203,6 +204,7 @@ export function useChildControls(childId: string | undefined) {
         .eq("command_type", "REFRESH_SETTINGS")
         .in("device_id", childDeviceIds)
         .in("status", ["PENDING", "ACKNOWLEDGED", "FAILED", "TIMED_OUT"])
+        .gte("created_at", fiveMinutesAgo)
         .order("created_at", { ascending: false })
         .limit(10);
 

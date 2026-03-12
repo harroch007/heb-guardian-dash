@@ -143,61 +143,70 @@ export default function ChildDashboard() {
   const totalUsageMinutes = appUsage.reduce((sum, app) => sum + (app.usage_minutes || 0), 0);
   const blockedCount = appPolicies.filter((p) => p.is_blocked).length;
 
+  const fetchDashboardData = async (isPolling = false) => {
+    if (!childId || !user) return;
+    if (!isPolling) setLoading(true);
+
+    const { data: childData } = await supabase
+      .from("children")
+      .select("*")
+      .eq("id", childId)
+      .eq("parent_id", user.id)
+      .maybeSingle();
+
+    if (!childData) {
+      if (!isPolling) navigate("/family");
+      return;
+    }
+    setChild(childData);
+
+    const { data: deviceData } = await supabase
+      .from("devices")
+      .select("*")
+      .eq("child_id", childId)
+      .order("last_seen", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    setDevice(deviceData);
+
+    const { data: snapshotData } = await supabase
+      .from("parent_home_snapshot")
+      .select("top_apps, total_usage_minutes")
+      .eq("child_id", childId)
+      .maybeSingle();
+
+    if (snapshotData?.top_apps && Array.isArray(snapshotData.top_apps)) {
+      setAppUsage(snapshotData.top_apps as unknown as AppUsage[]);
+    }
+    if (snapshotData?.total_usage_minutes != null) {
+      setTotalUsageFromDb(snapshotData.total_usage_minutes);
+    }
+
+    const { data: settingsData } = await supabase
+      .from("settings")
+      .select("daily_screen_time_limit_minutes")
+      .eq("child_id", childId)
+      .maybeSingle();
+
+    if (settingsData) {
+      setScreenTimeLimit(settingsData.daily_screen_time_limit_minutes);
+    }
+
+    if (!isPolling) setLoading(false);
+  };
+
+  // Initial fetch
   useEffect(() => {
-    const fetchData = async () => {
-      if (!childId || !user) return;
-      setLoading(true);
-
-      const { data: childData } = await supabase
-        .from("children")
-        .select("*")
-        .eq("id", childId)
-        .eq("parent_id", user.id)
-        .maybeSingle();
-
-      if (!childData) {
-        navigate("/family");
-        return;
-      }
-      setChild(childData);
-
-      const { data: deviceData } = await supabase
-        .from("devices")
-        .select("*")
-        .eq("child_id", childId)
-        .order("last_seen", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      setDevice(deviceData);
-
-      const { data: snapshotData } = await supabase
-        .from("parent_home_snapshot")
-        .select("top_apps, total_usage_minutes")
-        .eq("child_id", childId)
-        .maybeSingle();
-
-      if (snapshotData?.top_apps && Array.isArray(snapshotData.top_apps)) {
-        setAppUsage(snapshotData.top_apps as unknown as AppUsage[]);
-      }
-      if (snapshotData?.total_usage_minutes != null) {
-        setTotalUsageFromDb(snapshotData.total_usage_minutes);
-      }
-
-      const { data: settingsData } = await supabase
-        .from("settings")
-        .select("daily_screen_time_limit_minutes")
-        .eq("child_id", childId)
-        .maybeSingle();
-
-      if (settingsData) {
-        setScreenTimeLimit(settingsData.daily_screen_time_limit_minutes);
-      }
-
-      setLoading(false);
-    };
-    fetchData();
+    fetchDashboardData(false);
   }, [childId, user, navigate]);
+
+  // Poll every 60 seconds for fresh usage data
+  useEffect(() => {
+    if (!childId || !user) return;
+    const interval = setInterval(() => fetchDashboardData(true), 60_000);
+    return () => clearInterval(interval);
+  }, [childId, user]);
 
   useEffect(() => {
     if (!device?.device_id) return;
