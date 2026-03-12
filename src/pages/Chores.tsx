@@ -35,7 +35,7 @@ export default function Chores() {
       });
   }, [user]);
 
-  const { chores, rewardBank, loading, addChore, approveChore, rejectChore, deleteChore, simulateComplete } = useChores(selectedChildId);
+  const { chores, rewardBank, loading, addChore, approveChore, rejectChore, deleteChore } = useChores(selectedChildId);
 
   return (
     <DashboardLayout>
