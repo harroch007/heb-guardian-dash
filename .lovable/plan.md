@@ -1,34 +1,61 @@
 
-# Kippy Control — Phase A Status: ✅ COMPLETE
 
-## Completed ✅
+## תוכנית: כפתור "קרא למכשיר" (Ring Device)
 
-### Data Model Migration
-- `installed_apps` table — full device app inventory with RLS
-- `schedule_windows` table — school/bedtime/shabbat schedules with RLS + CRUD policies
-- `shabbat_zmanim` table — date-based (YYYY-MM-DD) candle lighting / havdalah lookup
-- `report_installed_apps` RPC — SECURITY DEFINER, device bulk upserts
-- `get_device_settings` RPC — extended to include `schedule_windows` array + `next_shabbat` object
+### רעיון
+ההורה לוחץ כפתור → נשלחת פקודת `RING_DEVICE` לטבלת `device_commands` → אפליקציית האנדרואיד מזהה את הפקודה ומשמיעה צליל בעוצמה מלאה גם אם המכשיר על שקט → ההורה רואה סטטוס (ממתין / מצלצל / נכשל).
 
-### Data Population
-- `shabbat_zmanim` populated with 118 rows (2026-01-02 → 2028-03-31)
-- Source: Hebcal API, Jerusalem, havdalah = sunset + 40 min (product policy)
+---
 
-## Completed (Phase B - Sync Fixes) ✅
-- Dashboard auto-refresh every 60 seconds (polling `parent_home_snapshot`)
-- SyncNotice filters commands older than 5 minutes (`device_commands` query)
+### צד Web (UI)
 
-## Android-side fixes (for Android agent):
-1. **Fix enforcement in AccessibilityService** — compare foreground app against blocked list
-2. **Add Realtime subscription** for `device_commands` in ForegroundService
-3. **Implement heartbeat reporting** — fill `sendDeviceHealthStatus` with `report_device_heartbeat` RPC
-4. **Add periodic usage reporting** — call `upsert_app_usage` every 5-10 minutes on a timer
+**קובץ: `src/pages/ChildDashboard.tsx`**
+- הוספת כפתור "קרא למכשיר" (עם אייקון `Volume2` או `Phone`) בסקשן המיקום או כפעולה עצמאית ליד כפתור "אתר עכשיו"
+- שימוש חוזר בדפוס הקיים של `handleLocateNow` — state חדש `ringStatus` + `ringCommandId` + `ringPollingRef`
+- הכפתור מכניס שורה ל-`device_commands` עם `command_type: "RING_DEVICE"`
+- פולינג על הסטטוס עם timeout של 2 דקות (כמו locate/sync)
+- מצבי UI: "מצלצל..." (spinner) → "המכשיר מצלצל ✓" (הצלחה) → "המכשיר לא מגיב" (כישלון)
 
-## Next Steps (Phase B - UI)
-- Refactor ChildDashboard into 4-tab layout (סקירה / אפליקציות / זמן מסך / מכשיר)
-- Move existing components to their respective tabs
+**מיקום בממשק**: כפתור נוסף בשורה של "אתר עכשיו" בתוך `LocationSection`, או כפעולה נפרדת מעל הסקשנים
 
-## Phase C (after B)
-- Apps tab: installed_apps inventory UI
-- Screen Time tab: schedule windows CRUD UI + Shabbat toggle
-- Device tab: polished health view
+---
+
+### צד Supabase
+
+**אין שינוי בסכמה** — טבלת `device_commands` כבר תומכת בכל `command_type` כ-string חופשי. פשוט נשתמש ב-`"RING_DEVICE"`.
+
+---
+
+### מה לבקש מסוכן האנדרואיד
+
+הסוכן צריך לממש handler ל-`command_type = "RING_DEVICE"` שעושה את הדברים הבאים:
+
+1. **זיהוי הפקודה**: להאזין ב-Realtime (או בפולינג) לשורות חדשות ב-`device_commands` עם `command_type = 'RING_DEVICE'` ו-`status = 'PENDING'`
+
+2. **עדכון סטטוס**: מיד כשמקבל → לעדכן `status = 'ACKNOWLEDGED'`
+
+3. **השמעת צליל בעוצמה מלאה**:
+   - לשמור את הגדרות הווליום הנוכחיות של המכשיר (ringtone stream)
+   - להעביר את ה-`AudioManager` למצב `STREAM_RING` בעוצמה מקסימלית
+   - להשתמש ב-`RingtoneManager.getDefaultUri(TYPE_ALARM)` או `TYPE_RINGTONE` להשמעת צליל
+   - להפעיל את הצליל למשך 30 שניות (או עד שהמשתמש מכבה)
+   - **חשוב**: להשתמש ב-`AudioManager.setStreamVolume(STREAM_ALARM, maxVolume, 0)` כדי לעקוף מצב שקט/רטט
+
+4. **אפשרות עצירה**: הילד יכול ללחוץ על נוטיפיקציה או כפתור על המסך כדי לעצור את הצלצול
+
+5. **עדכון סיום**: כשהצליל התחיל בהצלחה → `status = 'COMPLETED'`. אם נכשל → `status = 'FAILED'` עם `result` שמסביר למה
+
+6. **שחזור**: אחרי העצירה, להחזיר את הווליום למצב המקורי
+
+**Android permissions נדרשות**: אין הרשאות נוספות — `AudioManager` ו-`RingtoneManager` לא דורשים הרשאה מיוחדת. אם רוצים לעקוף Do Not Disturb צריך `ACCESS_NOTIFICATION_POLICY`.
+
+---
+
+### סיכום
+
+| רכיב | עבודה |
+|-------|-------|
+| Web UI | כפתור + polling (דפוס קיים, ~50 שורות) |
+| Supabase | אין שינוי |
+| Android | handler חדש ל-`RING_DEVICE` עם AudioManager |
+
