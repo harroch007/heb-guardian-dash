@@ -280,6 +280,9 @@ export function ScreenTimeSection({
                   );
                 })}
               </div>
+              <p className="text-[11px] text-muted-foreground/70 mt-2 px-1">
+                * זמן המסך הכולל כולל גם אפליקציות מערכת ורקע. כאן מוצגות רק האפליקציות בהן הילד השתמש באופן פעיל.
+              </p>
             )}
 
             {filteredApps.length === 0 && (
