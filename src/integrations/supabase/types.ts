@@ -933,6 +933,63 @@ export type Database = {
           },
         ]
       }
+      chores: {
+        Row: {
+          approved_at: string | null
+          child_id: string
+          completed_at: string | null
+          created_at: string
+          id: string
+          is_recurring: boolean
+          parent_id: string
+          recurrence_days: number[] | null
+          reward_minutes: number
+          status: string
+          title: string
+        }
+        Insert: {
+          approved_at?: string | null
+          child_id: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          is_recurring?: boolean
+          parent_id: string
+          recurrence_days?: number[] | null
+          reward_minutes?: number
+          status?: string
+          title: string
+        }
+        Update: {
+          approved_at?: string | null
+          child_id?: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          is_recurring?: boolean
+          parent_id?: string
+          recurrence_days?: number[] | null
+          reward_minutes?: number
+          status?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chores_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chores_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "parents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_groups: {
         Row: {
           color: string | null
@@ -1573,6 +1630,77 @@ export type Database = {
         }
         Relationships: []
       }
+      reward_bank: {
+        Row: {
+          balance_minutes: number
+          child_id: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          balance_minutes?: number
+          child_id: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          balance_minutes?: number
+          child_id?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reward_bank_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: true
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reward_transactions: {
+        Row: {
+          amount_minutes: number
+          child_id: string
+          chore_id: string | null
+          created_at: string
+          id: string
+          source: string
+        }
+        Insert: {
+          amount_minutes: number
+          child_id: string
+          chore_id?: string | null
+          created_at?: string
+          id?: string
+          source: string
+        }
+        Update: {
+          amount_minutes?: number
+          child_id?: string
+          chore_id?: string | null
+          created_at?: string
+          id?: string
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reward_transactions_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reward_transactions_chore_id_fkey"
+            columns: ["chore_id"]
+            isOneToOne: false
+            referencedRelation: "chores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       schedule_windows: {
         Row: {
           child_id: string
@@ -2061,6 +2189,7 @@ export type Database = {
         }
         Returns: Json
       }
+      approve_chore: { Args: { p_chore_id: string }; Returns: Json }
       check_unresponsive_devices: { Args: never; Returns: undefined }
       claim_alert_events: {
         Args: { _event_type: string; _lease_seconds?: number; _limit?: number }
@@ -2203,6 +2332,11 @@ export type Database = {
           success: boolean
         }[]
       }
+      redeem_reward_minutes: {
+        Args: { p_child_id: string; p_minutes: number }
+        Returns: Json
+      }
+      reject_chore: { Args: { p_chore_id: string }; Returns: Json }
       report_device_heartbeat: {
         Args: {
           p_child_id: string

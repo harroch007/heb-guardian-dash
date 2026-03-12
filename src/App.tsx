@@ -32,6 +32,7 @@ import AdminLogin from "./pages/AdminLogin";
 import Admin from "./pages/Admin";
 import Checkout from "./pages/Checkout";
 import ImpersonateSession from "./pages/ImpersonateSession";
+import Chores from "./pages/Chores";
 
 // Demo pages
 import DemoDashboard from "./pages/demo/DemoDashboard";
@@ -79,12 +80,18 @@ const AppRoutes = () => {
         element={isDemoMode ? <DemoAlerts /> : <ProtectedRoute><AlertsPage /></ProtectedRoute>}
       />
       
+      {/* Chores - protected */}
+      <Route
+        path="/chores"
+        element={<ProtectedRoute><Chores /></ProtectedRoute>}
+      />
+      
       {/* Settings - demo or protected */}
       <Route
         path="/settings"
         element={isDemoMode ? <DemoSettings /> : <ProtectedRoute><SettingsPage /></ProtectedRoute>}
       />
-      
+
       {/* Daily Report - demo or protected */}
       <Route
         path="/daily-report/:childId"

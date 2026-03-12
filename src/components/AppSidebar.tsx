@@ -1,4 +1,4 @@
-import { Home, Bell, Settings, Users, LogOut } from "lucide-react";
+import { Home, Bell, Settings, Users, LogOut, ClipboardList } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -9,6 +9,7 @@ import kippyLogo from "@/assets/kippy-logo.svg";
 const navItems = [
   { title: "בית", url: "/dashboard", icon: Home },
   { title: "המשפחה שלי", url: "/family", icon: Users },
+  { title: "משימות", url: "/chores", icon: ClipboardList },
   { title: "התראות", url: "/alerts", icon: Bell },
   { title: "הגדרות", url: "/settings", icon: Settings },
 ];
