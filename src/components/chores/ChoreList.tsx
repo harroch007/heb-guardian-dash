@@ -39,7 +39,7 @@ export function ChoreList({ chores, onApprove, onReject, onDelete, onSimulateCom
       {active.length > 0 && (
         <div className="space-y-2">
           {active.map(chore => (
-            <ChoreItem key={chore.id} chore={chore} onApprove={onApprove} onReject={onReject} onDelete={onDelete} />
+            <ChoreItem key={chore.id} chore={chore} onApprove={onApprove} onReject={onReject} onDelete={onDelete} onSimulateComplete={onSimulateComplete} />
           ))}
         </div>
       )}
