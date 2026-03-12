@@ -80,12 +80,18 @@ const AppRoutes = () => {
         element={isDemoMode ? <DemoAlerts /> : <ProtectedRoute><AlertsPage /></ProtectedRoute>}
       />
       
+      {/* Chores - protected */}
+      <Route
+        path="/chores"
+        element={<ProtectedRoute><Chores /></ProtectedRoute>}
+      />
+      
       {/* Settings - demo or protected */}
       <Route
         path="/settings"
         element={isDemoMode ? <DemoSettings /> : <ProtectedRoute><SettingsPage /></ProtectedRoute>}
       />
-      
+
       {/* Daily Report - demo or protected */}
       <Route
         path="/daily-report/:childId"

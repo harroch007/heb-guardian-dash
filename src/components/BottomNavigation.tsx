@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 const navItems = [
   { title: "בית", url: "/dashboard", icon: Home },
   { title: "משפחה", url: "/family", icon: Users },
+  { title: "משימות", url: "/chores", icon: ClipboardList },
   { title: "התראות", url: "/alerts", icon: Bell },
   { title: "הגדרות", url: "/settings", icon: Settings },
 ];
