@@ -593,6 +593,8 @@ export default function ChildDashboard() {
               setShowMap={setShowMap}
               handleLocateNow={handleLocateNow}
               getLocateButtonContent={getLocateButtonContent}
+              ringStatus={ringStatus}
+              handleRingDevice={handleRingDevice}
             />
 
             <AppsSection
