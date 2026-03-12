@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Clock, Gamepad2, MessageCircle, Video, Globe, Settings2 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
+import { isSystemApp } from '@/lib/appUtils';
 
 interface AppUsageData {
   app_name: string | null;
@@ -17,52 +18,7 @@ interface ScreenTimeCardProps {
   onSettingsClick?: () => void;
 }
 
-// System apps to filter out (not real user apps)
-const SYSTEM_APPS_TO_FILTER = [
-  'com.google.android.permissioncontroller',
-  'com.android.systemui',
-  'com.android.settings',
-  'com.google.android.gms',
-  'com.google.android.gsf',
-  'com.android.providers',
-  'com.samsung.android.app.routines',
-  'com.sec.android.app.launcher',
-  'com.miui.home',
-  'com.android.launcher',
-  'com.android.packageinstaller',
-  'com.android.bluetooth',
-  'com.android.nfc',
-  'com.samsung.android.lool',
-  'com.facebook.appmanager',
-  'com.android.vending',
-  'com.google.android.packageinstaller',
-  'com.samsung.accessibility',
-  'com.samsung.android.messaging',
-  'com.sec.android.gallery3d',
-  'com.sec.android.app.myfiles',
-  'com.samsung.android.dialer',
-  'com.samsung.android.contacts',
-  'com.samsung.android.calendar',
-  'com.samsung.android.app.camera',
-  'com.samsung.android.incallui',
-  'com.samsung.android.app.notes',
-  'com.samsung.android.app.clock',
-  'com.samsung.android.app.calculator',
-  'com.samsung.android.app.soundpicker',
-];
-
-const SYSTEM_KEYWORDS = [
-  'systemui', 'devicecare', 'accessibility', 'gallery', 'dialer',
-  'contacts', 'calendar', 'camera', 'launcher', 'incallui',
-  'maintenance', 'devicehealth', 'setupwizard', 'inputmethod', 'lool',
-];
-
-// Check if app is a system app that should be filtered
-const isSystemApp = (packageName: string): boolean => {
-  const pkg = packageName.toLowerCase();
-  return SYSTEM_APPS_TO_FILTER.some(systemPkg => pkg.startsWith(systemPkg.toLowerCase())) ||
-    SYSTEM_KEYWORDS.some(kw => pkg.includes(kw));
-};
+// Use shared isSystemApp from appUtils
 
 // Category colors using design system colors
 const CATEGORY_COLORS = {
