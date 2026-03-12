@@ -64,9 +64,16 @@ export function useChores(childId: string | null) {
       .on("postgres_changes", { event: "*", schema: "public", table: "reward_bank", filter: `child_id=eq.${childId}` }, () => fetchRewardBank())
       .subscribe();
 
+    // Polling fallback every 30 seconds
+    const pollInterval = setInterval(() => {
+      fetchChores();
+      fetchRewardBank();
+    }, 30_000);
+
     return () => {
       supabase.removeChannel(choresChannel);
       supabase.removeChannel(bankChannel);
+      clearInterval(pollInterval);
     };
   }, [childId, fetchChores, fetchRewardBank]);
 
@@ -112,5 +119,14 @@ export function useChores(childId: string | null) {
     }
   };
 
-  return { chores, rewardBank, loading, addChore, approveChore, rejectChore, deleteChore };
+  const simulateComplete = async (choreId: string) => {
+    const { data, error } = await supabase.rpc("complete_chore", { p_chore_id: choreId });
+    if (error || !(data as any)?.success) {
+      toast({ title: "שגיאה", description: (data as any)?.error || "לא ניתן לסמן כבוצע", variant: "destructive" });
+    } else {
+      toast({ title: "סומן כבוצע ✅", description: "ממתין לאישור הורה" });
+    }
+  };
+
+  return { chores, rewardBank, loading, addChore, approveChore, rejectChore, deleteChore, simulateComplete };
 }

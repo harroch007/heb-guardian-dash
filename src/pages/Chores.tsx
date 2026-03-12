@@ -35,7 +35,7 @@ export default function Chores() {
       });
   }, [user]);
 
-  const { chores, rewardBank, loading, addChore, approveChore, rejectChore, deleteChore } = useChores(selectedChildId);
+  const { chores, rewardBank, loading, addChore, approveChore, rejectChore, deleteChore, simulateComplete } = useChores(selectedChildId);
 
   return (
     <DashboardLayout>
@@ -79,7 +79,7 @@ export default function Chores() {
             {[1, 2, 3].map(i => <Skeleton key={i} className="h-16 w-full" />)}
           </div>
         ) : (
-          <ChoreList chores={chores} onApprove={approveChore} onReject={rejectChore} onDelete={deleteChore} />
+          <ChoreList chores={chores} onApprove={approveChore} onReject={rejectChore} onDelete={deleteChore} onSimulateComplete={simulateComplete} />
         )}
       </div>
     </DashboardLayout>
