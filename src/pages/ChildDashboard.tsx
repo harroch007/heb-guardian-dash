@@ -110,6 +110,10 @@ export default function ChildDashboard() {
   const [syncCommandId, setSyncCommandId] = useState<string | null>(null);
   const syncPollingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const [ringStatus, setRingStatus] = useState<LocateStatus>("idle");
+  const [ringCommandId, setRingCommandId] = useState<string | null>(null);
+  const ringPollingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const {
     appPolicies,
     blockedAttempts,
