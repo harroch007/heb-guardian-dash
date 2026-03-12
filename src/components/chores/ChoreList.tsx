@@ -19,7 +19,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   rejected: { label: "נדחה", color: "bg-red-500/20 text-red-400 border-red-500/30" },
 };
 
-export function ChoreList({ chores, onApprove, onReject, onDelete }: ChoreListProps) {
+export function ChoreList({ chores, onApprove, onReject, onDelete, childName }: ChoreListProps) {
   if (chores.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
@@ -39,7 +39,7 @@ export function ChoreList({ chores, onApprove, onReject, onDelete }: ChoreListPr
       {active.length > 0 && (
         <div className="space-y-2">
           {active.map(chore => (
-            <ChoreItem key={chore.id} chore={chore} onApprove={onApprove} onReject={onReject} onDelete={onDelete} />
+            <ChoreItem key={chore.id} chore={chore} onApprove={onApprove} onReject={onReject} onDelete={onDelete} childName={childName} />
           ))}
         </div>
       )}
@@ -48,7 +48,7 @@ export function ChoreList({ chores, onApprove, onReject, onDelete }: ChoreListPr
         <div className="space-y-2 mt-6">
           <h3 className="text-sm font-medium text-muted-foreground px-1">הושלמו</h3>
           {done.slice(0, 10).map(chore => (
-            <ChoreItem key={chore.id} chore={chore} onApprove={onApprove} onReject={onReject} onDelete={onDelete} />
+            <ChoreItem key={chore.id} chore={chore} onApprove={onApprove} onReject={onReject} onDelete={onDelete} childName={childName} />
           ))}
         </div>
       )}
