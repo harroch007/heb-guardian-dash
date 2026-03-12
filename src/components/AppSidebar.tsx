@@ -1,4 +1,4 @@
-import { Home, Bell, Settings, Users, LogOut } from "lucide-react";
+import { Home, Bell, Settings, Users, LogOut, ClipboardList } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
