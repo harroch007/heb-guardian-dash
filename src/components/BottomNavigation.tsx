@@ -1,5 +1,5 @@
 import { forwardRef } from "react";
-import { Home, Users, Bell, Settings } from "lucide-react";
+import { Home, Users, Bell, Settings, ClipboardList } from "lucide-react";
 import { NavLink as RouterNavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
