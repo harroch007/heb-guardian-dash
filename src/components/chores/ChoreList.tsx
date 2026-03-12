@@ -48,7 +48,7 @@ export function ChoreList({ chores, onApprove, onReject, onDelete, onSimulateCom
         <div className="space-y-2 mt-6">
           <h3 className="text-sm font-medium text-muted-foreground px-1">הושלמו</h3>
           {done.slice(0, 10).map(chore => (
-            <ChoreItem key={chore.id} chore={chore} onApprove={onApprove} onReject={onReject} onDelete={onDelete} />
+            <ChoreItem key={chore.id} chore={chore} onApprove={onApprove} onReject={onReject} onDelete={onDelete} onSimulateComplete={onSimulateComplete} />
           ))}
         </div>
       )}
