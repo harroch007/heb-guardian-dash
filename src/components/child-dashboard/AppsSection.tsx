@@ -41,7 +41,7 @@ export function AppsSection({
   const [expanded, setExpanded] = useState(false);
 
   const policyPackages = new Set(appPolicies.map((p) => p.package_name));
-  const pendingApps = installedApps.filter((app) => !policyPackages.has(app.package_name));
+  const pendingApps = installedApps.filter((app) => !policyPackages.has(app.package_name) && !isSystemApp(app.package_name));
 
   const filteredUsage = appUsage.filter((app) => {
     if (filter === "blocked") {
