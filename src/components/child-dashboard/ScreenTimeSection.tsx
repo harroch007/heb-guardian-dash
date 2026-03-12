@@ -254,35 +254,37 @@ export function ScreenTimeSection({
 
             {/* Top apps — compact list, no bars */}
             {filteredApps.length > 0 && (
-              <div className="space-y-0.5">
-                {filteredApps.map((app) => {
-                  const iconInfo = getAppIconInfo(app.package_name);
-                  const Icon = iconInfo.icon;
+              <>
+                <div className="space-y-0.5">
+                  {filteredApps.map((app) => {
+                    const iconInfo = getAppIconInfo(app.package_name);
+                    const Icon = iconInfo.icon;
 
-                  return (
-                    <div
-                      key={app.package_name}
-                      className="flex items-center gap-2.5 py-1.5 px-1"
-                    >
+                    return (
                       <div
-                        className="w-6 h-6 rounded-md flex items-center justify-center shrink-0"
-                        style={{ backgroundColor: iconInfo.bgColor }}
+                        key={app.package_name}
+                        className="flex items-center gap-2.5 py-1.5 px-1"
                       >
-                        <Icon className="w-3 h-3" style={{ color: iconInfo.color }} />
+                        <div
+                          className="w-6 h-6 rounded-md flex items-center justify-center shrink-0"
+                          style={{ backgroundColor: iconInfo.bgColor }}
+                        >
+                          <Icon className="w-3 h-3" style={{ color: iconInfo.color }} />
+                        </div>
+                        <span className="text-xs font-medium truncate flex-1">
+                          {app.app_name || app.package_name.split(".").pop()}
+                        </span>
+                        <span className="text-xs text-muted-foreground shrink-0">
+                          {formatScreenTime(app.usage_minutes)}
+                        </span>
                       </div>
-                      <span className="text-xs font-medium truncate flex-1">
-                        {app.app_name || app.package_name.split(".").pop()}
-                      </span>
-                      <span className="text-xs text-muted-foreground shrink-0">
-                        {formatScreenTime(app.usage_minutes)}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-              <p className="text-[11px] text-muted-foreground/70 mt-2 px-1">
-                * זמן המסך הכולל כולל גם אפליקציות מערכת ורקע. כאן מוצגות רק האפליקציות בהן הילד השתמש באופן פעיל.
-              </p>
+                    );
+                  })}
+                </div>
+                <p className="text-[11px] text-muted-foreground/70 mt-2 px-1">
+                  * זמן המסך הכולל כולל גם אפליקציות מערכת ורקע. כאן מוצגות רק האפליקציות בהן הילד השתמש באופן פעיל.
+                </p>
+              </>
             )}
 
             {filteredApps.length === 0 && (
