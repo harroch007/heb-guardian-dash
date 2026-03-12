@@ -234,6 +234,7 @@ export default function ChildDashboard() {
     return () => {
       if (pollingRef.current) clearTimeout(pollingRef.current);
       if (syncPollingRef.current) clearTimeout(syncPollingRef.current);
+      if (ringPollingRef.current) clearTimeout(ringPollingRef.current);
     };
   }, []);
 
