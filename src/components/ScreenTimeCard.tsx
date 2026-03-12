@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Clock, Gamepad2, MessageCircle, Video, Globe, Settings2 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
+import { isSystemApp } from '@/lib/appUtils';
 
 interface AppUsageData {
   app_name: string | null;
