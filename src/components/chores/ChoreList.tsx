@@ -1,4 +1,4 @@
-import { Check, X, Trash2, Clock, RotateCcw, Loader2 } from "lucide-react";
+import { Check, X, Trash2, Clock, RotateCcw, Loader2, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,7 @@ interface ChoreListProps {
   onApprove: (id: string) => Promise<void>;
   onReject: (id: string) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
+  onSimulateComplete?: (id: string) => Promise<void>;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
