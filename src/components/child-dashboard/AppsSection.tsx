@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Shield, ChevronDown, ChevronUp } from "lucide-react";
+import { isSystemApp } from "@/lib/appUtils";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AppControlsList } from "@/components/controls";
@@ -40,7 +41,7 @@ export function AppsSection({
   const [expanded, setExpanded] = useState(false);
 
   const policyPackages = new Set(appPolicies.map((p) => p.package_name));
-  const pendingApps = installedApps.filter((app) => !policyPackages.has(app.package_name));
+  const pendingApps = installedApps.filter((app) => !policyPackages.has(app.package_name) && !isSystemApp(app.package_name));
 
   const filteredUsage = appUsage.filter((app) => {
     if (filter === "blocked") {

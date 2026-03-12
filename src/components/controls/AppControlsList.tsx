@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getAppIconInfo } from "@/lib/appIcons";
+import { isSystemApp } from "@/lib/appUtils";
 import type { AppPolicy, BlockedAttemptSummary, InstalledApp } from "@/hooks/useChildControls";
 
 interface AppUsageEntry {
@@ -24,30 +25,6 @@ interface AppControlsListProps {
   onBlockApp: (packageName: string, appName: string | null) => Promise<void>;
   showPendingOnly?: boolean;
 }
-
-const SYSTEM_APPS_TO_HIDE = [
-  "com.google.android.permissioncontroller",
-  "com.android.systemui",
-  "com.android.settings",
-  "com.google.android.gms",
-  "com.android.providers",
-  "com.samsung.android.app.routines",
-  "com.sec.android.app.launcher",
-  "com.miui.home",
-  "com.android.launcher",
-  "com.android.packageinstaller",
-  "com.android.bluetooth",
-  "com.android.nfc",
-  "com.samsung.android.lool",
-  "com.facebook.appmanager",
-  "com.android.vending",
-  "com.google.android.packageinstaller",
-];
-
-const isSystemApp = (pkg: string) =>
-  SYSTEM_APPS_TO_HIDE.some((s) => pkg.toLowerCase().startsWith(s.toLowerCase())) ||
-  pkg.toLowerCase().includes("systemui") ||
-  pkg.toLowerCase().includes("devicecare");
 
 export function AppControlsList({
   childName,
