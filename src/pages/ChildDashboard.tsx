@@ -106,6 +106,10 @@ export default function ChildDashboard() {
   const [locateCommandId, setLocateCommandId] = useState<string | null>(null);
   const pollingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const [syncStatus, setSyncStatus] = useState<LocateStatus>("idle");
+  const [syncCommandId, setSyncCommandId] = useState<string | null>(null);
+  const syncPollingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const {
     appPolicies,
     blockedAttempts,
