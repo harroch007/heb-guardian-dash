@@ -32,6 +32,7 @@ import AdminLogin from "./pages/AdminLogin";
 import Admin from "./pages/Admin";
 import Checkout from "./pages/Checkout";
 import ImpersonateSession from "./pages/ImpersonateSession";
+import Chores from "./pages/Chores";
 
 // Demo pages
 import DemoDashboard from "./pages/demo/DemoDashboard";
