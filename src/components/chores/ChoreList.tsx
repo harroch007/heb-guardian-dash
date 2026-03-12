@@ -88,6 +88,11 @@ function ChoreItem({ chore, onApprove, onReject, onDelete, onSimulateComplete }:
               </Button>
             </>
           )}
+          {chore.status === "pending" && onSimulateComplete && (
+            <Button size="icon" variant="ghost" className="h-8 w-8 text-blue-400 hover:text-blue-300 hover:bg-blue-500/10" onClick={() => onSimulateComplete(chore.id)} title="סמן כבוצע (סימולציה)">
+              <Play className="w-4 h-4" />
+            </Button>
+          )}
           {(chore.status === "pending" || chore.status === "rejected") && (
             <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => onDelete(chore.id)}>
               <Trash2 className="w-4 h-4" />
