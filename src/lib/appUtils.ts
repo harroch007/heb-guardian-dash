@@ -3,6 +3,7 @@ const SYSTEM_APPS_TO_HIDE = [
   "com.android.systemui",
   "com.android.settings",
   "com.google.android.gms",
+  "com.google.android.gsf",
   "com.android.providers",
   "com.samsung.android.app.routines",
   "com.sec.android.app.launcher",
@@ -15,9 +16,22 @@ const SYSTEM_APPS_TO_HIDE = [
   "com.facebook.appmanager",
   "com.android.vending",
   "com.google.android.packageinstaller",
+  "com.android.dialer",
+  "com.google.android.dialer",
+  "com.samsung.android.dialer",
+  "com.android.mms",
+  "com.google.android.apps.messaging",
+  "com.samsung.android.messaging",
+  "com.android.stk",
 ];
 
-export const isSystemApp = (pkg: string) =>
-  SYSTEM_APPS_TO_HIDE.some((s) => pkg.toLowerCase().startsWith(s.toLowerCase())) ||
-  pkg.toLowerCase().includes("systemui") ||
-  pkg.toLowerCase().includes("devicecare");
+const SYSTEM_KEYWORDS = [
+  "systemui", "devicecare", "launcher", "dialer", "messaging",
+  "packageinstaller", "kippy", "incallui",
+];
+
+export const isSystemApp = (pkg: string) => {
+  const lc = pkg.toLowerCase();
+  return SYSTEM_APPS_TO_HIDE.some((s) => lc.startsWith(s.toLowerCase())) ||
+    SYSTEM_KEYWORDS.some((kw) => lc.includes(kw));
+};
