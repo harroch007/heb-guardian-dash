@@ -33,6 +33,7 @@ import Admin from "./pages/Admin";
 import Checkout from "./pages/Checkout";
 import ImpersonateSession from "./pages/ImpersonateSession";
 import Chores from "./pages/Chores";
+import NextPage from "./pages/Next";
 
 // Demo pages
 import DemoDashboard from "./pages/demo/DemoDashboard";
@@ -51,6 +52,7 @@ const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/" element={<Landing />} />
+      <Route path="/next" element={<NextPage />} />
       <Route path="/auth" element={<Auth />} />
       <Route path="/install" element={<Install />} />
       <Route path="/privacy" element={<PrivacyPolicy />} />
