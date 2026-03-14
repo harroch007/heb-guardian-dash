@@ -555,6 +555,7 @@ export type Database = {
       }
       app_policies: {
         Row: {
+          always_allowed: boolean
           app_name: string | null
           blocked_at: string | null
           blocked_by: string | null
@@ -567,6 +568,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          always_allowed?: boolean
           app_name?: string | null
           blocked_at?: string | null
           blocked_by?: string | null
@@ -579,6 +581,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          always_allowed?: boolean
           app_name?: string | null
           blocked_at?: string | null
           blocked_by?: string | null
