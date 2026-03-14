@@ -1,42 +1,23 @@
 
-# Kippy Control — Phase A Status: ✅ COMPLETE
 
-## Completed ✅
+## תוכנית: הצגת שמות ההרשאות החסרות בבאנר הבעיה
 
-### Data Model Migration
-- `installed_apps` table — full device app inventory with RLS
-- `schedule_windows` table — school/bedtime/shabbat schedules with RLS + CRUD policies
-- `shabbat_zmanim` table — date-based (YYYY-MM-DD) candle lighting / havdalah lookup
-- `report_installed_apps` RPC — SECURITY DEFINER, device bulk upserts
-- `get_device_settings` RPC — extended to include `schedule_windows` array + `next_shabbat` object
+### הבעיה
+ב-`ProblemBanner.tsx`, כשיש הרשאות חסרות, מוצג רק "1 הרשאות חסרות במכשיר" בלי לפרט איזה הרשאות. המידע כבר קיים ב-`deviceHealth.permissions` ומיפוי השמות קיים ב-`DeviceHealthBanner.tsx` (`PERMISSION_LABELS`).
 
-### Data Population
-- `shabbat_zmanim` populated with 118 rows (2026-01-02 → 2028-03-31)
-- Source: Hebcal API, Jerusalem, havdalah = sunset + 40 min (product policy)
+### הפתרון
+בקובץ `src/components/child-dashboard/ProblemBanner.tsx`:
 
-## Completed (Phase B - Sync Fixes) ✅
-- Dashboard auto-refresh every 60 seconds (polling `parent_home_snapshot`)
-- SyncNotice filters commands older than 5 minutes (`device_commands` query)
+1. להוסיף מיפוי `PERMISSION_LABELS` (אותו מיפוי שכבר קיים ב-`DeviceHealthBanner`) או לייבא אותו.
+2. בשורה 33, לשנות את ה-`detail` כך שיציג את שמות ההרשאות החסרות במקום "הניטור עלול להיות חלקי".
 
-## Chores & Rewards Feature ✅
-- 3 tables: `chores`, `reward_bank`, `reward_transactions` with RLS + Realtime
-- 3 RPCs: `approve_chore`, `reject_chore`, `redeem_reward_minutes`
-- UI: `/chores` page with ChoreForm, ChoreList, RewardBankCard
-- Navigation: "משימות" tab added to sidebar + bottom nav
-- Android contract: SELECT/UPDATE chores, reward_bank; RPC redeem_reward_minutes; Realtime subscriptions
+לדוגמה, ה-detail ישתנה ל:
+`"חסר: שירות נגישות, מיקום"` (רשימה של שמות ההרשאות בעברית)
 
-## Android-side fixes (for Android agent):
-1. **Fix enforcement in AccessibilityService** — compare foreground app against blocked list
-2. **Add Realtime subscription** for `device_commands` in ForegroundService
-3. **Implement heartbeat reporting** — fill `sendDeviceHealthStatus` with `report_device_heartbeat` RPC
-4. **Add periodic usage reporting** — call `upsert_app_usage` every 5-10 minutes on a timer
-5. **Chores screen** — show pending chores, mark as completed, redeem bank minutes
+### קבצים שישתנו
+- `src/components/child-dashboard/ProblemBanner.tsx` — הוספת מיפוי שמות + שינוי detail
 
-## Next Steps (Phase B - UI)
-- Refactor ChildDashboard into 4-tab layout (סקירה / אפליקציות / זמן מסך / מכשיר)
-- Move existing components to their respective tabs
+### ללא שינוי ב
+- `DeviceHealthBanner.tsx` — נשאר כמו שהוא
+- שום קובץ אחר
 
-## Phase C (after B)
-- Apps tab: installed_apps inventory UI
-- Screen Time tab: schedule windows CRUD UI + Shabbat toggle
-- Device tab: polished health view
