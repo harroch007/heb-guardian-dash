@@ -1,0 +1,1 @@
+ALTER TABLE chores ADD COLUMN proof_photo_base64 text;
