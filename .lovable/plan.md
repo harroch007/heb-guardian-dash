@@ -1,42 +1,45 @@
 
-# Kippy Control — Phase A Status: ✅ COMPLETE
 
-## Completed ✅
+## תוכנית: הוספת `always_allowed` לאפליקציות + הסתרתן מהממשק
 
-### Data Model Migration
-- `installed_apps` table — full device app inventory with RLS
-- `schedule_windows` table — school/bedtime/shabbat schedules with RLS + CRUD policies
-- `shabbat_zmanim` table — date-based (YYYY-MM-DD) candle lighting / havdalah lookup
-- `report_installed_apps` RPC — SECURITY DEFINER, device bulk upserts
-- `get_device_settings` RPC — extended to include `schedule_windows` array + `next_shabbat` object
+### הבעיה
+אין הבחנה בין אפליקציה "מאושרת" (כפופה למגבלת זמן מסך) לבין "תמיד פתוחה". ההורה רואה 40 אפליקציות ברשימה כולל אפליקציות מערכת שאין טעם לנהל.
 
-### Data Population
-- `shabbat_zmanim` populated with 118 rows (2026-01-02 → 2028-03-31)
-- Source: Hebcal API, Jerusalem, havdalah = sunset + 40 min (product policy)
+### גישה
+אפליקציות "תמיד פתוחות" = לא נחסמות לעולם + **מוסתרות לחלוטין מממשק ההורה**. רק הסוכן צריך לדעת עליהן.
 
-## Completed (Phase B - Sync Fixes) ✅
-- Dashboard auto-refresh every 60 seconds (polling `parent_home_snapshot`)
-- SyncNotice filters commands older than 5 minutes (`device_commands` query)
+### שינויים
 
-## Chores & Rewards Feature ✅
-- 3 tables: `chores`, `reward_bank`, `reward_transactions` with RLS + Realtime
-- 3 RPCs: `approve_chore`, `reject_chore`, `redeem_reward_minutes`
-- UI: `/chores` page with ChoreForm, ChoreList, RewardBankCard
-- Navigation: "משימות" tab added to sidebar + bottom nav
-- Android contract: SELECT/UPDATE chores, reward_bank; RPC redeem_reward_minutes; Realtime subscriptions
+**1. מיגרציה — עמודה חדשה ב-`app_policies`**
+```sql
+ALTER TABLE app_policies ADD COLUMN always_allowed boolean NOT NULL DEFAULT false;
+```
 
-## Android-side fixes (for Android agent):
-1. **Fix enforcement in AccessibilityService** — compare foreground app against blocked list
-2. **Add Realtime subscription** for `device_commands` in ForegroundService
-3. **Implement heartbeat reporting** — fill `sendDeviceHealthStatus` with `report_device_heartbeat` RPC
-4. **Add periodic usage reporting** — call `upsert_app_usage` every 5-10 minutes on a timer
-5. **Chores screen** — show pending chores, mark as completed, redeem bank minutes
+**2. עדכון נתונים (insert tool) — סימון 28 האפליקציות מהרשימה**
+```sql
+UPDATE app_policies SET always_allowed = true
+WHERE child_id = '6233e88a-0212-4682-a350-442681e95a5f'
+  AND package_name IN ('com.google.android.apps.docs', 'com.microsoft.office.excel', ...);
+```
 
-## Next Steps (Phase B - UI)
-- Refactor ChildDashboard into 4-tab layout (סקירה / אפליקציות / זמן מסך / מכשיר)
-- Move existing components to their respective tabs
+**3. עדכון RPC `get_device_settings`** — הוספת `always_allowed` לכל policy object:
+```sql
+jsonb_build_object(
+  'package_name', ap.package_name,
+  'policy_status', CASE WHEN ap.is_blocked THEN 'blocked' ELSE 'approved' END,
+  'daily_limit_minutes', null,
+  'always_allowed', ap.always_allowed
+)
+```
 
-## Phase C (after B)
-- Apps tab: installed_apps inventory UI
-- Screen Time tab: schedule windows CRUD UI + Shabbat toggle
-- Device tab: polished health view
+**4. עדכון טיפוס `AppPolicy`** ב-`useChildControls.ts` — הוספת `always_allowed: boolean`
+
+**5. סינון בממשק — 2 קבצים**
+- **`AppsSection.tsx`** — סינון `appPolicies.filter(p => !p.always_allowed)` לפני העברה ל-`AppControlsList`, וכן סינון `installedApps` בהתאם. כך אפליקציות "תמיד פתוחות" לא מופיעות כלל
+- **`AppControlsList.tsx`** — ללא שינוי (הנתונים כבר מסוננים מבחוץ)
+
+### תוצאה
+- ההורה רואה רק אפליקציות שהוא יכול לנהל (חסום/פתח)
+- הסוכן מקבל `always_allowed: true` ויודע בוודאות לא לחסום אותן
+- אפליקציות מערכת שכבר מסוננות ב-`isSystemApp` ממשיכות להיות מוסתרות כרגיל
+
