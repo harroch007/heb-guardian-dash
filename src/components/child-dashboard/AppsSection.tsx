@@ -40,40 +40,44 @@ export function AppsSection({
   const [filter, setFilter] = useState<Filter>("all");
   const [expanded, setExpanded] = useState(false);
 
+  // Filter out always_allowed apps — they should never appear in the parent UI
+  const visiblePolicies = appPolicies.filter((p) => !p.always_allowed);
+  const alwaysAllowedPackages = new Set(appPolicies.filter((p) => p.always_allowed).map((p) => p.package_name));
+
   const policyPackages = new Set(appPolicies.map((p) => p.package_name));
-  const pendingApps = installedApps.filter((app) => !policyPackages.has(app.package_name) && !isSystemApp(app.package_name));
+  const visibleInstalledApps = installedApps.filter((app) => !alwaysAllowedPackages.has(app.package_name));
+  const pendingApps = visibleInstalledApps.filter((app) => !policyPackages.has(app.package_name) && !isSystemApp(app.package_name));
 
   const usagePackages = new Set(
     appUsage.filter((u) => u.usage_minutes > 0).map((u) => u.package_name)
   );
 
   const filteredUsage = appUsage.filter((app) => {
+    if (alwaysAllowedPackages.has(app.package_name)) return false;
     if (filter === "blocked") {
-      return appPolicies.some((p) => p.package_name === app.package_name && p.is_blocked);
+      return visiblePolicies.some((p) => p.package_name === app.package_name && p.is_blocked);
     }
     if (filter === "top") {
       return app.usage_minutes > 0;
     }
     if (filter === "all") {
-      // Exclude blocked and pending from "all"
-      const policy = appPolicies.find((p) => p.package_name === app.package_name);
+      const policy = visiblePolicies.find((p) => p.package_name === app.package_name);
       return policy && !policy.is_blocked;
     }
     return true;
   });
 
-  const filteredInstalled = installedApps.filter((app) => {
+  const filteredInstalled = visibleInstalledApps.filter((app) => {
     if (isSystemApp(app.package_name)) return false;
     if (filter === "blocked") {
-      return appPolicies.some((p) => p.package_name === app.package_name && p.is_blocked);
+      return visiblePolicies.some((p) => p.package_name === app.package_name && p.is_blocked);
     }
     if (filter === "new") {
       return !policyPackages.has(app.package_name);
     }
     if (filter === "all") {
-      // Only approved (has policy, not blocked, not pending)
       return policyPackages.has(app.package_name)
-        && !appPolicies.some((p) => p.package_name === app.package_name && p.is_blocked);
+        && !visiblePolicies.some((p) => p.package_name === app.package_name && p.is_blocked);
     }
     if (filter === "top") {
       return usagePackages.has(app.package_name);
@@ -82,10 +86,10 @@ export function AppsSection({
   });
 
   const filteredPolicies = (() => {
-    if (filter === "blocked") return appPolicies.filter((p) => p.is_blocked);
-    if (filter === "all") return appPolicies.filter((p) => !p.is_blocked);
-    if (filter === "top") return appPolicies.filter((p) => usagePackages.has(p.package_name));
-    return appPolicies;
+    if (filter === "blocked") return visiblePolicies.filter((p) => p.is_blocked);
+    if (filter === "all") return visiblePolicies.filter((p) => !p.is_blocked);
+    if (filter === "top") return visiblePolicies.filter((p) => usagePackages.has(p.package_name));
+    return visiblePolicies;
   })();
 
   const filters: { key: Filter; label: string; count?: number }[] = [
@@ -95,7 +99,7 @@ export function AppsSection({
     { key: "new", label: "חדשות", count: pendingApps.length },
   ];
 
-  const blockedTotal = appPolicies.filter((p) => p.is_blocked).length;
+  const blockedTotal = visiblePolicies.filter((p) => p.is_blocked).length;
 
   return (
     <div id="apps-section" className="scroll-mt-4">
