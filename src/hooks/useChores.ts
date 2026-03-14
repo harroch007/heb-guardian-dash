@@ -15,6 +15,7 @@ export interface Chore {
   completed_at: string | null;
   approved_at: string | null;
   created_at: string;
+  proof_photo_base64: string | null;
 }
 
 export interface RewardBank {
