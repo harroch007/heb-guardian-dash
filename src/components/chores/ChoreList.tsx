@@ -1,7 +1,9 @@
-import { Check, X, Trash2, Clock, RotateCcw } from "lucide-react";
+import { useState } from "react";
+import { Check, X, Trash2, Clock, RotateCcw, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import type { Chore } from "@/hooks/useChores";
 
 interface ChoreListProps {
@@ -20,6 +22,8 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
 };
 
 export function ChoreList({ chores, onApprove, onReject, onDelete, childName }: ChoreListProps) {
+  const [photoChore, setPhotoChore] = useState<Chore | null>(null);
+
   if (chores.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
@@ -30,7 +34,6 @@ export function ChoreList({ chores, onApprove, onReject, onDelete, childName }: 
     );
   }
 
-  // Group: pending/waiting first, then completed
   const active = chores.filter(c => c.status === "pending" || c.status === "completed_by_child");
   const done = chores.filter(c => c.status === "approved" || c.status === "rejected");
 
@@ -39,7 +42,7 @@ export function ChoreList({ chores, onApprove, onReject, onDelete, childName }: 
       {active.length > 0 && (
         <div className="space-y-2">
           {active.map(chore => (
-            <ChoreItem key={chore.id} chore={chore} onApprove={onApprove} onReject={onReject} onDelete={onDelete} childName={childName} />
+            <ChoreItem key={chore.id} chore={chore} onApprove={onApprove} onReject={onReject} onDelete={onDelete} childName={childName} onPhotoClick={setPhotoChore} />
           ))}
         </div>
       )}
@@ -48,26 +51,87 @@ export function ChoreList({ chores, onApprove, onReject, onDelete, childName }: 
         <div className="space-y-2 mt-6">
           <h3 className="text-sm font-medium text-muted-foreground px-1">הושלמו</h3>
           {done.slice(0, 10).map(chore => (
-            <ChoreItem key={chore.id} chore={chore} onApprove={onApprove} onReject={onReject} onDelete={onDelete} childName={childName} />
+            <ChoreItem key={chore.id} chore={chore} onApprove={onApprove} onReject={onReject} onDelete={onDelete} childName={childName} onPhotoClick={setPhotoChore} />
           ))}
         </div>
       )}
+
+      {/* Photo proof dialog */}
+      <Dialog open={!!photoChore} onOpenChange={(open) => !open && setPhotoChore(null)}>
+        <DialogContent className="max-w-md p-4">
+          <DialogTitle className="text-center text-base font-semibold">
+            תמונת הוכחה — {photoChore?.title}
+          </DialogTitle>
+          <DialogDescription className="text-center text-sm text-muted-foreground">
+            {childName ? `${childName} צירף/ה תמונה` : "תמונה שצורפה למשימה"}
+          </DialogDescription>
+          {photoChore?.proof_photo_base64 && (
+            <img
+              src={`data:image/jpeg;base64,${photoChore.proof_photo_base64}`}
+              alt="תמונת הוכחה"
+              className="w-full rounded-lg max-h-[60vh] object-contain"
+            />
+          )}
+          {photoChore?.status === "completed_by_child" && (
+            <div className="flex gap-2 mt-2">
+              <Button
+                className="flex-1"
+                variant="default"
+                onClick={async () => {
+                  await onApprove(photoChore.id);
+                  setPhotoChore(null);
+                }}
+              >
+                <Check className="w-4 h-4 ml-1" />
+                אשר
+              </Button>
+              <Button
+                className="flex-1"
+                variant="destructive"
+                onClick={async () => {
+                  await onReject(photoChore.id);
+                  setPhotoChore(null);
+                }}
+              >
+                <X className="w-4 h-4 ml-1" />
+                דחה
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
-function ChoreItem({ chore, onApprove, onReject, onDelete, childName }: { chore: Chore; childName?: string } & Pick<ChoreListProps, "onApprove" | "onReject" | "onDelete">) {
+function ChoreItem({ chore, onApprove, onReject, onDelete, childName, onPhotoClick }: { chore: Chore; childName?: string; onPhotoClick: (chore: Chore) => void } & Pick<ChoreListProps, "onApprove" | "onReject" | "onDelete">) {
   const config = STATUS_CONFIG[chore.status] || STATUS_CONFIG.pending;
+  const hasPhoto = !!chore.proof_photo_base64;
 
   return (
     <Card className={`transition-all ${chore.status === "completed_by_child" ? "border-orange-500/40 shadow-orange-500/10 shadow-md" : ""}`}>
       <CardContent className="p-3 flex items-center gap-3">
+        {/* Photo thumbnail */}
+        {hasPhoto && (
+          <button
+            onClick={() => onPhotoClick(chore)}
+            className="flex-shrink-0 w-10 h-10 rounded-lg overflow-hidden border border-border/50 hover:ring-2 hover:ring-primary/50 transition-all"
+          >
+            <img
+              src={`data:image/jpeg;base64,${chore.proof_photo_base64}`}
+              alt="הוכחה"
+              className="w-full h-full object-cover"
+            />
+          </button>
+        )}
+
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <span className={`font-medium ${chore.status === "approved" ? "line-through text-muted-foreground" : ""}`}>
               {chore.title}
             </span>
             {chore.is_recurring && <RotateCcw className="w-3 h-3 text-muted-foreground" />}
+            {hasPhoto && !hasPhoto && <Camera className="w-3.5 h-3.5 text-primary/60" />}
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <Badge variant="outline" className={config.color}>
@@ -76,6 +140,12 @@ function ChoreItem({ chore, onApprove, onReject, onDelete, childName }: { chore:
                 : config.label}
             </Badge>
             <span className="text-xs text-primary font-medium">{chore.reward_minutes} דק׳</span>
+            {hasPhoto && (
+              <button onClick={() => onPhotoClick(chore)} className="flex items-center gap-0.5 text-xs text-primary/70 hover:text-primary transition-colors">
+                <Camera className="w-3 h-3" />
+                <span>תמונה</span>
+              </button>
+            )}
           </div>
         </div>
 

@@ -945,6 +945,7 @@ export type Database = {
           id: string
           is_recurring: boolean
           parent_id: string
+          proof_photo_base64: string | null
           recurrence_days: number[] | null
           reward_minutes: number
           status: string
@@ -958,6 +959,7 @@ export type Database = {
           id?: string
           is_recurring?: boolean
           parent_id: string
+          proof_photo_base64?: string | null
           recurrence_days?: number[] | null
           reward_minutes?: number
           status?: string
@@ -971,6 +973,7 @@ export type Database = {
           id?: string
           is_recurring?: boolean
           parent_id?: string
+          proof_photo_base64?: string | null
           recurrence_days?: number[] | null
           reward_minutes?: number
           status?: string

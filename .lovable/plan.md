@@ -1,30 +1,42 @@
 
+# Kippy Control — Phase A Status: ✅ COMPLETE
 
-## תוכנית: הצגת תמונת הוכחה במשימות
+## Completed ✅
 
-### מה צריך לקרות
-1. **הוספת עמודה `proof_photo_base64`** לטבלת `chores` (text, nullable) — כי הסוכן שולח Base64
-2. **עדכון ה-interface** ב-`useChores.ts` להכיל את השדה החדש
-3. **עדכון `ChoreList.tsx`** — תמונה קטנה (thumbnail) בשורת המשימה + Dialog להצגה בגדול עם כפתורי אישור/דחייה
+### Data Model Migration
+- `installed_apps` table — full device app inventory with RLS
+- `schedule_windows` table — school/bedtime/shabbat schedules with RLS + CRUD policies
+- `shabbat_zmanim` table — date-based (YYYY-MM-DD) candle lighting / havdalah lookup
+- `report_installed_apps` RPC — SECURITY DEFINER, device bulk upserts
+- `get_device_settings` RPC — extended to include `schedule_windows` array + `next_shabbat` object
 
-### שינויים
+### Data Population
+- `shabbat_zmanim` populated with 118 rows (2026-01-02 → 2028-03-31)
+- Source: Hebcal API, Jerusalem, havdalah = sunset + 40 min (product policy)
 
-**Migration — עמודה חדשה:**
-```sql
-ALTER TABLE chores ADD COLUMN proof_photo_base64 text;
-```
+## Completed (Phase B - Sync Fixes) ✅
+- Dashboard auto-refresh every 60 seconds (polling `parent_home_snapshot`)
+- SyncNotice filters commands older than 5 minutes (`device_commands` query)
 
-**`src/hooks/useChores.ts`:**
-- הוספת `proof_photo_base64: string | null` ל-interface `Chore`
+## Chores & Rewards Feature ✅
+- 3 tables: `chores`, `reward_bank`, `reward_transactions` with RLS + Realtime
+- 3 RPCs: `approve_chore`, `reject_chore`, `redeem_reward_minutes`
+- UI: `/chores` page with ChoreForm, ChoreList, RewardBankCard
+- Navigation: "משימות" tab added to sidebar + bottom nav
+- Android contract: SELECT/UPDATE chores, reward_bank; RPC redeem_reward_minutes; Realtime subscriptions
 
-**`src/components/chores/ChoreList.tsx`:**
-- אם `chore.proof_photo_base64` קיים — מציג אייקון מצלמה קטן או thumbnail (32x32) ליד שם המשימה
-- לחיצה על התמונה/אייקון פותחת `Dialog` עם התמונה בגדול
-- בתוך ה-Dialog: כפתורי "אשר" ו"דחה" (אם הסטטוס `completed_by_child`)
-- התמונה מוצגת כ-`<img src="data:image/jpeg;base64,{value}" />`
+## Android-side fixes (for Android agent):
+1. **Fix enforcement in AccessibilityService** — compare foreground app against blocked list
+2. **Add Realtime subscription** for `device_commands` in ForegroundService
+3. **Implement heartbeat reporting** — fill `sendDeviceHealthStatus` with `report_device_heartbeat` RPC
+4. **Add periodic usage reporting** — call `upsert_app_usage` every 5-10 minutes on a timer
+5. **Chores screen** — show pending chores, mark as completed, redeem bank minutes
 
-### UX
-- תמונה קטנה מעוגלת בשורת המשימה (רק אם יש תמונה)
-- לחיצה → Dialog עם תמונה גדולה + כפתורי פעולה
-- אם אין תמונה — הכל נשאר כמו היום
+## Next Steps (Phase B - UI)
+- Refactor ChildDashboard into 4-tab layout (סקירה / אפליקציות / זמן מסך / מכשיר)
+- Move existing components to their respective tabs
 
+## Phase C (after B)
+- Apps tab: installed_apps inventory UI
+- Screen Time tab: schedule windows CRUD UI + Shabbat toggle
+- Device tab: polished health view
