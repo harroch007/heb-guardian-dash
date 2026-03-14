@@ -2219,7 +2219,12 @@ export type Database = {
         }
       }
       cleanup_old_data: { Args: never; Returns: Json }
-      complete_chore: { Args: { p_chore_id: string }; Returns: Json }
+      complete_chore:
+        | { Args: { p_chore_id: string }; Returns: Json }
+        | {
+            Args: { p_chore_id: string; p_photo_base64?: string }
+            Returns: Json
+          }
       connect_child_device: {
         Args: {
           p_device_id: string
