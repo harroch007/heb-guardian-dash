@@ -1,42 +1,41 @@
 
-# Kippy Control — Phase A Status: ✅ COMPLETE
 
-## Completed ✅
+## תוכנית: בניית עמוד /next — דף בית חדש של Kippy
 
-### Data Model Migration
-- `installed_apps` table — full device app inventory with RLS
-- `schedule_windows` table — school/bedtime/shabbat schedules with RLS + CRUD policies
-- `shabbat_zmanim` table — date-based (YYYY-MM-DD) candle lighting / havdalah lookup
-- `report_installed_apps` RPC — SECURITY DEFINER, device bulk upserts
-- `get_device_settings` RPC — extended to include `schedule_windows` array + `next_shabbat` object
+### קבצים שייווצרו
+1. **`src/pages/Next.tsx`** — העמוד החדש, 12 סקשנים בדיוק לפי המפרט
 
-### Data Population
-- `shabbat_zmanim` populated with 118 rows (2026-01-02 → 2028-03-31)
-- Source: Hebcal API, Jerusalem, havdalah = sunset + 40 min (product policy)
+### קבצים שישתנו
+2. **`src/App.tsx`** — הוספת route ל-`/next` (ציבורי, ללא ProtectedRoute)
 
-## Completed (Phase B - Sync Fixes) ✅
-- Dashboard auto-refresh every 60 seconds (polling `parent_home_snapshot`)
-- SyncNotice filters commands older than 5 minutes (`device_commands` query)
+### אין שינוי בקבצים קיימים אחרים. אין קומפוננטים חדשים.
 
-## Chores & Rewards Feature ✅
-- 3 tables: `chores`, `reward_bank`, `reward_transactions` with RLS + Realtime
-- 3 RPCs: `approve_chore`, `reject_chore`, `redeem_reward_minutes`
-- UI: `/chores` page with ChoreForm, ChoreList, RewardBankCard
-- Navigation: "משימות" tab added to sidebar + bottom nav
-- Android contract: SELECT/UPDATE chores, reward_bank; RPC redeem_reward_minutes; Realtime subscriptions
+---
 
-## Android-side fixes (for Android agent):
-1. **Fix enforcement in AccessibilityService** — compare foreground app against blocked list
-2. **Add Realtime subscription** for `device_commands` in ForegroundService
-3. **Implement heartbeat reporting** — fill `sendDeviceHealthStatus` with `report_device_heartbeat` RPC
-4. **Add periodic usage reporting** — call `upsert_app_usage` every 5-10 minutes on a timer
-5. **Chores screen** — show pending chores, mark as completed, redeem bank minutes
+### מבנה העמוד `/next`
 
-## Next Steps (Phase B - UI)
-- Refactor ChildDashboard into 4-tab layout (סקירה / אפליקציות / זמן מסך / מכשיר)
-- Move existing components to their respective tabs
+העמוד ישתמש אך ורק בקומפוננטים קיימים:
+- `LandingNavbar`, `LandingFooter`, `CookieConsent` — עוטפים את העמוד
+- `AnimatedSection` — אנימציית כניסה לכל סקשן
+- `Button` (מ-ui) — כפתורי CTA
+- `Accordion` (מ-ui) — שאלות נפוצות
+- `motion.div` (framer-motion) — אנימציית Hero
+- אייקונים מ-`lucide-react`
+- שימוש ב-`WAITLIST_MODE` ו-`useWaitlist` לכפתורים
 
-## Phase C (after B)
-- Apps tab: installed_apps inventory UI
-- Screen Time tab: schedule windows CRUD UI + Shabbat toggle
-- Device tab: polished health view
+כל 12 הסקשנים ייבנו inline בתוך `Next.tsx`, בלי ליצור קומפוננטים חדשים, בדיוק עם הטקסטים שנתת, בעברית RTL, עם אותו עיצוב כללי (רקעים, borders, rounded-2xl, spacing) של הסקשנים הקיימים בלנדינג.
+
+### סדר הסקשנים
+1. פתיח עליון (Hero) — כותרת + תת-כותרת + 2 כפתורים + כרטיס דמו התראה
+2. הבעיה האמיתית — כותרת + פסקה
+3. למה הכלים הקיימים לא מספיקים — 3 כרטיסים
+4. אות ברור במקום רעש — כותרת + טקסט + 3 דוגמאות התראה
+5. מערכת אחת בשלוש שכבות — 3 שכבות
+6. להפוך את הטלפון ממאבק לשיתוף פעולה — שלבים + טקסט
+7. מה ההורה מקבל בפועל — 4 כרטיסים
+8. דוגמאות להתראות — 3 כרטיסי התראה + טקסט
+9. שימוש אמיתי במוצר — סטטיסטיקות + טקסט
+10. תמחור — 2 חבילות
+11. קריאה לפעולה — כותרת + טקסט + כפתור
+12. שאלות נפוצות — 4 שאלות באקורדיון
+
