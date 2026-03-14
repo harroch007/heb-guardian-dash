@@ -99,7 +99,7 @@ export function AppsSection({
     { key: "new", label: "חדשות", count: pendingApps.length },
   ];
 
-  const blockedTotal = appPolicies.filter((p) => p.is_blocked).length;
+  const blockedTotal = visiblePolicies.filter((p) => p.is_blocked).length;
 
   return (
     <div id="apps-section" className="scroll-mt-4">
