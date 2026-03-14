@@ -3,6 +3,15 @@ import { cn } from "@/lib/utils";
 import type { DeviceHealthInfo } from "@/hooks/useChildControls";
 import type { DeviceStatus } from "@/lib/deviceStatus";
 
+const PERMISSION_LABELS: Record<string, string> = {
+  accessibilityEnabled: "שירות נגישות",
+  notificationListenerEnabled: "האזנה להתראות",
+  usageStatsGranted: "סטטיסטיקת שימוש",
+  locationPermissionGranted: "מיקום",
+  locationServicesEnabled: "שירותי מיקום",
+  batteryOptimizationIgnored: "אופטימיזציית סוללה",
+};
+
 interface ProblemBannerProps {
   deviceHealth: DeviceHealthInfo | null;
   status: DeviceStatus;
@@ -27,10 +36,13 @@ export function ProblemBanner({ deviceHealth, status, lastSeen }: ProblemBannerP
       ([, val]) => val === false
     );
     if (missingPerms.length > 0) {
+      const missingNames = missingPerms
+        .map(([key]) => PERMISSION_LABELS[key] || key)
+        .join(", ");
       problems.push({
         icon: ShieldAlert,
         text: `${missingPerms.length} הרשאות חסרות במכשיר`,
-        detail: "הניטור עלול להיות חלקי",
+        detail: `חסר: ${missingNames}`,
       });
     }
 
