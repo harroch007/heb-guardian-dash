@@ -40,8 +40,13 @@ export function AppsSection({
   const [filter, setFilter] = useState<Filter>("all");
   const [expanded, setExpanded] = useState(false);
 
+  // Filter out always_allowed apps — they should never appear in the parent UI
+  const visiblePolicies = appPolicies.filter((p) => !p.always_allowed);
+  const alwaysAllowedPackages = new Set(appPolicies.filter((p) => p.always_allowed).map((p) => p.package_name));
+
   const policyPackages = new Set(appPolicies.map((p) => p.package_name));
-  const pendingApps = installedApps.filter((app) => !policyPackages.has(app.package_name) && !isSystemApp(app.package_name));
+  const visibleInstalledApps = installedApps.filter((app) => !alwaysAllowedPackages.has(app.package_name));
+  const pendingApps = visibleInstalledApps.filter((app) => !policyPackages.has(app.package_name) && !isSystemApp(app.package_name));
 
   const usagePackages = new Set(
     appUsage.filter((u) => u.usage_minutes > 0).map((u) => u.package_name)

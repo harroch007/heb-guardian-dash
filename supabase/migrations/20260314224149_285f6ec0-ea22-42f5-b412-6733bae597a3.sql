@@ -1,0 +1,32 @@
+UPDATE app_policies SET always_allowed = true
+WHERE child_id = '6233e88a-0212-4682-a350-442681e95a5f'
+  AND package_name IN (
+    'com.google.android.apps.docs',
+    'com.microsoft.office.excel',
+    'com.google.android.gm',
+    'com.google.android.googlequicksearchbox',
+    'com.kippy.ai',
+    'com.google.android.apps.meetings',
+    'com.microsoft.skydrive',
+    'com.google.android.apps.photos',
+    'com.google.android.apps.playconsole',
+    'com.microsoft.office.powerpoint',
+    'com.microsoft.office.word',
+    'com.samsung.android.game.gamehome',
+    'com.sec.android.app.samsungapps',
+    'com.samsung.android.samsungpass',
+    'com.samsung.android.contacts',
+    'com.samsung.android.messaging',
+    'com.sec.android.app.myfiles',
+    'com.samsung.android.calendar',
+    'com.google.android.apps.maps',
+    'com.samsung.accessibility',
+    'com.android.traceur',
+    'com.sec.android.app.clockpackage',
+    'com.samsung.android.bixby.agent',
+    'com.samsung.android.app.watchmanagerstub',
+    'com.samsung.android.arzone',
+    'android.autoinstalls.config',
+    'com.android.stk',
+    'com.microsoft.appmanager'
+  );

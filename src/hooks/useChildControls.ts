@@ -13,6 +13,7 @@ export interface AppPolicy {
   blocked_at: string | null;
   blocked_by: string | null;
   policy_status: "approved" | "blocked";
+  always_allowed: boolean;
 }
 
 export interface BlockedAttemptSummary {
