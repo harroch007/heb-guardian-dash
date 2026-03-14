@@ -16,6 +16,7 @@ const PERMISSION_LABELS: Record<string, string> = {
   locationPermissionGranted: "מיקום",
   locationServicesEnabled: "שירותי מיקום",
   batteryOptimizationIgnored: "אופטימיזציית סוללה",
+  canDrawOverlays: "הצגה מעל אפליקציות",
 };
 
 export function DeviceHealthBanner({ health }: DeviceHealthBannerProps) {
