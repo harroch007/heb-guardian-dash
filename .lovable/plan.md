@@ -1,42 +1,43 @@
 
-# Kippy Control — Phase A Status: ✅ COMPLETE
 
-## Completed ✅
+## בעיה: מחיקת משימה לא מתעדכנת בצד הילד
 
-### Data Model Migration
-- `installed_apps` table — full device app inventory with RLS
-- `schedule_windows` table — school/bedtime/shabbat schedules with RLS + CRUD policies
-- `shabbat_zmanim` table — date-based (YYYY-MM-DD) candle lighting / havdalah lookup
-- `report_installed_apps` RPC — SECURITY DEFINER, device bulk upserts
-- `get_device_settings` RPC — extended to include `schedule_windows` array + `next_shabbat` object
+הבעיה: כשהורה מוחק משימה, השורה נמחקת מה-DB, אבל הסוכן באנדרואיד לא מקבל עדכון ומציג את המשימה מהקאש המקומי.
 
-### Data Population
-- `shabbat_zmanim` populated with 118 rows (2026-01-02 → 2028-03-31)
-- Source: Hebcal API, Jerusalem, havdalah = sunset + 40 min (product policy)
+### פתרון: טריגר שולח פקודת רענון למכשיר
 
-## Completed (Phase B - Sync Fixes) ✅
-- Dashboard auto-refresh every 60 seconds (polling `parent_home_snapshot`)
-- SyncNotice filters commands older than 5 minutes (`device_commands` query)
+מכיוון שאי אפשר לשנות את קוד האנדרואיד, ניצור **database trigger** שברגע שמשימה נמחקת מטבלת `chores`, מוסיף שורה לטבלת `device_commands` עם `command_type = 'REFRESH_CHORES'` למכשיר של הילד המתאים.
 
-## Chores & Rewards Feature ✅
-- 3 tables: `chores`, `reward_bank`, `reward_transactions` with RLS + Realtime
-- 3 RPCs: `approve_chore`, `reject_chore`, `redeem_reward_minutes`
-- UI: `/chores` page with ChoreForm, ChoreList, RewardBankCard
-- Navigation: "משימות" tab added to sidebar + bottom nav
-- Android contract: SELECT/UPDATE chores, reward_bank; RPC redeem_reward_minutes; Realtime subscriptions
+הסוכן כבר מאזין ל-`device_commands` בזמן אמת — אז הוא יקבל את הפקודה ויטען מחדש את רשימת המשימות.
 
-## Android-side fixes (for Android agent):
-1. **Fix enforcement in AccessibilityService** — compare foreground app against blocked list
-2. **Add Realtime subscription** for `device_commands` in ForegroundService
-3. **Implement heartbeat reporting** — fill `sendDeviceHealthStatus` with `report_device_heartbeat` RPC
-4. **Add periodic usage reporting** — call `upsert_app_usage` every 5-10 minutes on a timer
-5. **Chores screen** — show pending chores, mark as completed, redeem bank minutes
+### שינוי יחיד — Migration
 
-## Next Steps (Phase B - UI)
-- Refactor ChildDashboard into 4-tab layout (סקירה / אפליקציות / זמן מסך / מכשיר)
-- Move existing components to their respective tabs
+```sql
+CREATE OR REPLACE FUNCTION notify_child_chore_deleted()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  INSERT INTO device_commands (device_id, command_type, status)
+  SELECT d.device_id, 'REFRESH_CHORES', 'PENDING'
+  FROM devices d
+  WHERE d.child_id = OLD.child_id;
+  
+  RETURN OLD;
+END;
+$$;
 
-## Phase C (after B)
-- Apps tab: installed_apps inventory UI
-- Screen Time tab: schedule windows CRUD UI + Shabbat toggle
-- Device tab: polished health view
+CREATE TRIGGER trg_chore_deleted_notify
+  AFTER DELETE ON chores
+  FOR EACH ROW
+  EXECUTE FUNCTION notify_child_chore_deleted();
+```
+
+- **כל מחיקת משימה** → פקודת `REFRESH_CHORES` נשלחת למכשיר הילד
+- הסוכן מקבל את הפקודה דרך ה-realtime subscription שלו ל-`device_commands` ומרענן את רשימת המשימות
+- אין שינוי בקוד הווב — רק migration בבסיס הנתונים
+
+### תלות
+הסוכן צריך לטפל בפקודת `REFRESH_CHORES` — אם הוא עדיין לא מכיר אותה, צריך לוודא שהוא מטפל בה (או שהוא כבר מטפל ב-`REFRESH_SETTINGS` שכולל גם chores).
+
