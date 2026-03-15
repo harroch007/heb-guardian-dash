@@ -19,9 +19,6 @@ const SYSTEM_APPS_TO_HIDE = [
   "com.android.dialer",
   "com.google.android.dialer",
   "com.samsung.android.dialer",
-  "com.android.mms",
-  "com.google.android.apps.messaging",
-  "com.samsung.android.messaging",
   "com.android.stk",
   // שעון
   "com.sec.android.app.clockpackage",
@@ -66,7 +63,7 @@ const SYSTEM_APPS_TO_HIDE = [
 ];
 
 const SYSTEM_KEYWORDS = [
-  "systemui", "devicecare", "launcher", "dialer", "messaging",
+  "systemui", "devicecare", "launcher", "dialer",
   "packageinstaller", "kippy", "incallui",
   "bixby", "samsungpass", "arzone", "wearable",
 ];
