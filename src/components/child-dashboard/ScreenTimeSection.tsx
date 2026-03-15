@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatScreenTime } from "@/components/ScreenTimeCard";
 import { getAppIconInfo } from "@/lib/appIcons";
+import { isSystemApp } from "@/lib/appUtils";
 import { cn } from "@/lib/utils";
 
 interface AppUsageEntry {
