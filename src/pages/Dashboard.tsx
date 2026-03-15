@@ -705,49 +705,6 @@ const Index = () => {
                   </>
                 )}
 
-                {/* 8. Top Apps — With mini progress bars */}
-                {topApps.length > 0 && (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-1.5 pr-1">
-                      <Smartphone className="h-3.5 w-3.5 text-muted-foreground" />
-                      <span className="text-xs font-medium text-muted-foreground">אפליקציות מובילות</span>
-                    </div>
-                    <div className="space-y-2">
-                      {topApps.map((app, index) => {
-                        const iconInfo = getAppIconInfo(app.package_name);
-                        const IconComponent = iconInfo.icon;
-                        const maxMinutes = topApps[0]?.usage_minutes || 1;
-                        const percent = Math.round((app.usage_minutes / maxMinutes) * 100);
-                        return (
-                          <div key={index} className="flex items-center gap-2.5">
-                            <span 
-                              className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                              style={{ backgroundColor: iconInfo.bgColor }}
-                            >
-                              <IconComponent className="w-3.5 h-3.5" style={{ color: iconInfo.color }} />
-                            </span>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between mb-0.5">
-                                <span className="text-sm font-medium text-foreground truncate">{app.app_name}</span>
-                                <span className="text-xs text-muted-foreground mr-2">{formatMinutes(app.usage_minutes)}</span>
-                              </div>
-                              <div className="h-1.5 rounded-full bg-muted/50 overflow-hidden">
-                                <motion.div
-                                  className="h-full rounded-full"
-                                  style={{ backgroundColor: iconInfo.color }}
-                                  initial={{ width: 0 }}
-                                  animate={{ width: `${percent}%` }}
-                                  transition={{ duration: 0.6, delay: index * 0.1 }}
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
                 {/* 9. New Apps & Nightly Usage (conditional) */}
                 <NewAppsCard childId={selectedChildId} />
                 <NightlyUsageCard childId={selectedChildId} />
