@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatScreenTime } from "@/components/ScreenTimeCard";
 import { getAppIconInfo } from "@/lib/appIcons";
+import { isSystemApp } from "@/lib/appUtils";
 import { cn } from "@/lib/utils";
 
 interface AppUsageEntry {
@@ -24,48 +25,6 @@ interface ScreenTimeSectionProps {
   onGrantBonus: (minutes: number) => Promise<void>;
 }
 
-const SYSTEM_FILTER = [
-  "com.google.android.permissioncontroller",
-  "com.android.systemui",
-  "com.android.settings",
-  "com.google.android.gms",
-  "com.android.providers",
-  "com.samsung.android.app.routines",
-  "com.sec.android.app.launcher",
-  "com.miui.home",
-  "com.android.launcher",
-  "com.android.packageinstaller",
-  "com.samsung.accessibility",
-  "com.samsung.android.messaging",
-  "com.sec.android.gallery3d",
-  "com.sec.android.app.launcher",
-  "com.sec.android.app.myfiles",
-  "com.samsung.android.dialer",
-  "com.samsung.android.contacts",
-  "com.samsung.android.calendar",
-  "com.samsung.android.app.camera",
-  "com.samsung.android.incallui",
-  "com.samsung.android.app.notes",
-  "com.samsung.android.app.clock",
-  "com.samsung.android.app.calculator",
-  "com.samsung.android.app.soundpicker",
-  "com.android.bluetooth",
-  "com.android.nfc",
-  "com.android.vending",
-  "com.google.android.packageinstaller",
-];
-
-const SYSTEM_KEYWORDS = [
-  "systemui", "devicecare", "accessibility", "gallery", "dialer",
-  "contacts", "calendar", "camera", "launcher", "incallui",
-  "maintenance", "devicehealth", "setupwizard", "inputmethod",
-];
-
-const isSystem = (pkg: string) => {
-  const lower = pkg.toLowerCase();
-  return SYSTEM_FILTER.some((s) => lower.startsWith(s.toLowerCase())) ||
-    SYSTEM_KEYWORDS.some((kw) => lower.includes(kw));
-};
 
 const BONUS_OPTIONS = [15, 30, 45, 60];
 
@@ -121,7 +80,7 @@ export function ScreenTimeSection({
 
   const isOverLimit = limitEnabled && currentUsageMinutes > (sliderValue + todayBonusMinutes);
 
-  const userApps = appUsage.filter((a) => !isSystem(a.package_name));
+  const userApps = appUsage.filter((a) => !isSystemApp(a.package_name));
   const filteredTotal = userApps.reduce((sum, a) => sum + a.usage_minutes, 0);
   const filteredApps = userApps
     .sort((a, b) => b.usage_minutes - a.usage_minutes)
