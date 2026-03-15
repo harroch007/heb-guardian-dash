@@ -63,7 +63,7 @@ const SYSTEM_APPS_TO_HIDE = [
 ];
 
 const SYSTEM_KEYWORDS = [
-  "systemui", "devicecare", "launcher", "dialer", "messaging",
+  "systemui", "devicecare", "launcher", "dialer",
   "packageinstaller", "kippy", "incallui",
   "bixby", "samsungpass", "arzone", "wearable",
 ];
