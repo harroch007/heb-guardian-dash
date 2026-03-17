@@ -1,42 +1,72 @@
 
-# Kippy Control — Phase A Status: ✅ COMPLETE
 
-## Completed ✅
+## תוכנית: חלוקת אחריות — Lovable (שרת) מול Android (מכשיר)
 
-### Data Model Migration
-- `installed_apps` table — full device app inventory with RLS
-- `schedule_windows` table — school/bedtime/shabbat schedules with RLS + CRUD policies
-- `shabbat_zmanim` table — date-based (YYYY-MM-DD) candle lighting / havdalah lookup
-- `report_installed_apps` RPC — SECURITY DEFINER, device bulk upserts
-- `get_device_settings` RPC — extended to include `schedule_windows` array + `next_shabbat` object
+### הבעיה המרכזית
 
-### Data Population
-- `shabbat_zmanim` populated with 118 rows (2026-01-02 → 2028-03-31)
-- Source: Hebcal API, Jerusalem, havdalah = sunset + 40 min (product policy)
+האנדרואיד שולח `totalTimeInForeground` מצטבר (cumulative) שלא מתאפס בחצות. השרת שומר אותו כמו שהוא. התוצאה: 18:57 שעות שימוש ליום אחד — בלתי אפשרי פיזית.
 
-## Completed (Phase B - Sync Fixes) ✅
-- Dashboard auto-refresh every 60 seconds (polling `parent_home_snapshot`)
-- SyncNotice filters commands older than 5 minutes (`device_commands` query)
+### מי אחראי למה
 
-## Chores & Rewards Feature ✅
-- 3 tables: `chores`, `reward_bank`, `reward_transactions` with RLS + Realtime
-- 3 RPCs: `approve_chore`, `reject_chore`, `redeem_reward_minutes`
-- UI: `/chores` page with ChoreForm, ChoreList, RewardBankCard
-- Navigation: "משימות" tab added to sidebar + bottom nav
-- Android contract: SELECT/UPDATE chores, reward_bank; RPC redeem_reward_minutes; Realtime subscriptions
+**Android — מקור האמת (source of truth)**
+- חישוב שימוש יומי נקי (דלתא) לפני השליחה
+- שליחת `usage_date` לפי `Asia/Jerusalem`
+- Sanity check: לא לשלוח ערך > 1440 דקות לאפליקציה בודדת
 
-## Android-side fixes (for Android agent):
-1. **Fix enforcement in AccessibilityService** — compare foreground app against blocked list
-2. **Add Realtime subscription** for `device_commands` in ForegroundService
-3. **Implement heartbeat reporting** — fill `sendDeviceHealthStatus` with `report_device_heartbeat` RPC
-4. **Add periodic usage reporting** — call `upsert_app_usage` every 5-10 minutes on a timer
-5. **Chores screen** — show pending chores, mark as completed, redeem bank minutes
+**Lovable/Supabase — צד מציג בלבד (display layer)**
+- שומר את מה שמקבל — ללא תיקונים, ללא דלתות
+- מציג בדשבורד כמו שהוא
 
-## Next Steps (Phase B - UI)
-- Refactor ChildDashboard into 4-tab layout (סקירה / אפליקציות / זמן מסך / מכשיר)
-- Move existing components to their respective tabs
+### מה צריך לתקן בצד Lovable (באג קיים)
 
-## Phase C (after B)
-- Apps tab: installed_apps inventory UI
-- Screen Time tab: schedule windows CRUD UI + Shabbat toggle
-- Device tab: polished health view
+הview `parent_daily_report` משתמש ב-**UTC** במקום `Asia/Jerusalem` ב-3 מקומות:
+
+```text
+שורה 86:  (now() AT TIME ZONE 'UTC')::date AS report_date
+שורה 94:  WHERE ddh.check_date = (now() AT TIME ZONE 'UTC')::date
+שורה 99:  WHERE au.usage_date = (now() AT TIME ZONE 'UTC')::date
+```
+
+זה יוצר פער של עד שעתיים (קיץ: 3 שעות) — בין 22:00 ל-00:00 בישראל הview מציג נתונים של מחר לפי UTC. צריך לתקן ל-`Asia/Jerusalem` בכל המקומות.
+
+**הview `parent_home_snapshot` תקין** — כבר משתמש ב-`Asia/Jerusalem`.
+
+### מה לשלוח לסוכן האנדרואיד
+
+פרומפט מלא עם:
+
+1. **תיאור הבאג** — `totalTimeInForeground` הוא cumulative, לא daily
+2. **הפתרון הנדרש** — לחשב דלתא: `queryUsageStats(INTERVAL_DAILY, startOfDayInJerusalem, now)`
+3. **חוזה ה-RPC** — מה `upsert_app_usage` מצפה לקבל (5 פרמטרים, `p_usage_minutes` = יומי בלבד, `p_usage_date` = תאריך ירושלים)
+4. **Sanity checks** — מה לא לשלוח (> 1440 דקות)
+5. **Timezone** — כל חישוב תאריך/שעה חייב להיות `Asia/Jerusalem`
+
+### שינויים טכניים (צד Lovable)
+
+**קובץ: מיגרציה חדשה** — תיקון `parent_daily_report` view:
+- החלפת כל `AT TIME ZONE 'UTC'` ל-`AT TIME ZONE 'Asia/Jerusalem'` בחישובי report_date, health check_date, ו-usage_date
+- אותו דבר ב-alert_counts ו-notify_effective CTEs
+
+**קובץ: `.lovable/plan.md`** — עדכון התוכנית עם הפרומפט המלא לאנדרואיד + סטטוס הבאג
+
+### סיכום חלוקה
+
+```text
+┌─────────────────────────────────────────────┐
+│              ANDROID (מכשיר)                │
+│  • חישוב דלתא יומית                        │
+│  • תאריך לפי Asia/Jerusalem                │
+│  • Sanity: max 1440 דק׳ לאפליקציה          │
+│  • שולח נתון נקי ל-upsert_app_usage        │
+└──────────────────┬──────────────────────────┘
+                   │  p_usage_minutes = יומי בלבד
+                   ▼
+┌─────────────────────────────────────────────┐
+│           SUPABASE (שרת)                    │
+│  • upsert_app_usage: שומר כמו שהוא         │
+│  • parent_home_snapshot: מציג (Jerusalem ✓) │
+│  • parent_daily_report: מציג (UTC → לתקן!) │
+│  • דשבורד: מושך ומציג                      │
+└─────────────────────────────────────────────┘
+```
+
