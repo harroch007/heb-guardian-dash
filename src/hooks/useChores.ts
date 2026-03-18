@@ -23,11 +23,21 @@ export interface RewardBank {
   balance_minutes: number;
 }
 
+export interface RewardTransaction {
+  id: string;
+  child_id: string;
+  amount_minutes: number;
+  source: string;
+  chore_id: string | null;
+  created_at: string;
+}
+
 export function useChores(childId: string | null) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [chores, setChores] = useState<Chore[]>([]);
   const [rewardBank, setRewardBank] = useState<RewardBank | null>(null);
+  const [transactions, setTransactions] = useState<RewardTransaction[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchChores = useCallback(async () => {
@@ -50,10 +60,21 @@ export function useChores(childId: string | null) {
     setRewardBank(data as RewardBank | null);
   }, [childId]);
 
+  const fetchTransactions = useCallback(async () => {
+    if (!childId) return;
+    const { data } = await supabase
+      .from("reward_transactions")
+      .select("*")
+      .eq("child_id", childId)
+      .order("created_at", { ascending: false })
+      .limit(10);
+    if (data) setTransactions(data as RewardTransaction[]);
+  }, [childId]);
+
   useEffect(() => {
     if (!childId) return;
     setLoading(true);
-    Promise.all([fetchChores(), fetchRewardBank()]).finally(() => setLoading(false));
+    Promise.all([fetchChores(), fetchRewardBank(), fetchTransactions()]).finally(() => setLoading(false));
 
     const choresChannel = supabase
       .channel(`chores-${childId}`)
@@ -62,21 +83,30 @@ export function useChores(childId: string | null) {
 
     const bankChannel = supabase
       .channel(`reward-bank-${childId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "reward_bank", filter: `child_id=eq.${childId}` }, () => fetchRewardBank())
+      .on("postgres_changes", { event: "*", schema: "public", table: "reward_bank", filter: `child_id=eq.${childId}` }, () => {
+        fetchRewardBank();
+        fetchTransactions();
+      })
       .subscribe();
 
-    // Polling fallback every 30 seconds
+    const txChannel = supabase
+      .channel(`reward-tx-${childId}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "reward_transactions", filter: `child_id=eq.${childId}` }, () => fetchTransactions())
+      .subscribe();
+
     const pollInterval = setInterval(() => {
       fetchChores();
       fetchRewardBank();
+      fetchTransactions();
     }, 30_000);
 
     return () => {
       supabase.removeChannel(choresChannel);
       supabase.removeChannel(bankChannel);
+      supabase.removeChannel(txChannel);
       clearInterval(pollInterval);
     };
-  }, [childId, fetchChores, fetchRewardBank]);
+  }, [childId, fetchChores, fetchRewardBank, fetchTransactions]);
 
   const addChore = async (title: string, rewardMinutes: number, isRecurring: boolean, recurrenceDays: number[] | null) => {
     if (!childId || !user) return;
@@ -120,5 +150,5 @@ export function useChores(childId: string | null) {
     }
   };
 
-  return { chores, rewardBank, loading, addChore, approveChore, rejectChore, deleteChore };
+  return { chores, rewardBank, transactions, loading, addChore, approveChore, rejectChore, deleteChore };
 }

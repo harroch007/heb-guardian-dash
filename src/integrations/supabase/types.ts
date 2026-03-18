@@ -2348,6 +2348,10 @@ export type Database = {
         Args: { p_child_id: string; p_minutes: number }
         Returns: Json
       }
+      refund_reward_minutes: {
+        Args: { p_child_id: string; p_minutes_to_refund: number }
+        Returns: Json
+      }
       reject_chore: { Args: { p_chore_id: string }; Returns: Json }
       report_device_heartbeat: {
         Args: {

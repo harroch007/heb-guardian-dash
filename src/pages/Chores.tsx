@@ -35,7 +35,7 @@ export default function Chores() {
       });
   }, [user]);
 
-  const { chores, rewardBank, loading, addChore, approveChore, rejectChore, deleteChore } = useChores(selectedChildId);
+  const { chores, rewardBank, transactions, loading, addChore, approveChore, rejectChore, deleteChore } = useChores(selectedChildId);
 
   const selectedChild = children.find(c => c.id === selectedChildId);
   const childName = selectedChild?.name || "";
@@ -75,7 +75,7 @@ export default function Chores() {
         ) : null}
 
         {/* Reward Bank */}
-        <RewardBankCard balanceMinutes={rewardBank?.balance_minutes ?? 0} />
+        <RewardBankCard balanceMinutes={rewardBank?.balance_minutes ?? 0} transactions={transactions} />
 
         {/* Add chore form */}
         <ChoreForm onSubmit={addChore} />
