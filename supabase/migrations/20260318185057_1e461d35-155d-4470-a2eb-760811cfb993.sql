@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Anon read reward_transactions" ON public.reward_transactions;
