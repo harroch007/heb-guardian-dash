@@ -38,7 +38,7 @@ interface SchedulesSectionProps {
   onDeleteSchedule: (scheduleId: string) => Promise<void>;
 }
 
-const DAY_LABELS = ["א׳", "ב׳", "ג׳", "ד׳", "ה׳", "ו׳", "ש׳"];
+const DAY_LABELS: Record<number, string> = { 1: "א׳", 2: "ב׳", 3: "ג׳", 4: "ד׳", 5: "ה׳", 6: "ו׳", 7: "ש׳" };
 
 function formatShabbatTime(timeOrIso: string): string {
   if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(timeOrIso)) {
@@ -109,7 +109,7 @@ export function SchedulesSection({
   const renderDays = (days: number[] | null) => {
     if (!days || days.length === 0) return null;
     if (days.length === 7) return "כל יום";
-    return days.sort((a, b) => a - b).map((d) => DAY_LABELS[d]).join(", ");
+    return [...days].sort((a, b) => a - b).map((d) => DAY_LABELS[d] || `${d}`).join(", ");
   };
 
   const activeCount = scheduleWindows.filter((s) => s.is_active).length;

@@ -54,6 +54,7 @@ import {
   ScreenTimeSection,
   SchedulesSection,
   LocationSection,
+  TimeRequestsCard,
 } from "@/components/child-dashboard";
 
 
@@ -608,6 +609,8 @@ export default function ChildDashboard() {
               onApproveApp={approveApp}
               onBlockApp={blockApp}
             />
+
+            <TimeRequestsCard childId={childId!} />
 
             <ScreenTimeSection
               appUsage={appUsage}

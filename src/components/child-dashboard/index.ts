@@ -7,3 +7,4 @@ export { ScreenTimeSection } from "./ScreenTimeSection";
 export { SchedulesSection } from "./SchedulesSection";
 export { ScheduleEditModal } from "./ScheduleEditModal";
 export { LocationSection } from "./LocationSection";
+export { TimeRequestsCard } from "./TimeRequestsCard";
