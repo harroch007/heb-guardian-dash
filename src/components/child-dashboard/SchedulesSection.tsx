@@ -38,7 +38,7 @@ interface SchedulesSectionProps {
   onDeleteSchedule: (scheduleId: string) => Promise<void>;
 }
 
-const DAY_LABELS = ["א׳", "ב׳", "ג׳", "ד׳", "ה׳", "ו׳", "ש׳"];
+const DAY_LABELS: Record<number, string> = { 1: "א׳", 2: "ב׳", 3: "ג׳", 4: "ד׳", 5: "ה׳", 6: "ו׳", 7: "ש׳" };
 
 function formatShabbatTime(timeOrIso: string): string {
   if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(timeOrIso)) {
