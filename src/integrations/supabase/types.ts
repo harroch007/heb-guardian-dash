@@ -1899,6 +1899,54 @@ export type Database = {
         }
         Relationships: []
       }
+      time_extension_requests: {
+        Row: {
+          child_id: string
+          created_at: string
+          id: string
+          parent_id: string
+          reason: string | null
+          requested_minutes: number
+          responded_at: string | null
+          status: string
+        }
+        Insert: {
+          child_id: string
+          created_at?: string
+          id?: string
+          parent_id: string
+          reason?: string | null
+          requested_minutes?: number
+          responded_at?: string | null
+          status?: string
+        }
+        Update: {
+          child_id?: string
+          created_at?: string
+          id?: string
+          parent_id?: string
+          reason?: string | null
+          requested_minutes?: number
+          responded_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "time_extension_requests_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_extension_requests_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "parents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       training_dataset: {
         Row: {
           age_at_incident: number | null
@@ -2377,6 +2425,14 @@ export type Database = {
           p_total_minutes: number
         }
         Returns: string
+      }
+      request_extra_time: {
+        Args: { p_child_id: string; p_reason: string }
+        Returns: Json
+      }
+      respond_time_request: {
+        Args: { p_approved: boolean; p_minutes?: number; p_request_id: string }
+        Returns: Json
       }
       retry_failed_queue_items: { Args: never; Returns: Json }
       send_locate_to_all_devices: { Args: never; Returns: undefined }
