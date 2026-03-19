@@ -610,6 +610,8 @@ export default function ChildDashboard() {
               onBlockApp={blockApp}
             />
 
+            <TimeRequestsCard childId={childId!} />
+
             <ScreenTimeSection
               appUsage={appUsage}
               screenTimeLimit={screenTimeLimit}

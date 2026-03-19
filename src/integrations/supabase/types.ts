@@ -1640,19 +1640,25 @@ export type Database = {
         Row: {
           balance_minutes: number
           child_id: string
+          current_streak: number
           id: string
+          last_streak_date: string | null
           updated_at: string
         }
         Insert: {
           balance_minutes?: number
           child_id: string
+          current_streak?: number
           id?: string
+          last_streak_date?: string | null
           updated_at?: string
         }
         Update: {
           balance_minutes?: number
           child_id?: string
+          current_streak?: number
           id?: string
+          last_streak_date?: string | null
           updated_at?: string
         }
         Relationships: [

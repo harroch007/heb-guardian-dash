@@ -109,7 +109,7 @@ export function SchedulesSection({
   const renderDays = (days: number[] | null) => {
     if (!days || days.length === 0) return null;
     if (days.length === 7) return "כל יום";
-    return days.sort((a, b) => a - b).map((d) => DAY_LABELS[d]).join(", ");
+    return [...days].sort((a, b) => a - b).map((d) => DAY_LABELS[d] || `${d}`).join(", ");
   };
 
   const activeCount = scheduleWindows.filter((s) => s.is_active).length;

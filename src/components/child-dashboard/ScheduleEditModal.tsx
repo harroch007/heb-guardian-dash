@@ -49,8 +49,8 @@ interface ScheduleEditModalProps {
 }
 
 const DEFAULTS: Record<"bedtime" | "school", { name: string; days: number[]; start: string; end: string }> = {
-  bedtime: { name: "שעת שינה", days: [0, 1, 2, 3, 4, 5, 6], start: "21:00", end: "07:00" },
-  school: { name: "בית ספר", days: [0, 1, 2, 3, 4], start: "08:00", end: "14:00" },
+  bedtime: { name: "שעת שינה", days: [1, 2, 3, 4, 5, 6, 7], start: "21:00", end: "07:00" },
+  school: { name: "בית ספר", days: [1, 2, 3, 4, 5], start: "08:00", end: "14:00" },
 };
 
 export function ScheduleEditModal({
