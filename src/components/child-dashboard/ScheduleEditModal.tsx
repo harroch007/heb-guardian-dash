@@ -15,13 +15,13 @@ import { cn } from "@/lib/utils";
 import type { ScheduleWindow } from "@/hooks/useChildControls";
 
 const DAYS = [
-  { value: 0, label: "א׳" },
-  { value: 1, label: "ב׳" },
-  { value: 2, label: "ג׳" },
-  { value: 3, label: "ד׳" },
-  { value: 4, label: "ה׳" },
-  { value: 5, label: "ו׳" },
-  { value: 6, label: "ש׳" },
+  { value: 1, label: "א׳" },
+  { value: 2, label: "ב׳" },
+  { value: 3, label: "ג׳" },
+  { value: 4, label: "ד׳" },
+  { value: 5, label: "ה׳" },
+  { value: 6, label: "ו׳" },
+  { value: 7, label: "ש׳" },
 ];
 
 interface ScheduleEditModalProps {
