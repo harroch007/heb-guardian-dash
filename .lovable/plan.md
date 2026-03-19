@@ -1,139 +1,139 @@
-
-# Kippy — Plan & Android Integration
-
-## Completed ✅
-
-### Phase A — Data Model Migration
-- `installed_apps`, `schedule_windows`, `shabbat_zmanim` tables
-- `report_installed_apps`, `get_device_settings` RPCs
-- `shabbat_zmanim` populated (118 rows, 2026–2028)
-
-### Phase B — Sync Fixes
-- Dashboard auto-refresh every 60s
-- SyncNotice filters commands older than 5 minutes
-
-### Chores & Rewards
-- 3 tables + 3 RPCs + UI page + navigation
-
-### Timezone Fix (2026-03-17) ✅
-- **`parent_daily_report` view** — all `AT TIME ZONE 'UTC'` replaced with `'Asia/Jerusalem'`
-- **`get_parent_daily_report_for_parent` function** — same fix in alert_counts + notify_effective CTEs
-- **`add_daily_metrics` function** — default `p_metric_date` changed from UTC to Jerusalem
-- **`trg_ai_stack_request_to_daily_metrics`** — UTC → Jerusalem
-- **`trg_alert_insert_to_daily_metrics`** — UTC → Jerusalem
+## תכנית ביצוע — 3 משימות דחופות
 
 ---
 
-## Android Agent — Usage Reporting Fix (PENDING)
+### משימה 1: Request More / בקש עוד זמן
 
-### הבעיה
+**Supabase (Migration):**
 
-האנדרואיד שולח `totalTimeInForeground` מצטבר (cumulative) שלא מתאפס בחצות.
-השרת שומר אותו כמו שהוא → תוצאה: 18:57 שעות שימוש ליום אחד — בלתי אפשרי.
+1. טבלה חדשה `time_extension_requests`:
+  - `id uuid PK default gen_random_uuid()`
+  - `child_id uuid FK → children NOT NULL`
+  - `parent_id uuid FK → parents NOT NULL` (מחושב מ-child)
+  - `reason text`
+  - `requested_minutes int DEFAULT 15`
+  - `status text DEFAULT 'pending'` — check: `pending`, `approved`, `rejected`
+  - `created_at timestamptz DEFAULT now()`
+  - `responded_at timestamptz`
+  - RLS: הורה SELECT/UPDATE על ילדיו, anon INSERT דרך RPC בלבד
+2. RPC `request_extra_time(p_child_id uuid, p_reason text)`:
+  - מוצא `parent_id` מ-`children`
+  - INSERT ל-`time_extension_requests` עם `status='pending'`
+  - `SECURITY DEFINER` — ללא צורך באימות (הילד לא מחובר כ-user)
+  - להחזיר לי ביישום עצמו את ה-signature המדויק, ה-return type המדויק, ו-query בדיקה תואם אמיתי
+3. RPC `respond_time_request(p_request_id uuid, p_approved boolean, p_minutes int DEFAULT 15)`:
+  - מוודא שה-request שייך לילד של `auth.uid()`
+  - אם `approved`: להשתמש במנגנון הקיים במערכת להענקת דקות לילד, ובמידה וזה אכן המסלול הקיים — `INSERT` ל-`bonus_time_grants` + שליחת `REFRESH_SETTINGS`
+  - מעדכן `status` ו-`responded_at`
 
-### עיקרון מנחה
+**UI (Lovable):**
 
-**האנדרואיד הוא מקור האמת.** השרת פשוט שומר ומציג — בלי תיקונים, בלי חישובי דלתא.
+4. קומפוננטה חדשה `TimeRequestsCard.tsx` ב-`src/components/child-dashboard/`:
+  - מושך `pending requests` מ-`time_extension_requests` לפי `child_id`
+  - עובד לפי `childId` מפורש שמגיע מה-`ChildDashboard` של הילד הפעיל
+  - מציג `reason`, `created_at`
+  - כפתורי approve (ירוק) / reject (אדום)
+  - קורא ל-RPC `respond_time_request`
+  - אחרי action — `refetch`
+5. שילוב ב-`ChildDashboard.tsx`:
+  - מוצג מעל `ScreenTimeSection` (אם יש `pending requests`)
 
-### מה צריך לתקן באנדרואיד
+**קבצים שייגעו:**
 
-#### 1. חישוב שימוש יומי (דלתא)
-
-**גישה מועדפת — שאילתה עם טווח:**
-```java
-long startOfDay = LocalDate.now(ZoneId.of("Asia/Jerusalem"))
-    .atStartOfDay(ZoneId.of("Asia/Jerusalem"))
-    .toInstant().toEpochMilli();
-long now = System.currentTimeMillis();
-
-List<UsageStats> stats = usageStatsManager.queryUsageStats(
-    UsageStatsManager.INTERVAL_DAILY, startOfDay, now);
-
-for (UsageStats us : stats) {
-    int dailyMinutes = (int)(us.getTotalTimeInForeground() / 60_000);
-    // שלח dailyMinutes ל-upsert_app_usage
-}
-```
-
-**גישה חלופית — דלתא ידנית (אם INTERVAL_DAILY עדיין מחזיר cumulative):**
-```java
-// בחצות (או ב-boot): שמור ב-SharedPreferences את הערך הנוכחי
-// midnightSnapshot[packageName] = currentCumulative
-
-// בכל דיווח:
-int dailyUsage = currentCumulative - midnightSnapshot.getOrDefault(pkg, 0);
-if (dailyUsage < 0) dailyUsage = currentCumulative; // device reset
-```
-
-#### 2. Timezone — חובה Asia/Jerusalem
-
-כל חישוב תאריך חייב להיות לפי `Asia/Jerusalem`:
-```java
-LocalDate today = LocalDate.now(ZoneId.of("Asia/Jerusalem"));
-String usageDate = today.toString(); // "2026-03-17"
-```
-
-אם ב-UTC השעה היא 23:30 אבל בישראל 01:30 — התאריך צריך להיות של המחרת.
-
-#### 3. Sanity Checks (לפני שליחה)
-
-```java
-if (dailyMinutes > 1440) {
-    Log.w("UsageReport", "Skipping " + pkg + ": " + dailyMinutes + " > 1440");
-    continue; // לא לשלוח
-}
-```
-
-### חוזה ה-RPC — `upsert_app_usage`
-
-| פרמטר | סוג | תיאור |
-|--------|------|--------|
-| `p_device_id` | TEXT | מזהה המכשיר |
-| `p_package_name` | TEXT | שם החבילה (e.g. `com.whatsapp`) |
-| `p_app_name` | TEXT | שם תצוגה (e.g. `WhatsApp`) |
-| `p_usage_minutes` | INTEGER | **דקות שימוש יומיות בלבד** — לא מצטבר! |
-| `p_usage_date` | DATE | תאריך לפי `Asia/Jerusalem` |
-
-**הפונקציה עושה:**
-- `INSERT ... ON CONFLICT DO UPDATE SET usage_minutes = EXCLUDED.usage_minutes`
-- כלומר: כל שליחה **מחליפה** את הערך הקודם לאותו יום
-- השרת לא מחשב דלתא — הוא סומך על האנדרואיד
-
-### תרשים זרימה
-
-```
-┌─────────────────────────────────────────────┐
-│              ANDROID (מכשיר)                │
-│  • queryUsageStats(startOfDay, now)         │
-│  • חישוב דלתא יומית                        │
-│  • תאריך לפי Asia/Jerusalem                │
-│  • Sanity: max 1440 דק׳ לאפליקציה          │
-│  • שולח נתון נקי ל-upsert_app_usage        │
-└──────────────────┬──────────────────────────┘
-                   │  p_usage_minutes = יומי בלבד
-                   ▼
-┌─────────────────────────────────────────────┐
-│           SUPABASE (שרת)                    │
-│  • upsert_app_usage: שומר כמו שהוא         │
-│  • parent_home_snapshot: מציג (Jerusalem ✓) │
-│  • parent_daily_report: מציג (Jerusalem ✓)  │
-│  • דשבורד: מושך ומציג                      │
-└─────────────────────────────────────────────┘
-```
+- Migration חדשה (טבלה + 2 RPCs + RLS)
+- `src/components/child-dashboard/TimeRequestsCard.tsx` (חדש)
+- `src/components/child-dashboard/index.ts` (export)
+- `src/pages/ChildDashboard.tsx` (שילוב)
 
 ---
 
-## Next Steps
+### משימה 2: Days Mapping — יישור ל-1–7
 
-### Phase C (UI)
-- Apps tab: installed_apps inventory UI
-- Screen Time tab: schedule windows CRUD UI + Shabbat toggle
-- Device tab: polished health view
+**Migration (Data):**
 
-### Android-side fixes
-1. **Fix usage reporting** — implement daily delta (see above)
-2. **Fix enforcement in AccessibilityService** — compare foreground app against blocked list
-3. **Add Realtime subscription** for `device_commands`
-4. **Implement heartbeat reporting** — `report_device_heartbeat` RPC
-5. **Add periodic usage reporting** — call `upsert_app_usage` every 5-10 minutes
-6. **Chores screen** — show pending chores, mark as completed, redeem bank minutes
+```
+UPDATE schedule_windows sw
+SET days_of_week = (
+  SELECT array_agg(d + 1)
+  FROM unnest(sw.days_of_week) AS d
+)
+WHERE sw.days_of_week IS NOT NULL
+  AND EXISTS (
+    SELECT 1
+    FROM unnest(sw.days_of_week) AS d
+    WHERE d BETWEEN 0 AND 6
+  )
+  AND NOT EXISTS (
+    SELECT 1
+    FROM unnest(sw.days_of_week) AS d
+    WHERE d = 7
+  );
+```
+
+**קוד — שינוי DAYS array:**
+
+`ScheduleEditModal.tsx` — `DAYS values`: `1,2,3,4,5,6,7` במקום `0,1,2,3,4,5,6`
+
+Defaults:
+
+- bedtime: `[1,2,3,4,5,6,7]` (כל יום)
+- school: `[1,2,3,4,5]` (א׳–ה׳)
+
+`SchedulesSection.tsx` — `DAY_LABELS` index shift:
+
+```
+const DAY_LABELS: Record<number, string> = {1:"א׳", 2:"ב׳", 3:"ג׳", 4:"ד׳", 5:"ה׳", 6:"ו׳", 7:"ש׳"};
+```
+
+`renderDays` — עדכון לעבודה עם 1-7.
+
+**קבצים שייגעו:**
+
+- Migration חדשה (UPDATE data)
+- `src/components/child-dashboard/ScheduleEditModal.tsx`
+- `src/components/child-dashboard/SchedulesSection.tsx`
+
+**אין שינוי ב-**`useChildControls.ts` — הוא פשוט מעביר `as-is`.  
+  
+**אין שינוי ב-**`get_device_settings` — מעביר `as-is`.
+
+---
+
+### משימה 3: Streak — חישוב ושמירה ב-Supabase
+
+**Migration:**
+
+1. הוספת שדות ל-`reward_bank`:
+  - `current_streak int DEFAULT 0`
+  - `last_streak_date date`
+2. עדכון RPC `approve_chore` — הוספת לוגיקת `streak`:
+  ```
+  v_today := (now() AT TIME ZONE 'Asia/Jerusalem')::date;
+  IF last_streak_date = v_today → no change
+  ELSIF last_streak_date = v_today - 1 → streak + 1
+  ELSE → streak = 1
+  ```
+3. חשיפה ב-`get_device_settings`:
+  - הוספת `current_streak` ו-`balance_minutes` מ-`reward_bank` לפלט
+
+**קבצים שייגעו:**
+
+- Migration חדשה (ALTER TABLE + replace `approve_chore` + update `get_device_settings`)
+
+**אין שינוי בקוד Lovable** — המשימה הזו היא backend בלבד. האנדרואיד ימשוך דרך `get_device_settings`.
+
+---
+
+### סיכום קבצים
+
+
+| קובץ                                                   | שינוי                                                                                        |
+| ------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
+| Migration 1                                            | טבלה `time_extension_requests` + RPC `request_extra_time` + RPC `respond_time_request` + RLS |
+| Migration 2                                            | UPDATE `schedule_windows` data 0→1...6→7 רק לרשומות שעדיין בפורמט הישן                       |
+| Migration 3                                            | ALTER `reward_bank` + replace `approve_chore` + update `get_device_settings`                 |
+| `src/components/child-dashboard/TimeRequestsCard.tsx`  | חדש                                                                                          |
+| `src/components/child-dashboard/index.ts`              | export חדש                                                                                   |
+| `src/pages/ChildDashboard.tsx`                         | שילוב `TimeRequestsCard`                                                                     |
+| `src/components/child-dashboard/ScheduleEditModal.tsx` | `DAYS` 1-7                                                                                   |
+| `src/components/child-dashboard/SchedulesSection.tsx`  | `DAY_LABELS` 1-7                                                                             |
