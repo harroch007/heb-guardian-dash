@@ -54,6 +54,7 @@ import {
   ScreenTimeSection,
   SchedulesSection,
   LocationSection,
+  TimeRequestsCard,
 } from "@/components/child-dashboard";
 
 
