@@ -61,16 +61,28 @@ function getSunset(lat: number, lon: number, date: Date): Date {
   return calcSunsetUTC(lat, lon, date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate());
 }
 
-// ─── Hebcal Integration ───
+// ─── Helpers ───
 
-interface HebcalItem {
-  title: string;
-  date: string;
-  category: string;
-  subcat?: string;
-  memo?: string;
-  yomtov?: boolean;
+const CANDLE_OFFSET_MS = -18 * 60 * 1000; // 18 min before sunset
+const HAVDALAH_OFFSET_MS = 32 * 60 * 1000; // 32 min after sunset
+const MERGE_GAP_MS = 10 * 60 * 1000; // 10 min merge threshold
+
+function formatDate(d: Date): string {
+  return d.toISOString().split("T")[0];
 }
+
+function addDays(d: Date, n: number): Date {
+  const r = new Date(d);
+  r.setUTCDate(r.getUTCDate() + n);
+  return r;
+}
+
+function dateFromStr(s: string): Date {
+  const [y, m, d] = s.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d));
+}
+
+// ─── Window Generation ───
 
 interface IssurWindow {
   lock_type: "shabbat" | "yom_tov";
@@ -79,158 +91,84 @@ interface IssurWindow {
   valid_for_date: string;
   start_epoch_ms: number;
   end_epoch_ms: number;
-  latitude: number;
-  longitude: number;
 }
 
-function formatDate(d: Date): string {
-  return d.toISOString().split("T")[0];
-}
-
-function buildHebcalUrl(lat: number, lon: number, startDate: string, endDate: string): string {
-  const params = new URLSearchParams({
-    v: "1",
-    cfg: "json",
-    start: startDate,
-    end: endDate,
-    maj: "on",
-    yto: "on",
-    i: "on",
-    c: "on",
-    M: "on",
-    latitude: lat.toString(),
-    longitude: lon.toString(),
-    tzid: "Asia/Jerusalem",
-  });
-  return `https://www.hebcal.com/hebcal?${params.toString()}`;
-}
-
-function parseHebcalToWindows(items: HebcalItem[], lat: number, lon: number): IssurWindow[] {
-  // Extract candles and havdalah events in order
-  const events: Array<{ type: "candles" | "havdalah"; date: string; isoDate: string; title: string; category: string; yomtov: boolean }> = [];
-
-  for (const item of items) {
-    if (item.category === "candles") {
-      events.push({
-        type: "candles",
-        date: item.date,
-        isoDate: item.date,
-        title: item.title,
-        category: item.category,
-        yomtov: false,
-      });
-    } else if (item.category === "havdalah") {
-      events.push({
-        type: "havdalah",
-        date: item.date,
-        isoDate: item.date,
-        title: item.title,
-        category: item.category,
-        yomtov: false,
-      });
-    }
-  }
-
-  // Build a set of yom tov dates from holiday items
-  const yomTovDates = new Set<string>();
-  for (const item of items) {
-    if (item.category === "holiday" && item.yomtov === true) {
-      // date format from hebcal is ISO, extract just date part
-      const dateStr = item.date.substring(0, 10);
-      yomTovDates.add(dateStr);
-    }
-  }
-
-  // Pair: each candles -> next havdalah
+function generateShabbatWindows(lat: number, lon: number, startDate: Date, days: number): IssurWindow[] {
   const windows: IssurWindow[] = [];
-  let i = 0;
-  while (i < events.length) {
-    if (events[i].type === "candles") {
-      const candleEvent = events[i];
-      // Find next havdalah
-      let j = i + 1;
-      while (j < events.length && events[j].type !== "havdalah") {
-        j++;
-      }
-      if (j < events.length) {
-        const havdalahEvent = events[j];
-        const startMs = new Date(candleEvent.date).getTime();
-        const endMs = new Date(havdalahEvent.date).getTime();
-        const candleDateStr = candleEvent.date.substring(0, 10);
-
-        // Determine if this is shabbat or yom_tov
-        // If the candle date is a Friday (day 5), it's shabbat
-        // Otherwise check if any yom tov date falls within this window
-        const candleDateObj = new Date(candleDateStr);
-        const dayOfWeek = candleDateObj.getUTCDay(); // 5 = Friday
-
-        let lockType: "shabbat" | "yom_tov" = "shabbat";
-        let eventName = "Shabbat";
-
-        if (dayOfWeek !== 5) {
-          // Not Friday -> must be yom tov
-          lockType = "yom_tov";
-          // Try to find the holiday name from items
-          const holidayItem = items.find(
-            it => it.category === "holiday" && it.yomtov === true && it.date.substring(0, 10) === candleDateStr
-          );
-          // Also check the next day
-          const nextDay = new Date(candleDateObj);
-          nextDay.setUTCDate(nextDay.getUTCDate() + 1);
-          const nextDayStr = formatDate(nextDay);
-          const holidayNextDay = items.find(
-            it => it.category === "holiday" && it.yomtov === true && it.date.substring(0, 10) === nextDayStr
-          );
-          eventName = holidayItem?.title || holidayNextDay?.title || candleEvent.title.replace("Candle lighting: ", "");
-        } else {
-          // It's Friday but could also overlap with yom tov
-          // Check if the Saturday is also a yom tov
-          const satDate = new Date(candleDateObj);
-          satDate.setUTCDate(satDate.getUTCDate() + 1);
-          if (yomTovDates.has(formatDate(satDate))) {
-            // Shabbat + Yom Tov combo — keep as shabbat but note the name
-            const holidayItem = items.find(
-              it => it.category === "holiday" && it.yomtov === true && it.date.substring(0, 10) === formatDate(satDate)
-            );
-            if (holidayItem) {
-              eventName = `Shabbat / ${holidayItem.title}`;
-            }
-          }
-        }
-
-        const eventKey = `${lockType}-${candleDateStr}`;
-
-        windows.push({
-          lock_type: lockType,
-          event_name: eventName,
-          event_key: eventKey,
-          valid_for_date: candleDateStr,
-          start_epoch_ms: startMs,
-          end_epoch_ms: endMs,
-          latitude: lat,
-          longitude: lon,
-        });
-
-        i = j + 1;
-      } else {
-        i++;
-      }
-    } else {
-      i++;
+  for (let i = 0; i < days; i++) {
+    const d = addDays(startDate, i);
+    if (d.getUTCDay() === 5) { // Friday
+      const fridaySunset = getSunset(lat, lon, d);
+      const saturdaySunset = getSunset(lat, lon, addDays(d, 1));
+      const startMs = fridaySunset.getTime() + CANDLE_OFFSET_MS;
+      const endMs = saturdaySunset.getTime() + HAVDALAH_OFFSET_MS;
+      const dateStr = formatDate(d);
+      windows.push({
+        lock_type: "shabbat",
+        event_name: "Shabbat",
+        event_key: `shabbat-${dateStr}`,
+        valid_for_date: dateStr,
+        start_epoch_ms: startMs,
+        end_epoch_ms: endMs,
+      });
     }
+  }
+  return windows;
+}
+
+interface HebcalHoliday {
+  title: string;
+  date: string;
+  yomtov?: boolean;
+}
+
+function generateYomTovWindows(
+  holidays: HebcalHoliday[],
+  lat: number,
+  lon: number
+): IssurWindow[] {
+  // Each yom tov day: candle lighting = sunset of day before - 18 min
+  // Havdalah = sunset of yom tov day + 32 min
+  // BUT if the next day is also yom tov, we extend (merge will handle)
+  const windows: IssurWindow[] = [];
+
+  for (const h of holidays) {
+    if (!h.yomtov) continue;
+    const yomTovDate = dateFromStr(h.date.substring(0, 10));
+    const dayBefore = addDays(yomTovDate, -1);
+
+    // Candle lighting = sunset of day before - 18 min
+    // Special case: if day before is Shabbat (Saturday=6), use Shabbat candles (Friday sunset)
+    // But actually for yom tov starting motzei shabbat, candles are lit after havdalah
+    // For simplicity: sunset of day before - 18 min for start
+    const erevSunset = getSunset(lat, lon, dayBefore);
+    const yomTovSunset = getSunset(lat, lon, yomTovDate);
+
+    const startMs = erevSunset.getTime() + CANDLE_OFFSET_MS;
+    const endMs = yomTovSunset.getTime() + HAVDALAH_OFFSET_MS;
+
+    const dateStr = h.date.substring(0, 10);
+    // Sanitize title for event_key
+    const titleSlug = h.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "");
+
+    windows.push({
+      lock_type: "yom_tov",
+      event_name: h.title,
+      event_key: `yomtov-${titleSlug}-${dateStr}`,
+      valid_for_date: dateStr,
+      start_epoch_ms: startMs,
+      end_epoch_ms: endMs,
+    });
   }
 
   return windows;
 }
 
-function mergeOverlappingWindows(windows: IssurWindow[]): IssurWindow[] {
+function mergeWindows(windows: IssurWindow[]): IssurWindow[] {
   if (windows.length <= 1) return windows;
-
-  // Sort by start
   windows.sort((a, b) => a.start_epoch_ms - b.start_epoch_ms);
 
-  const MERGE_GAP_MS = 10 * 60 * 1000; // 10 minutes
-  const merged: IssurWindow[] = [windows[0]];
+  const merged: IssurWindow[] = [{ ...windows[0] }];
 
   for (let i = 1; i < windows.length; i++) {
     const current = merged[merged.length - 1];
@@ -240,22 +178,59 @@ function mergeOverlappingWindows(windows: IssurWindow[]): IssurWindow[] {
       // Merge
       current.end_epoch_ms = Math.max(current.end_epoch_ms, next.end_epoch_ms);
       current.start_epoch_ms = Math.min(current.start_epoch_ms, next.start_epoch_ms);
-      // Combine names if different
       if (!current.event_name.includes(next.event_name) && current.event_name !== next.event_name) {
         current.event_name = `${current.event_name} + ${next.event_name}`;
       }
-      // If any part is yom_tov, mark as yom_tov (unless it started as shabbat)
-      if (next.lock_type === "yom_tov" && current.lock_type === "shabbat") {
-        current.lock_type = "shabbat"; // Keep as shabbat if it started on shabbat
-        current.event_name = current.event_name.replace(" + ", " / ");
+      // If merging shabbat with yom_tov, keep the more specific type
+      if (next.lock_type === "yom_tov" || current.lock_type === "yom_tov") {
+        if (current.lock_type === "shabbat" && next.lock_type === "yom_tov") {
+          current.event_name = current.event_name.replace(" + ", " / ");
+        }
       }
-      // Keep the earlier event_key
     } else {
       merged.push({ ...next });
     }
   }
 
   return merged;
+}
+
+// ─── Hebcal Fetch ───
+
+async function fetchYomTovDates(startDate: Date, days: number): Promise<HebcalHoliday[]> {
+  // Fetch holidays for the relevant year(s)
+  const year = startDate.getUTCFullYear();
+  const endDate = addDays(startDate, days);
+  const endYear = endDate.getUTCFullYear();
+
+  const years = [year];
+  if (endYear !== year) years.push(endYear);
+
+  const allHolidays: HebcalHoliday[] = [];
+
+  for (const y of years) {
+    const url = `https://www.hebcal.com/hebcal?v=1&cfg=json&year=${y}&month=x&maj=on&yto=on&i=on&M=on`;
+    console.log(`[Hebcal] Fetching: ${url}`);
+    const resp = await fetch(url);
+    if (!resp.ok) {
+      console.error(`[Hebcal] HTTP ${resp.status} for year ${y}`);
+      await resp.text(); // consume body
+      continue;
+    }
+    const data = await resp.json();
+    const items = data.items || [];
+    for (const item of items) {
+      if (item.yomtov === true) {
+        const itemDate = dateFromStr(item.date.substring(0, 10));
+        if (itemDate >= startDate && itemDate <= endDate) {
+          allHolidays.push(item);
+        }
+      }
+    }
+  }
+
+  console.log(`[Hebcal] Found ${allHolidays.length} yom tov days in range ${formatDate(startDate)}-${formatDate(endDate)}`);
+  return allHolidays;
 }
 
 // ─── Main Handler ───
@@ -270,7 +245,7 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    // Find all active children with device location (seen in last 7 days)
+    // Find all active children with device location
     const { data: children, error: childErr } = await supabase
       .from("devices")
       .select("child_id, latitude, longitude")
@@ -287,7 +262,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Deduplicate by child_id (take first/most recent)
+    // Deduplicate by child_id
     const childMap = new Map<string, { lat: number; lon: number }>();
     for (const row of children) {
       if (!childMap.has(row.child_id)) {
@@ -295,125 +270,101 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ─── Phase 1: Shabbat (existing NOAA logic) ───
     const now = new Date();
+    const LOOKAHEAD_DAYS = 30;
+
+    // ─── Phase 1: shabbat_times_computed (next Shabbat only, existing behavior) ───
     const dayOfWeek = now.getUTCDay();
     let daysUntilFriday = (5 - dayOfWeek + 7) % 7;
-    if (daysUntilFriday === 0) { /* Today is Friday — compute for today */ }
     const friday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + daysUntilFriday));
-    const saturday = new Date(Date.UTC(friday.getUTCFullYear(), friday.getUTCMonth(), friday.getUTCDate() + 1));
-    const fridayDateStr = friday.toISOString().split("T")[0];
-
-    const CANDLE_LIGHTING_OFFSET_MS = -18 * 60 * 1000;
-    const HAVDALAH_OFFSET_MS = 32 * 60 * 1000;
+    const saturday = addDays(friday, 1);
+    const fridayDateStr = formatDate(friday);
 
     const shabbatRows: Array<{
-      child_id: string;
-      friday_date: string;
-      start_epoch_ms: number;
-      end_epoch_ms: number;
-      latitude: number;
-      longitude: number;
-      computed_at: string;
+      child_id: string; friday_date: string;
+      start_epoch_ms: number; end_epoch_ms: number;
+      latitude: number; longitude: number; computed_at: string;
     }> = [];
 
     for (const [childId, loc] of childMap) {
       const fridaySunset = getSunset(loc.lat, loc.lon, friday);
       const saturdaySunset = getSunset(loc.lat, loc.lon, saturday);
-      const startMs = fridaySunset.getTime() + CANDLE_LIGHTING_OFFSET_MS;
-      const endMs = saturdaySunset.getTime() + HAVDALAH_OFFSET_MS;
-
       shabbatRows.push({
         child_id: childId,
         friday_date: fridayDateStr,
-        start_epoch_ms: startMs,
-        end_epoch_ms: endMs,
-        latitude: loc.lat,
-        longitude: loc.lon,
+        start_epoch_ms: fridaySunset.getTime() + CANDLE_OFFSET_MS,
+        end_epoch_ms: saturdaySunset.getTime() + HAVDALAH_OFFSET_MS,
+        latitude: loc.lat, longitude: loc.lon,
         computed_at: new Date().toISOString(),
       });
     }
 
-    // Batch upsert shabbat_times_computed
     const { error: upsertErr } = await supabase
       .from("shabbat_times_computed")
       .upsert(shabbatRows, { onConflict: "child_id,friday_date" });
-
     if (upsertErr) throw upsertErr;
 
-    const sample = shabbatRows[0];
-    console.log(
-      `[Phase 1] Computed shabbat for ${shabbatRows.length} children. friday=${fridayDateStr}. ` +
-      `Sample: start=${new Date(sample?.start_epoch_ms).toISOString()}, end=${new Date(sample?.end_epoch_ms).toISOString()}`
-    );
+    console.log(`[Phase 1] shabbat_times_computed: ${shabbatRows.length} rows for ${fridayDateStr}`);
 
-    // ─── Phase 2: Hebcal — issur melacha windows (30 days) ───
-    const startDate = formatDate(now);
-    const endDateObj = new Date(now);
-    endDateObj.setUTCDate(endDateObj.getUTCDate() + 30);
-    const endDate = formatDate(endDateObj);
+    // ─── Phase 2: issur_melacha_windows (30 days, shabbat + yom tov) ───
 
-    let totalWindowsSaved = 0;
-    let totalWindowsPreMerge = 0;
+    // Fetch yom tov dates from Hebcal (shared for all children — same dates for Israel)
+    const yomTovHolidays = await fetchYomTovDates(now, LOOKAHEAD_DAYS);
+
+    let totalPreMerge = 0;
+    let totalSaved = 0;
 
     for (const [childId, loc] of childMap) {
-      const url = buildHebcalUrl(loc.lat, loc.lon, startDate, endDate);
-      console.log(`[Phase 2] child=${childId} lat=${loc.lat} lon=${loc.lon} url=${url}`);
+      // Generate Shabbat windows (30 days)
+      const shabbatWindows = generateShabbatWindows(loc.lat, loc.lon, now, LOOKAHEAD_DAYS);
 
-      try {
-        const resp = await fetch(url);
-        if (!resp.ok) {
-          console.error(`[Phase 2] Hebcal HTTP error ${resp.status} for child=${childId}`);
-          continue;
+      // Generate Yom Tov windows
+      const yomTovWindows = generateYomTovWindows(yomTovHolidays, loc.lat, loc.lon);
+
+      const allWindows = [...shabbatWindows, ...yomTovWindows];
+      totalPreMerge += allWindows.length;
+
+      const merged = mergeWindows(allWindows);
+
+      console.log(
+        `[Phase 2] child=${childId} lat=${loc.lat} lon=${loc.lon} ` +
+        `shabbat=${shabbatWindows.length} yomtov=${yomTovWindows.length} ` +
+        `pre_merge=${allWindows.length} post_merge=${merged.length}`
+      );
+
+      if (merged.length > 0) {
+        const dbRows = merged.map(w => ({
+          child_id: childId,
+          lock_type: w.lock_type,
+          event_name: w.event_name,
+          event_key: w.event_key,
+          valid_for_date: w.valid_for_date,
+          start_epoch_ms: w.start_epoch_ms,
+          end_epoch_ms: w.end_epoch_ms,
+          latitude: loc.lat,
+          longitude: loc.lon,
+          timezone: "Asia/Jerusalem",
+          source: "hebcal_jewish_calendar",
+          computed_at: new Date().toISOString(),
+          is_active: true,
+        }));
+
+        const { error: windowErr } = await supabase
+          .from("issur_melacha_windows")
+          .upsert(dbRows, { onConflict: "child_id,event_key,start_epoch_ms" });
+
+        if (windowErr) {
+          console.error(`[Phase 2] upsert error child=${childId}: ${windowErr.message}`);
+        } else {
+          totalSaved += merged.length;
         }
-
-        const data = await resp.json();
-        const items: HebcalItem[] = data.items || [];
-        console.log(`[Phase 2] child=${childId} hebcal items=${items.length}`);
-
-        const rawWindows = parseHebcalToWindows(items, loc.lat, loc.lon);
-        totalWindowsPreMerge += rawWindows.length;
-        console.log(`[Phase 2] child=${childId} raw windows (pre-merge)=${rawWindows.length}`);
-
-        const mergedWindows = mergeOverlappingWindows(rawWindows);
-        console.log(`[Phase 2] child=${childId} merged windows=${mergedWindows.length}`);
-
-        if (mergedWindows.length > 0) {
-          const dbRows = mergedWindows.map(w => ({
-            child_id: childId,
-            lock_type: w.lock_type,
-            event_name: w.event_name,
-            event_key: w.event_key,
-            valid_for_date: w.valid_for_date,
-            start_epoch_ms: w.start_epoch_ms,
-            end_epoch_ms: w.end_epoch_ms,
-            latitude: w.latitude,
-            longitude: w.longitude,
-            timezone: "Asia/Jerusalem",
-            source: "hebcal_jewish_calendar",
-            computed_at: new Date().toISOString(),
-            is_active: true,
-          }));
-
-          const { error: windowErr } = await supabase
-            .from("issur_melacha_windows")
-            .upsert(dbRows, { onConflict: "child_id,event_key,start_epoch_ms" });
-
-          if (windowErr) {
-            console.error(`[Phase 2] upsert error for child=${childId}: ${windowErr.message}`);
-          } else {
-            totalWindowsSaved += mergedWindows.length;
-          }
-        }
-      } catch (hebcalErr) {
-        console.error(`[Phase 2] Hebcal fetch error for child=${childId}: ${hebcalErr}`);
       }
     }
 
     console.log(
       `[Summary] shabbat_computed=${shabbatRows.length}, ` +
-      `issur_windows_pre_merge=${totalWindowsPreMerge}, ` +
-      `issur_windows_saved=${totalWindowsSaved}`
+      `issur_pre_merge=${totalPreMerge}, issur_saved=${totalSaved}, ` +
+      `children=${childMap.size}`
     );
 
     return new Response(
@@ -421,14 +372,15 @@ Deno.serve(async (req) => {
         success: true,
         shabbat_computed: shabbatRows.length,
         friday_date: fridayDateStr,
-        issur_windows_pre_merge: totalWindowsPreMerge,
-        issur_windows_saved: totalWindowsSaved,
+        issur_windows_pre_merge: totalPreMerge,
+        issur_windows_saved: totalSaved,
+        yom_tov_dates_found: yomTovHolidays.length,
         children_processed: childMap.size,
-        sample: sample ? {
-          start_utc: new Date(sample.start_epoch_ms).toISOString(),
-          end_utc: new Date(sample.end_epoch_ms).toISOString(),
-          lat: sample.latitude,
-          lon: sample.longitude,
+        sample: shabbatRows[0] ? {
+          start_utc: new Date(shabbatRows[0].start_epoch_ms).toISOString(),
+          end_utc: new Date(shabbatRows[0].end_epoch_ms).toISOString(),
+          lat: shabbatRows[0].latitude,
+          lon: shabbatRows[0].longitude,
         } : null,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
