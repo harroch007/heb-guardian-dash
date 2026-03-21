@@ -77,8 +77,8 @@ function calcSunsetUTC(lat: number, lon: number, year: number, month: number, da
   
   const HA = Math.acos(cosHA) * 180 / Math.PI;
   
-  // Sunset time in minutes from midnight UTC
-  const sunsetMinutesUTC = 720 - 4 * (lon + HA) - EqTime;
+  // Sunset time in minutes from midnight UTC (lon - HA for sunset, lon + HA for sunrise)
+  const sunsetMinutesUTC = 720 - 4 * (lon - HA) - EqTime;
   
   // Convert to Date
   // Recover original year/month/day (before the adjustment for JD)
