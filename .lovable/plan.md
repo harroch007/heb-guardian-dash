@@ -1,139 +1,146 @@
-## תכנית ביצוע — 3 משימות דחופות
+
+
+## תכנית ביצוע — זמני שבת אוטומטיים לפי מיקום
+
+### Overview
+
+4 שלבים: טבלת cache → Edge Function → Cron → עדכון get_device_settings
 
 ---
 
-### משימה 1: Request More / בקש עוד זמן
+### שלב 1: Migration — טבלת `shabbat_times_computed`
 
-**Supabase (Migration):**
+```sql
+CREATE TABLE public.shabbat_times_computed (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  child_id uuid NOT NULL REFERENCES children(id) ON DELETE CASCADE,
+  friday_date date NOT NULL,
+  start_epoch_ms bigint NOT NULL,
+  end_epoch_ms bigint NOT NULL,
+  latitude double precision NOT NULL,
+  longitude double precision NOT NULL,
+  computed_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (child_id, friday_date)
+);
 
-1. טבלה חדשה `time_extension_requests`:
-  - `id uuid PK default gen_random_uuid()`
-  - `child_id uuid FK → children NOT NULL`
-  - `parent_id uuid FK → parents NOT NULL` (מחושב מ-child)
-  - `reason text`
-  - `requested_minutes int DEFAULT 15`
-  - `status text DEFAULT 'pending'` — check: `pending`, `approved`, `rejected`
-  - `created_at timestamptz DEFAULT now()`
-  - `responded_at timestamptz`
-  - RLS: הורה SELECT/UPDATE על ילדיו, anon INSERT דרך RPC בלבד
-2. RPC `request_extra_time(p_child_id uuid, p_reason text)`:
-  - מוצא `parent_id` מ-`children`
-  - INSERT ל-`time_extension_requests` עם `status='pending'`
-  - `SECURITY DEFINER` — ללא צורך באימות (הילד לא מחובר כ-user)
-  - להחזיר לי ביישום עצמו את ה-signature המדויק, ה-return type המדויק, ו-query בדיקה תואם אמיתי
-3. RPC `respond_time_request(p_request_id uuid, p_approved boolean, p_minutes int DEFAULT 15)`:
-  - מוודא שה-request שייך לילד של `auth.uid()`
-  - אם `approved`: להשתמש במנגנון הקיים במערכת להענקת דקות לילד, ובמידה וזה אכן המסלול הקיים — `INSERT` ל-`bonus_time_grants` + שליחת `REFRESH_SETTINGS`
-  - מעדכן `status` ו-`responded_at`
+ALTER TABLE public.shabbat_times_computed ENABLE ROW LEVEL SECURITY;
 
-**UI (Lovable):**
+CREATE POLICY "Service role only" ON public.shabbat_times_computed
+  FOR ALL TO service_role USING (true);
+```
 
-4. קומפוננטה חדשה `TimeRequestsCard.tsx` ב-`src/components/child-dashboard/`:
-  - מושך `pending requests` מ-`time_extension_requests` לפי `child_id`
-  - עובד לפי `childId` מפורש שמגיע מה-`ChildDashboard` של הילד הפעיל
-  - מציג `reason`, `created_at`
-  - כפתורי approve (ירוק) / reject (אדום)
-  - קורא ל-RPC `respond_time_request`
-  - אחרי action — `refetch`
-5. שילוב ב-`ChildDashboard.tsx`:
-  - מוצג מעל `ScreenTimeSection` (אם יש `pending requests`)
-
-**קבצים שייגעו:**
-
-- Migration חדשה (טבלה + 2 RPCs + RLS)
-- `src/components/child-dashboard/TimeRequestsCard.tsx` (חדש)
-- `src/components/child-dashboard/index.ts` (export)
-- `src/pages/ChildDashboard.tsx` (שילוב)
+RLS: רק service_role כותב (Edge Function). ה-RPC `get_device_settings` רץ כ-SECURITY DEFINER ולכן יכול לקרוא ישירות.
 
 ---
 
-### משימה 2: Days Mapping — יישור ל-1–7
+### שלב 2: Edge Function `calculate-shabbat-times`
 
-**Migration (Data):**
+**קובץ:** `supabase/functions/calculate-shabbat-times/index.ts`
 
-```
-UPDATE schedule_windows sw
-SET days_of_week = (
-  SELECT array_agg(d + 1)
-  FROM unnest(sw.days_of_week) AS d
-)
-WHERE sw.days_of_week IS NOT NULL
-  AND EXISTS (
-    SELECT 1
-    FROM unnest(sw.days_of_week) AS d
-    WHERE d BETWEEN 0 AND 6
-  )
-  AND NOT EXISTS (
-    SELECT 1
-    FROM unnest(sw.days_of_week) AS d
-    WHERE d = 7
-  );
-```
+**לוגיקה:**
+- מושך את כל הילדים הפעילים (שיש להם device עם lat/lon ו-last_seen בשבוע האחרון)
+- מחשב את יום שישי הקרוב
+- לכל ילד, מחשב sunset לפי lat/lon באמצעות **Solar Position Algorithm** (SPA) — חישוב אסטרונומי ישיר בלי תלות בספריות חיצוניות
+  - כניסת שבת = sunset ביום שישי minus 18 דקות (מנהג ירושלים) / 40 דקות (אפשרות — נלך על 18 כברירת מחדל)
+  - יציאת שבת = sunset ביום שבת plus 32 דקות (3 כוכבים קטנים ~8.5 מעלות)
+- ממיר ל-epoch_ms
+- UPSERT ל-`shabbat_times_computed`
 
-**קוד — שינוי DAYS array:**
+**למה SPA ולא hebcal:**
+- hebcal היא ספרייה JS גדולה שעלולה לגרום לבעיות deploy ב-Deno Edge Functions
+- חישוב sunset לפי lat/lon/date הוא פורמולה מתמטית ידועה (~50 שורות)
+- יציב יותר, אין תלות חיצונית
 
-`ScheduleEditModal.tsx` — `DAYS values`: `1,2,3,4,5,6,7` במקום `0,1,2,3,4,5,6`
-
-Defaults:
-
-- bedtime: `[1,2,3,4,5,6,7]` (כל יום)
-- school: `[1,2,3,4,5]` (א׳–ה׳)
-
-`SchedulesSection.tsx` — `DAY_LABELS` index shift:
-
-```
-const DAY_LABELS: Record<number, string> = {1:"א׳", 2:"ב׳", 3:"ג׳", 4:"ד׳", 5:"ה׳", 6:"ו׳", 7:"ש׳"};
-```
-
-`renderDays` — עדכון לעבודה עם 1-7.
-
-**קבצים שייגעו:**
-
-- Migration חדשה (UPDATE data)
-- `src/components/child-dashboard/ScheduleEditModal.tsx`
-- `src/components/child-dashboard/SchedulesSection.tsx`
-
-**אין שינוי ב-**`useChildControls.ts` — הוא פשוט מעביר `as-is`.  
-  
-**אין שינוי ב-**`get_device_settings` — מעביר `as-is`.
+**Offset defaults:**
+- `candle_lighting_offset`: -18 דקות מ-sunset (ניתן להתאים בעתיד)
+- `havdalah_offset`: +32 דקות מ-sunset
 
 ---
 
-### משימה 3: Streak — חישוב ושמירה ב-Supabase
+### שלב 3: Cron Job
 
-**Migration:**
+באמצעות `pg_cron` + `pg_net` — רץ כל יום חמישי בשעה 02:00 (UTC) = 05:00 בישראל.
 
-1. הוספת שדות ל-`reward_bank`:
-  - `current_streak int DEFAULT 0`
-  - `last_streak_date date`
-2. עדכון RPC `approve_chore` — הוספת לוגיקת `streak`:
-  ```
-  v_today := (now() AT TIME ZONE 'Asia/Jerusalem')::date;
-  IF last_streak_date = v_today → no change
-  ELSIF last_streak_date = v_today - 1 → streak + 1
-  ELSE → streak = 1
-  ```
-3. חשיפה ב-`get_device_settings`:
-  - הוספת `current_streak` ו-`balance_minutes` מ-`reward_bank` לפלט
-
-**קבצים שייגעו:**
-
-- Migration חדשה (ALTER TABLE + replace `approve_chore` + update `get_device_settings`)
-
-**אין שינוי בקוד Lovable** — המשימה הזו היא backend בלבד. האנדרואיד ימשוך דרך `get_device_settings`.
+SQL INSERT (לא migration — מכיל project-specific URL + anon key):
+```sql
+SELECT cron.schedule(
+  'calculate-shabbat-times-weekly',
+  '0 2 * * 4',  -- כל יום חמישי 02:00 UTC
+  $$
+  SELECT net.http_post(
+    url:='https://fsedenvbdpctzoznppwo.supabase.co/functions/v1/calculate-shabbat-times',
+    headers:='{"Content-Type":"application/json","Authorization":"Bearer <anon_key>"}'::jsonb,
+    body:='{}'::jsonb
+  ) as request_id;
+  $$
+);
+```
 
 ---
 
-### סיכום קבצים
+### שלב 4: עדכון `get_device_settings`
 
+**שינוי ב-migration (CREATE OR REPLACE FUNCTION):**
 
-| קובץ                                                   | שינוי                                                                                        |
-| ------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
-| Migration 1                                            | טבלה `time_extension_requests` + RPC `request_extra_time` + RPC `respond_time_request` + RLS |
-| Migration 2                                            | UPDATE `schedule_windows` data 0→1...6→7 רק לרשומות שעדיין בפורמט הישן                       |
-| Migration 3                                            | ALTER `reward_bank` + replace `approve_chore` + update `get_device_settings`                 |
-| `src/components/child-dashboard/TimeRequestsCard.tsx`  | חדש                                                                                          |
-| `src/components/child-dashboard/index.ts`              | export חדש                                                                                   |
-| `src/pages/ChildDashboard.tsx`                         | שילוב `TimeRequestsCard`                                                                     |
-| `src/components/child-dashboard/ScheduleEditModal.tsx` | `DAYS` 1-7                                                                                   |
-| `src/components/child-dashboard/SchedulesSection.tsx`  | `DAY_LABELS` 1-7                                                                             |
+בבלוק הקיים של `next_shabbat`, אחרי שמושכים `v_shabbat_row`:
+
+1. נסה SELECT מ-`shabbat_times_computed` לפי `v_child_id` ו-`friday_date` >= CURRENT_DATE
+2. אם נמצא → השתמש ב-`start_epoch_ms` ו-`end_epoch_ms` מהטבלה
+3. אם לא נמצא (fallback) → חשב epoch מ-`shabbat_zmanim` הסטטי:
+   - `start_epoch_ms = EXTRACT(EPOCH FROM (friday_date + candle_lighting)) * 1000` (ב-Asia/Jerusalem)
+   - `end_epoch_ms = EXTRACT(EPOCH FROM ((friday_date + 1) + havdalah)) * 1000` (ב-Asia/Jerusalem)
+
+**תוצאה:**
+```json
+{
+  "next_shabbat": {
+    "friday_date": "2026-03-27",
+    "candle_lighting": "18:24:00",
+    "havdalah": "19:29:00",
+    "shabbat_start_epoch_ms": 1743094440000,
+    "shabbat_end_epoch_ms": 1743189540000
+  }
+}
+```
+
+Backward compatible — `candle_lighting` ו-`havdalah` נשארים.
+
+---
+
+### קבצים שישתנו
+
+| קובץ | שינוי |
+|---|---|
+| Migration חדשה | `shabbat_times_computed` table + updated `get_device_settings` with epoch + fallback |
+| `supabase/functions/calculate-shabbat-times/index.ts` | Edge Function חדשה |
+| `supabase/config.toml` | `verify_jwt = false` ל-function החדשה |
+| Cron job (INSERT via SQL editor) | `pg_cron` schedule |
+
+### אין שינוי ב:
+- UI / Lovable components
+- `shabbat_zmanim` (נשאר כ-fallback)
+- Android code
+
+### Technical Details
+
+**Solar position calculation:**
+- Uses simplified NOAA solar calculator algorithm
+- Input: latitude, longitude, date (UTC)
+- Output: sunset time as Date object
+- Accuracy: ~1 minute (sufficient for halachic zmanim with fixed offsets)
+
+**Fallback epoch calculation in SQL:**
+```sql
+EXTRACT(EPOCH FROM (v_shabbat_row.friday_date + v_shabbat_row.candle_lighting) 
+  AT TIME ZONE 'Asia/Jerusalem') * 1000
+```
+
+**בדיקות:**
+```sql
+-- Verify computed times exist
+SELECT * FROM shabbat_times_computed ORDER BY friday_date DESC LIMIT 5;
+
+-- Verify get_device_settings returns epochs
+SELECT get_device_settings('DEVICE_ID_HERE')->'next_shabbat';
+```
+
