@@ -1887,6 +1887,47 @@ export type Database = {
           },
         ]
       }
+      shabbat_times_computed: {
+        Row: {
+          child_id: string
+          computed_at: string
+          end_epoch_ms: number
+          friday_date: string
+          id: string
+          latitude: number
+          longitude: number
+          start_epoch_ms: number
+        }
+        Insert: {
+          child_id: string
+          computed_at?: string
+          end_epoch_ms: number
+          friday_date: string
+          id?: string
+          latitude: number
+          longitude: number
+          start_epoch_ms: number
+        }
+        Update: {
+          child_id?: string
+          computed_at?: string
+          end_epoch_ms?: number
+          friday_date?: string
+          id?: string
+          latitude?: number
+          longitude?: number
+          start_epoch_ms?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shabbat_times_computed_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shabbat_zmanim: {
         Row: {
           candle_lighting: string
