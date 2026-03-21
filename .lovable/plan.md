@@ -1,12 +1,13 @@
-## פיצ'ר זמני שבת אוטומטיים — סטטוס ביצוע
+## פיצ'ר זמני שבת + חגים אוטומטיים — סטטוס ביצוע
 
 ### ✅ בוצע
 
 | שלב | סטטוס | פרטים |
 |---|---|---|
-| טבלת `shabbat_times_computed` | ✅ | Migration הורץ — טבלה + UNIQUE + RLS service_role |
-| Edge Function `calculate-shabbat-times` | ✅ | NOAA sunset algorithm, upsert לכל ילד פעיל |
-| עדכון `get_device_settings` | ✅ | epoch values מ-computed table, fallback לירושלים |
+| טבלת `shabbat_times_computed` | ✅ | Migration — טבלה + UNIQUE + RLS service_role |
+| טבלת `issur_melacha_windows` | ✅ | Migration — טבלה + indexes + UNIQUE + RLS service_role |
+| Edge Function `calculate-shabbat-times` | ✅ | Phase 1: NOAA SPA (שבת), Phase 2: Hebcal API (חגים + שבתות 30 יום) |
+| עדכון `get_device_settings` | ✅ | epoch values + `issur_melacha_windows` array (עד 10 חלונות קרובים) |
 | `config.toml` | ✅ | `verify_jwt = false` |
 
 ### ⏳ ממתין לביצוע ידני
@@ -27,15 +28,7 @@ SELECT cron.schedule(
 );
 ```
 
-### תוצאות בדיקה
-
-- Edge Function מחשבת ל-7 ילדים פעילים
-- `get_device_settings` מחזיר epoch values:
-  - עם computed: `shabbat_start_epoch_ms` = 18:38 Israel (location-based)
-  - עם fallback: `shabbat_start_epoch_ms` = 18:24 Israel (Jerusalem static)
-- Havdalah מדויק: 19:29 Israel (תואם לנתונים הסטטיים)
-
-### פלט get_device_settings
+### מבנה Response של get_device_settings
 
 ```json
 {
@@ -45,8 +38,37 @@ SELECT cron.schedule(
     "havdalah": "19:29:00",
     "shabbat_start_epoch_ms": 1774625909000,
     "shabbat_end_epoch_ms": 1774715350000
-  }
+  },
+  "issur_melacha_windows": [
+    {
+      "lock_type": "shabbat",
+      "event_name": "Shabbat",
+      "event_key": "shabbat-2026-03-27",
+      "start_epoch_ms": 1774625909000,
+      "end_epoch_ms": 1774715350000
+    },
+    {
+      "lock_type": "yom_tov",
+      "event_name": "Pesach I",
+      "event_key": "yom_tov-2026-04-01",
+      "start_epoch_ms": 1775057909000,
+      "end_epoch_ms": 1775144350000
+    }
+  ]
 }
 ```
 
-**Android צריך להשתמש ב-`shabbat_start_epoch_ms` ו-`shabbat_end_epoch_ms` בלבד** — הם מוחלטים ולא דורשים המרת timezone.
+### Edge Function לוגיקה
+
+**Phase 1 (שבת):** NOAA SPA → `shabbat_times_computed` (שבת קרובה בלבד)
+**Phase 2 (חגים):** Hebcal Jewish Calendar REST API → `issur_melacha_windows` (30 יום קדימה)
+
+- Pairing: candles → havdalah הבא
+- lock_type: `shabbat` (יום שישי) / `yom_tov` (חג)
+- Merge: אם `next.start <= current.end + 10 דקות` → איחוד חלון
+- UPSERT עם `onConflict: child_id,event_key,start_epoch_ms`
+
+### Android צריך להשתמש ב:
+
+1. `issur_melacha_windows` — מערך חלונות מוחלטים (epoch ms), כולל שבתות וחגים
+2. `next_shabbat` — backward compatible, שבת הקרובה בלבד עם epoch
