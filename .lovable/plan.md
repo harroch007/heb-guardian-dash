@@ -1,102 +1,74 @@
-## תכנית ביצוע — הרחבת זמני שבת לחגים (issur_melacha_windows)
+## פיצ'ר זמני שבת + חגים אוטומטיים — סטטוס ביצוע
 
-### ממצאים מהמיפוי
+### ✅ בוצע
 
-**מצב קיים:**
+| שלב | סטטוס | פרטים |
+|---|---|---|
+| טבלת `shabbat_times_computed` | ✅ | Migration — טבלה + UNIQUE + RLS service_role |
+| טבלת `issur_melacha_windows` | ✅ | Migration — טבלה + indexes + UNIQUE + RLS service_role |
+| Edge Function `calculate-shabbat-times` | ✅ | Phase 1: NOAA SPA (שבת), Phase 2: Hebcal API (חגים + שבתות 30 יום) |
+| עדכון `get_device_settings` | ✅ | epoch values + `issur_melacha_windows` array (עד 10 חלונות קרובים) |
+| `config.toml` | ✅ | `verify_jwt = false` |
 
-- Edge Function `calculate-shabbat-times` מחשבת שבת בלבד עם NOAA SPA, כותבת ל-`shabbat_times_computed`
-- `get_device_settings` מחזיר `next_shabbat` עם epoch values, fallback לירושלים
-- `devices` table: `device_id` הוא `text` (לא uuid), אין עמודת `id` uuid — צריך להתאים את ה-schema
+### ⏳ ממתין לביצוע ידני
 
-**התאמה נדרשת לspec:** הטבלה `devices` משתמשת ב-`device_id text` כ-PK, לא `id uuid`. לכן `device_id` בטבלה החדשה לא יכול להיות uuid FK ל-`devices(id)`. אני אשמיט את עמודת `device_id` מהטבלה החדשה — `child_id` מספיק לזיהוי, והמיקום נלקח מ-`devices` דרך `child_id`. זה מונע FK שבור ומפשט.
+**Cron Job** — צריך להריץ ב-SQL Editor של Supabase:
 
----
+```sql
+SELECT cron.schedule(
+  'calculate-shabbat-times-weekly',
+  '0 2 * * 4',
+  $$
+  SELECT net.http_post(
+    url:='https://fsedenvbdpctzoznppwo.supabase.co/functions/v1/calculate-shabbat-times',
+    headers:='{"Content-Type":"application/json","Authorization":"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZzZWRlbnZiZHBjdHpvem5wcHdvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYyNjkxMzcsImV4cCI6MjA4MTg0NTEzN30.Lvu-qGDtzhL3-7QHdzimsRWQ2I6Wy7jJasidbfEFrVU"}'::jsonb,
+    body:='{}'::jsonb
+  ) as request_id;
+  $$
+);
+```
 
-### שלב 1: Migration
+### מבנה Response של get_device_settings
 
-טבלה `issur_melacha_windows` עם כל השדות מהspec חוץ מ-`device_id` (הוסבר למעלה).
+```json
+{
+  "next_shabbat": {
+    "friday_date": "2026-03-27",
+    "candle_lighting": "18:24:00",
+    "havdalah": "19:29:00",
+    "shabbat_start_epoch_ms": 1774625909000,
+    "shabbat_end_epoch_ms": 1774715350000
+  },
+  "issur_melacha_windows": [
+    {
+      "lock_type": "shabbat",
+      "event_name": "Shabbat",
+      "event_key": "shabbat-2026-03-27",
+      "start_epoch_ms": 1774625909000,
+      "end_epoch_ms": 1774715350000
+    },
+    {
+      "lock_type": "yom_tov",
+      "event_name": "Pesach I",
+      "event_key": "yom_tov-2026-04-01",
+      "start_epoch_ms": 1775057909000,
+      "end_epoch_ms": 1775144350000
+    }
+  ]
+}
+```
 
-אינדקסים + `UNIQUE` constraint + RLS `service_role` בלבד.
+### Edge Function לוגיקה
 
-להוסיף גם:
+**Phase 1 (שבת):** NOAA SPA → `shabbat_times_computed` (שבת קרובה בלבד)
+**Phase 2 (חגים):** Hebcal Jewish Calendar REST API → `issur_melacha_windows` (30 יום קדימה)
 
-- `timezone text not null default 'Asia/Jerusalem'`
-- `source text not null default 'hebcal_jewish_calendar'`
-- `computed_at timestamptz not null default now()`
-- `is_active boolean not null default true`
+- Pairing: candles → havdalah הבא
+- lock_type: `shabbat` (יום שישי) / `yom_tov` (חג)
+- Merge: אם `next.start <= current.end + 10 דקות` → איחוד חלון
+- UPSERT עם `onConflict: child_id,event_key,start_epoch_ms`
 
----
+### Android צריך להשתמש ב:
 
-### שלב 2: הרחבת Edge Function
-
-הרחבת `calculate-shabbat-times/index.ts`:
-
-1. **שלב שבת קיים** — נשמר כמו שהוא (`NOAA SPA` → `shabbat_times_computed`)
-2. **שלב חגים חדש:**
-  - לכל ילד פעיל, קריאה ל-`Hebcal Jewish Calendar REST API` עם הפרמטרים שצוינו (30 יום קדימה)
-  - שימוש ב:
-    - `v=1`
-    - `cfg=json`
-    - `start`
-    - `end`
-    - `maj=on`
-    - `yto=on`
-    - `i=on`
-    - `c=on`
-    - `M=on`
-    - `latitude`
-    - `longitude`
-    - `tzid=Asia/Jerusalem`
-  - פירוק ה-response: זיהוי `candles` ו-`havdalah` events
-  - `Pairing`: כל `candles` → `havdalah` הבא
-  - קביעת `lock_type`: `shabbat` vs `yom_tov` לפי event type / category, לא רק לפי title
-  - **Merge logic:** אם `next.start <= current.end + 10min` → איחוד
-  - `UPSERT` ל-`issur_melacha_windows`
-  - לוגים מפורטים: `child_id`, `lat/lon`, `Hebcal URL`, `items count`, `pre/post merge counts`
-3. **Backward compatibility:**
-  - להמשיך לעדכן גם את `shabbat_times_computed` עבור השבת הקרובה בלבד
-  - לא לשבור את ה-flow הקיים שכבר עובד
-
----
-
-### שלב 3: עדכון get_device_settings
-
-הוספת בלוק חדש אחרי `next_shabbat`:
-
-- `SELECT` מ-`issur_melacha_windows` לפי `child_id`
-- רק `is_active = true`
-- רק `end_epoch_ms > now()`
-- `LIMIT 10`, `ORDER BY start_epoch_ms`
-- מחזיר כ-`issur_melacha_windows` array ב-`JSON response`
-
-`next_shabbat` נשאר כמו שהוא היום, כולל:
-
-- `friday_date`
-- `candle_lighting`
-- `havdalah`
-- `shabbat_start_epoch_ms`
-- `shabbat_end_epoch_ms`
-
-אם אין חלונות — להחזיר `issur_melacha_windows: []`
-
----
-
-### שלב 4: Cron
-
-לא נדרש שינוי — ה-cron הקיים מפעיל את אותה Edge Function.
-
-הפונקציה המורחבת תמשיך לחשב:
-
-- את השבת הקרובה ל-`shabbat_times_computed`
-- וגם את חלונות `issur_melacha_windows` ל-30 יום קדימה
-
----
-
-### קבצים שישתנו
-
-
-| קובץ                                                  | שינוי                                                                      |
-| ----------------------------------------------------- | -------------------------------------------------------------------------- |
-| Migration חדשה                                        | טבלה `issur_melacha_windows` + RLS + indexes                               |
-| Migration חדשה                                        | `get_device_settings` עם `issur_melacha_windows` array                     |
-| `supabase/functions/calculate-shabbat-times/index.ts` | הרחבה עם `Hebcal API` + merge + upsert + שמירה על `shabbat_times_computed` |
+1. `issur_melacha_windows` — מערך חלונות מוחלטים (epoch ms), כולל שבתות וחגים
+2. `next_shabbat` — backward compatible, שבת הקרובה בלבד עם epoch
