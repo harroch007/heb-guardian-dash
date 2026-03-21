@@ -1464,6 +1464,65 @@ export type Database = {
           },
         ]
       }
+      issur_melacha_windows: {
+        Row: {
+          child_id: string
+          computed_at: string
+          end_epoch_ms: number
+          event_key: string
+          event_name: string
+          id: string
+          is_active: boolean
+          latitude: number
+          lock_type: string
+          longitude: number
+          source: string
+          start_epoch_ms: number
+          timezone: string
+          valid_for_date: string
+        }
+        Insert: {
+          child_id: string
+          computed_at?: string
+          end_epoch_ms: number
+          event_key: string
+          event_name: string
+          id?: string
+          is_active?: boolean
+          latitude: number
+          lock_type: string
+          longitude: number
+          source?: string
+          start_epoch_ms: number
+          timezone?: string
+          valid_for_date: string
+        }
+        Update: {
+          child_id?: string
+          computed_at?: string
+          end_epoch_ms?: number
+          event_key?: string
+          event_name?: string
+          id?: string
+          is_active?: boolean
+          latitude?: number
+          lock_type?: string
+          longitude?: number
+          source?: string
+          start_epoch_ms?: number
+          timezone?: string
+          valid_for_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "issur_melacha_windows_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       nightly_usage_reports: {
         Row: {
           child_id: string | null
