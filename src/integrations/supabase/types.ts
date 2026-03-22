@@ -2350,6 +2350,10 @@ export type Database = {
         Returns: Json
       }
       approve_chore: { Args: { p_chore_id: string }; Returns: Json }
+      calc_sunset_utc: {
+        Args: { p_date: string; p_lat: number; p_lon: number }
+        Returns: string
+      }
       check_unresponsive_devices: { Args: never; Returns: undefined }
       claim_alert_events: {
         Args: { _event_type: string; _lease_seconds?: number; _limit?: number }
@@ -2475,6 +2479,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      haversine_km: {
+        Args: { lat1: number; lat2: number; lon1: number; lon2: number }
+        Returns: number
+      }
       increment_daily_chat_stat: {
         Args: {
           p_chat_name: string
@@ -2489,6 +2497,10 @@ export type Database = {
       }
       is_admin: { Args: never; Returns: boolean }
       is_email_allowed: { Args: { p_email: string }; Returns: boolean }
+      maybe_recalc_nearest_issur_window: {
+        Args: { p_child_id: string; p_new_lat: number; p_new_lon: number }
+        Returns: undefined
+      }
       pair_device: {
         Args: { p_device_id: string; p_pairing_code: string }
         Returns: {
