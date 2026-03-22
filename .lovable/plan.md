@@ -1,74 +1,49 @@
-## פיצ'ר זמני שבת + חגים אוטומטיים — סטטוס ביצוע
 
-### ✅ בוצע
 
-| שלב | סטטוס | פרטים |
-|---|---|---|
-| טבלת `shabbat_times_computed` | ✅ | Migration — טבלה + UNIQUE + RLS service_role |
-| טבלת `issur_melacha_windows` | ✅ | Migration — טבלה + indexes + UNIQUE + RLS service_role |
-| Edge Function `calculate-shabbat-times` | ✅ | Phase 1: NOAA SPA (שבת), Phase 2: Hebcal API (חגים + שבתות 30 יום) |
-| עדכון `get_device_settings` | ✅ | epoch values + `issur_melacha_windows` array (עד 10 חלונות קרובים) |
-| `config.toml` | ✅ | `verify_jwt = false` |
+## תוכנית יישור UI — שבתות וחגים
 
-### ⏳ ממתין לביצוע ידני
+### סיכום
+הסרת כל ממשק ההזנה הידנית (אוטומטי/ידני, שעות כניסה/יציאה, שדות TimeInput) משורת השבת, שינוי הטקסט ל"שבתות וחגים", והוספת שורת עזר קצרה כשהמסלול פעיל.
 
-**Cron Job** — צריך להריץ ב-SQL Editor של Supabase:
+### קובץ יחיד: `src/components/child-dashboard/SchedulesSection.tsx`
 
-```sql
-SELECT cron.schedule(
-  'calculate-shabbat-times-weekly',
-  '0 2 * * 4',
-  $$
-  SELECT net.http_post(
-    url:='https://fsedenvbdpctzoznppwo.supabase.co/functions/v1/calculate-shabbat-times',
-    headers:='{"Content-Type":"application/json","Authorization":"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZzZWRlbnZiZHBjdHpvem5wcHdvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYyNjkxMzcsImV4cCI6MjA4MTg0NTEzN30.Lvu-qGDtzhL3-7QHdzimsRWQ2I6Wy7jJasidbfEFrVU"}'::jsonb,
-    body:='{}'::jsonb
-  ) as request_id;
-  $$
-);
-```
+#### שינויים:
 
-### מבנה Response של get_device_settings
+1. **טקסט**: שורה 152 — `"שבת"` → `"שבתות וחגים"`
 
-```json
-{
-  "next_shabbat": {
-    "friday_date": "2026-03-27",
-    "candle_lighting": "18:24:00",
-    "havdalah": "19:29:00",
-    "shabbat_start_epoch_ms": 1774625909000,
-    "shabbat_end_epoch_ms": 1774715350000
-  },
-  "issur_melacha_windows": [
-    {
-      "lock_type": "shabbat",
-      "event_name": "Shabbat",
-      "event_key": "shabbat-2026-03-27",
-      "start_epoch_ms": 1774625909000,
-      "end_epoch_ms": 1774715350000
-    },
-    {
-      "lock_type": "yom_tov",
-      "event_name": "Pesach I",
-      "event_key": "yom_tov-2026-04-01",
-      "start_epoch_ms": 1775057909000,
-      "end_epoch_ms": 1775144350000
-    }
-  ]
-}
-```
+2. **הסרת הבלוק המורחב כולו** (שורות 169–224): כל ה-block של `{shabbatRule?.is_active && (...)}` שמכיל:
+   - Badge toggle אוטומטי/ידני
+   - תצוגת כניסה/יציאה (`formatShabbatTime`)
+   - שדות `TimeInput24h` ידניים
+   - כפתור "שמור זמנים"
 
-### Edge Function לוגיקה
+   במקומו — שורת עזר פשוטה:
+   ```tsx
+   {shabbatRule?.is_active && (
+     <div className="mt-1.5 mr-6">
+       <span className="text-[11px] text-muted-foreground">
+         מחושב אוטומטית לפי מיקום הילד
+       </span>
+     </div>
+   )}
+   ```
 
-**Phase 1 (שבת):** NOAA SPA → `shabbat_times_computed` (שבת קרובה בלבד)
-**Phase 2 (חגים):** Hebcal Jewish Calendar REST API → `issur_melacha_windows` (30 יום קדימה)
+3. **ניקוי קוד מת**: הסרת imports ומשתנים שלא בשימוש:
+   - `import { Badge }` — לא בשימוש עוד
+   - `import { TimeInput24h }` — לא בשימוש עוד
+   - State variables: `savingShabbatMode`, `manualStart`, `manualEnd`
+   - Computed values: `shabbatMode`, `dbManualStart`, `dbManualEnd`
+   - Functions: `handleShabbatModeChange`, `handleSaveManualTimes`
+   - Helper: `formatShabbatTime`
+   - Props: `onUpdateShabbatMode`, `nextShabbat` — הסרה מה-interface ומה-destructuring
 
-- Pairing: candles → havdalah הבא
-- lock_type: `shabbat` (יום שישי) / `yom_tov` (חג)
-- Merge: אם `next.start <= current.end + 10 דקות` → איחוד חלון
-- UPSERT עם `onConflict: child_id,event_key,start_epoch_ms`
+4. **Props interface**: הסרת `onUpdateShabbatMode` ו-`nextShabbat` מ-`SchedulesSectionProps`
 
-### Android צריך להשתמש ב:
+5. **קריאות מהורה** (`ChildDashboard.tsx` או דומה): צריך לוודא שהם לא מעבירים props שהוסרו — אם כן, להסיר גם שם.
 
-1. `issur_melacha_windows` — מערך חלונות מוחלטים (epoch ms), כולל שבתות וחגים
-2. `next_shabbat` — backward compatible, שבת הקרובה בלבד עם epoch
+### קבצים שישתנו
+| קובץ | שינוי |
+|---|---|
+| `SchedulesSection.tsx` | טקסט, הסרת manual UI, שורת עזר, ניקוי imports |
+| קובץ ההורה שמעביר props | הסרת `onUpdateShabbatMode` ו-`nextShabbat` אם מועברים |
+
