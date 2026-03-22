@@ -3,21 +3,12 @@ import { Calendar, Moon, BookOpen, Plus, Pencil, Loader2, ChevronDown, ChevronUp
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { ScheduleEditModal } from "./ScheduleEditModal";
-import { TimeInput24h } from "@/components/ui/time-input-24h";
-import type { ScheduleWindow, NextShabbat } from "@/hooks/useChildControls";
+import type { ScheduleWindow } from "@/hooks/useChildControls";
 
 interface SchedulesSectionProps {
   scheduleWindows: ScheduleWindow[];
-  nextShabbat: NextShabbat | null;
   onToggleShabbat: () => Promise<void>;
-  onUpdateShabbatMode: (
-    scheduleId: string,
-    mode: "default" | "manual",
-    manualStartTime?: string,
-    manualEndTime?: string
-  ) => Promise<void>;
   onCreateSchedule: (params: {
     schedule_type: string;
     name: string;
@@ -40,28 +31,14 @@ interface SchedulesSectionProps {
 
 const DAY_LABELS: Record<number, string> = { 1: "א׳", 2: "ב׳", 3: "ג׳", 4: "ד׳", 5: "ה׳", 6: "ו׳", 7: "ש׳" };
 
-function formatShabbatTime(timeOrIso: string): string {
-  if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(timeOrIso)) {
-    return timeOrIso.substring(0, 5);
-  }
-  const d = new Date(timeOrIso);
-  if (isNaN(d.getTime())) return timeOrIso;
-  return d.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Jerusalem" });
-}
-
 export function SchedulesSection({
   scheduleWindows,
-  nextShabbat,
   onToggleShabbat,
-  onUpdateShabbatMode,
   onCreateSchedule,
   onUpdateSchedule,
   onDeleteSchedule,
 }: SchedulesSectionProps) {
   const [togglingShabbat, setTogglingShabbat] = useState(false);
-  const [savingShabbatMode, setSavingShabbatMode] = useState(false);
-  const [manualStart, setManualStart] = useState("16:00");
-  const [manualEnd, setManualEnd] = useState("20:00");
   const [editModal, setEditModal] = useState<{ open: boolean; type: "bedtime" | "school"; existing?: ScheduleWindow | null }>({
     open: false,
     type: "bedtime",
@@ -73,33 +50,10 @@ export function SchedulesSection({
   const bedtimeRule = scheduleWindows.find((s) => s.schedule_type === "bedtime");
   const schoolRule = scheduleWindows.find((s) => s.schedule_type === "school");
 
-  // Initialize manual times from DB when available
-  const shabbatMode = (shabbatRule?.mode as "default" | "manual") || "default";
-  const dbManualStart = shabbatRule?.manual_start_time?.substring(0, 5) || "16:00";
-  const dbManualEnd = shabbatRule?.manual_end_time?.substring(0, 5) || "20:00";
-
   const handleShabbatToggle = async () => {
     setTogglingShabbat(true);
     await onToggleShabbat();
     setTogglingShabbat(false);
-  };
-
-  const handleShabbatModeChange = async (mode: "default" | "manual") => {
-    if (!shabbatRule) return;
-    setSavingShabbatMode(true);
-    if (mode === "manual") {
-      await onUpdateShabbatMode(shabbatRule.id, "manual", manualStart, manualEnd);
-    } else {
-      await onUpdateShabbatMode(shabbatRule.id, "default");
-    }
-    setSavingShabbatMode(false);
-  };
-
-  const handleSaveManualTimes = async () => {
-    if (!shabbatRule) return;
-    setSavingShabbatMode(true);
-    await onUpdateShabbatMode(shabbatRule.id, "manual", manualStart, manualEnd);
-    setSavingShabbatMode(false);
   };
 
   const handleToggleRule = async (rule: ScheduleWindow) => {
@@ -143,13 +97,13 @@ export function SchedulesSection({
 
         {expanded && (
         <CardContent className="space-y-0.5">
-          {/* Shabbat row */}
+          {/* Shabbat & holidays row */}
           <div className="py-2.5 px-1">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5 flex-1 min-w-0">
                 <Calendar className="w-4 h-4 text-primary shrink-0" />
                 <div className="min-w-0 flex-1">
-                  <span className="text-sm font-medium text-foreground">שבת</span>
+                  <span className="text-sm font-medium text-foreground">שבתות וחגים</span>
                 </div>
               </div>
               <div className="shrink-0">
@@ -166,60 +120,11 @@ export function SchedulesSection({
               </div>
             </div>
 
-            {/* Expanded shabbat settings when active */}
             {shabbatRule?.is_active && (
-              <div className="mt-2 mr-6 space-y-2">
-                {/* Mode toggle */}
-                <div className="flex gap-1.5">
-                  <Badge
-                    variant={shabbatMode === "default" ? "default" : "outline"}
-                    className="cursor-pointer text-[10px] px-2 py-0.5"
-                    onClick={() => handleShabbatModeChange("default")}
-                  >
-                    אוטומטי
-                  </Badge>
-                  <Badge
-                    variant={shabbatMode === "manual" ? "default" : "outline"}
-                    className="cursor-pointer text-[10px] px-2 py-0.5"
-                    onClick={() => handleShabbatModeChange("manual")}
-                  >
-                    ידני
-                  </Badge>
-                </div>
-
-                {shabbatMode === "default" && nextShabbat && (
-                  <div className="text-[11px] text-muted-foreground">
-                    כניסה {formatShabbatTime(nextShabbat.candle_lighting)} · יציאה {formatShabbatTime(nextShabbat.havdalah)}
-                  </div>
-                )}
-
-                {shabbatMode === "manual" && (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground w-12">כניסה:</span>
-                      <TimeInput24h
-                        value={manualStart || dbManualStart}
-                        onChange={setManualStart}
-                      />
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground w-12">יציאה:</span>
-                      <TimeInput24h
-                        value={manualEnd || dbManualEnd}
-                        onChange={setManualEnd}
-                      />
-                    </div>
-                    <Button
-                      size="sm"
-                      className="w-full text-xs h-7"
-                      onClick={handleSaveManualTimes}
-                      disabled={savingShabbatMode}
-                    >
-                      {savingShabbatMode && <Loader2 className="w-3 h-3 animate-spin ml-1" />}
-                      שמור זמנים
-                    </Button>
-                  </div>
-                )}
+              <div className="mt-1.5 mr-6">
+                <span className="text-[11px] text-muted-foreground">
+                  מחושב אוטומטית לפי מיקום הילד
+                </span>
               </div>
             )}
           </div>
