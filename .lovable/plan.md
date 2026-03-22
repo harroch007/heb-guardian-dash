@@ -1,203 +1,70 @@
-## AI Infrastructure — Phase 1: Config, Telemetry, Rollout, Device Profile
+## AI Infrastructure — Phase 2: Incident Summaries, Engine Health, Suppression Audit
 
-### Single Migration with 4 Tables + 3 RPCs
-
-All created in one migration file.
+### Single migration creating 3 tables + 3 RPCs + policy config update
 
 ---
 
-### Table 1: `device_ai_profiles`
+### Tables
 
-Device-level AI capability profile, upserted by the device on each sync.
+**1.** `ai_incident_summaries` — Summary-only incident storage (no raw content)
 
+- Key columns: `device_id` (FK), `child_id` (FK), `chat_id`, `chat_type`, `risk_type`, `severity`, `child_role`, `incident_action`, `confidence`, `why_short`, `evidence_message_ids` (jsonb), `evidence_snippets` (jsonb, short snippets only), `is_open`, `last_seen_at`
+- 4 indexes: `(device_id, created_at desc)`, `(child_id, created_at desc)`, `(chat_id, is_open)`, `(risk_type, severity, created_at desc)`
+- RLS: admin + service-role read, no anon access, service-role write only via RPC
+- `updated_at` trigger
 
-| Column                | Type                                                                 | Notes                                                                                     |
-| --------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| id                    | uuid PK default gen_random_uuid()                                    | &nbsp;                                                                                    |
-| device_id             | text NOT NULL UNIQUE references devices(device_id) ON DELETE CASCADE | &nbsp;                                                                                    |
-| child_id              | uuid references children(id) ON DELETE SET NULL                      | nullable, can be derived from `devices` if needed                                         |
-| selected_voice_engine | text                                                                 | must use exact shared engine names only: `"mlkit_speech"`, `"local_bundled_asr"`          |
-| selected_slm_engine   | text                                                                 | must use exact shared engine names only: `"litert_local"`, `"mlkit_genai"`, `"heuristic"` |
-| device_tier           | text default 'unknown'                                               | `"low"`, `"mid"`, `"high"`, `"unknown"`                                                   |
-| voice_supported       | boolean default false                                                | &nbsp;                                                                                    |
-| slm_supported         | boolean default false                                                | &nbsp;                                                                                    |
-| supports_aicore       | boolean default false                                                | keep false unless device/runtime confirms it explicitly                                   |
-| last_health_check_at  | timestamptz                                                          | should be updated on every profile upsert                                                 |
-| last_failure_reason   | text                                                                 | &nbsp;                                                                                    |
-| created_at            | timestamptz default now()                                            | &nbsp;                                                                                    |
-| updated_at            | timestamptz default now()                                            | &nbsp;                                                                                    |
+**2.** `ai_engine_health` — Per-device engine runtime health (UNIQUE on device_id)
 
-
-Index on `child_id`. RLS: service-role only (no anon/direct device access, device calls via RPCs with SECURITY DEFINER). `updated_at` must be refreshed on every upsert.
-
----
-
-### Table 2: `ai_policy_config`
-
-Central AI policy configuration, admin-managed. Versioned rows, only one `is_active = true`.
-
-
-| Column                       | Type                              | Notes                                                                        |
-| ---------------------------- | --------------------------------- | ---------------------------------------------------------------------------- |
-| id                           | uuid PK default gen_random_uuid() | &nbsp;                                                                       |
-| active_policy_version        | text NOT NULL                     | e.g. `"v1.0"`                                                                |
-| context_window_size          | integer default 20                | must start at 20 to align with the Android/local AI architecture             |
-| suppression_minutes          | integer default 30                | &nbsp;                                                                       |
-| escalation_thresholds        | jsonb default '{}'                | &nbsp;                                                                       |
-| preferred_voice_engine_order | jsonb default '[]'                | must use exact names only, e.g. `["mlkit_speech","local_bundled_asr"]`       |
-| preferred_slm_engine_order   | jsonb default '[]'                | must use exact names only, e.g. `["litert_local","mlkit_genai","heuristic"]` |
-| model_metadata               | jsonb default '{}'                | version info, checksums, model names — skeleton for future                   |
-| feature_flags                | jsonb default '{}'                | &nbsp;                                                                       |
-| is_active                    | boolean default false             | &nbsp;                                                                       |
-| created_at                   | timestamptz default now()         | &nbsp;                                                                       |
-| updated_at                   | timestamptz default now()         | &nbsp;                                                                       |
-
-
-Unique partial index on `is_active = true` to enforce single active policy. RLS: admin read, service-role write. `updated_at` should refresh on updates.
-
----
-
-### Table 3: `ai_rollout_flags`
-
-Remote feature kill-switches. Single active row pattern (same as policy).
-
-
-| Column                     | Type                              | Notes  |
-| -------------------------- | --------------------------------- | ------ |
-| id                         | uuid PK default gen_random_uuid() | &nbsp; |
-| enable_local_slm           | boolean default false             | &nbsp; |
-| enable_voice_transcription | boolean default false             | &nbsp; |
-| force_heuristic_mode       | boolean default false             | &nbsp; |
-| disable_voice_on_low_end   | boolean default true              | &nbsp; |
-| disable_slm_on_low_end     | boolean default true              | &nbsp; |
-| notes                      | text                              | &nbsp; |
-| is_active                  | boolean default false             | &nbsp; |
-| created_at                 | timestamptz default now()         | &nbsp; |
-| updated_at                 | timestamptz default now()         | &nbsp; |
-
-
-Unique partial index on `is_active = true`. RLS: admin read, service-role write. `updated_at` should refresh on updates.
-
----
-
-### Table 4: `ai_runtime_telemetry`
-
-Append-only operational telemetry. No raw content.
-
-
-| Column             | Type                              | Notes                                                                          |
-| ------------------ | --------------------------------- | ------------------------------------------------------------------------------ |
-| id                 | uuid PK default gen_random_uuid() | &nbsp;                                                                         |
-| device_id          | text NOT NULL                     | &nbsp;                                                                         |
-| child_id           | uuid                              | &nbsp;                                                                         |
-| engine_type        | text NOT NULL                     | must use exact shared names: `"voice"`, `"slm"`, `"heuristic"`, `"capability"` |
-| event_type         | text NOT NULL                     | `"inference"`, `"fallback"`, `"error"`, `"health_check"`, `"profile_sync"`     |
-| latency_ms         | integer                           | &nbsp;                                                                         |
-| success            | boolean default true              | &nbsp;                                                                         |
-| fallback_triggered | boolean default false             | &nbsp;                                                                         |
-| failure_reason     | text                              | &nbsp;                                                                         |
-| model_version      | text                              | &nbsp;                                                                         |
-| created_at         | timestamptz default now()         | &nbsp;                                                                         |
-
-
-Index on `(device_id, created_at)`. No FK on `device_id` (telemetry should never fail due to FK). RLS: service-role insert only, admin/service-role read.
-
----
-
-### RPCs (3 SECURITY DEFINER functions)
-
-**1.** `upsert_device_ai_profile` — device reports its AI capabilities
-
-```id="1a1g7v"
-(p_device_id, p_child_id, p_selected_voice_engine, p_selected_slm_engine,
- p_device_tier, p_voice_supported, p_slm_supported, p_supports_aicore,
- p_last_failure_reason)
-
-```
-
-Upserts into `device_ai_profiles` on `device_id` conflict, sets `last_health_check_at = now()`, updates `updated_at = now()`, and if `p_child_id` is null tries to resolve `child_id` from `devices.device_id`.
-
-Important:
-
-- do not normalize to custom engine names
-- store exactly the shared names agreed with Android:
+- Key columns: `device_id` (FK, UNIQUE), `child_id` (FK), `selected_voice_engine`, `selected_slm_engine`, engine statuses, latencies, failure counts, `last_failure_reason`
+- Engine names must use exact shared names only:
   - voice: `mlkit_speech`, `local_bundled_asr`
   - slm: `litert_local`, `mlkit_genai`, `heuristic`
+- RLS: admin + service-role read, no anon access, service-role write only via RPC
+- `updated_at` trigger
 
-**2.** `get_active_ai_config` — device pulls active policy + rollout flags in one call
+**3.** `ai_suppression_audit` — Append-only suppression log (no raw content)
 
-```id="bt6z0q"
-RETURNS jsonb
+- Key columns: `device_id`, `child_id`, `chat_id`, `risk_type`, `suppression_reason`, `previous_severity`, `current_severity`, `last_alert_sent_at`
+- 2 indexes: `(device_id, created_at desc)`, `(chat_id, created_at desc)`
+- No FK on device_id (same pattern as telemetry — audit should never fail on FK)
+- RLS: admin + service-role read, no anon access, service-role insert only via RPC
 
-```
+### RPCs (SECURITY DEFINER)
 
-Returns `{ policy: {...}, rollout: {...} }` from the active rows only. If no active row exists, returns safe defaults rather than null.
+**1.** `upsert_ai_engine_health` — Upsert on `device_id` conflict, refresh `updated_at`. Resolves `child_id` from `devices` if null.
 
-**3.** `report_ai_telemetry` — device reports a telemetry event
+**2.** `report_ai_incident_summary` — Smart insert/update/close:
 
-```id="3er4mn"
-(p_device_id, p_child_id, p_engine_type, p_event_type, p_latency_ms,
- p_success, p_fallback_triggered, p_failure_reason, p_model_version)
+- `"new"` → INSERT new row
+- `"continue"` → UPDATE existing open incident matching `(device_id, chat_id, risk_type, is_open=true)`, refresh `last_seen_at`
+- `"close"` → SET `is_open=false` on matching open incident
+- Store only structured summary data, never raw message bodies or long chat excerpts
 
-```
+**3.** `report_ai_suppression_event` — Simple INSERT into `ai_suppression_audit`
 
-Simple INSERT into `ai_runtime_telemetry`.
+### Seed data update
 
----
+UPDATE the active `ai_policy_config` row:
 
-### Seed Data
-
-- One default `ai_policy_config` row with `is_active = true`, version `"v1.0"`
-- One default `ai_rollout_flags` row with `is_active = true`, all features off (safe default)
-- Default `context_window_size`: `20`
-- Default `preferred_voice_engine_order`: `["mlkit_speech","local_bundled_asr"]`
-- Default `preferred_slm_engine_order`: `["litert_local","mlkit_genai","heuristic"]`
-
-### Model/Version Metadata
-
-Handled via `model_metadata` jsonb field in `ai_policy_config` — no separate table needed at this stage. Can store:
-
-```id="lfgu07"
-{
-  "slm_model": "litert_local_v1",
-  "voice_model": "mlkit_speech_v1",
-  "policy_schema": "v1"
-}
-
-```
+- keep `context_window_size = 20`
+- keep engine order aligned with Android:
+  - `preferred_voice_engine_order`: `["mlkit_speech","local_bundled_asr"]`
+  - `preferred_slm_engine_order`: `["litert_local","mlkit_genai","heuristic"]`
+- `feature_flags`: add `enable_incident_reporting`, `enable_suppression_audit`, `enable_group_analysis` (all `false`)
+- `escalation_thresholds`: set `low_to_medium_min_score: 0.55`, `medium_to_high_min_score: 0.8`, `high_risk_force_alert_types: ["grooming","sexual","self_harm"]`
+- `model_metadata`: update `policy_schema` to `"v2"`, add `incident_schema: "v1"`
 
 ### What stays untouched
 
 - No UI changes
-- No Android behavior changes
-- No alerting flow changes
-- No raw content stored anywhere
-- Existing `get_device_settings` unchanged
+- No raw content stored
+- Phase 1 tables/RPCs unchanged
+- `get_device_settings` unchanged
+- Android unchanged
 
 ### Files changed
 
 
-| File                          | Change                                                                         |
-| ----------------------------- | ------------------------------------------------------------------------------ |
-| `supabase/migrations/new.sql` | All 4 tables, 3 RPCs, indexes, RLS policies, partial unique indexes, seed data |
-
-
-### Manual Verification
-
-```id="4tlmvw"
--- Check active rows exist
-SELECT * FROM ai_policy_config WHERE is_active = true;
-SELECT * FROM ai_rollout_flags WHERE is_active = true;
-
--- Test profile upsert
-SELECT upsert_device_ai_profile('test123', null, 'mlkit_speech', 'litert_local', 'high', true, true, false, null);
-SELECT * FROM device_ai_profiles WHERE device_id = 'test123';
-
--- Test config pull
-SELECT get_active_ai_config();
-
--- Test telemetry insert
-SELECT report_ai_telemetry('test123', null, 'slm', 'health_check', 250, true, false, null, 'v1');
-SELECT * FROM ai_runtime_telemetry WHERE device_id = 'test123' ORDER BY created_at DESC;
-
-```
+| File                          | Change                                                         |
+| ----------------------------- | -------------------------------------------------------------- |
+| `supabase/migrations/new.sql` | 3 tables, 3 RPCs, indexes, RLS, triggers, policy config update |
