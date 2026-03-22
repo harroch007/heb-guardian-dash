@@ -76,6 +76,186 @@ export type Database = {
           },
         ]
       }
+      ai_engine_health: {
+        Row: {
+          child_id: string | null
+          device_id: string
+          id: string
+          last_failure_reason: string | null
+          last_slm_latency_ms: number | null
+          last_voice_latency_ms: number | null
+          selected_slm_engine: string | null
+          selected_voice_engine: string | null
+          slm_engine_status: string | null
+          slm_failure_count: number | null
+          updated_at: string | null
+          voice_engine_status: string | null
+          voice_failure_count: number | null
+        }
+        Insert: {
+          child_id?: string | null
+          device_id: string
+          id?: string
+          last_failure_reason?: string | null
+          last_slm_latency_ms?: number | null
+          last_voice_latency_ms?: number | null
+          selected_slm_engine?: string | null
+          selected_voice_engine?: string | null
+          slm_engine_status?: string | null
+          slm_failure_count?: number | null
+          updated_at?: string | null
+          voice_engine_status?: string | null
+          voice_failure_count?: number | null
+        }
+        Update: {
+          child_id?: string | null
+          device_id?: string
+          id?: string
+          last_failure_reason?: string | null
+          last_slm_latency_ms?: number | null
+          last_voice_latency_ms?: number | null
+          selected_slm_engine?: string | null
+          selected_voice_engine?: string | null
+          slm_engine_status?: string | null
+          slm_failure_count?: number | null
+          updated_at?: string | null
+          voice_engine_status?: string | null
+          voice_failure_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_engine_health_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_engine_health_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: true
+            referencedRelation: "devices"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "ai_engine_health_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: true
+            referencedRelation: "parent_daily_report"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "ai_engine_health_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: true
+            referencedRelation: "parent_daily_report_for_parent"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "ai_engine_health_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: true
+            referencedRelation: "parent_home_snapshot"
+            referencedColumns: ["device_id"]
+          },
+        ]
+      }
+      ai_incident_summaries: {
+        Row: {
+          chat_id: string
+          chat_type: string
+          child_id: string | null
+          child_role: string | null
+          confidence: number | null
+          created_at: string | null
+          device_id: string
+          evidence_message_ids: Json | null
+          evidence_snippets: Json | null
+          id: string
+          incident_action: string
+          is_open: boolean | null
+          last_seen_at: string | null
+          risk_type: string
+          severity: string
+          updated_at: string | null
+          why_short: string | null
+        }
+        Insert: {
+          chat_id: string
+          chat_type: string
+          child_id?: string | null
+          child_role?: string | null
+          confidence?: number | null
+          created_at?: string | null
+          device_id: string
+          evidence_message_ids?: Json | null
+          evidence_snippets?: Json | null
+          id?: string
+          incident_action: string
+          is_open?: boolean | null
+          last_seen_at?: string | null
+          risk_type: string
+          severity: string
+          updated_at?: string | null
+          why_short?: string | null
+        }
+        Update: {
+          chat_id?: string
+          chat_type?: string
+          child_id?: string | null
+          child_role?: string | null
+          confidence?: number | null
+          created_at?: string | null
+          device_id?: string
+          evidence_message_ids?: Json | null
+          evidence_snippets?: Json | null
+          id?: string
+          incident_action?: string
+          is_open?: boolean | null
+          last_seen_at?: string | null
+          risk_type?: string
+          severity?: string
+          updated_at?: string | null
+          why_short?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_incident_summaries_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_incident_summaries_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "ai_incident_summaries_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_daily_report"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "ai_incident_summaries_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_daily_report_for_parent"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "ai_incident_summaries_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_home_snapshot"
+            referencedColumns: ["device_id"]
+          },
+        ]
+      }
       ai_model_config: {
         Row: {
           created_at: string | null
@@ -303,6 +483,45 @@ export type Database = {
             referencedColumns: ["device_id"]
           },
         ]
+      }
+      ai_suppression_audit: {
+        Row: {
+          chat_id: string
+          child_id: string | null
+          created_at: string | null
+          current_severity: string | null
+          device_id: string
+          id: string
+          last_alert_sent_at: string | null
+          previous_severity: string | null
+          risk_type: string
+          suppression_reason: string
+        }
+        Insert: {
+          chat_id: string
+          child_id?: string | null
+          created_at?: string | null
+          current_severity?: string | null
+          device_id: string
+          id?: string
+          last_alert_sent_at?: string | null
+          previous_severity?: string | null
+          risk_type: string
+          suppression_reason: string
+        }
+        Update: {
+          chat_id?: string
+          child_id?: string | null
+          created_at?: string | null
+          current_severity?: string | null
+          device_id?: string
+          id?: string
+          last_alert_sent_at?: string | null
+          previous_severity?: string | null
+          risk_type?: string
+          suppression_reason?: string
+        }
+        Relationships: []
       }
       alert_events_queue: {
         Row: {
@@ -2730,6 +2949,37 @@ export type Database = {
         Returns: Json
       }
       reject_chore: { Args: { p_chore_id: string }; Returns: Json }
+      report_ai_incident_summary: {
+        Args: {
+          p_chat_id?: string
+          p_chat_type?: string
+          p_child_id?: string
+          p_child_role?: string
+          p_confidence?: number
+          p_device_id: string
+          p_evidence_message_ids?: Json
+          p_evidence_snippets?: Json
+          p_incident_action?: string
+          p_is_open?: boolean
+          p_risk_type?: string
+          p_severity?: string
+          p_why_short?: string
+        }
+        Returns: undefined
+      }
+      report_ai_suppression_event: {
+        Args: {
+          p_chat_id?: string
+          p_child_id?: string
+          p_current_severity?: string
+          p_device_id: string
+          p_last_alert_sent_at?: string
+          p_previous_severity?: string
+          p_risk_type?: string
+          p_suppression_reason?: string
+        }
+        Returns: undefined
+      }
       report_ai_telemetry: {
         Args: {
           p_child_id?: string
@@ -2813,6 +3063,22 @@ export type Database = {
             }
             Returns: undefined
           }
+      upsert_ai_engine_health: {
+        Args: {
+          p_child_id?: string
+          p_device_id: string
+          p_last_failure_reason?: string
+          p_last_slm_latency_ms?: number
+          p_last_voice_latency_ms?: number
+          p_selected_slm_engine?: string
+          p_selected_voice_engine?: string
+          p_slm_engine_status?: string
+          p_slm_failure_count?: number
+          p_voice_engine_status?: string
+          p_voice_failure_count?: number
+        }
+        Returns: undefined
+      }
       upsert_app_usage: {
         Args: {
           p_app_name: string
