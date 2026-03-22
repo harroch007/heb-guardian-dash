@@ -106,6 +106,132 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_policy_config: {
+        Row: {
+          active_policy_version: string
+          context_window_size: number | null
+          created_at: string | null
+          escalation_thresholds: Json | null
+          feature_flags: Json | null
+          id: string
+          is_active: boolean | null
+          model_metadata: Json | null
+          preferred_slm_engine_order: Json | null
+          preferred_voice_engine_order: Json | null
+          suppression_minutes: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          active_policy_version: string
+          context_window_size?: number | null
+          created_at?: string | null
+          escalation_thresholds?: Json | null
+          feature_flags?: Json | null
+          id?: string
+          is_active?: boolean | null
+          model_metadata?: Json | null
+          preferred_slm_engine_order?: Json | null
+          preferred_voice_engine_order?: Json | null
+          suppression_minutes?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          active_policy_version?: string
+          context_window_size?: number | null
+          created_at?: string | null
+          escalation_thresholds?: Json | null
+          feature_flags?: Json | null
+          id?: string
+          is_active?: boolean | null
+          model_metadata?: Json | null
+          preferred_slm_engine_order?: Json | null
+          preferred_voice_engine_order?: Json | null
+          suppression_minutes?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      ai_rollout_flags: {
+        Row: {
+          created_at: string | null
+          disable_slm_on_low_end: boolean | null
+          disable_voice_on_low_end: boolean | null
+          enable_local_slm: boolean | null
+          enable_voice_transcription: boolean | null
+          force_heuristic_mode: boolean | null
+          id: string
+          is_active: boolean | null
+          notes: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          disable_slm_on_low_end?: boolean | null
+          disable_voice_on_low_end?: boolean | null
+          enable_local_slm?: boolean | null
+          enable_voice_transcription?: boolean | null
+          force_heuristic_mode?: boolean | null
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          disable_slm_on_low_end?: boolean | null
+          disable_voice_on_low_end?: boolean | null
+          enable_local_slm?: boolean | null
+          enable_voice_transcription?: boolean | null
+          force_heuristic_mode?: boolean | null
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      ai_runtime_telemetry: {
+        Row: {
+          child_id: string | null
+          created_at: string | null
+          device_id: string
+          engine_type: string
+          event_type: string
+          failure_reason: string | null
+          fallback_triggered: boolean | null
+          id: string
+          latency_ms: number | null
+          model_version: string | null
+          success: boolean | null
+        }
+        Insert: {
+          child_id?: string | null
+          created_at?: string | null
+          device_id: string
+          engine_type: string
+          event_type: string
+          failure_reason?: string | null
+          fallback_triggered?: boolean | null
+          id?: string
+          latency_ms?: number | null
+          model_version?: string | null
+          success?: boolean | null
+        }
+        Update: {
+          child_id?: string | null
+          created_at?: string | null
+          device_id?: string
+          engine_type?: string
+          event_type?: string
+          failure_reason?: string | null
+          fallback_triggered?: boolean | null
+          id?: string
+          latency_ms?: number | null
+          model_version?: string | null
+          success?: boolean | null
+        }
+        Relationships: []
+      }
       ai_stack_requests: {
         Row: {
           chat_hash: string | null
@@ -1061,6 +1187,90 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      device_ai_profiles: {
+        Row: {
+          child_id: string | null
+          created_at: string | null
+          device_id: string
+          device_tier: string | null
+          id: string
+          last_failure_reason: string | null
+          last_health_check_at: string | null
+          selected_slm_engine: string | null
+          selected_voice_engine: string | null
+          slm_supported: boolean | null
+          supports_aicore: boolean | null
+          updated_at: string | null
+          voice_supported: boolean | null
+        }
+        Insert: {
+          child_id?: string | null
+          created_at?: string | null
+          device_id: string
+          device_tier?: string | null
+          id?: string
+          last_failure_reason?: string | null
+          last_health_check_at?: string | null
+          selected_slm_engine?: string | null
+          selected_voice_engine?: string | null
+          slm_supported?: boolean | null
+          supports_aicore?: boolean | null
+          updated_at?: string | null
+          voice_supported?: boolean | null
+        }
+        Update: {
+          child_id?: string | null
+          created_at?: string | null
+          device_id?: string
+          device_tier?: string | null
+          id?: string
+          last_failure_reason?: string | null
+          last_health_check_at?: string | null
+          selected_slm_engine?: string | null
+          selected_voice_engine?: string | null
+          slm_supported?: boolean | null
+          supports_aicore?: boolean | null
+          updated_at?: string | null
+          voice_supported?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_ai_profiles_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "device_ai_profiles_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: true
+            referencedRelation: "devices"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "device_ai_profiles_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: true
+            referencedRelation: "parent_daily_report"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "device_ai_profiles_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: true
+            referencedRelation: "parent_daily_report_for_parent"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "device_ai_profiles_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: true
+            referencedRelation: "parent_home_snapshot"
+            referencedColumns: ["device_id"]
+          },
+        ]
       }
       device_commands: {
         Row: {
@@ -2422,6 +2632,7 @@ export type Database = {
       export_my_data: { Args: never; Returns: Json }
       generate_new_pairing_code: { Args: { p_child_id: string }; Returns: Json }
       generate_pairing_code: { Args: { p_child_id: string }; Returns: string }
+      get_active_ai_config: { Args: never; Returns: Json }
       get_child_daily_metrics: {
         Args: { p_child_id: string; p_date: string }
         Returns: {
@@ -2519,6 +2730,20 @@ export type Database = {
         Returns: Json
       }
       reject_chore: { Args: { p_chore_id: string }; Returns: Json }
+      report_ai_telemetry: {
+        Args: {
+          p_child_id?: string
+          p_device_id: string
+          p_engine_type?: string
+          p_event_type?: string
+          p_failure_reason?: string
+          p_fallback_triggered?: boolean
+          p_latency_ms?: number
+          p_model_version?: string
+          p_success?: boolean
+        }
+        Returns: Json
+      }
       report_device_heartbeat: {
         Args: {
           p_child_id: string
@@ -2597,6 +2822,20 @@ export type Database = {
           p_usage_minutes: number
         }
         Returns: undefined
+      }
+      upsert_device_ai_profile: {
+        Args: {
+          p_child_id?: string
+          p_device_id: string
+          p_device_tier?: string
+          p_last_failure_reason?: string
+          p_selected_slm_engine?: string
+          p_selected_voice_engine?: string
+          p_slm_supported?: boolean
+          p_supports_aicore?: boolean
+          p_voice_supported?: boolean
+        }
+        Returns: Json
       }
       verify_parent_code: {
         Args: { p_code: string; p_email: string }
