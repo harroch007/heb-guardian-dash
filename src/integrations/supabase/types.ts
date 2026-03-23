@@ -2949,24 +2949,43 @@ export type Database = {
         Returns: Json
       }
       reject_chore: { Args: { p_chore_id: string }; Returns: Json }
-      report_ai_incident_summary: {
-        Args: {
-          p_chat_id?: string
-          p_chat_type?: string
-          p_child_id?: string
-          p_child_role?: string
-          p_confidence?: number
-          p_device_id: string
-          p_evidence_message_ids?: Json
-          p_evidence_snippets?: Json
-          p_incident_action?: string
-          p_is_open?: boolean
-          p_risk_type?: string
-          p_severity?: string
-          p_why_short?: string
-        }
-        Returns: Json
-      }
+      report_ai_incident_summary:
+        | {
+            Args: {
+              p_chat_id: string
+              p_chat_type: string
+              p_child_id?: string
+              p_child_role?: string
+              p_confidence?: number
+              p_device_id: string
+              p_evidence_message_ids?: Json
+              p_evidence_snippets?: Json
+              p_incident_action: string
+              p_is_open?: boolean
+              p_risk_type: string
+              p_severity: string
+              p_why_short?: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_chat_id?: string
+              p_chat_type?: string
+              p_child_id?: string
+              p_child_role?: string
+              p_confidence?: number
+              p_device_id: string
+              p_evidence_message_ids?: Json
+              p_evidence_snippets?: Json
+              p_incident_action?: string
+              p_is_open?: boolean
+              p_risk_type?: string
+              p_severity?: string
+              p_why_short?: string
+            }
+            Returns: Json
+          }
       report_ai_suppression_event: {
         Args: {
           p_chat_id?: string
