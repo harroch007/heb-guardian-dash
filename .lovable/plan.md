@@ -1,23 +1,30 @@
-## Privacy Alignment — Incident Summaries Hardening (COMPLETED)
+## Final Alignment Pass — Engine & Privacy Hardening (COMPLETED)
 
 ### What Changed
 
-Single migration applied to `report_ai_incident_summary` RPC:
+1. **Privacy Alignment (previous migration)**: `report_ai_incident_summary` RPC hardened — `evidence_snippets` forced to `'[]'::jsonb`, `why_short` capped to 500 chars.
 
-1. **`evidence_snippets` forced to `'[]'::jsonb`** in all 3 INSERT paths and the UPDATE path. The `p_evidence_snippets` parameter remains in the signature for Android backward compatibility but its value is ignored.
-2. **`why_short` capped to 500 chars** via `LEFT(COALESCE(p_why_short, ''), 500)` in both INSERT and UPDATE paths.
-3. **Privacy contract documented** as a SQL comment inside the function.
+2. **Duplicate RPC removed (this migration)**: Dropped the old unhardened overload of `report_ai_incident_summary` that could bypass privacy hardening. Only the hardened version remains.
+
+### Engine Naming (Frozen)
+
+| Type   | Accepted Names                              |
+| ------ | ------------------------------------------- |
+| Voice  | `mlkit_speech`, `local_bundled_asr`         |
+| SLM    | `litert_local`, `mlkit_genai`, `heuristic`  |
+| Status | `healthy`, `degraded`, `unavailable`, `unknown` |
 
 ### Privacy Result
 
-| Field                  | Before                       | After                               |
-| ---------------------- | ---------------------------- | ----------------------------------- |
-| `why_short`            | Uncapped text                | Trimmed to max 500 chars inside RPC |
-| `evidence_message_ids` | IDs only (correct)           | Unchanged                           |
-| `evidence_snippets`    | Stores whatever caller sends | Always forced to `[]` by RPC        |
+| Field                  | Behavior                                    |
+| ---------------------- | ------------------------------------------- |
+| `why_short`            | Capped to 500 chars inside RPC              |
+| `evidence_message_ids` | IDs only (unchanged)                        |
+| `evidence_snippets`    | Always forced to `[]` by RPC                |
 
 ### What Stays
 
-- `evidence_snippets` column stays in table (backward compat)
-- `p_evidence_snippets` parameter stays in RPC signature (Android compat)
-- No UI changes, no Android changes, no other RPCs touched
+- No UI changes
+- No Android changes
+- No new tables or features
+- All other RPCs verified clean (single versions, correct defaults)
