@@ -54,11 +54,20 @@ Append-only suppression log. No raw content. No FK on device_id.
 
 2 indexes. RLS: admin read only.
 
-### RPCs (SECURITY DEFINER)
+### RPCs (SECURITY DEFINER, all return jsonb `{"success": true}`)
 
 1. `upsert_ai_engine_health` — upsert on device_id conflict
 2. `report_ai_incident_summary` — new/continue/close lifecycle
 3. `report_ai_suppression_event` — simple INSERT
+
+### Triggers
+
+`updated_at` auto-refresh triggers on:
+- `device_ai_profiles`
+- `ai_policy_config`
+- `ai_rollout_flags`
+- `ai_engine_health`
+- `ai_incident_summaries`
 
 ### Policy Config Updated
 
@@ -67,3 +76,7 @@ Append-only suppression log. No raw content. No FK on device_id.
 - `model_metadata`: `policy_schema: v2`, `incident_schema: v1`
 
 ### Phase 1 tables/RPCs remain unchanged
+
+### Verification Pass Completed
+
+All 6 RPCs now return consistent `jsonb` shape. All naming aligned to Android standard. No raw content stored anywhere.
