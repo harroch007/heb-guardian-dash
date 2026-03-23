@@ -2965,7 +2965,7 @@ export type Database = {
           p_severity?: string
           p_why_short?: string
         }
-        Returns: undefined
+        Returns: Json
       }
       report_ai_suppression_event: {
         Args: {
@@ -2978,7 +2978,7 @@ export type Database = {
           p_risk_type?: string
           p_suppression_reason?: string
         }
-        Returns: undefined
+        Returns: Json
       }
       report_ai_telemetry: {
         Args: {
@@ -3077,7 +3077,7 @@ export type Database = {
           p_voice_engine_status?: string
           p_voice_failure_count?: number
         }
-        Returns: undefined
+        Returns: Json
       }
       upsert_app_usage: {
         Args: {
