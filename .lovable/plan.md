@@ -1,82 +1,23 @@
-## AI Infrastructure — Phase 2: Incident Summaries, Engine Health, Suppression Audit
+## Privacy Alignment — Incident Summaries Hardening (COMPLETED)
 
-### Completed Migration — 3 Tables + 3 RPCs + Policy Update
+### What Changed
 
----
+Single migration applied to `report_ai_incident_summary` RPC:
 
-### Table 1: `ai_incident_summaries`
+1. **`evidence_snippets` forced to `'[]'::jsonb`** in all 3 INSERT paths and the UPDATE path. The `p_evidence_snippets` parameter remains in the signature for Android backward compatibility but its value is ignored.
+2. **`why_short` capped to 500 chars** via `LEFT(COALESCE(p_why_short, ''), 500)` in both INSERT and UPDATE paths.
+3. **Privacy contract documented** as a SQL comment inside the function.
 
-Summary-only incident storage. No raw message content.
+### Privacy Result
 
-| Column | Type | Notes |
-|---|---|---|
-| id | uuid PK | |
-| device_id | text NOT NULL FK→devices | |
-| child_id | uuid FK→children | nullable |
-| chat_id | text NOT NULL | |
-| chat_type | text NOT NULL | "private" / "group" |
-| risk_type | text NOT NULL | "bullying", "grooming", "sexual", etc. |
-| severity | text NOT NULL | "low", "medium", "high" |
-| child_role | text | "target", "aggressor", etc. |
-| incident_action | text NOT NULL | "new", "continue", "close" |
-| confidence | double precision | |
-| why_short | text | short explanation only |
-| evidence_message_ids | jsonb | message ids only |
-| evidence_snippets | jsonb | short snippets only |
-| is_open | boolean default true | |
-| last_seen_at | timestamptz | |
-| created_at / updated_at | timestamptz | |
+| Field                  | Before                       | After                               |
+| ---------------------- | ---------------------------- | ----------------------------------- |
+| `why_short`            | Uncapped text                | Trimmed to max 500 chars inside RPC |
+| `evidence_message_ids` | IDs only (correct)           | Unchanged                           |
+| `evidence_snippets`    | Stores whatever caller sends | Always forced to `[]` by RPC        |
 
-4 indexes. RLS: admin read only.
+### What Stays
 
-### Table 2: `ai_engine_health`
-
-Per-device runtime health snapshot.
-
-| Column | Type | Notes |
-|---|---|---|
-| id | uuid PK | |
-| device_id | text NOT NULL UNIQUE FK→devices | |
-| child_id | uuid FK→children | |
-| selected_voice_engine | text | mlkit_speech, local_bundled_asr |
-| selected_slm_engine | text | litert_local, mlkit_genai, heuristic |
-| voice/slm_engine_status | text | healthy, degraded, unavailable, unknown |
-| last_voice/slm_latency_ms | integer | |
-| voice/slm_failure_count | integer | |
-| last_failure_reason | text | |
-| updated_at | timestamptz | |
-
-RLS: admin read only.
-
-### Table 3: `ai_suppression_audit`
-
-Append-only suppression log. No raw content. No FK on device_id.
-
-2 indexes. RLS: admin read only.
-
-### RPCs (SECURITY DEFINER, all return jsonb `{"success": true}`)
-
-1. `upsert_ai_engine_health` — upsert on device_id conflict
-2. `report_ai_incident_summary` — new/continue/close lifecycle
-3. `report_ai_suppression_event` — simple INSERT
-
-### Triggers
-
-`updated_at` auto-refresh triggers on:
-- `device_ai_profiles`
-- `ai_policy_config`
-- `ai_rollout_flags`
-- `ai_engine_health`
-- `ai_incident_summaries`
-
-### Policy Config Updated
-
-- `feature_flags`: added `enable_incident_reporting`, `enable_suppression_audit`, `enable_group_analysis` (all false)
-- `escalation_thresholds`: `low_to_medium: 0.55`, `medium_to_high: 0.8`, force alert types: grooming, sexual, self_harm
-- `model_metadata`: `policy_schema: v2`, `incident_schema: v1`
-
-### Phase 1 tables/RPCs remain unchanged
-
-### Verification Pass Completed
-
-All 6 RPCs now return consistent `jsonb` shape. All naming aligned to Android standard. No raw content stored anywhere.
+- `evidence_snippets` column stays in table (backward compat)
+- `p_evidence_snippets` parameter stays in RPC signature (Android compat)
+- No UI changes, no Android changes, no other RPCs touched
