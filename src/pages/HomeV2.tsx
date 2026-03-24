@@ -95,6 +95,7 @@ const HomeV2 = () => {
         timeReqRes,
         schedulesRes,
         choresRes,
+        shabbatRes,
       ] = await Promise.all([
         supabase
           .from("devices")
@@ -145,6 +146,11 @@ const HomeV2 = () => {
           .select("child_id, status, completed_at")
           .in("child_id", childIds)
           .in("status", ["completed_by_child", "approved"]),
+        supabase
+          .from("issur_melacha_windows")
+          .select("child_id, event_name, start_epoch_ms, end_epoch_ms, is_active")
+          .in("child_id", childIds)
+          .eq("is_active", true),
       ]);
 
       // 3. Fetch device health per child (sequential, RPC)
@@ -174,6 +180,33 @@ const HomeV2 = () => {
         if (s.child_id) thresholds[s.child_id] = s.alert_threshold ?? 65;
       });
       const now = new Date();
+      const nowMs = now.getTime();
+      // schedule_windows uses 1=Sun..7=Sat
+      const dayOfWeek1 = now.getDay() + 1;
+      const currentTime = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
+
+      // Helper: find active restriction for a child
+      const getActiveRestriction = (childId: string): ActiveRestriction | null => {
+        // Check Shabbat/holiday windows first
+        const shabbatWindows = (shabbatRes.data || []).filter((w) => w.child_id === childId);
+        for (const w of shabbatWindows) {
+          if (nowMs >= w.start_epoch_ms && nowMs <= w.end_epoch_ms) {
+            return { type: "shabbat", name: w.event_name || "שבתות וחגים" };
+          }
+        }
+        // Check schedule windows
+        const schedules = (schedulesRes.data || []).filter((s) => s.child_id === childId);
+        for (const s of schedules) {
+          if (!s.is_active) continue;
+          if (s.schedule_type === "shabbat") continue;
+          if (!s.days_of_week || !s.start_time || !s.end_time) continue;
+          if (!s.days_of_week.includes(dayOfWeek1)) continue;
+          if (currentTime >= s.start_time && currentTime <= s.end_time) {
+            return { type: "schedule", name: s.name };
+          }
+        }
+        return null;
+      };
 
       // 4. Build enriched data
       const enriched: ChildWithData[] = children.map((child) => {
@@ -243,6 +276,7 @@ const HomeV2 = () => {
           scheduleWindows: schedules,
           todayChoresCompleted: todayChores,
           permissionIssues: healthMap[child.id] || [],
+          activeRestriction: getActiveRestriction(child.id),
         };
       });
 
