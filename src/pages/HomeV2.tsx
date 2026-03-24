@@ -13,6 +13,11 @@ import { DailyControlSummary } from "@/components/home-v2/DailyControlSummary";
 import { SmartProtectionSummary } from "@/components/home-v2/SmartProtectionSummary";
 import { BottomNavigationV2 } from "@/components/BottomNavigationV2";
 
+export interface ActiveRestriction {
+  type: "schedule" | "shabbat";
+  name: string;
+}
+
 export interface ChildWithData {
   id: string;
   name: string;
@@ -47,6 +52,7 @@ export interface ChildWithData {
   }[];
   todayChoresCompleted: number;
   permissionIssues: string[];
+  activeRestriction: ActiveRestriction | null;
 }
 
 const HomeV2 = () => {
