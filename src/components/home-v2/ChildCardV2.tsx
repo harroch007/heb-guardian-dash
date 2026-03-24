@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Battery, MapPin, Clock, Smartphone, Bell, Plus, Volume2 } from "lucide-react";
+import { Battery, MapPin, Clock, Smartphone, Bell, Plus, Volume2, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { getIsraelDate } from "@/lib/utils";
@@ -34,24 +34,6 @@ const isConnected = (lastSeen: string | null) => {
   return Date.now() - new Date(lastSeen).getTime() < 24 * 60 * 60 * 1000;
 };
 
-const getActiveSchedule = (
-  schedules: ChildWithData["scheduleWindows"]
-): string | null => {
-  const now = new Date();
-  const dayOfWeek = now.getDay(); // 0=Sun
-  const currentTime = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
-
-  for (const s of schedules) {
-    if (!s.is_active) continue;
-    if (s.schedule_type === "shabbat") continue; // shabbat handled differently
-    if (!s.days_of_week || !s.start_time || !s.end_time) continue;
-    if (!s.days_of_week.includes(dayOfWeek)) continue;
-    if (currentTime >= s.start_time && currentTime <= s.end_time) {
-      return s.name;
-    }
-  }
-  return null;
-};
 
 export const ChildCardV2 = ({ child, onRefresh }: Props) => {
   const navigate = useNavigate();
@@ -59,8 +41,8 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
   const [ringing, setRinging] = useState(false);
   const [addingTime, setAddingTime] = useState(false);
 
+
   const connected = isConnected(child.device?.last_seen ?? null);
-  const activeSchedule = getActiveSchedule(child.scheduleWindows);
   const usedMinutes = child.snapshot?.total_usage_minutes ?? 0;
   const hasLimit = child.dailyLimit !== null && child.dailyLimit > 0;
   const remaining = hasLimit ? Math.max(0, child.dailyLimit! - usedMinutes) : null;
@@ -111,8 +93,6 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
 
   // Status line
   const statusParts: string[] = [];
-  if (activeSchedule) statusParts.push(`🔒 ${activeSchedule}`);
-  
   if (child.pendingTimeRequests > 0) statusParts.push(`⏱️ ${child.pendingTimeRequests} בקשות`);
   if (child.permissionIssues.length > 0) statusParts.push("🛡️ בעיית הרשאות");
 
