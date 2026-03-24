@@ -35,6 +35,7 @@ import ImpersonateSession from "./pages/ImpersonateSession";
 import Chores from "./pages/Chores";
 import NextPage from "./pages/Next";
 import HomeV2 from "./pages/HomeV2";
+import ChildControlV2 from "./pages/ChildControlV2";
 
 // Demo pages
 import DemoDashboard from "./pages/demo/DemoDashboard";
