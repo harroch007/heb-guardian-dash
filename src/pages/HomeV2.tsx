@@ -112,11 +112,18 @@ const HomeV2 = () => {
           .eq("grant_date", todayIsrael),
         supabase
           .from("alerts")
-          .select("child_id")
+          .select("child_id, ai_risk_score, remind_at")
           .in("child_id", childIds)
           .is("acknowledged_at", null)
+          .is("saved_at", null)
+          .is("parent_message", null)
           .eq("is_processed", true)
-          .eq("alert_type", "warning"),
+          .eq("alert_type", "warning")
+          .in("ai_verdict", ["notify", "review"]),
+        supabase
+          .from("settings")
+          .select("child_id, alert_threshold")
+          .in("child_id", childIds),
         supabase
           .from("time_extension_requests")
           .select("child_id")
