@@ -192,7 +192,7 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
       {/* Actions */}
       <div className="border-t border-gray-100 px-4 py-3 flex items-center justify-between">
         <button
-          onClick={() => navigate(`/child/${child.id}`)}
+          onClick={() => navigate(`/child-v2/${child.id}`)}
           className="text-sm font-semibold text-blue-600 hover:text-blue-700"
         >
           ניהול הילד ←
