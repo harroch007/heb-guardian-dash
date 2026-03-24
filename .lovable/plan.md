@@ -1,106 +1,93 @@
-## New Parallel Settings Screen — `SettingsV2`
+## New Parallel Family Management Screen — `FamilyV2`
 
 ### Overview
 
-Create a new page at `/settings-v2` with a redesigned Settings screen using the `homev2-light` theme. The live `/settings` remains untouched.
+Create a new page at `/family-v2` with a redesigned Family/Children Management screen using the `homev2-light` theme. The live `/family` remains untouched.
 
 ### Architecture
 
-Reuse only real connected hooks and data:
+Reuse the same real connected data pattern already used in `HomeV2` for enriched child cards, plus the existing `AddChildModal` only if it can be reused safely without affecting the live screen.
 
-- `useAuth()` — user object
-- `usePushNotifications()` only if already used safely in the current app and visually fits V2
-- `useFamilySubscription()` only for real connected family/subscription summary
-- `parents` table — parent name if verified
-- `children` table — children summary if needed
-- Existing real navigation only: `/notification-settings`, `/privacy`, `/terms`, `/checkout`, `/family`
-- Existing real support actions only
-- Existing real sign out flow only
+Do **not** add new backend logic.  
+Do **not** invent extra family-management flows.
 
-Do **not** add any new account-management logic.  
-Do **not** add any fake settings toggles.  
-If a reused settings block is too tightly coupled to the live dark UI, create a V2-only wrapper instead of editing the live component.
+Use only real connected data already available from:
 
-### New file: `src/pages/SettingsV2.tsx`
+- `children`
+- `devices`
+- `alerts`
+- `reward_bank`
+- `children.subscription_tier`
+- existing real actions such as ring device / add bonus time only if already safely connected in the current app
+
+If any reused family/add-child component is too tightly coupled to the current live styling, create a V2-only wrapper instead of editing the live component.
+
+### New file: `src/pages/FamilyV2.tsx`
 
 Single page with `homev2-light` wrapper, standalone (no `DashboardLayout`), back button to `/home-v2`.
 
 **Layout (light premium, RTL, mobile-first):**
 
-1. **Header** — "הגדרות", subtitle "ניהול חשבון, התראות ותמיכה"
-2. **Account section** — card showing only real connected data:
-  - Parent name
-  - Parent email
-3. **Subscription section** — card showing only real connected data:
-  - Family premium / subscription status
-  - Children count
+1. **Header** — "המשפחה שלי", subtitle "ניהול ילדים, מכשירים והרשאות"
+2. **Family summary** — summary cards using only real connected data:
+  - Total children count
+  - Connected devices count only if derived reliably from real `devices.last_seen`
+  - Open alerts count
   - Premium children count only if real
-  - "שדרג עכשיו" button only if the current app already uses a real upgrade flow and only when relevant
-4. **Notifications section** — card with only real connected settings/actions:
-  - Push notifications state only if truly connected and safe for V2
-  - Test notification action only if already real and used in current app
-  - Link to `/notification-settings` only if that route is already the real place for alert preferences
-5. **Family summary** — card showing only real connected data:
-  - Children names
-  - Subscription status per child only if already real
-  - "הוסף ילד" or family-management CTA only if existing real route/action already exists
-6. **Privacy & Legal** — card with only real connected items:
-  - Privacy policy button → `/privacy`
-  - Terms button → `/terms`
-7. **Support** — card with only real connected support actions:
-  - WhatsApp support button
-  - Bug report button only if this is already a real existing support action
-  - Feature suggestion button only if this is already a real existing support action
-8. **Sign out** — real sign-out action only
-9. **Version footer** — only if this is already shown in the current app or already reliably available in the project
+3. **Children list** — For each child, a card showing only real connected fields:
+  - Name
+  - Connection status
+  - Battery level
+  - Last seen time
+  - Reward bank balance
+  - Open alerts count
+  - Premium/free badge only if real
+  - **Primary CTA**: "נהל ילד" → navigates to `/child-v2/:childId`
+  **Secondary actions** only if already real and safely connected:
+  - Ring device
+  - Add time
+4. **Add child CTA** — Button that opens existing `AddChildModal` only if this existing flow can be reused safely in V2 without changing the live experience
+5. **Family subscription summary** — small lower-priority card:
+  - Premium/free children breakdown
+  - "שדרג עכשיו" only if there is already a real connected upgrade flow and only when relevant
 
-### Modified file: `src/App.tsx`
-
-Add route + import:
-
-```tsx
-<Route path="/settings-v2" element={<ProtectedRoute><SettingsV2 /></ProtectedRoute>} />
-
-```
-
-### Real data used
+### Data sources (all real only)
 
 
-| Data                            | Source                                                         | Type             |
-| ------------------------------- | -------------------------------------------------------------- | ---------------- |
-| Parent email                    | `auth.user.email`                                              | Real             |
-| Parent name                     | `parents` table / auth metadata only if verified               | Real             |
-| Children + subscription summary | `useFamilySubscription` / real connected family source         | Real             |
-| Push notifications              | `usePushNotifications` only if already reliable in current app | Real if verified |
-| Test push notification          | Existing real push flow only if already used in current app    | Real if verified |
-| Alert preferences entry point   | `/notification-settings` only if real                          | Real if verified |
-| Sign out                        | `useAuth().signOut`                                            | Real             |
-| Support actions                 | Existing real support links/actions only                       | Real             |
-| Privacy/Terms                   | Real routes `/privacy`, `/terms`                               | Real             |
+| Data                          | Source                                                           |
+| ----------------------------- | ---------------------------------------------------------------- |
+| Children                      | `children` table                                                 |
+| Devices + battery + last_seen | `devices` table                                                  |
+| Alerts (open/unacknowledged)  | `alerts` table                                                   |
+| Reward bank                   | `reward_bank` table                                              |
+| Subscription tier             | `children.subscription_tier`                                     |
+| Ring device                   | existing real `device_commands` flow only if already connected   |
+| Add bonus time                | existing real `bonus_time_grants` flow only if already connected |
+| Add child                     | existing `AddChildModal` only if safe to reuse                   |
 
 
-### Items omitted (not truly connected)
+### Items omitted
 
 
-| Item                                | Reason                                                |
-| ----------------------------------- | ----------------------------------------------------- |
-| Account editing (name/email change) | No verified edit flow exists                          |
-| Plan details / billing history      | No verified billing-history UI/data flow              |
-| FAQ / help center link              | No verified help-center page                          |
-| Environment/debug info              | Not part of approved user-facing scope                |
-| Fake settings toggles               | Not allowed                                           |
-| Placeholder support actions         | Not allowed                                           |
-| Version footer                      | Omit if not already reliably available in current app |
+| Item                    | Reason                                                                |
+| ----------------------- | --------------------------------------------------------------------- |
+| Child avatar/photo      | No real avatar storage exists                                         |
+| Gender-based icon/color | Do not invent visual identity based on gender                         |
+| Location per child      | Keep for child control center, not family list                        |
+| Screen time summary     | Keep for child control center / HomeV2, not family list               |
+| Device health summary   | Too heavy for list view; keep for child control center                |
+| Invite/setup flow       | No separate verified invite/setup flow beyond existing add-child flow |
+| Any fake child state    | Not allowed                                                           |
 
 
 ### Files changed
 
 
-| File                           | Change                                                              |
-| ------------------------------ | ------------------------------------------------------------------- |
-| `src/pages/SettingsV2.tsx`     | New file                                                            |
-| `src/App.tsx`                  | Add route + import                                                  |
-| `src/components/settings-v2/*` | Only if needed for V2-only light wrappers / safe section components |
+| File                         | Change                                                                                     |
+| ---------------------------- | ------------------------------------------------------------------------------------------ |
+| `src/pages/FamilyV2.tsx`     | New file                                                                                   |
+| `src/App.tsx`                | Add `/family-v2` route + import                                                            |
+| `src/components/family-v2/*` | Only if needed for V2-only wrappers / light-theme child cards / safe AddChildModal wrapper |
 
 
 ### Design
@@ -108,10 +95,9 @@ Add route + import:
 - Light premium theme via `.homev2-light` class
 - Hebrew RTL, mobile-first
 - Standalone (no `DashboardLayout`), back button to `/home-v2`
-- Clean, trustworthy, service-oriented feel
-- Reuse existing logic only if it does **not** affect the live `/settings`
-- If reused sections do not visually match the new branding, create V2-only wrappers / light versions
-- No fake toggles
-- No invented settings
-- No placeholder legal/support links
+- Control-first: each child card has a clear CTA to manage
+- Consistent with `HomeV2` / `ChildControlV2` / `ChoresV2` / `AlertsV2` / `SettingsV2`
+- No fake data
+- No invented states
+- No gender-based visual assumptions
 - No dark-theme leftovers
