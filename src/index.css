@@ -133,6 +133,14 @@
   }
 }
 
+/* HomeV2 Light Theme Scope */
+.homev2-light {
+  --hv2-bg: 0 0% 97%;
+  background-color: hsl(var(--hv2-bg));
+  color: hsl(0 0% 10%);
+  font-family: 'Heebo', sans-serif;
+}
+
 /* Accessibility - Text Size Levels */
 .accessibility-text-0 {
   font-size: 100%;
