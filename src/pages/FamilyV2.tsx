@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { getIsraelDate } from "@/lib/utils";
-import { Loader2, ArrowRight, Users, Wifi, AlertTriangle, Crown, Phone, Clock, ChevronLeft, UserPlus, Bell } from "lucide-react";
+import { Loader2, ArrowRight, Users, Wifi, AlertTriangle, Crown, Phone, Clock, UserPlus, Bell } from "lucide-react";
+import { BottomNavigationV2 } from "@/components/BottomNavigationV2";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -177,9 +178,6 @@ const FamilyV2 = () => {
             <h1 className="text-xl font-bold text-foreground">המשפחה שלי</h1>
             <p className="text-sm text-muted-foreground">ניהול ילדים, מכשירים והרשאות</p>
           </div>
-          <Button variant="ghost" size="icon" onClick={() => navigate("/home-v2")}>
-            <ChevronLeft className="w-5 h-5" />
-          </Button>
         </div>
 
         {/* Family Summary */}
@@ -371,6 +369,7 @@ const FamilyV2 = () => {
           onChildAdded={fetchData}
         />
       </div>
+      <BottomNavigationV2 />
     </div>
   );
 };

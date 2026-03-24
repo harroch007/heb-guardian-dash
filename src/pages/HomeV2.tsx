@@ -11,6 +11,7 @@ import { AttentionSection } from "@/components/home-v2/AttentionSection";
 import { QuickActionsBar } from "@/components/home-v2/QuickActionsBar";
 import { DailyControlSummary } from "@/components/home-v2/DailyControlSummary";
 import { SmartProtectionSummary } from "@/components/home-v2/SmartProtectionSummary";
+import { BottomNavigationV2 } from "@/components/BottomNavigationV2";
 
 export interface ChildWithData {
   id: string;
@@ -286,6 +287,7 @@ const HomeV2 = () => {
 
         <SmartProtectionSummary childrenData={childrenData} />
       </div>
+      <BottomNavigationV2 />
     </div>
   );
 };

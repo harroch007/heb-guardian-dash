@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AlertCardStack, AlertTabs, EmptyAlertsState, EmptySavedState, PositiveAlertCard, EmptyPositiveState } from "@/components/alerts";
 import { supabase } from "@/integrations/supabase/client";
-import { RefreshCw, ArrowRight, Shield, Bell, Bookmark, Star, Crown } from "lucide-react";
+import { RefreshCw, Shield, Bell, Bookmark, Star, Crown } from "lucide-react";
+import { BottomNavigationV2 } from "@/components/BottomNavigationV2";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card } from "@/components/ui/card";
@@ -252,12 +253,6 @@ const AlertsV2 = () => {
       <div className="max-w-2xl mx-auto px-4 py-6 pb-24" dir="rtl">
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">
-          <button
-            onClick={() => navigate('/home-v2')}
-            className="p-2 rounded-xl bg-card border border-border/50 text-foreground hover:bg-muted transition-colors"
-          >
-            <ArrowRight className="w-5 h-5" />
-          </button>
           <div className="flex-1">
             <h1 className="text-2xl font-bold text-foreground">הגנה חכמה</h1>
             <p className="text-sm text-muted-foreground">ניטור AI והתראות</p>
@@ -396,6 +391,7 @@ const AlertsV2 = () => {
           </div>
         </Card>
       </div>
+      <BottomNavigationV2 />
     </div>
   );
 };
