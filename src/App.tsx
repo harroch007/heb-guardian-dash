@@ -58,6 +58,7 @@ const AppRoutes = () => {
       <Route path="/next" element={<NextPage />} />
       <Route path="/home-v2" element={<ProtectedRoute><HomeV2 /></ProtectedRoute>} />
       <Route path="/child-v2/:childId" element={<ProtectedRoute><ChildControlV2 /></ProtectedRoute>} />
+      <Route path="/chores-v2" element={<ProtectedRoute><ChoresV2 /></ProtectedRoute>} />
       <Route path="/auth" element={<Auth />} />
       <Route path="/install" element={<Install />} />
       <Route path="/privacy" element={<PrivacyPolicy />} />
