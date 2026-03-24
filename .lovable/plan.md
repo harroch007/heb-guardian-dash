@@ -1,125 +1,101 @@
-## New Parallel Tasks & Rewards Screen — `ChoresV2`
+## New Parallel Alerts / Smart Protection Screen — `AlertsV2`
 
 ### Overview
 
-Create `/chores-v2` route with a redesigned Tasks & Rewards screen using the `homev2-light` theme. The live `/chores` remains untouched.
+Create a new `/alerts-v2` route with a redesigned Alerts screen using the `homev2-light` theme. The live `/alerts` remains untouched. All data queries should stay based on the existing live Alerts page logic — no new backend logic.
 
 ### Architecture
 
-Reuse existing real connected logic only:
+The new page should reuse only real connected query logic already used by `src/pages/Alerts.tsx`:
 
-- `useChores` hook
-- `children`
-- `chores`
-- `reward_bank`
-- `reward_transactions`
-- `bonus_time_grants` only if already truly connected and reliable in the current project
+- `alerts` table with child join
+- `settings` only if actually needed by the existing alerts flow
+- `alert_feedback` only if already used in the live screen
+- real state fields such as `acknowledged_at`, `saved_at`, `remind_at`, verdict/severity, and positive/safe states only if they already exist in the current data model
 
-Existing functional components (`ChoreForm`, `ChoreList`, `RewardBankCard`) may be reused **only if they render correctly inside the light theme wrapper without modifying the live components**.  
-If any of them carry broken dark styling or live-screen assumptions, create parallel wrapped/light versions for `ChoresV2` only.
+Existing alert components (`AlertCardStack`, `AlertTabs`, `PositiveAlertCard`, `EmptyAlertsState`, `EmptySavedState`, `EmptyPositiveState`) may be reused **only if they render correctly inside the light theme wrapper without modifying the live components**.  
+If any reused component still carries broken dark styling or live-screen assumptions, create V2-only wrappers / light variants instead of editing the live alerts UI.
 
-All data must remain real and connected.  
-Do **not** add any new product logic.
+### New file: `src/pages/AlertsV2.tsx`
 
-### New file: `src/pages/ChoresV2.tsx`
-
-Single page component that:
-
-- Fetches children from `children` table (same pattern as live Chores page)
-- Uses `useChores(selectedChildId)` for real task/reward data
-- Wraps everything in `homev2-light` scoped theme
+Single page component with `homev2-light` class wrapper.
 
 **Layout (light premium, RTL, mobile-first):**
 
-1. **Header** — Title "משימות ותגמולים", subtitle "מערכת חיובית לניהול זמן מסך", back button to `/home-v2`
-2. **Child filter** — Select dropdown only when multiple children exist and only if already real and connected
-3. **Summary section** — stat cards using only real connected metrics:
-  - Active tasks count
-  - Completed tasks count
-  - Reward bank balance
-  - Today's bonus granted **only if this value is already truly reliable and connected in the current project**
-4. **Reward bank card** — reuse `RewardBankCard` only if safe in light theme (shows balance + recent transactions from `reward_transactions`)
-5. **Add task form** — reuse `ChoreForm` only if safe in light theme
-6. **Active tasks list** — reuse `ChoreList` only if safe in light theme (shows only real status, approval buttons, photo proof if real, reward minutes)
-7. **Completed tasks section** — include only if already clearly supported by real connected data in current list/query logic
-8. **Quick actions** — keep minimal and only real:
-  - "צור משימה" (scrolls to form)
-  - "פתח את ניהול הילד" (navigates to `/child-v2/:childId`) only when a child is selected clearly
+1. **Header** — Title "הגנה חכמה", subtitle "ניטור AI והתראות", back button to `/home-v2`, refresh button, optional child filter dropdown only if already real and connected
+2. **Summary section** — stat cards using only real connected values:
+  - Open alerts count
+  - Saved alerts count only if this is a real existing state in the current alerts logic
+  - Positive alerts count only if real
+  - Premium status only if it is already derived reliably in the current app
+3. **Tabs / filters** — reuse `AlertTabs` only if all shown tabs are backed by real connected data already used in the live screen  
+Use only real states such as:
+  - new / open
+  - positive
+  - saved  
+  Do **not** invent extra filters
+4. **Alert content** — reuse `AlertCardStack` for standard alerts, `PositiveAlertCard` for positive alerts, and existing empty states for each real tab/state
+5. **Smart Protection status block** — small lower-priority card at bottom:
+  - premium/free status only if real
+  - monitoring active/inactive only if there is a real connected source for this state
+  - total alerts count
 
 ### Modified file: `src/App.tsx`
 
-Add one route:
+Add one route + import:
 
-```
-<Route path="/chores-v2" element={<ProtectedRoute><ChoresV2 /></ProtectedRoute>} />
+```tsx
+import AlertsV2 from "./pages/AlertsV2";
+// ...
+<Route path="/alerts-v2" element={<ProtectedRoute><AlertsV2 /></ProtectedRoute>} />
+
 ```
 
 ### Real data used
 
 
-| Data                        | Source                                                                  | Type                                          |
-| --------------------------- | ----------------------------------------------------------------------- | --------------------------------------------- |
-| Children list               | `children` table                                                        | Real                                          |
-| Chores (real statuses only) | `chores` table                                                          | Real                                          |
-| Reward bank balance         | `reward_bank` table                                                     | Real                                          |
-| Reward transactions         | `reward_transactions` table                                             | Real                                          |
-| Bonus grants today          | `bonus_time_grants` table                                               | Real only if verified in current project flow |
-| Task approval/reject        | existing real RPCs / mutations only if already connected in current app | Real                                          |
-| Task creation               | existing real create flow                                               | Real                                          |
-| Task deletion               | existing real delete flow                                               | Real                                          |
+| Data                     | Source                                                                    | Type             |
+| ------------------------ | ------------------------------------------------------------------------- | ---------------- |
+| Alerts                   | `alerts` table                                                            | Real             |
+| Child names              | real child relation / join already used in live screen                    | Real             |
+| Alert thresholds         | only if already truly used by the live alerts logic                       | Real if verified |
+| Acknowledge/save actions | existing real alerts update flow                                          | Real             |
+| Feedback                 | `alert_feedback` table only if already connected in live screen           | Real if verified |
+| Children list (filter)   | `children` table                                                          | Real             |
+| Premium status           | existing real subscription source only if already reliable in current app | Real if verified |
 
 
 ### Items omitted (not truly connected)
 
 
-| Item                                                       | Reason                                                  |
-| ---------------------------------------------------------- | ------------------------------------------------------- |
-| Due dates                                                  | No verified `due_date` support in current task flow     |
-| Task templates                                             | No template table exists                                |
-| Gamification elements                                      | None exist                                              |
-| Earned minutes summary/aggregation                         | No verified aggregation beyond current reward/bank data |
-| Any fake “progress” metrics                                | Not real                                                |
-| Child-independent quick actions that require child context | Misleading UX if no child selected                      |
+| Item                                           | Reason                                                                                             |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Messages scanned today                         | Do not include unless already reliably connected for this screen                                   |
+| Monitoring metrics detail                      | No verified granular monitoring metrics beyond current real alert data                             |
+| "Navigate to related context"                  | No verified alert detail/context page                                                              |
+| Any invented recommendations / moderation copy | Not part of current connected data                                                                 |
+| Monitoring active/inactive                     | Omit if this is only an assumption based on subscription and not a real connected monitoring state |
 
 
 ### Files changed
 
 
-| File                         | Change                                                            |
-| ---------------------------- | ----------------------------------------------------------------- |
-| `src/pages/ChoresV2.tsx`     | New file                                                          |
-| `src/App.tsx`                | Add one route                                                     |
-| `src/components/chores-v2/*` | Only if needed for light-theme wrappers / V2-safe reused sections |
+| File                         | Change                                                                 |
+| ---------------------------- | ---------------------------------------------------------------------- |
+| `src/pages/AlertsV2.tsx`     | New file                                                               |
+| `src/App.tsx`                | Add route + import                                                     |
+| `src/components/alerts-v2/*` | Only if needed for V2-only light-theme wrappers / safe reused sections |
 
 
 ### Design
 
--   
-Light premium theme via `.homev2-light` class  
-
--   
-Hebrew RTL, mobile-first  
-
--   
-Standalone (no `DashboardLayout`), back button to `/home-v2`  
-
--   
-Reuse existing components only if this does **not** require changing the live `/chores` screen  
-
--   
-If reused components do not visually match the new branding, create V2-only wrappers / light versions  
-
--   
-Keep the screen positive, clear, and operational  
-
--   
-No fake sections  
-
--   
-No invented metrics  
-
--   
-No dark-theme leftovers  
-
--   
-Keep visual language consistent with `HomeV2` and `ChildControlV2`  
+- Light premium theme via `.homev2-light` class
+- Hebrew RTL, mobile-first
+- Standalone (no `DashboardLayout`), back button to `/home-v2`
+- Reuse existing alert components only if this does **not** require changing the live `/alerts` screen
+- If reused components do not visually match the new branding, create V2-only wrappers / light versions
+- Smart Protection block stays visually secondary
+- No fake data
+- No invented categories
+- No placeholder text
+- No dark-theme leftovers
