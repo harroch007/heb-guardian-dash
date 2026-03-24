@@ -40,7 +40,7 @@ import {
   MessageCircle,
 } from "lucide-react";
 
-// ---------- PERMISSION LABELS (reused from ProblemBanner / DeviceHealthBanner) ----------
+// ---------- PERMISSION LABELS ----------
 const PERMISSION_LABELS: Record<string, string> = {
   accessibilityEnabled: "שירות נגישות",
   notificationListenerEnabled: "האזנה להתראות",
@@ -141,13 +141,12 @@ export default function ChildControlV2() {
 
     for (const sw of scheduleWindows) {
       if (!sw.is_active) continue;
-      if (sw.schedule_type === "shabbat") continue; // shabbat uses separate logic
+      if (sw.schedule_type === "shabbat") continue;
       if (!sw.days_of_week?.includes(dayOfWeek)) continue;
       if (sw.start_time && sw.end_time) {
         if (sw.start_time <= sw.end_time) {
           if (currentTime >= sw.start_time && currentTime <= sw.end_time) return sw.name;
         } else {
-          // crosses midnight
           if (currentTime >= sw.start_time || currentTime <= sw.end_time) return sw.name;
         }
       }
@@ -335,7 +334,7 @@ export default function ChildControlV2() {
   if (loading) {
     return (
       <div className="homev2-light min-h-screen flex items-center justify-center" dir="rtl">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -351,29 +350,33 @@ export default function ChildControlV2() {
           </Button>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold truncate">{child?.name}</h1>
+              <h1 className="text-xl font-bold truncate text-foreground">{child?.name}</h1>
               <Badge variant="secondary" className={cn("text-[11px] px-2 py-0.5 shrink-0",
-                status === "connected" && "bg-emerald-100 text-emerald-700",
-                status === "inactive" && "bg-amber-100 text-amber-700",
-                status === "not_connected" && "bg-red-100 text-red-700",
+                status === "connected" && "bg-success/15 text-success",
+                status === "inactive" && "bg-warning/15 text-warning",
+                status === "not_connected" && "bg-destructive/15 text-destructive",
               )}>
-                <div className={cn("w-1.5 h-1.5 rounded-full ml-1", getStatusColor(status))} />
+                <div className={cn("w-1.5 h-1.5 rounded-full ml-1",
+                  status === "connected" && "bg-success",
+                  status === "inactive" && "bg-warning",
+                  status === "not_connected" && "bg-destructive",
+                )} />
                 {getStatusLabel(status)}
               </Badge>
             </div>
-            <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
               {device?.battery_level != null && (
                 <>
                   <Battery className={cn("w-3.5 h-3.5",
-                    device.battery_level <= 20 ? "text-red-500" : device.battery_level <= 50 ? "text-amber-500" : "text-emerald-500")} />
+                    device.battery_level <= 20 ? "text-destructive" : device.battery_level <= 50 ? "text-warning" : "text-success")} />
                   <span>{device.battery_level}%</span>
-                  <span className="text-gray-300">•</span>
+                  <span className="text-border">•</span>
                 </>
               )}
               <span>עדכון {formatLastSeen(device?.last_seen ?? null)}</span>
               {device && (
                 <button onClick={handleRequestSync} disabled={syncStatus === "locating"}
-                  className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-500 disabled:opacity-50">
+                  className="inline-flex items-center gap-1 text-primary hover:text-primary/80 disabled:opacity-50">
                   <RefreshCw className={cn("w-3 h-3", syncStatus === "locating" && "animate-spin")} />
                   <span className="text-[11px]">{syncStatus === "locating" ? "מעדכן..." : syncStatus === "success" ? "עודכן ✓" : "רענן"}</span>
                 </button>
@@ -383,36 +386,36 @@ export default function ChildControlV2() {
         </div>
 
         {/* ===== 2. CURRENT STATUS HERO ===== */}
-        <Card className="border-gray-200 bg-gradient-to-br from-white to-gray-50/50 shadow-sm">
+        <Card className="border-border shadow-sm bg-card">
           <CardContent className="p-4">
             <div className="grid grid-cols-3 gap-3 text-center">
               <div>
-                <Clock className="w-5 h-5 mx-auto mb-1 text-blue-600" />
-                <p className="text-lg font-bold">{Math.round(totalUsageFromDb)} <span className="text-xs font-normal text-gray-500">דק׳</span></p>
-                <p className="text-[11px] text-gray-500">זמן מסך היום</p>
+                <Clock className="w-5 h-5 mx-auto mb-1 text-primary" />
+                <p className="text-lg font-bold text-foreground">{Math.round(totalUsageFromDb)} <span className="text-xs font-normal text-muted-foreground">דק׳</span></p>
+                <p className="text-[11px] text-muted-foreground">זמן מסך היום</p>
                 {screenTimeLimit && (
-                  <p className="text-[10px] text-gray-400">מתוך {screenTimeLimit} דק׳</p>
+                  <p className="text-[10px] text-muted-foreground/70">מתוך {screenTimeLimit} דק׳</p>
                 )}
               </div>
               <div>
-                <Gift className="w-5 h-5 mx-auto mb-1 text-amber-500" />
-                <p className="text-lg font-bold">{rewardBankBalance}</p>
-                <p className="text-[11px] text-gray-500">דקות בבנק</p>
+                <Gift className="w-5 h-5 mx-auto mb-1 text-warning" />
+                <p className="text-lg font-bold text-foreground">{rewardBankBalance}</p>
+                <p className="text-[11px] text-muted-foreground">דקות בבנק</p>
                 {todayBonusMinutes > 0 && (
-                  <p className="text-[10px] text-amber-600">+{todayBonusMinutes} היום</p>
+                  <p className="text-[10px] text-warning">+{todayBonusMinutes} היום</p>
                 )}
               </div>
               <div>
-                <Shield className="w-5 h-5 mx-auto mb-1 text-emerald-600" />
+                <Shield className="w-5 h-5 mx-auto mb-1 text-success" />
                 {activeRestrictionName ? (
                   <>
-                    <p className="text-sm font-semibold text-emerald-700">{activeRestrictionName}</p>
-                    <p className="text-[11px] text-gray-500">הגבלה פעילה</p>
+                    <p className="text-sm font-semibold text-success">{activeRestrictionName}</p>
+                    <p className="text-[11px] text-muted-foreground">הגבלה פעילה</p>
                   </>
                 ) : (
                   <>
-                    <p className="text-sm font-semibold text-gray-700">רגיל</p>
-                    <p className="text-[11px] text-gray-500">ללא הגבלה</p>
+                    <p className="text-sm font-semibold text-foreground">רגיל</p>
+                    <p className="text-[11px] text-muted-foreground">ללא הגבלה</p>
                   </>
                 )}
               </div>
@@ -431,7 +434,7 @@ export default function ChildControlV2() {
               { icon: ListChecks, label: "משימות", action: () => navigate("/chores") },
             ].map((btn, i) => (
               <Button key={i} variant="outline" size="sm" onClick={btn.action} disabled={btn.disabled}
-                className="flex-shrink-0 gap-1.5 text-xs border-gray-200 hover:bg-gray-50">
+                className="flex-shrink-0 gap-1.5 text-xs">
                 {btn.active ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <btn.icon className="w-3.5 h-3.5" />}
                 {btn.label}
               </Button>
@@ -489,24 +492,24 @@ export default function ChildControlV2() {
             />
 
             {/* ===== 10. TASKS & BONUS ===== */}
-            <Card className="border-gray-200 shadow-sm">
+            <Card className="border-border shadow-sm bg-card">
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 mb-3">
-                  <ListChecks className="w-5 h-5 text-blue-600" />
-                  <span className="font-semibold text-sm">משימות ובונוס</span>
+                  <ListChecks className="w-5 h-5 text-primary" />
+                  <span className="font-semibold text-sm text-foreground">משימות ובונוס</span>
                 </div>
                 <div className="grid grid-cols-3 gap-3 text-center">
                   <div>
-                    <p className="text-lg font-bold">{activeChoresCount}</p>
-                    <p className="text-[11px] text-gray-500">משימות פעילות</p>
+                    <p className="text-lg font-bold text-foreground">{activeChoresCount}</p>
+                    <p className="text-[11px] text-muted-foreground">משימות פעילות</p>
                   </div>
                   <div>
-                    <p className="text-lg font-bold">{completedTodayChoresCount}</p>
-                    <p className="text-[11px] text-gray-500">הושלמו היום</p>
+                    <p className="text-lg font-bold text-foreground">{completedTodayChoresCount}</p>
+                    <p className="text-[11px] text-muted-foreground">הושלמו היום</p>
                   </div>
                   <div>
-                    <p className="text-lg font-bold">{rewardBankBalance}</p>
-                    <p className="text-[11px] text-gray-500">דקות בבנק</p>
+                    <p className="text-lg font-bold text-foreground">{rewardBankBalance}</p>
+                    <p className="text-[11px] text-muted-foreground">דקות בבנק</p>
                   </div>
                 </div>
                 <Button variant="outline" size="sm" className="w-full mt-3 text-xs" onClick={() => navigate("/chores")}>
@@ -516,30 +519,30 @@ export default function ChildControlV2() {
             </Card>
 
             {/* ===== 11. SMART PROTECTION ===== */}
-            <Card className="border-gray-200 shadow-sm">
+            <Card className="border-border shadow-sm bg-card">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <MessageCircle className="w-5 h-5 text-blue-600" />
-                    <span className="font-semibold text-sm">הגנה חכמה</span>
+                    <MessageCircle className="w-5 h-5 text-primary" />
+                    <span className="font-semibold text-sm text-foreground">הגנה חכמה</span>
                   </div>
                   <Badge variant="secondary" className={cn("text-[10px]",
-                    isPremium ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-500")}>
+                    isPremium ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground")}>
                     {isPremium ? "פרימיום" : "בסיסי"}
                   </Badge>
                 </div>
                 <div className="grid grid-cols-2 gap-3 text-center">
                   <div>
-                    <p className="text-lg font-bold">{unacknowledgedAlerts}</p>
-                    <p className="text-[11px] text-gray-500">התראות פתוחות</p>
+                    <p className="text-lg font-bold text-foreground">{unacknowledgedAlerts}</p>
+                    <p className="text-[11px] text-muted-foreground">התראות פתוחות</p>
                   </div>
                   <div>
-                    <p className="text-lg font-bold">{todayAlerts}</p>
-                    <p className="text-[11px] text-gray-500">התראות היום</p>
+                    <p className="text-lg font-bold text-foreground">{todayAlerts}</p>
+                    <p className="text-[11px] text-muted-foreground">התראות היום</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 mt-3 text-xs text-gray-500">
-                  <div className={cn("w-2 h-2 rounded-full", isMonitoringActive ? "bg-emerald-500" : "bg-gray-300")} />
+                <div className="flex items-center gap-2 mt-3 text-xs text-muted-foreground">
+                  <div className={cn("w-2 h-2 rounded-full", isMonitoringActive ? "bg-success" : "bg-border")} />
                   <span>{isMonitoringActive ? "ניטור הודעות פעיל" : "ניטור הודעות לא פעיל"}</span>
                 </div>
                 {unacknowledgedAlerts > 0 && (
@@ -552,13 +555,13 @@ export default function ChildControlV2() {
             </Card>
 
             {/* ===== 12. DEVICE HEALTH ===== */}
-            <Card className="border-gray-200 shadow-sm">
+            <Card className="border-border shadow-sm bg-card">
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 mb-3">
                   {deviceHealth && Object.values(deviceHealth.permissions).every(v => v !== false)
-                    ? <ShieldCheck className="w-5 h-5 text-emerald-600" />
-                    : <ShieldAlert className="w-5 h-5 text-amber-500" />}
-                  <span className="font-semibold text-sm">בריאות המכשיר</span>
+                    ? <ShieldCheck className="w-5 h-5 text-success" />
+                    : <ShieldAlert className="w-5 h-5 text-warning" />}
+                  <span className="font-semibold text-sm text-foreground">בריאות המכשיר</span>
                 </div>
 
                 {deviceHealth ? (
@@ -568,32 +571,32 @@ export default function ChildControlV2() {
                       if (val === undefined) return null;
                       return (
                         <div key={key} className="flex items-center justify-between py-1">
-                          <span className="text-xs text-gray-600">{label}</span>
+                          <span className="text-xs text-muted-foreground">{label}</span>
                           <Badge variant="secondary" className={cn("text-[10px]",
-                            val ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700")}>
+                            val ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive")}>
                             {val ? "פעיל" : "חסר"}
                           </Badge>
                         </div>
                       );
                     })}
                     {deviceHealth.reportedAt && (
-                      <p className="text-[11px] text-gray-400 mt-2">
+                      <p className="text-[11px] text-muted-foreground/70 mt-2">
                         דיווח אחרון: {formatLastSeen(deviceHealth.reportedAt)}
                       </p>
                     )}
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-400 text-center py-2">אין נתוני בריאות זמינים</p>
+                  <p className="text-sm text-muted-foreground text-center py-2">אין נתוני בריאות זמינים</p>
                 )}
               </CardContent>
             </Card>
           </div>
         ) : (
-          <Card className="border-gray-200 shadow-sm">
+          <Card className="border-border shadow-sm bg-card">
             <CardContent className="py-12 text-center">
-              <Smartphone className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-1">אין מכשיר מחובר</h3>
-              <p className="text-sm text-gray-500 mb-4">
+              <Smartphone className="w-12 h-12 text-muted-foreground/40 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-1 text-foreground">אין מכשיר מחובר</h3>
+              <p className="text-sm text-muted-foreground mb-4">
                 כדי להתחיל לנהל את {child?.name}, יש לחבר מכשיר
               </p>
               <Button variant="outline" onClick={() => navigate(`/child/${childId}`)}>
