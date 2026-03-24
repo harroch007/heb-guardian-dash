@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { User, Crown, Bell, BellRing, Send, Loader2, Users, Shield, FileText, MessageCircle, Bug, Lightbulb, LogOut, HelpCircle, ChevronLeft } from "lucide-react";
+import { User, Crown, Bell, BellRing, Send, Loader2, Users, Shield, FileText, MessageCircle, Bug, Lightbulb, LogOut, HelpCircle, ChevronLeft, Pencil, Check, X } from "lucide-react";
 import { BottomNavigationV2 } from "@/components/BottomNavigationV2";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFamilySubscription } from "@/hooks/useFamilySubscription";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 
@@ -18,12 +19,20 @@ const SettingsV2 = () => {
   const { children, allPremium, hasFreeChildren, childCount, isLoading: subLoading } = useFamilySubscription();
   const { isSupported, isSubscribed, isLoading: pushLoading, permission, subscribe, unsubscribe } = usePushNotifications();
   const [parentName, setParentName] = useState<string | null>(null);
+  const [parentPhone, setParentPhone] = useState<string | null>(null);
   const [isSendingTest, setIsSendingTest] = useState(false);
+
+  // Profile edit state
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (!user?.id) return;
-    supabase.from("parents").select("full_name").eq("id", user.id).single().then(({ data }) => {
+    supabase.from("parents").select("full_name, phone").eq("id", user.id).single().then(({ data }) => {
       if (data?.full_name) setParentName(data.full_name);
+      if (data?.phone) setParentPhone(data.phone);
     });
   }, [user?.id]);
 
@@ -53,6 +62,58 @@ const SettingsV2 = () => {
     }
   };
 
+  const startEditing = () => {
+    setEditName(parentName || "");
+    setEditPhone(parentPhone || "");
+    setIsEditing(true);
+  };
+
+  const cancelEditing = () => {
+    setIsEditing(false);
+  };
+
+  const saveProfile = async () => {
+    if (!user?.id) return;
+    const trimmedName = editName.trim();
+    const trimmedPhone = editPhone.trim();
+
+    if (trimmedName.length < 2) {
+      toast.error("השם חייב להכיל לפחות 2 תווים");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const updateData: Record<string, string> = { full_name: trimmedName };
+      if (trimmedPhone) {
+        updateData.phone = trimmedPhone;
+      }
+
+      const { error } = await supabase
+        .from("parents")
+        .update(updateData)
+        .eq("id", user.id);
+
+      if (error) {
+        if (error.code === "23505" && error.message?.includes("phone")) {
+          toast.error("מספר הטלפון כבר קיים במערכת");
+        } else {
+          throw error;
+        }
+        return;
+      }
+
+      setParentName(trimmedName);
+      if (trimmedPhone) setParentPhone(trimmedPhone);
+      setIsEditing(false);
+      toast.success("הפרטים עודכנו בהצלחה");
+    } catch {
+      toast.error("שגיאה בעדכון הפרטים");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const openWhatsApp = (message?: string) => {
     const baseUrl = `https://wa.me/${WHATSAPP_NUMBER}`;
     const url = message ? `${baseUrl}?text=${encodeURIComponent(message)}` : baseUrl;
@@ -74,29 +135,92 @@ const SettingsV2 = () => {
 
         {/* Account */}
         <section className="p-5 rounded-2xl bg-card border border-border/50 space-y-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-              <User className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-foreground">חשבון</h2>
-              <p className="text-xs text-muted-foreground">פרטי החשבון שלך</p>
-            </div>
-          </div>
-          <div className="space-y-2 text-sm">
-            {parentName && (
-              <div className="flex justify-between items-center py-2 border-b border-border/30">
-                <span className="text-muted-foreground">שם</span>
-                <span className="font-medium text-foreground">{parentName}</span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <User className="w-5 h-5 text-primary" />
               </div>
-            )}
-            {user?.email && (
-              <div className="flex justify-between items-center py-2">
-                <span className="text-muted-foreground">אימייל</span>
-                <span className="font-medium text-foreground text-left" dir="ltr">{user.email}</span>
+              <div>
+                <h2 className="text-lg font-semibold text-foreground">חשבון</h2>
+                <p className="text-xs text-muted-foreground">פרטי החשבון שלך</p>
               </div>
+            </div>
+            {!isEditing && (
+              <button
+                onClick={startEditing}
+                className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                title="ערוך פרטים"
+              >
+                <Pencil className="w-4 h-4" />
+              </button>
             )}
           </div>
+
+          {isEditing ? (
+            <div className="space-y-3 pt-1">
+              <div className="space-y-1.5">
+                <label className="text-xs text-muted-foreground">שם מלא</label>
+                <Input
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="h-9 text-sm"
+                  dir="rtl"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs text-muted-foreground">טלפון</label>
+                <Input
+                  value={editPhone}
+                  onChange={(e) => setEditPhone(e.target.value)}
+                  className="h-9 text-sm"
+                  dir="ltr"
+                  type="tel"
+                />
+              </div>
+              <div className="flex gap-2 pt-1">
+                <Button
+                  size="sm"
+                  onClick={saveProfile}
+                  disabled={isSaving}
+                  className="gap-1.5"
+                >
+                  {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                  שמור
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={cancelEditing}
+                  disabled={isSaving}
+                  className="gap-1.5"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  ביטול
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2 text-sm">
+              {parentName && (
+                <div className="flex justify-between items-center py-2 border-b border-border/30">
+                  <span className="text-muted-foreground">שם</span>
+                  <span className="font-medium text-foreground">{parentName}</span>
+                </div>
+              )}
+              {user?.email && (
+                <div className="flex justify-between items-center py-2 border-b border-border/30">
+                  <span className="text-muted-foreground">אימייל</span>
+                  <span className="font-medium text-foreground text-left" dir="ltr">{user.email}</span>
+                </div>
+              )}
+              {parentPhone && (
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-muted-foreground">טלפון</span>
+                  <span className="font-medium text-foreground" dir="ltr">{parentPhone}</span>
+                </div>
+              )}
+            </div>
+          )}
         </section>
 
         {/* Subscription */}
@@ -137,6 +261,7 @@ const SettingsV2 = () => {
                   שדרג עכשיו
                 </Button>
               )}
+              {/* No self-service cancellation: backend only supports expiry-based downgrade */}
             </div>
           )}
         </section>
@@ -216,7 +341,7 @@ const SettingsV2 = () => {
                 </div>
               ))}
             </div>
-            <Button variant="outline" size="sm" onClick={() => navigate('/family')} className="gap-2 mt-1">
+            <Button variant="outline" size="sm" onClick={() => navigate('/family-v2')} className="gap-2 mt-1">
               <Users className="w-4 h-4" />
               ניהול משפחה
             </Button>
