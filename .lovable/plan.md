@@ -1,89 +1,96 @@
-## New Parallel Child Control Center — `ChildControlV2`
+## New Parallel Tasks & Rewards Screen — `ChoresV2`
 
 ### Overview
 
-Create a new `/child-v2/:childId` route with a redesigned Child Control Center using only real Supabase data. The live `/child/:childId` remains untouched. Uses the same `homev2-light` scoped theme as HomeV2.
+Create `/chores-v2` route with a redesigned Tasks & Rewards screen using the `homev2-light` theme. The live `/chores` remains untouched.
 
 ### Architecture
 
-The new page reuses the existing `useChildControls` hook (which already fetches app policies, schedules, device health, bonus minutes, etc.) plus direct Supabase queries for device, settings, alerts, chores, reward bank, and time requests — same pattern as the live ChildDashboard.
+Reuse existing real connected logic only:
 
-Existing child-dashboard components (`AppsSection`, `ScreenTimeSection`, `SchedulesSection`, `LocationSection`, `TimeRequestsCard`, `ProblemBanner`) may be reused **only if they render correctly inside the light theme wrapper without modifying the live components**.  
-If any of them are too tightly coupled to the current live styling, create parallel wrapped copies for `ChildControlV2` instead of editing the live components.
+- `useChores` hook
+- `children`
+- `chores`
+- `reward_bank`
+- `reward_transactions`
+- `bonus_time_grants` only if already truly connected and reliable in the current project
 
-### Day mapping fix
+Existing functional components (`ChoreForm`, `ChoreList`, `RewardBankCard`) may be reused **only if they render correctly inside the light theme wrapper without modifying the live components**.  
+If any of them carry broken dark styling or live-screen assumptions, create parallel wrapped/light versions for `ChoresV2` only.
 
-Do **not** change `ChildCardV2.tsx` in this task.
+All data must remain real and connected.  
+Do **not** add any new product logic.
 
-If active schedule / current restriction is shown in `ChildControlV2`, use a **local helper inside the new screen** with the correct 1–7 mapping for `schedule_windows`:  
-`const dayOfWeek = now.getDay() + 1`
+### New file: `src/pages/ChoresV2.tsx`
 
-Only show active restriction if this can be derived reliably from real existing schedule data and current time logic.
+Single page component that:
 
-### New files
+- Fetches children from `children` table (same pattern as live Chores page)
+- Uses `useChores(selectedChildId)` for real task/reward data
+- Wraps everything in `homev2-light` scoped theme
 
-**1.** `src/pages/ChildControlV2.tsx` — Main page
+**Layout (light premium, RTL, mobile-first):**
 
-Fetches:
+1. **Header** — Title "משימות ותגמולים", subtitle "מערכת חיובית לניהול זמן מסך", back button to `/home-v2`
+2. **Child filter** — Select dropdown only when multiple children exist and only if already real and connected
+3. **Summary section** — stat cards using only real connected metrics:
+  - Active tasks count
+  - Completed tasks count
+  - Reward bank balance
+  - Today's bonus granted **only if this value is already truly reliable and connected in the current project**
+4. **Reward bank card** — reuse `RewardBankCard` only if safe in light theme (shows balance + recent transactions from `reward_transactions`)
+5. **Add task form** — reuse `ChoreForm` only if safe in light theme
+6. **Active tasks list** — reuse `ChoreList` only if safe in light theme (shows only real status, approval buttons, photo proof if real, reward minutes)
+7. **Completed tasks section** — include only if already clearly supported by real connected data in current list/query logic
+8. **Quick actions** — keep minimal and only real:
+  - "צור משימה" (scrolls to form)
+  - "פתח את ניהול הילד" (navigates to `/child-v2/:childId`) only when a child is selected clearly
 
-- `children` (name, gender)
-- `devices` (battery, lat/lon, address, last_seen) + real-time subscription
-- `settings` (daily_screen_time_limit_minutes) only if truly connected per child
-- `reward_bank` (balance_minutes)
-- `alerts` (unacknowledged count, today count)
-- `chores` (active/completed counts)
-- `time_extension_requests` (pending count)
-- `get_child_device_health` RPC (permissions)
+### Modified file: `src/App.tsx`
 
-Uses `useChildControls(childId)` for app policies, schedules, blocked attempts, installed apps, bonus minutes, and all mutation functions.
-
-Do **not** depend on `parent_home_snapshot` unless the data is clearly child-scoped and already verified as reliable for this screen. If not, omit it.
-
-Layout (single scroll, light theme, RTL):
-
-1. **Child Header** — name, connection badge, battery, last sync
-2. **Current Status Hero** — screen time used/limit, bonus bank balance, active restriction name only if reliable, short status line
-3. **Quick Actions Row** — ring device, add bonus time, locate, manage apps (scroll anchors), create task only if existing route/action is already real and connected
-4. **Time Requests** — reuses existing `TimeRequestsCard` if safe
-5. **Problem/Sync Banners** — reuses `ProblemBanner` + `SyncNotice` only if already real and connected
-6. **Screen Time** — reuses `ScreenTimeSection` if safe
-7. **Schedules** — reuses `SchedulesSection` if safe
-8. **Apps** — reuses `AppsSection` if safe
-9. **Location & Device** — reuses `LocationSection` if safe
-10. **Tasks & Bonus** — card showing active chores count, completed today count only if real, reward bank balance
-11. **Smart Protection** — card showing premium status, monitoring active/inactive only if real, unacknowledged alerts count, link to `/alerts`
-12. **Device Health** — card mapping `get_child_device_health` permissions to Hebrew labels, showing each permission status in human language
-
-### Modified files
-
-`src/App.tsx` — Add one route:
+Add one route:
 
 ```
-<Route path="/child-v2/:childId" element={<ProtectedRoute><ChildControlV2 /></ProtectedRoute>} />
+<Route path="/chores-v2" element={<ProtectedRoute><ChoresV2 /></ProtectedRoute>} />
 ```
+
+### Real data used
+
+
+| Data                        | Source                                                                  | Type                                          |
+| --------------------------- | ----------------------------------------------------------------------- | --------------------------------------------- |
+| Children list               | `children` table                                                        | Real                                          |
+| Chores (real statuses only) | `chores` table                                                          | Real                                          |
+| Reward bank balance         | `reward_bank` table                                                     | Real                                          |
+| Reward transactions         | `reward_transactions` table                                             | Real                                          |
+| Bonus grants today          | `bonus_time_grants` table                                               | Real only if verified in current project flow |
+| Task approval/reject        | existing real RPCs / mutations only if already connected in current app | Real                                          |
+| Task creation               | existing real create flow                                               | Real                                          |
+| Task deletion               | existing real delete flow                                               | Real                                          |
+
 
 ### Items omitted (not truly connected)
 
 
-| Item                                 | Reason                                                                      |
-| ------------------------------------ | --------------------------------------------------------------------------- |
-| "Block now" quick action             | No instant-block-all feature exists                                         |
-| "Temporary unlock" quick action      | No temporary unlock feature exists                                          |
-| "Remaining screen time today"        | Only include if daily per-child limit is truly reliable in this screen      |
-| "Next scheduled restriction"         | Would require future schedule computation; omit for now                     |
-| "Bonus time used today" breakdown    | Only total bonus granted / balance is available, not consumed breakdown     |
-| "Earned minutes summary"             | No verified earned-from-tasks aggregation beyond current reward/bank values |
-| "Temporary approvals" in apps        | No temporary approval concept exists                                        |
-| `parent_home_snapshot` child metrics | Omit unless clearly verified as child-scoped and reliable for this screen   |
+| Item                                                       | Reason                                                  |
+| ---------------------------------------------------------- | ------------------------------------------------------- |
+| Due dates                                                  | No verified `due_date` support in current task flow     |
+| Task templates                                             | No template table exists                                |
+| Gamification elements                                      | None exist                                              |
+| Earned minutes summary/aggregation                         | No verified aggregation beyond current reward/bank data |
+| Any fake “progress” metrics                                | Not real                                                |
+| Child-independent quick actions that require child context | Misleading UX if no child selected                      |
 
 
-### Real data sources
+### Files changed
 
-All data from verified existing sources only: `children`, `devices`, `settings`, `reward_bank`, `alerts`, `chores`, `time_extension_requests`, `app_policies`, `installed_apps`, `blocked_app_attempts`, `schedule_windows`, `device_commands`, `get_child_device_health` RPC.
 
-Use only data that is already real and connected.  
-  
-If any queried value is not reliable in practice, omit it and report it.
+| File                         | Change                                                            |
+| ---------------------------- | ----------------------------------------------------------------- |
+| `src/pages/ChoresV2.tsx`     | New file                                                          |
+| `src/App.tsx`                | Add one route                                                     |
+| `src/components/chores-v2/*` | Only if needed for light-theme wrappers / V2-safe reused sections |
+
 
 ### Design
 
@@ -94,13 +101,16 @@ Light premium theme via `.homev2-light` class
 Hebrew RTL, mobile-first  
 
 -   
-No `DashboardLayout` (same standalone pattern as HomeV2 — no dark sidebar)  
+Standalone (no `DashboardLayout`), back button to `/home-v2`  
 
 -   
-Back button → `/home-v2`  
+Reuse existing components only if this does **not** require changing the live `/chores` screen  
 
 -   
-Reuse existing child-dashboard components only if this does **not** require modifying the live screen or live styling  
+If reused components do not visually match the new branding, create V2-only wrappers / light versions  
+
+-   
+Keep the screen positive, clear, and operational  
 
 -   
 No fake sections  
@@ -109,7 +119,7 @@ No fake sections
 No invented metrics  
 
 -   
-No WhatsApp-centric hero  
+No dark-theme leftovers  
 
 -   
-Smart Protection remains visually secondary to parental control  
+Keep visual language consistent with `HomeV2` and `ChildControlV2`  
