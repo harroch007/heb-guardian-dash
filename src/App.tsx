@@ -36,6 +36,7 @@ import Chores from "./pages/Chores";
 import NextPage from "./pages/Next";
 import HomeV2 from "./pages/HomeV2";
 import ChildControlV2 from "./pages/ChildControlV2";
+import ChoresV2 from "./pages/ChoresV2";
 
 // Demo pages
 import DemoDashboard from "./pages/demo/DemoDashboard";
