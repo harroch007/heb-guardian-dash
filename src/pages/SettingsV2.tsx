@@ -21,8 +21,8 @@ const SettingsV2 = () => {
 
   useEffect(() => {
     if (!user?.id) return;
-    supabase.from("parents").select("name").eq("id", user.id).single().then(({ data }) => {
-      if (data?.name) setParentName(data.name);
+    supabase.from("parents").select("full_name").eq("id", user.id).single().then(({ data }) => {
+      if (data?.full_name) setParentName(data.full_name);
     });
   }, [user?.id]);
 
