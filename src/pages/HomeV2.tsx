@@ -162,6 +162,13 @@ const HomeV2 = () => {
         }
       }
 
+      // Build threshold map
+      const thresholds: Record<string, number> = {};
+      alertThresholdRes.data?.forEach((s) => {
+        if (s.child_id) thresholds[s.child_id] = s.alert_threshold ?? 65;
+      });
+      const now = new Date();
+
       // 4. Build enriched data
       const enriched: ChildWithData[] = children.map((child) => {
         const device = devicesRes.data?.find((d) => d.child_id === child.id) || null;
@@ -171,7 +178,13 @@ const HomeV2 = () => {
         const todayBonus = (bonusRes.data || [])
           .filter((b) => b.child_id === child.id)
           .reduce((sum, b) => sum + (b.bonus_minutes || 0), 0);
-        const alertCount = (alertsRes.data || []).filter((a) => a.child_id === child.id).length;
+        const threshold = thresholds[child.id] ?? 65;
+        const alertCount = (alertsRes.data || []).filter(
+          (a) =>
+            a.child_id === child.id &&
+            (a.ai_risk_score ?? 0) >= threshold &&
+            (!a.remind_at || new Date(a.remind_at) < now)
+        ).length;
         const timeReqCount = (timeReqRes.data || []).filter((t) => t.child_id === child.id).length;
         const schedules = (schedulesRes.data || [])
           .filter((s) => s.child_id === child.id)
