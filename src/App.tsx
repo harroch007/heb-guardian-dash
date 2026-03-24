@@ -38,6 +38,7 @@ import HomeV2 from "./pages/HomeV2";
 import ChildControlV2 from "./pages/ChildControlV2";
 import ChoresV2 from "./pages/ChoresV2";
 import AlertsV2 from "./pages/AlertsV2";
+import SettingsV2 from "./pages/SettingsV2";
 
 // Demo pages
 import DemoDashboard from "./pages/demo/DemoDashboard";
@@ -61,6 +62,7 @@ const AppRoutes = () => {
       <Route path="/child-v2/:childId" element={<ProtectedRoute><ChildControlV2 /></ProtectedRoute>} />
       <Route path="/chores-v2" element={<ProtectedRoute><ChoresV2 /></ProtectedRoute>} />
       <Route path="/alerts-v2" element={<ProtectedRoute><AlertsV2 /></ProtectedRoute>} />
+      <Route path="/settings-v2" element={<ProtectedRoute><SettingsV2 /></ProtectedRoute>} />
       <Route path="/auth" element={<Auth />} />
       <Route path="/install" element={<Install />} />
       <Route path="/privacy" element={<PrivacyPolicy />} />
