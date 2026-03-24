@@ -25,11 +25,15 @@ export const HomeGreeting = () => {
   }, [user?.id]);
 
   const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return "בוקר טוב";
-    if (hour < 17) return "צהריים טובים";
-    if (hour < 21) return "ערב טוב";
-    return "לילה טוב";
+    const now = new Date();
+    const h = now.getHours();
+    const m = now.getMinutes();
+    const timeVal = h * 60 + m; // minutes since midnight
+    if (timeVal < 330) return "לילה טוב";        // 00:00–05:29
+    if (timeVal < 720) return "בוקר טוב";         // 05:30–11:59
+    if (timeVal < 1020) return "צהריים טובים";     // 12:00–16:59
+    if (timeVal < 1260) return "ערב טוב";          // 17:00–20:59
+    return "לילה טוב";                             // 21:00–23:59
   };
 
   return (
