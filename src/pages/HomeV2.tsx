@@ -90,7 +90,7 @@ const HomeV2 = () => {
       ] = await Promise.all([
         supabase
           .from("devices")
-          .select("child_id, device_id, battery_level, last_seen, address, lat, lon")
+          .select("child_id, device_id, battery_level, last_seen, address, latitude, longitude")
           .in("child_id", childIds),
         supabase
           .from("parent_home_snapshot")
@@ -195,9 +195,9 @@ const HomeV2 = () => {
                 device_id: device.device_id,
                 battery_level: device.battery_level,
                 last_seen: device.last_seen,
-                address: device.address || snap?.address || null,
-                lat: device.lat,
-                lon: device.lon,
+                address: device.address || null,
+                lat: device.latitude,
+                lon: device.longitude,
               }
             : null,
           snapshot: snap
