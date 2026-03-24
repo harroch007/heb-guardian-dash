@@ -64,6 +64,7 @@ const AppRoutes = () => {
       <Route path="/chores-v2" element={<ProtectedRoute><ChoresV2 /></ProtectedRoute>} />
       <Route path="/alerts-v2" element={<ProtectedRoute><AlertsV2 /></ProtectedRoute>} />
       <Route path="/settings-v2" element={<ProtectedRoute><SettingsV2 /></ProtectedRoute>} />
+      <Route path="/family-v2" element={<ProtectedRoute><FamilyV2 /></ProtectedRoute>} />
       <Route path="/auth" element={<Auth />} />
       <Route path="/install" element={<Install />} />
       <Route path="/privacy" element={<PrivacyPolicy />} />
