@@ -13,19 +13,19 @@ export const QuickActionsBar = ({ childrenData }: Props) => {
     {
       icon: <UserPlus className="h-5 w-5" />,
       label: "הוסף ילד",
-      onClick: () => navigate("/family"),
+      onClick: () => navigate("/family-v2"),
     },
     {
       icon: <ListChecks className="h-5 w-5" />,
       label: "משימות",
-      onClick: () => navigate("/chores"),
+      onClick: () => navigate("/chores-v2"),
     },
     ...(childrenData.length === 1
       ? [
           {
             icon: <Smartphone className="h-5 w-5" />,
             label: "ניהול אפליקציות",
-            onClick: () => navigate(`/child/${childrenData[0].id}`),
+            onClick: () => navigate(`/child-v2/${childrenData[0].id}`),
           },
         ]
       : []),

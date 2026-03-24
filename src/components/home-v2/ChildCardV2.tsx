@@ -112,7 +112,7 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
   // Status line
   const statusParts: string[] = [];
   if (activeSchedule) statusParts.push(`🔒 ${activeSchedule}`);
-  if (child.unacknowledgedAlerts > 0) statusParts.push(`⚠️ ${child.unacknowledgedAlerts} התראות`);
+  
   if (child.pendingTimeRequests > 0) statusParts.push(`⏱️ ${child.pendingTimeRequests} בקשות`);
   if (child.permissionIssues.length > 0) statusParts.push("🛡️ בעיית הרשאות");
 
@@ -217,7 +217,7 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
           {child.unacknowledgedAlerts > 0 && (
             <ActionBtn
               icon={<Bell className="h-3.5 w-3.5" />}
-              onClick={() => navigate("/alerts")}
+              onClick={() => navigate("/alerts-v2")}
               badge={child.unacknowledgedAlerts}
               title="התראות"
             />
