@@ -316,6 +316,10 @@ const HomeV2 = () => {
 
   const openIssues = totalAlerts + totalTimeReqs + totalPermIssues + disconnectedCount;
 
+  const hasPremium = childrenData.some(
+    (c) => c.subscription_tier === "premium" || c.subscription_tier === "pro"
+  );
+
   return (
     <div className="homev2-light min-h-screen pb-24" dir="rtl">
       <div className="max-w-lg mx-auto px-4 py-6 space-y-5">
@@ -346,6 +350,8 @@ const HomeV2 = () => {
 
         <DailyControlSummary childrenData={childrenData} />
 
+        {/* Smart Protection: show for premium above daily summary context, 
+            for free show upgrade prompt at bottom */}
         <SmartProtectionSummary childrenData={childrenData} />
       </div>
       <BottomNavigationV2 />
