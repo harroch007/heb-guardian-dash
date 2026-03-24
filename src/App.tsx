@@ -35,6 +35,7 @@ import ImpersonateSession from "./pages/ImpersonateSession";
 import Chores from "./pages/Chores";
 import NextPage from "./pages/Next";
 import HomeV2 from "./pages/HomeV2";
+import ChildControlV2 from "./pages/ChildControlV2";
 
 // Demo pages
 import DemoDashboard from "./pages/demo/DemoDashboard";
@@ -55,6 +56,7 @@ const AppRoutes = () => {
       <Route path="/" element={<Landing />} />
       <Route path="/next" element={<NextPage />} />
       <Route path="/home-v2" element={<ProtectedRoute><HomeV2 /></ProtectedRoute>} />
+      <Route path="/child-v2/:childId" element={<ProtectedRoute><ChildControlV2 /></ProtectedRoute>} />
       <Route path="/auth" element={<Auth />} />
       <Route path="/install" element={<Install />} />
       <Route path="/privacy" element={<PrivacyPolicy />} />
