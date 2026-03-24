@@ -10,6 +10,27 @@ import { cn, getIsraelDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { EditChildModal } from "@/components/EditChildModal";
+import { ReconnectChildModal } from "@/components/ReconnectChildModal";
+import { BottomNavigationV2 } from "@/components/BottomNavigationV2";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import {
   ProblemBanner,
   SyncNotice,
@@ -38,6 +59,11 @@ import {
   ShieldCheck,
   ShieldAlert,
   MessageCircle,
+  MoreVertical,
+  Pencil,
+  Trash2,
+  Unplug,
+  Crown,
 } from "lucide-react";
 
 // ---------- PERMISSION LABELS ----------
@@ -55,8 +81,10 @@ const PERMISSION_LABELS: Record<string, string> = {
 interface Child {
   id: string;
   name: string;
+  date_of_birth: string;
   gender: string;
   subscription_tier: string | null;
+  pairing_code: string | null;
 }
 
 interface Device {
@@ -95,6 +123,12 @@ export default function ChildControlV2() {
   const [activeChoresCount, setActiveChoresCount] = useState(0);
   const [completedTodayChoresCount, setCompletedTodayChoresCount] = useState(0);
   const [pendingTimeRequests, setPendingTimeRequests] = useState(0);
+
+  // Child management state
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showReconnectModal, setShowReconnectModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
 
   // Command statuses
   const [locateStatus, setLocateStatus] = useState<CommandStatus>("idle");
@@ -164,7 +198,7 @@ export default function ChildControlV2() {
     todayStart.setHours(0, 0, 0, 0);
 
     const [childRes, deviceRes, snapshotRes, settingsRes, bankRes, alertsRes, alertsTodayRes, timeReqRes, choresActiveRes, choresDoneRes] = await Promise.all([
-      supabase.from("children").select("id, name, gender, subscription_tier").eq("id", childId).eq("parent_id", user.id).maybeSingle(),
+      supabase.from("children").select("id, name, date_of_birth, gender, subscription_tier, pairing_code").eq("id", childId).eq("parent_id", user.id).maybeSingle(),
       supabase.from("devices").select("*").eq("child_id", childId).order("last_seen", { ascending: false }).limit(1).maybeSingle(),
       supabase.from("parent_home_snapshot").select("top_apps, total_usage_minutes").eq("child_id", childId).maybeSingle(),
       supabase.from("settings").select("daily_screen_time_limit_minutes").eq("child_id", childId).maybeSingle(),
@@ -324,6 +358,34 @@ export default function ChildControlV2() {
     }
   };
 
+  // ---------- Child management actions ----------
+  const handleDeleteChild = async () => {
+    if (!childId) return;
+    setDeleting(true);
+    const { error } = await supabase.rpc("delete_child_data", { p_child_id: childId });
+    if (error) {
+      toast({ title: "שגיאה", description: "לא ניתן למחוק את הילד", variant: "destructive" });
+      setDeleting(false);
+      return;
+    }
+    toast({ title: "הילד הוסר בהצלחה", description: `כל הנתונים של ${child?.name} נמחקו` });
+    navigate("/home-v2");
+  };
+
+  const handleDisconnectDevice = async () => {
+    if (!device?.device_id) return;
+    setDisconnecting(true);
+    const { error } = await supabase.from("devices").update({ child_id: null }).eq("device_id", device.device_id);
+    if (error) {
+      toast({ title: "שגיאה", description: "לא ניתן לנתק את המכשיר", variant: "destructive" });
+      setDisconnecting(false);
+      return;
+    }
+    toast({ title: "המכשיר נותק", description: "המכשיר נותק בהצלחה מהילד" });
+    setDevice(null);
+    setDisconnecting(false);
+  };
+
   // ---------- Active restriction ----------
   const activeRestrictionName = getActiveScheduleName();
 
@@ -383,45 +445,156 @@ export default function ChildControlV2() {
               )}
             </div>
           </div>
+
+          {/* Management menu */}
+          <AlertDialog>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="shrink-0 h-9 w-9 text-muted-foreground hover:text-foreground">
+                  <MoreVertical className="w-5 h-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem onClick={() => setShowEditModal(true)} className="gap-2">
+                  <Pencil className="w-4 h-4" />
+                  ערוך פרטים
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setShowReconnectModal(true)} className="gap-2">
+                  <RefreshCw className="w-4 h-4" />
+                  חבר מחדש
+                </DropdownMenuItem>
+                {device && (
+                  <DropdownMenuItem onClick={handleDisconnectDevice} disabled={disconnecting} className="gap-2">
+                    <Unplug className="w-4 h-4" />
+                    נתק מכשיר
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+                <AlertDialogTrigger asChild>
+                  <DropdownMenuItem className="gap-2 text-destructive focus:text-destructive focus:bg-destructive/10">
+                    <Trash2 className="w-4 h-4" />
+                    מחק ילד
+                  </DropdownMenuItem>
+                </AlertDialogTrigger>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>האם להסיר את {child?.name}?</AlertDialogTitle>
+                <AlertDialogDescription className="text-right">
+                  פעולה זו תמחק את כל הנתונים הקשורים לילד זה כולל: התראות, מכשירים מחוברים, ונתוני שימוש.
+                  <br /><br />
+                  <strong>לא ניתן לבטל פעולה זו.</strong>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter className="flex-row-reverse gap-2">
+                <AlertDialogCancel>ביטול</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDeleteChild} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  {deleting ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : null}
+                  כן, הסר
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
 
-        {/* ===== 2. CURRENT STATUS HERO ===== */}
-        <Card className="border-border shadow-sm bg-card">
-          <CardContent className="p-4">
-            <div className="grid grid-cols-3 gap-3 text-center">
-              <div>
-                <Clock className="w-5 h-5 mx-auto mb-1 text-primary" />
-                <p className="text-lg font-bold text-foreground">{Math.round(totalUsageFromDb)} <span className="text-xs font-normal text-muted-foreground">דק׳</span></p>
-                <p className="text-[11px] text-muted-foreground">זמן מסך היום</p>
-                {screenTimeLimit && (
-                  <p className="text-[10px] text-muted-foreground/70">מתוך {screenTimeLimit} דק׳</p>
-                )}
+        {/* ===== 2. TOP CARD — Premium vs Free ===== */}
+        {isPremium ? (
+          /* PREMIUM: Smart Protection as top card */
+          <Card className="border-border shadow-sm bg-card">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <MessageCircle className="w-5 h-5 text-primary" />
+                  <span className="font-semibold text-sm text-foreground">הגנה חכמה</span>
+                </div>
+                <Badge variant="secondary" className="text-[10px] bg-primary/15 text-primary">
+                  <Crown className="w-3 h-3 ml-1" />
+                  פרימיום
+                </Badge>
               </div>
-              <div>
-                <Gift className="w-5 h-5 mx-auto mb-1 text-warning" />
-                <p className="text-lg font-bold text-foreground">{rewardBankBalance}</p>
-                <p className="text-[11px] text-muted-foreground">דקות בבנק</p>
-                {todayBonusMinutes > 0 && (
-                  <p className="text-[10px] text-warning">+{todayBonusMinutes} היום</p>
-                )}
+              <div className="grid grid-cols-3 gap-3 text-center">
+                <div>
+                  <p className="text-lg font-bold text-foreground">{unacknowledgedAlerts}</p>
+                  <p className="text-[11px] text-muted-foreground">התראות פתוחות</p>
+                </div>
+                <div>
+                  <p className="text-lg font-bold text-foreground">{todayAlerts}</p>
+                  <p className="text-[11px] text-muted-foreground">התראות היום</p>
+                </div>
+                <div>
+                  <div className={cn("w-2.5 h-2.5 rounded-full mx-auto mb-1", isMonitoringActive ? "bg-success" : "bg-border")} />
+                  <p className="text-[11px] text-muted-foreground">{isMonitoringActive ? "ניטור פעיל" : "ניטור לא פעיל"}</p>
+                </div>
               </div>
-              <div>
-                <Shield className="w-5 h-5 mx-auto mb-1 text-success" />
-                {activeRestrictionName ? (
-                  <>
-                    <p className="text-sm font-semibold text-success">{activeRestrictionName}</p>
-                    <p className="text-[11px] text-muted-foreground">הגבלה פעילה</p>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-sm font-semibold text-foreground">רגיל</p>
-                    <p className="text-[11px] text-muted-foreground">ללא הגבלה</p>
-                  </>
-                )}
+              {unacknowledgedAlerts > 0 && (
+                <Button variant="outline" size="sm" className="w-full mt-3 text-xs" onClick={() => navigate("/alerts-v2")}>
+                  <Bell className="w-3.5 h-3.5 ml-1.5" />
+                  צפה בהתראות
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        ) : (
+          /* FREE: Status hero (screen time + bonus + restriction) */
+          <Card className="border-border shadow-sm bg-card">
+            <CardContent className="p-4">
+              <div className="grid grid-cols-3 gap-3 text-center">
+                <div>
+                  <Clock className="w-5 h-5 mx-auto mb-1 text-primary" />
+                  <p className="text-lg font-bold text-foreground">{Math.round(totalUsageFromDb)} <span className="text-xs font-normal text-muted-foreground">דק׳</span></p>
+                  <p className="text-[11px] text-muted-foreground">זמן מסך היום</p>
+                  {screenTimeLimit && (
+                    <p className="text-[10px] text-muted-foreground/70">מתוך {screenTimeLimit} דק׳</p>
+                  )}
+                </div>
+                <div>
+                  <Gift className="w-5 h-5 mx-auto mb-1 text-warning" />
+                  <p className="text-lg font-bold text-foreground">{rewardBankBalance}</p>
+                  <p className="text-[11px] text-muted-foreground">דקות בבנק</p>
+                  {todayBonusMinutes > 0 && (
+                    <p className="text-[10px] text-warning">+{todayBonusMinutes} היום</p>
+                  )}
+                </div>
+                <div>
+                  <Shield className="w-5 h-5 mx-auto mb-1 text-success" />
+                  {activeRestrictionName ? (
+                    <>
+                      <p className="text-sm font-semibold text-success">{activeRestrictionName}</p>
+                      <p className="text-[11px] text-muted-foreground">הגבלה פעילה</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm font-semibold text-foreground">רגיל</p>
+                      <p className="text-[11px] text-muted-foreground">ללא הגבלה</p>
+                    </>
+                  )}
+                </div>
               </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* For premium, show a compact status row below the smart protection card */}
+        {isPremium && (
+          <div className="flex gap-2">
+            <div className="flex-1 rounded-xl bg-card border border-border p-3 text-center">
+              <Clock className="w-4 h-4 mx-auto mb-0.5 text-primary" />
+              <p className="text-sm font-bold text-foreground">{Math.round(totalUsageFromDb)} <span className="text-[10px] font-normal text-muted-foreground">דק׳</span></p>
+              <p className="text-[10px] text-muted-foreground">מסך היום</p>
             </div>
-          </CardContent>
-        </Card>
+            <div className="flex-1 rounded-xl bg-card border border-border p-3 text-center">
+              <Gift className="w-4 h-4 mx-auto mb-0.5 text-warning" />
+              <p className="text-sm font-bold text-foreground">{rewardBankBalance}</p>
+              <p className="text-[10px] text-muted-foreground">בנק בונוס</p>
+            </div>
+            <div className="flex-1 rounded-xl bg-card border border-border p-3 text-center">
+              <Shield className="w-4 h-4 mx-auto mb-0.5 text-success" />
+              <p className="text-[11px] font-semibold text-foreground">{activeRestrictionName || "רגיל"}</p>
+              <p className="text-[10px] text-muted-foreground">{activeRestrictionName ? "הגבלה" : "ללא הגבלה"}</p>
+            </div>
+          </div>
+        )}
 
         {/* ===== 3. QUICK ACTIONS ===== */}
         {device && (
@@ -431,7 +604,7 @@ export default function ChildControlV2() {
               { icon: Gift, label: "בונוס", action: () => grantBonusTime(15) },
               { icon: MapPin, label: "מיקום", action: () => { const el = document.getElementById("location-section"); el?.scrollIntoView({ behavior: "smooth" }); } },
               { icon: Shield, label: "אפליקציות", action: () => { const el = document.getElementById("apps-section"); el?.scrollIntoView({ behavior: "smooth" }); } },
-              { icon: ListChecks, label: "משימות", action: () => navigate("/chores") },
+              { icon: ListChecks, label: "משימות", action: () => navigate("/chores-v2") },
             ].map((btn, i) => (
               <Button key={i} variant="outline" size="sm" onClick={btn.action} disabled={btn.disabled}
                 className="flex-shrink-0 gap-1.5 text-xs">
@@ -512,47 +685,31 @@ export default function ChildControlV2() {
                     <p className="text-[11px] text-muted-foreground">דקות בבנק</p>
                   </div>
                 </div>
-                <Button variant="outline" size="sm" className="w-full mt-3 text-xs" onClick={() => navigate("/chores")}>
+                <Button variant="outline" size="sm" className="w-full mt-3 text-xs" onClick={() => navigate("/chores-v2")}>
                   ניהול משימות
                 </Button>
               </CardContent>
             </Card>
 
-            {/* ===== 11. SMART PROTECTION ===== */}
-            <Card className="border-border shadow-sm bg-card">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <MessageCircle className="w-5 h-5 text-primary" />
-                    <span className="font-semibold text-sm text-foreground">הגנה חכמה</span>
+            {/* ===== 11. SMART PROTECTION — only for free users as upgrade prompt ===== */}
+            {!isPremium && (
+              <Card className="border-amber-200 shadow-sm bg-gradient-to-l from-amber-50 to-orange-50">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                      <Crown className="w-5 h-5 text-amber-600" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-foreground">הגנה חכמה</p>
+                      <p className="text-xs text-muted-foreground">שדרגו לפרימיום כדי לקבל ניטור AI של WhatsApp</p>
+                    </div>
+                    <Button size="sm" onClick={() => navigate("/checkout")} className="shrink-0 bg-amber-500 hover:bg-amber-600 text-white text-xs">
+                      שדרוג
+                    </Button>
                   </div>
-                  <Badge variant="secondary" className={cn("text-[10px]",
-                    isPremium ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground")}>
-                    {isPremium ? "פרימיום" : "בסיסי"}
-                  </Badge>
-                </div>
-                <div className="grid grid-cols-2 gap-3 text-center">
-                  <div>
-                    <p className="text-lg font-bold text-foreground">{unacknowledgedAlerts}</p>
-                    <p className="text-[11px] text-muted-foreground">התראות פתוחות</p>
-                  </div>
-                  <div>
-                    <p className="text-lg font-bold text-foreground">{todayAlerts}</p>
-                    <p className="text-[11px] text-muted-foreground">התראות היום</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 mt-3 text-xs text-muted-foreground">
-                  <div className={cn("w-2 h-2 rounded-full", isMonitoringActive ? "bg-success" : "bg-border")} />
-                  <span>{isMonitoringActive ? "ניטור הודעות פעיל" : "ניטור הודעות לא פעיל"}</span>
-                </div>
-                {unacknowledgedAlerts > 0 && (
-                  <Button variant="outline" size="sm" className="w-full mt-3 text-xs" onClick={() => navigate("/alerts")}>
-                    <Bell className="w-3.5 h-3.5 ml-1.5" />
-                    צפה בהתראות
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
 
             {/* ===== 12. DEVICE HEALTH ===== */}
             <Card className="border-border shadow-sm bg-card">
@@ -599,13 +756,35 @@ export default function ChildControlV2() {
               <p className="text-sm text-muted-foreground mb-4">
                 כדי להתחיל לנהל את {child?.name}, יש לחבר מכשיר
               </p>
-              <Button variant="outline" onClick={() => navigate(`/child/${childId}`)}>
+              <Button variant="outline" onClick={() => setShowReconnectModal(true)}>
+                <RefreshCw className="w-4 h-4 ml-2" />
                 חבר מכשיר
               </Button>
             </CardContent>
           </Card>
         )}
       </div>
+
+      {/* ===== MODALS ===== */}
+      {child && (
+        <EditChildModal
+          child={child}
+          open={showEditModal}
+          onOpenChange={setShowEditModal}
+          onUpdated={(updatedChild) => setChild(updatedChild as Child)}
+        />
+      )}
+
+      {child && user?.email && (
+        <ReconnectChildModal
+          childId={showReconnectModal ? child.id : null}
+          childName={child.name}
+          parentEmail={user.email}
+          onClose={() => setShowReconnectModal(false)}
+        />
+      )}
+
+      <BottomNavigationV2 />
     </div>
   );
 }
