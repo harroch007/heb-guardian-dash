@@ -24,7 +24,7 @@ export const AttentionSection = ({ childrenData }: Props) => {
         id: `alert-${child.id}`,
         icon: <AlertTriangle className="h-4 w-4 text-amber-500" />,
         text: `${child.name}: ${child.unacknowledgedAlerts} התראות חדשות`,
-        path: "/alerts",
+        path: "/alerts-v2",
         color: "bg-amber-50 border-amber-200",
       });
     }
@@ -34,7 +34,7 @@ export const AttentionSection = ({ childrenData }: Props) => {
         id: `perm-${child.id}`,
         icon: <ShieldAlert className="h-4 w-4 text-red-500" />,
         text: `${child.name}: בעיית הרשאות`,
-        path: `/child/${child.id}`,
+        path: `/child-v2/${child.id}`,
         color: "bg-red-50 border-red-200",
       });
     }
@@ -46,7 +46,7 @@ export const AttentionSection = ({ childrenData }: Props) => {
         id: `disc-${child.id}`,
         icon: <WifiOff className="h-4 w-4 text-gray-500" />,
         text: `${child.name}: מכשיר מנותק`,
-        path: `/child/${child.id}`,
+        path: `/child-v2/${child.id}`,
         color: "bg-gray-50 border-gray-200",
       });
     }
@@ -56,7 +56,7 @@ export const AttentionSection = ({ childrenData }: Props) => {
         id: `time-${child.id}`,
         icon: <Clock className="h-4 w-4 text-blue-500" />,
         text: `${child.name}: ${child.pendingTimeRequests} בקשות זמן`,
-        path: `/child/${child.id}`,
+        path: `/child-v2/${child.id}`,
         color: "bg-blue-50 border-blue-200",
       });
     }
