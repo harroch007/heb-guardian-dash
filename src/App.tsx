@@ -39,6 +39,7 @@ import ChildControlV2 from "./pages/ChildControlV2";
 import ChoresV2 from "./pages/ChoresV2";
 import AlertsV2 from "./pages/AlertsV2";
 import SettingsV2 from "./pages/SettingsV2";
+import FamilyV2 from "./pages/FamilyV2";
 
 // Demo pages
 import DemoDashboard from "./pages/demo/DemoDashboard";
