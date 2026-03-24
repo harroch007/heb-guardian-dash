@@ -85,6 +85,7 @@ const HomeV2 = () => {
         rewardBanksRes,
         bonusRes,
         alertsRes,
+        alertThresholdRes,
         timeReqRes,
         schedulesRes,
         choresRes,
