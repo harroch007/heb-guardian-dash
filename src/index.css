@@ -133,11 +133,44 @@
   }
 }
 
-/* HomeV2 Light Theme Scope */
+/* HomeV2 / ChildControlV2 Light Theme Scope */
 .homev2-light {
-  --hv2-bg: 0 0% 97%;
-  background-color: hsl(var(--hv2-bg));
-  color: hsl(0 0% 10%);
+  --background: 0 0% 97%;
+  --foreground: 220 15% 15%;
+
+  --card: 0 0% 100%;
+  --card-foreground: 220 15% 15%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 220 15% 15%;
+
+  --primary: 174 62% 47%;
+  --primary-foreground: 0 0% 100%;
+
+  --secondary: 220 10% 94%;
+  --secondary-foreground: 220 15% 25%;
+
+  --muted: 220 10% 94%;
+  --muted-foreground: 220 10% 46%;
+
+  --accent: 174 62% 47%;
+  --accent-foreground: 0 0% 100%;
+
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+
+  --warning: 38 92% 50%;
+  --warning-foreground: 220 15% 15%;
+
+  --success: 152 60% 42%;
+  --success-foreground: 0 0% 100%;
+
+  --border: 220 13% 87%;
+  --input: 220 13% 87%;
+  --ring: 174 62% 47%;
+
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
   font-family: 'Heebo', sans-serif;
 }
 
