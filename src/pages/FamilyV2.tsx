@@ -53,7 +53,7 @@ const FamilyV2 = () => {
 
       const childIds = kids.map((c) => c.id);
 
-      const [devicesRes, rewardRes, alertsRes] = await Promise.all([
+      const [devicesRes, rewardRes, alertsRes, settingsRes] = await Promise.all([
         supabase
           .from("devices")
           .select("child_id, device_id, battery_level, last_seen")
@@ -64,17 +64,38 @@ const FamilyV2 = () => {
           .in("child_id", childIds),
         supabase
           .from("alerts")
-          .select("child_id")
+          .select("child_id, ai_risk_score, remind_at")
           .in("child_id", childIds)
           .is("acknowledged_at", null)
+          .is("saved_at", null)
+          .is("parent_message", null)
           .eq("is_processed", true)
-          .eq("alert_type", "warning"),
+          .eq("alert_type", "warning")
+          .in("ai_verdict", ["notify", "review"]),
+        supabase
+          .from("settings")
+          .select("child_id, alert_threshold")
+          .in("child_id", childIds),
       ]);
+
+      // Build threshold map per child
+      const thresholds: Record<string, number> = {};
+      settingsRes.data?.forEach((s) => {
+        if (s.child_id) thresholds[s.child_id] = s.alert_threshold ?? 65;
+      });
+
+      const now = new Date();
 
       const enriched: FamilyChild[] = kids.map((child) => {
         const device = devicesRes.data?.find((d) => d.child_id === child.id) || null;
         const bank = rewardRes.data?.find((r) => r.child_id === child.id);
-        const alertCount = (alertsRes.data || []).filter((a) => a.child_id === child.id).length;
+        const threshold = thresholds[child.id] ?? 65;
+        const alertCount = (alertsRes.data || []).filter(
+          (a) =>
+            a.child_id === child.id &&
+            (a.ai_risk_score ?? 0) >= threshold &&
+            (!a.remind_at || new Date(a.remind_at) < now)
+        ).length;
 
         return {
           id: child.id,
