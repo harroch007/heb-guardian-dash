@@ -220,6 +220,7 @@ export default function ChoresV2() {
           )}
         </div>
       </div>
+      <BottomNavigationV2 />
     </div>
   );
 }

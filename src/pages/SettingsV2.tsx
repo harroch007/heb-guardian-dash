@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, User, Crown, Bell, BellRing, Send, Loader2, Users, Shield, FileText, MessageCircle, Bug, Lightbulb, LogOut, HelpCircle, ChevronLeft } from "lucide-react";
+import { User, Crown, Bell, BellRing, Send, Loader2, Users, Shield, FileText, MessageCircle, Bug, Lightbulb, LogOut, HelpCircle } from "lucide-react";
+import { BottomNavigationV2 } from "@/components/BottomNavigationV2";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFamilySubscription } from "@/hooks/useFamilySubscription";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
@@ -65,9 +66,6 @@ const SettingsV2 = () => {
       <div className="max-w-lg mx-auto px-4 py-6 space-y-5">
         {/* Header */}
         <div className="flex items-center gap-3 mb-2">
-          <button onClick={() => navigate('/home-v2')} className="p-2 rounded-xl bg-card border border-border/50 hover:bg-muted transition-colors">
-            <ArrowRight className="w-5 h-5 text-foreground" />
-          </button>
           <div>
             <h1 className="text-2xl font-bold text-foreground">הגדרות</h1>
             <p className="text-sm text-muted-foreground">ניהול חשבון, התראות ותמיכה</p>
@@ -289,6 +287,7 @@ const SettingsV2 = () => {
           <p className="text-xs text-muted-foreground">גרסה 1.0.1 • עודכן לאחרונה 04/01/26</p>
         </div>
       </div>
+      <BottomNavigationV2 />
     </div>
   );
 };
