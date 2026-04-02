@@ -20,9 +20,12 @@ interface LocationSectionProps {
   setShowMap: (v: boolean) => void;
   handleLocateNow: () => void;
   getLocateButtonContent: () => React.ReactNode;
-  ringPhase: RingPhase;
   handleRingDevice: () => void;
-  handleRetryRing: () => void;
+  // V2 enhanced ring props
+  ringPhase?: RingPhase;
+  handleRetryRing?: () => void;
+  // Legacy prop (live app)
+  ringStatus?: "idle" | "locating" | "success" | "failed";
 }
 
 export function LocationSection({
