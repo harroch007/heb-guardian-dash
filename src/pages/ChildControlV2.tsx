@@ -663,8 +663,9 @@ export default function ChildControlV2() {
               setShowMap={setShowMap}
               handleLocateNow={handleLocateNow}
               getLocateButtonContent={getLocateButtonContent}
-              ringStatus={ringStatus}
+              ringPhase={ringPhase}
               handleRingDevice={handleRingDevice}
+              handleRetryRing={retryRing}
             />
 
             {/* ===== 10. TASKS & BONUS ===== */}
