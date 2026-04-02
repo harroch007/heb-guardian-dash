@@ -120,7 +120,7 @@ export function LocationSection({
               <Button
                 onClick={(e) => {
                   e.stopPropagation();
-                  isRingFailed ? handleRetryRing() : handleRingDevice();
+                  isRingFailed && handleRetryRing ? handleRetryRing() : handleRingDevice();
                 }}
                 size="sm"
                 variant={isRingFailed ? "destructive" : isRingTerminalSuccess ? "outline" : "default"}
