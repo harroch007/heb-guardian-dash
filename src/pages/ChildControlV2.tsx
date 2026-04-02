@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useChildControls } from "@/hooks/useChildControls";
+import { useRingCommand } from "@/hooks/useRingCommand";
+import type { RingPhase } from "@/hooks/useRingCommand";
 import { getDeviceStatus, getStatusColor, getStatusLabel, formatLastSeen } from "@/lib/deviceStatus";
 import type { DeviceHealthInfo } from "@/hooks/useChildControls";
 import { cn, getIsraelDate } from "@/lib/utils";
@@ -139,9 +141,8 @@ export default function ChildControlV2() {
   const [syncCommandId, setSyncCommandId] = useState<string | null>(null);
   const syncPollingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const [ringStatus, setRingStatus] = useState<CommandStatus>("idle");
-  const [ringCommandId, setRingCommandId] = useState<string | null>(null);
-  const ringPollingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Ring uses dedicated hook
+  const { phase: ringPhase, sendRing, retry: retryRing } = useRingCommand(device?.device_id ?? null);
 
   const [showMap, setShowMap] = useState(false);
 
@@ -260,7 +261,6 @@ export default function ChildControlV2() {
     return () => {
       if (pollingRef.current) clearTimeout(pollingRef.current);
       if (syncPollingRef.current) clearTimeout(syncPollingRef.current);
-      if (ringPollingRef.current) clearTimeout(ringPollingRef.current);
     };
   }, []);
 
@@ -327,12 +327,15 @@ export default function ChildControlV2() {
     { title: "המכשיר לא מגיב", desc: "לא ניתן לקבל עדכון מהמכשיר" },
   );
 
-  // Ring polling
-  useCommandPolling(ringCommandId, ringStatus, setRingStatus, setRingCommandId, ringPollingRef,
-    undefined,
-    { title: "המכשיר מצלצל", desc: "הצליל הופעל בהצלחה על המכשיר" },
-    { title: "לא ניתן לצלצל", desc: "המכשיר לא הצליח להשמיע צליל" },
-  );
+  // Ring phase toast (only on terminal states)
+  const prevRingPhase = useRef<RingPhase>("idle");
+  useEffect(() => {
+    if (ringPhase === prevRingPhase.current) return;
+    prevRingPhase.current = ringPhase;
+    if (ringPhase === "child_stopped") toast({ title: "הילד עצר את הצלצול" });
+    else if (ringPhase === "timeout" || ringPhase === "completed_legacy") toast({ title: "הצלצול הסתיים" });
+    else if (ringPhase === "failed") toast({ title: "לא ניתן לצלצל", description: "המכשיר לא הצליח להשמיע צליל", variant: "destructive" });
+  }, [ringPhase, toast]);
 
   const sendCommand = async (type: string, setCmd: (id: string | null) => void, setStat: (s: CommandStatus) => void) => {
     if (!device?.device_id) return;
@@ -347,7 +350,7 @@ export default function ChildControlV2() {
   };
 
   const handleLocateNow = () => { setShowMap(false); sendCommand("LOCATE_NOW", setLocateCommandId, setLocateStatus); };
-  const handleRingDevice = () => sendCommand("RING_DEVICE", setRingCommandId, setRingStatus);
+  const handleRingDevice = () => sendRing();
   const handleRequestSync = () => sendCommand("REPORT_HEARTBEAT", setSyncCommandId, setSyncStatus);
 
   const getLocateButtonContent = () => {
@@ -600,7 +603,7 @@ export default function ChildControlV2() {
         {device && (
           <div className="flex gap-2 overflow-x-auto pb-1">
             {[
-              { icon: Volume2, label: "צלצל", action: handleRingDevice, disabled: ringStatus === "locating", active: ringStatus === "locating" },
+              { icon: Volume2, label: ringPhase === "sending" ? "שולח..." : ringPhase === "ringing" ? "מצלצל..." : ringPhase === "child_stopped" ? "הילד עצר ✓" : ringPhase === "timeout" || ringPhase === "completed_legacy" ? "הסתיים ✓" : ringPhase === "failed" ? "נכשל" : "צלצל", action: ringPhase === "failed" ? retryRing : handleRingDevice, disabled: ringPhase === "sending" || ringPhase === "ringing", active: ringPhase === "sending" || ringPhase === "ringing" },
               { icon: Gift, label: "בונוס", action: () => grantBonusTime(15) },
               { icon: MapPin, label: "מיקום", action: () => { const el = document.getElementById("location-section"); el?.scrollIntoView({ behavior: "smooth" }); } },
               { icon: Shield, label: "אפליקציות", action: () => { const el = document.getElementById("apps-section"); el?.scrollIntoView({ behavior: "smooth" }); } },
@@ -660,8 +663,9 @@ export default function ChildControlV2() {
               setShowMap={setShowMap}
               handleLocateNow={handleLocateNow}
               getLocateButtonContent={getLocateButtonContent}
-              ringStatus={ringStatus}
+              ringPhase={ringPhase}
               handleRingDevice={handleRingDevice}
+              handleRetryRing={retryRing}
             />
 
             {/* ===== 10. TASKS & BONUS ===== */}

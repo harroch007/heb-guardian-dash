@@ -1,10 +1,11 @@
 import { useNavigate } from "react-router-dom";
-import { Battery, MapPin, Clock, Smartphone, Bell, Plus, Volume2, Lock } from "lucide-react";
+import { Battery, MapPin, Clock, Smartphone, Bell, Plus, Volume2, Lock, Loader2, CheckCircle2, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { getIsraelDate } from "@/lib/utils";
 import { toast } from "sonner";
 import { useState } from "react";
+import { useRingCommand } from "@/hooks/useRingCommand";
 import type { ChildWithData } from "@/pages/HomeV2";
 
 interface Props {
@@ -38,9 +39,9 @@ const isConnected = (lastSeen: string | null) => {
 export const ChildCardV2 = ({ child, onRefresh }: Props) => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [ringing, setRinging] = useState(false);
   const [addingTime, setAddingTime] = useState(false);
 
+  const { phase: ringPhase, sendRing, retry: retryRing } = useRingCommand(child.device?.device_id ?? null);
 
   const connected = isConnected(child.device?.last_seen ?? null);
   const usedMinutes = child.snapshot?.total_usage_minutes ?? 0;
@@ -48,20 +49,9 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
   const remaining = hasLimit ? Math.max(0, child.dailyLimit! - usedMinutes) : null;
 
   const handleRing = async () => {
-    if (!child.device) return;
-    setRinging(true);
-    try {
-      await supabase.from("device_commands").insert({
-        device_id: child.device.device_id,
-        command_type: "RING_DEVICE",
-        status: "PENDING",
-      });
-      toast.success("פקודת צלצול נשלחה");
-    } catch {
-      toast.error("שגיאה בשליחת צלצול");
-    } finally {
-      setRinging(false);
-    }
+    const ok = await sendRing();
+    if (ok) toast.success("פקודת צלצול נשלחה");
+    else toast.error("שגיאה בשליחת צלצול");
   };
 
   const handleAddTime = async () => {
@@ -74,7 +64,6 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
         bonus_minutes: 15,
         granted_by: user.id,
       });
-      // Send refresh to device
       if (child.device) {
         await supabase.from("device_commands").insert({
           device_id: child.device.device_id,
@@ -90,6 +79,27 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
       setAddingTime(false);
     }
   };
+
+  // Ring icon/label helpers
+  const getRingIcon = () => {
+    if (ringPhase === "sending") return <Loader2 className="h-3.5 w-3.5 animate-spin" />;
+    if (ringPhase === "ringing") return <Volume2 className="h-3.5 w-3.5 animate-pulse" />;
+    if (ringPhase === "child_stopped" || ringPhase === "timeout" || ringPhase === "completed_legacy") return <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />;
+    if (ringPhase === "failed") return <AlertTriangle className="h-3.5 w-3.5 text-red-500" />;
+    return <Volume2 className="h-3.5 w-3.5" />;
+  };
+
+  const getRingTitle = () => {
+    if (ringPhase === "sending") return "שולח...";
+    if (ringPhase === "ringing") return "מצלצל...";
+    if (ringPhase === "child_stopped") return "הילד עצר ✓";
+    if (ringPhase === "timeout" || ringPhase === "completed_legacy") return "הסתיים ✓";
+    if (ringPhase === "failed") return "נכשל";
+    return "צלצל";
+  };
+
+  const isRingBusy = ringPhase === "sending" || ringPhase === "ringing";
+  const isRingDone = ringPhase === "child_stopped" || ringPhase === "timeout" || ringPhase === "completed_legacy";
 
   // Status line
   const statusParts: string[] = [];
@@ -190,10 +200,10 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
           {child.device && (
             <>
               <ActionBtn
-                icon={<Volume2 className="h-3.5 w-3.5" />}
-                onClick={handleRing}
-                disabled={ringing}
-                title="צלצל"
+                icon={getRingIcon()}
+                onClick={ringPhase === "failed" ? retryRing : handleRing}
+                disabled={isRingBusy || isRingDone}
+                title={getRingTitle()}
               />
               <ActionBtn
                 icon={<Plus className="h-3.5 w-3.5" />}

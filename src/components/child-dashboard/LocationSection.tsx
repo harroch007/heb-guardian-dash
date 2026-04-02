@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { LocationMap } from "@/components/LocationMap";
 import { formatLastSeen } from "@/lib/deviceStatus";
 import { toast as sonnerToast } from "sonner";
+import type { RingPhase } from "@/hooks/useRingCommand";
 
 interface LocationSectionProps {
   device: {
@@ -19,8 +20,12 @@ interface LocationSectionProps {
   setShowMap: (v: boolean) => void;
   handleLocateNow: () => void;
   getLocateButtonContent: () => React.ReactNode;
-  ringStatus: "idle" | "locating" | "success" | "failed";
   handleRingDevice: () => void;
+  // V2 enhanced ring props
+  ringPhase?: RingPhase;
+  handleRetryRing?: () => void;
+  // Legacy prop (live app)
+  ringStatus?: "idle" | "locating" | "success" | "failed";
 }
 
 export function LocationSection({
@@ -31,21 +36,39 @@ export function LocationSection({
   setShowMap,
   handleLocateNow,
   getLocateButtonContent,
-  ringStatus,
+  ringPhase: ringPhaseProp,
   handleRingDevice,
+  handleRetryRing,
+  ringStatus,
 }: LocationSectionProps) {
   const [expanded, setExpanded] = useState(false);
 
+  // Map legacy ringStatus to RingPhase for backward compat
+  const ringPhase: RingPhase = ringPhaseProp ?? (
+    ringStatus === "locating" ? "sending" :
+    ringStatus === "success" ? "completed_legacy" :
+    ringStatus === "failed" ? "failed" : "idle"
+  );
+
   const hasLocation = device.latitude !== null && device.longitude !== null;
 
+  const isRingBusy = ringPhase === "sending" || ringPhase === "ringing";
+  const isRingTerminalSuccess = ringPhase === "child_stopped" || ringPhase === "timeout" || ringPhase === "completed_legacy";
+  const isRingFailed = ringPhase === "failed";
+
   const getRingButtonContent = () => {
-    switch (ringStatus) {
-      case "locating":
-        return (<><Loader2 className="w-4 h-4 animate-spin ml-1.5" />מצלצל...</>);
-      case "success":
-        return (<><CheckCircle2 className="w-4 h-4 ml-1.5 text-success" />מצלצל ✓</>);
+    switch (ringPhase) {
+      case "sending":
+        return (<><Loader2 className="w-4 h-4 animate-spin ml-1.5" />שולח...</>);
+      case "ringing":
+        return (<><Volume2 className="w-4 h-4 ml-1.5 animate-pulse" />מצלצל...</>);
+      case "child_stopped":
+        return (<><CheckCircle2 className="w-4 h-4 ml-1.5 text-success" />הילד עצר ✓</>);
+      case "timeout":
+      case "completed_legacy":
+        return (<><CheckCircle2 className="w-4 h-4 ml-1.5 text-success" />הצלצול הסתיים ✓</>);
       case "failed":
-        return (<><AlertTriangle className="w-4 h-4 ml-1.5" />קרא למכשיר</>);
+        return (<><AlertTriangle className="w-4 h-4 ml-1.5" />נכשל — נסה שוב</>);
       default:
         return (<><Volume2 className="w-4 h-4 ml-1.5" />קרא למכשיר</>);
     }
@@ -97,11 +120,11 @@ export function LocationSection({
               <Button
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleRingDevice();
+                  isRingFailed && handleRetryRing ? handleRetryRing() : handleRingDevice();
                 }}
                 size="sm"
-                variant={ringStatus === "failed" ? "destructive" : ringStatus === "success" ? "outline" : "default"}
-                disabled={ringStatus === "locating" || ringStatus === "success"}
+                variant={isRingFailed ? "destructive" : isRingTerminalSuccess ? "outline" : "default"}
+                disabled={isRingBusy || isRingTerminalSuccess}
                 className="flex-1"
               >
                 {getRingButtonContent()}
@@ -117,12 +140,18 @@ export function LocationSection({
               </div>
             )}
 
-            {/* Ringing spinner */}
-            {ringStatus === "locating" && (
+            {/* Ringing feedback */}
+            {ringPhase === "sending" && (
+              <div className="p-4 rounded-lg bg-primary/5 border border-primary/20 flex flex-col items-center gap-2">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">שולח פקודת צלצול...</p>
+              </div>
+            )}
+            {ringPhase === "ringing" && (
               <div className="p-4 rounded-lg bg-primary/5 border border-primary/20 flex flex-col items-center gap-2">
                 <Volume2 className="w-8 h-8 text-primary animate-pulse" />
-                <p className="text-sm text-muted-foreground">שולח צלצול למכשיר...</p>
-                <p className="text-xs text-muted-foreground">זה עשוי לקחת עד 2 דקות</p>
+                <p className="text-sm text-muted-foreground">המכשיר מצלצל עכשיו</p>
+                <p className="text-xs text-muted-foreground">ממתין לתגובה...</p>
               </div>
             )}
 
@@ -137,7 +166,7 @@ export function LocationSection({
             )}
 
             {/* Ring failure notice */}
-            {ringStatus === "failed" && locateStatus !== "failed" && (
+            {isRingFailed && locateStatus !== "failed" && (
               <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30 flex items-center gap-2">
                 <AlertTriangle className="w-5 h-5 text-destructive shrink-0" />
                 <p className="text-sm text-destructive">

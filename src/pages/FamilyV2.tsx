@@ -3,13 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { getIsraelDate } from "@/lib/utils";
-import { Loader2, ArrowRight, Users, Wifi, AlertTriangle, Crown, Phone, Clock, UserPlus, Bell } from "lucide-react";
+import { Loader2, ArrowRight, Users, Wifi, AlertTriangle, Crown, Phone, Clock, UserPlus, Bell, Volume2, CheckCircle2 } from "lucide-react";
 import { BottomNavigationV2 } from "@/components/BottomNavigationV2";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AddChildModal } from "@/components/AddChildModal";
 import { useToast } from "@/hooks/use-toast";
+import { useRingCommand, type RingPhase } from "@/hooks/useRingCommand";
 
 interface FamilyChild {
   id: string;
@@ -32,7 +33,6 @@ const FamilyV2 = () => {
   const [loading, setLoading] = useState(true);
   const [children, setChildren] = useState<FamilyChild[]>([]);
   const [addChildOpen, setAddChildOpen] = useState(false);
-  const [ringingDevice, setRingingDevice] = useState<string | null>(null);
   const [addingTime, setAddingTime] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
@@ -142,21 +142,7 @@ const FamilyV2 = () => {
     return `לפני ${Math.floor(hours / 24)} ימים`;
   };
 
-  const handleRingDevice = async (child: FamilyChild) => {
-    if (!child.device?.device_id) return;
-    setRingingDevice(child.id);
-    try {
-      await supabase.from("device_commands").insert({
-        device_id: child.device.device_id,
-        command_type: "RING_DEVICE",
-      });
-      toast({ title: "הפקודה נשלחה", description: `צלצול נשלח למכשיר של ${child.name}` });
-    } catch {
-      toast({ title: "שגיאה", description: "לא ניתן לשלוח את הפקודה", variant: "destructive" });
-    } finally {
-      setRingingDevice(null);
-    }
-  };
+  // Ring is handled by FamilyRingButton component below
 
   const handleAddTime = async (child: FamilyChild) => {
     setAddingTime(child.id);
@@ -320,18 +306,7 @@ const FamilyV2 = () => {
                         <ArrowRight className="w-4 h-4 mr-1" />
                       </Button>
                       {child.device?.device_id && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleRingDevice(child)}
-                          disabled={ringingDevice === child.id}
-                        >
-                          {ringingDevice === child.id ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <Phone className="w-4 h-4" />
-                          )}
-                        </Button>
+                        <FamilyRingButton deviceId={child.device.device_id} />
                       )}
                       <Button
                         size="sm"
@@ -394,5 +369,33 @@ const FamilyV2 = () => {
     </div>
   );
 };
+
+// Extracted component so useRingCommand hook can be called per-child
+function FamilyRingButton({ deviceId }: { deviceId: string }) {
+  const { phase, sendRing, retry } = useRingCommand(deviceId);
+
+  const isBusy = phase === "sending" || phase === "ringing";
+  const isDone = phase === "child_stopped" || phase === "timeout" || phase === "completed_legacy";
+  const isFailed = phase === "failed";
+
+  const icon = () => {
+    if (phase === "sending") return <Loader2 className="w-4 h-4 animate-spin" />;
+    if (phase === "ringing") return <Volume2 className="w-4 h-4 animate-pulse" />;
+    if (isDone) return <CheckCircle2 className="w-4 h-4 text-success" />;
+    if (isFailed) return <AlertTriangle className="w-4 h-4 text-destructive" />;
+    return <Phone className="w-4 h-4" />;
+  };
+
+  return (
+    <Button
+      size="sm"
+      variant={isFailed ? "destructive" : "outline"}
+      onClick={() => isFailed ? retry() : sendRing()}
+      disabled={isBusy || isDone}
+    >
+      {icon()}
+    </Button>
+  );
+}
 
 export default FamilyV2;
