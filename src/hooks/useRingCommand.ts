@@ -13,6 +13,10 @@ export type RingPhase =
 const POLL_INTERVAL = 5000;
 const POLL_TIMEOUT = 2 * 60 * 1000;
 
+/**
+ * Maps only proven DB statuses (PENDING, ACKNOWLEDGED, COMPLETED, EXPIRED)
+ * plus the `result` field for COMPLETED differentiation.
+ */
 function derivePhase(status: string | null, result: string | null, elapsed: number): RingPhase | null {
   if (!status) return null;
   switch (status) {
@@ -24,12 +28,11 @@ function derivePhase(status: string | null, result: string | null, elapsed: numb
       if (result === "CHILD_STOPPED") return "child_stopped";
       if (result === "RING_TIMEOUT") return "timeout";
       if (result === "RING_FAILED") return "failed";
-      return "completed_legacy";
+      return "completed_legacy"; // null result = old agent
     case "EXPIRED":
-    case "FAILED":
-    case "TIMED_OUT":
       return "failed";
     default:
+      // Unknown status — treat as still pending
       return "sending";
   }
 }
@@ -79,8 +82,8 @@ export function useRingCommand(deviceId: string | null) {
       const derived = derivePhase(data.status, data.result, elapsed);
       if (derived) setPhase(derived);
 
-      // Terminal states — stop polling
-      if (["COMPLETED", "EXPIRED", "FAILED", "TIMED_OUT"].includes(data.status)) {
+      // Terminal statuses — stop polling
+      if (["COMPLETED", "EXPIRED"].includes(data.status)) {
         setCommandId(null);
         return;
       }
