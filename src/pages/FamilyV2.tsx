@@ -370,4 +370,32 @@ const FamilyV2 = () => {
   );
 };
 
+// Extracted component so useRingCommand hook can be called per-child
+function FamilyRingButton({ deviceId }: { deviceId: string }) {
+  const { phase, sendRing, retry } = useRingCommand(deviceId);
+
+  const isBusy = phase === "sending" || phase === "ringing";
+  const isDone = phase === "child_stopped" || phase === "timeout" || phase === "completed_legacy";
+  const isFailed = phase === "failed";
+
+  const icon = () => {
+    if (phase === "sending") return <Loader2 className="w-4 h-4 animate-spin" />;
+    if (phase === "ringing") return <Volume2 className="w-4 h-4 animate-pulse" />;
+    if (isDone) return <CheckCircle2 className="w-4 h-4 text-success" />;
+    if (isFailed) return <AlertTriangle className="w-4 h-4 text-destructive" />;
+    return <Phone className="w-4 h-4" />;
+  };
+
+  return (
+    <Button
+      size="sm"
+      variant={isFailed ? "destructive" : "outline"}
+      onClick={() => isFailed ? retry() : sendRing()}
+      disabled={isBusy || isDone}
+    >
+      {icon()}
+    </Button>
+  );
+}
+
 export default FamilyV2;
