@@ -655,7 +655,7 @@ export default function ChildControlV2() {
               onBlockApp={blockApp}
             />
 
-            <LocationSection
+            <LocationSectionV2
               device={device}
               childName={child?.name || ""}
               locateStatus={locateStatus}
