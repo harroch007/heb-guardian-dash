@@ -327,12 +327,15 @@ export default function ChildControlV2() {
     { title: "המכשיר לא מגיב", desc: "לא ניתן לקבל עדכון מהמכשיר" },
   );
 
-  // Ring polling
-  useCommandPolling(ringCommandId, ringStatus, setRingStatus, setRingCommandId, ringPollingRef,
-    undefined,
-    { title: "המכשיר מצלצל", desc: "הצליל הופעל בהצלחה על המכשיר" },
-    { title: "לא ניתן לצלצל", desc: "המכשיר לא הצליח להשמיע צליל" },
-  );
+  // Ring phase toast (only on terminal states)
+  const prevRingPhase = useRef<RingPhase>("idle");
+  useEffect(() => {
+    if (ringPhase === prevRingPhase.current) return;
+    prevRingPhase.current = ringPhase;
+    if (ringPhase === "child_stopped") toast({ title: "הילד עצר את הצלצול" });
+    else if (ringPhase === "timeout" || ringPhase === "completed_legacy") toast({ title: "הצלצול הסתיים" });
+    else if (ringPhase === "failed") toast({ title: "לא ניתן לצלצל", description: "המכשיר לא הצליח להשמיע צליל", variant: "destructive" });
+  }, [ringPhase, toast]);
 
   const sendCommand = async (type: string, setCmd: (id: string | null) => void, setStat: (s: CommandStatus) => void) => {
     if (!device?.device_id) return;
