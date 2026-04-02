@@ -3,13 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { getIsraelDate } from "@/lib/utils";
-import { Loader2, ArrowRight, Users, Wifi, AlertTriangle, Crown, Phone, Clock, UserPlus, Bell } from "lucide-react";
+import { Loader2, ArrowRight, Users, Wifi, AlertTriangle, Crown, Phone, Clock, UserPlus, Bell, Volume2, CheckCircle2 } from "lucide-react";
 import { BottomNavigationV2 } from "@/components/BottomNavigationV2";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AddChildModal } from "@/components/AddChildModal";
 import { useToast } from "@/hooks/use-toast";
+import { useRingCommand, type RingPhase } from "@/hooks/useRingCommand";
 
 interface FamilyChild {
   id: string;
