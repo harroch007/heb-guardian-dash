@@ -350,7 +350,7 @@ export default function ChildControlV2() {
   };
 
   const handleLocateNow = () => { setShowMap(false); sendCommand("LOCATE_NOW", setLocateCommandId, setLocateStatus); };
-  const handleRingDevice = () => sendCommand("RING_DEVICE", setRingCommandId, setRingStatus);
+  const handleRingDevice = () => sendRing();
   const handleRequestSync = () => sendCommand("REPORT_HEARTBEAT", setSyncCommandId, setSyncStatus);
 
   const getLocateButtonContent = () => {
