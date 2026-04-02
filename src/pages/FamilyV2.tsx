@@ -34,6 +34,7 @@ const FamilyV2 = () => {
   const [children, setChildren] = useState<FamilyChild[]>([]);
   const [addChildOpen, setAddChildOpen] = useState(false);
   const [ringingDevice, setRingingDevice] = useState<string | null>(null);
+  const [ringHooks, setRingHooks] = useState<Record<string, ReturnType<typeof useRingCommand>>>({});
   const [addingTime, setAddingTime] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
