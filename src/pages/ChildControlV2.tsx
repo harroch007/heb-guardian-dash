@@ -141,9 +141,8 @@ export default function ChildControlV2() {
   const [syncCommandId, setSyncCommandId] = useState<string | null>(null);
   const syncPollingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const [ringStatus, setRingStatus] = useState<CommandStatus>("idle");
-  const [ringCommandId, setRingCommandId] = useState<string | null>(null);
-  const ringPollingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Ring uses dedicated hook
+  const { phase: ringPhase, sendRing, retry: retryRing } = useRingCommand(device?.device_id ?? null);
 
   const [showMap, setShowMap] = useState(false);
 
