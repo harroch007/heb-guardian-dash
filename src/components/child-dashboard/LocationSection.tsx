@@ -36,11 +36,19 @@ export function LocationSection({
   setShowMap,
   handleLocateNow,
   getLocateButtonContent,
-  ringPhase,
+  ringPhase: ringPhaseProp,
   handleRingDevice,
   handleRetryRing,
+  ringStatus,
 }: LocationSectionProps) {
   const [expanded, setExpanded] = useState(false);
+
+  // Map legacy ringStatus to RingPhase for backward compat
+  const ringPhase: RingPhase = ringPhaseProp ?? (
+    ringStatus === "locating" ? "sending" :
+    ringStatus === "success" ? "completed_legacy" :
+    ringStatus === "failed" ? "failed" : "idle"
+  );
 
   const hasLocation = device.latitude !== null && device.longitude !== null;
 
