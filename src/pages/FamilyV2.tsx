@@ -142,21 +142,7 @@ const FamilyV2 = () => {
     return `לפני ${Math.floor(hours / 24)} ימים`;
   };
 
-  const handleRingDevice = async (child: FamilyChild) => {
-    if (!child.device?.device_id) return;
-    setRingingDevice(child.id);
-    try {
-      await supabase.from("device_commands").insert({
-        device_id: child.device.device_id,
-        command_type: "RING_DEVICE",
-      });
-      toast({ title: "הפקודה נשלחה", description: `צלצול נשלח למכשיר של ${child.name}` });
-    } catch {
-      toast({ title: "שגיאה", description: "לא ניתן לשלוח את הפקודה", variant: "destructive" });
-    } finally {
-      setRingingDevice(null);
-    }
-  };
+  // Ring is handled by FamilyRingButton component below
 
   const handleAddTime = async (child: FamilyChild) => {
     setAddingTime(child.id);
