@@ -603,7 +603,7 @@ export default function ChildControlV2() {
         {device && (
           <div className="flex gap-2 overflow-x-auto pb-1">
             {[
-              { icon: Volume2, label: "צלצל", action: handleRingDevice, disabled: ringStatus === "locating", active: ringStatus === "locating" },
+              { icon: Volume2, label: ringPhase === "sending" ? "שולח..." : ringPhase === "ringing" ? "מצלצל..." : ringPhase === "child_stopped" ? "הילד עצר ✓" : ringPhase === "timeout" || ringPhase === "completed_legacy" ? "הסתיים ✓" : ringPhase === "failed" ? "נכשל" : "צלצל", action: ringPhase === "failed" ? retryRing : handleRingDevice, disabled: ringPhase === "sending" || ringPhase === "ringing", active: ringPhase === "sending" || ringPhase === "ringing" },
               { icon: Gift, label: "בונוס", action: () => grantBonusTime(15) },
               { icon: MapPin, label: "מיקום", action: () => { const el = document.getElementById("location-section"); el?.scrollIntoView({ behavior: "smooth" }); } },
               { icon: Shield, label: "אפליקציות", action: () => { const el = document.getElementById("apps-section"); el?.scrollIntoView({ behavior: "smooth" }); } },
