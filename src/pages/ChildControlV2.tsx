@@ -261,7 +261,6 @@ export default function ChildControlV2() {
     return () => {
       if (pollingRef.current) clearTimeout(pollingRef.current);
       if (syncPollingRef.current) clearTimeout(syncPollingRef.current);
-      if (ringPollingRef.current) clearTimeout(ringPollingRef.current);
     };
   }, []);
 
