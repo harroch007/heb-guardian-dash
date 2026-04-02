@@ -306,18 +306,7 @@ const FamilyV2 = () => {
                         <ArrowRight className="w-4 h-4 mr-1" />
                       </Button>
                       {child.device?.device_id && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleRingDevice(child)}
-                          disabled={ringingDevice === child.id}
-                        >
-                          {ringingDevice === child.id ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <Phone className="w-4 h-4" />
-                          )}
-                        </Button>
+                        <FamilyRingButton deviceId={child.device.device_id} />
                       )}
                       <Button
                         size="sm"
