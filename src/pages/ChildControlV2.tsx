@@ -39,9 +39,9 @@ import {
   AppsSection,
   ScreenTimeSection,
   SchedulesSection,
-  LocationSection,
   TimeRequestsCard,
 } from "@/components/child-dashboard";
+import { LocationSectionV2 } from "@/components/child-dashboard/LocationSectionV2";
 import {
   ArrowRight,
   Loader2,
@@ -655,7 +655,7 @@ export default function ChildControlV2() {
               onBlockApp={blockApp}
             />
 
-            <LocationSection
+            <LocationSectionV2
               device={device}
               childName={child?.name || ""}
               locateStatus={locateStatus}
