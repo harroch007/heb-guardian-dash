@@ -30,19 +30,28 @@ export default function AcceptInvite() {
     setErrorMsg("");
 
     try {
-      const { error } = await supabase.rpc("accept_family_invite", {
+      const { data, error } = await supabase.rpc("accept_family_invite", {
         p_invite_id: inviteId,
       });
 
       if (error) {
         setStatus("error");
-        if (error.message?.includes("not found") || error.message?.includes("pending")) {
-          setErrorMsg("ההזמנה לא נמצאה או שכבר טופלה.");
-        } else if (error.message?.includes("email")) {
-          setErrorMsg("כתובת האימייל שלך לא תואמת להזמנה.");
-        } else {
-          setErrorMsg(error.message || "שגיאה בקבלת ההזמנה.");
-        }
+        setErrorMsg(error.message || "שגיאה בקבלת ההזמנה.");
+        return;
+      }
+
+      // RPC returns jsonb {success, error?}
+      const result = data as { success: boolean; error?: string } | null;
+      if (!result?.success) {
+        setStatus("error");
+        const code = result?.error || "";
+        const errorMap: Record<string, string> = {
+          INVITE_NOT_FOUND: "ההזמנה לא נמצאה או שכבר טופלה.",
+          EMAIL_MISMATCH: "כתובת האימייל שלך לא תואמת להזמנה.",
+          NOT_ONBOARDED: "יש להשלים רישום לפני קבלת הזמנה.",
+          CANNOT_ACCEPT_OWN: "לא ניתן לקבל הזמנה שאתה יצרת.",
+        };
+        setErrorMsg(errorMap[code] || "שגיאה בקבלת ההזמנה.");
         return;
       }
 
