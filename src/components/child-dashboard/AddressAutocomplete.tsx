@@ -46,6 +46,7 @@ export function AddressAutocomplete({
     if (q.trim().length < 3) {
       setResults([]);
       setOpen(false);
+      setNoResults(false);
       return;
     }
     setLoading(true);
