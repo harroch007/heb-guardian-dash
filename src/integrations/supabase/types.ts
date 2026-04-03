@@ -1140,6 +1140,44 @@ export type Database = {
           },
         ]
       }
+      child_geofence_settings: {
+        Row: {
+          child_id: string
+          created_at: string
+          exit_debounce_seconds: number
+          home_exit_alert_enabled: boolean
+          id: string
+          school_exit_alert_enabled: boolean
+          updated_at: string
+        }
+        Insert: {
+          child_id: string
+          created_at?: string
+          exit_debounce_seconds?: number
+          home_exit_alert_enabled?: boolean
+          id?: string
+          school_exit_alert_enabled?: boolean
+          updated_at?: string
+        }
+        Update: {
+          child_id?: string
+          created_at?: string
+          exit_debounce_seconds?: number
+          home_exit_alert_enabled?: boolean
+          id?: string
+          school_exit_alert_enabled?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "child_geofence_settings_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: true
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       child_model_override: {
         Row: {
           child_id: string
@@ -1218,6 +1256,53 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "child_periodic_summaries_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      child_places: {
+        Row: {
+          child_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          label: string | null
+          latitude: number
+          longitude: number
+          place_type: string
+          radius_meters: number
+          updated_at: string
+        }
+        Insert: {
+          child_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          latitude: number
+          longitude: number
+          place_type: string
+          radius_meters: number
+          updated_at?: string
+        }
+        Update: {
+          child_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          latitude?: number
+          longitude?: number
+          place_type?: string
+          radius_meters?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "child_places_child_id_fkey"
             columns: ["child_id"]
             isOneToOne: false
             referencedRelation: "children"
