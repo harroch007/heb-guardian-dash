@@ -1,67 +1,26 @@
 
 
-## Replace Coordinates with Address Autocomplete
+## שיפור חיפוש כתובות בגדר גיאוגרפית
 
-### Problem
-The current geofence UI shows raw lat/lng inputs — unusable for normal users. Need a proper address search with autocomplete suggestions.
+### הבעיה
+Nominatim מבוסס על OpenStreetMap — מפה שנוצרת על ידי מתנדבים. רחובות חדשים בישראל (שכונות חדשות, פרויקטים שנבנו לאחרונה) לעיתים חסרים או לא מעודכנים ב-OSM. זו בעיית מקור נתונים — לא ניתן לפתור אותה בשינוי הקוד בלבד.
 
-### Approach
-Use **OpenStreetMap Nominatim** (free, no API key needed) for address search with autocomplete. This works for Israeli addresses and returns coordinates automatically.
+### מה כן אפשר לשפר עכשיו
 
-### How it works
-1. User types an address (e.g., "גדעון האוזנר 3, הרצליה")
-2. After 300ms debounce, query Nominatim: `https://nominatim.openstreetmap.org/search?q=...&format=json&countrycodes=il&limit=5`
-3. Show dropdown with matching results
-4. User selects → lat/lng saved automatically behind the scenes
-5. Display saved address as readable text, not coordinates
+**קובץ: `src/components/child-dashboard/AddressAutocomplete.tsx`**
 
-### Changes
+1. **הוספת `addressdetails=1`** — מחזיר פירוט כתובת מובנה (רחוב, עיר, מספר) במקום רק `display_name`, מה שמאפשר הצגה נקייה יותר
+2. **הוספת `dedupe=1`** — מסנן תוצאות כפולות
+3. **הגדלת `limit` ל-8** — יותר תוצאות לבחירה
+4. **שינוי סף חיפוש מ-2 ל-3 תווים** — מפחית תוצאות לא רלוונטיות בעברית
+5. **שיפור ה-shortName** — שימוש ב-`addressdetails` להצגת "רחוב מספר, עיר" במקום חיתוך פשוט של פסיקים
 
-**New component: `src/components/child-dashboard/AddressAutocomplete.tsx`**
-- Text input with Hebrew placeholder "הכנס כתובת: רחוב, מספר, עיר"
-- Debounced search (300ms) against Nominatim API
-- Dropdown list of results showing `display_name`
-- On select → returns `{ latitude, longitude, address }` to parent
-- Loading spinner while searching
-- RTL, clean styling matching existing UI
+### מגבלה ידועה
+רחובות שלא קיימים ב-OpenStreetMap לא יופיעו, גם עם שיפורים אלו. לכיסוי מלא של כתובות ישראליות (כולל רחובות חדשים), הפתרון האמיתי הוא **Google Places Autocomplete API** — שדורש מפתח API בתשלום. אפשר לחבר את זה בהמשך כשנרצה.
 
-**Modified: `src/components/child-dashboard/GeofenceSection.tsx`**
-- Remove lat/lng `Input` fields entirely
-- Replace with `AddressAutocomplete` component
-- When place exists, show saved address text (from label field) instead of coordinates
-- "Use device location" button stays as-is (already has address from device)
-- On save, store the selected address in the `label` field of `child_places`
+### קבצים שמשתנים
 
-**Modified: `src/hooks/useChildPlaces.ts`**
-- `upsertPlace` already accepts `label` — no changes needed, just ensure UI passes the full address string as label
-
-### UI Flow (after changes)
-
-```text
-┌─────────────────────────────┐
-│ 🏠 בית                  מוגדר │
-│ גדעון האוזנר 3, הרצליה       │
-│ רדיוס: [150 מ׳ ▼]           │
-│ [עדכן מיקום]        [🗑]    │
-└─────────────────────────────┘
-
-Editing mode:
-┌─────────────────────────────┐
-│ השתמש במיקום המכשיר: ...     │
-│ [הכנס כתובת: רחוב, מספר, עיר]│
-│   ┌─ גדעון האוזנר 3, הרצליה │
-│   ├─ גדעון האוזנר 5, הרצליה │
-│   └─ גדעון האוזנר, רעננה    │
-│ [שמור]              [ביטול] │
-└─────────────────────────────┘
-```
-
-### Files
-
-| File | Change |
-|------|--------|
-| `src/components/child-dashboard/AddressAutocomplete.tsx` | New — reusable address search component |
-| `src/components/child-dashboard/GeofenceSection.tsx` | Replace lat/lng inputs with AddressAutocomplete, show address text |
-
-No backend changes needed — `label` field already exists in `child_places`.
+| קובץ | שינוי |
+|-------|--------|
+| `src/components/child-dashboard/AddressAutocomplete.tsx` | שיפור פרמטרי חיפוש + הצגת תוצאות מדויקת יותר |
 
