@@ -1,5 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
-import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
+import { useState, useCallback, useEffect, useRef } from "react";
 import L from "leaflet";
 import { Button } from "@/components/ui/button";
 import { Loader2, MapPin } from "lucide-react";
@@ -20,20 +19,11 @@ interface MapPinPickerProps {
   onCancel: () => void;
 }
 
-function ClickHandler({ onClick }: { onClick: (lat: number, lng: number) => void }) {
-  useMapEvents({
-    click(e) {
-      onClick(e.latlng.lat, e.latlng.lng);
-    },
-  });
-  return null;
-}
-
 export function MapPinPicker({ initialLat, initialLng, onConfirm, onCancel }: MapPinPickerProps) {
-  const defaultCenter: [number, number] = [
-    initialLat ?? 32.08,
-    initialLng ?? 34.78,
-  ];
+  const mapRef = useRef<L.Map | null>(null);
+  const markerRef = useRef<L.Marker | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
   const [pin, setPin] = useState<{ lat: number; lng: number } | null>(
     initialLat != null && initialLng != null ? { lat: initialLat, lng: initialLng } : null
   );
@@ -67,35 +57,56 @@ export function MapPinPicker({ initialLat, initialLng, onConfirm, onCancel }: Ma
     }
   }, []);
 
-  const handleClick = useCallback((lat: number, lng: number) => {
+  const placeMarker = useCallback((lat: number, lng: number) => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    if (markerRef.current) {
+      markerRef.current.setLatLng([lat, lng]);
+    } else {
+      markerRef.current = L.marker([lat, lng]).addTo(map);
+    }
+
     setPin({ lat, lng });
     setAddress(null);
     reverseGeocode(lat, lng);
   }, [reverseGeocode]);
 
   useEffect(() => {
-    if (pin && !address && !loading) {
-      reverseGeocode(pin.lat, pin.lng);
+    if (!containerRef.current || mapRef.current) return;
+
+    const center: [number, number] = [initialLat ?? 32.08, initialLng ?? 34.78];
+    const zoom = initialLat != null ? 15 : 8;
+
+    const map = L.map(containerRef.current, { attributionControl: false }).setView(center, zoom);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+    mapRef.current = map;
+
+    if (initialLat != null && initialLng != null) {
+      markerRef.current = L.marker([initialLat, initialLng]).addTo(map);
+      reverseGeocode(initialLat, initialLng);
     }
-    // only on mount
+
+    map.on("click", (e: L.LeafletMouseEvent) => {
+      placeMarker(e.latlng.lat, e.latlng.lng);
+    });
+
+    return () => {
+      map.remove();
+      mapRef.current = null;
+      markerRef.current = null;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
     <div className="space-y-2">
       <p className="text-xs text-muted-foreground">לחץ על המפה לסימון המיקום</p>
-      <div className="rounded-lg overflow-hidden border border-border" style={{ height: 220 }}>
-        <MapContainer
-          center={defaultCenter}
-          zoom={initialLat != null ? 15 : 8}
-          style={{ height: "100%", width: "100%" }}
-          attributionControl={false}
-        >
-          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-          <ClickHandler onClick={handleClick} />
-          {pin && <Marker position={[pin.lat, pin.lng]} />}
-        </MapContainer>
-      </div>
+      <div
+        ref={containerRef}
+        className="rounded-lg overflow-hidden border border-border"
+        style={{ height: 220, width: "100%" }}
+      />
 
       {pin && (
         <div className="flex items-center gap-2 bg-muted/50 rounded px-2 py-1.5">
