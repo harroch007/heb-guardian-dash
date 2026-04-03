@@ -146,6 +146,12 @@ const SettingsV2 = () => {
               <div>
                 <h2 className="text-lg font-semibold text-foreground">חשבון</h2>
                 <p className="text-xs text-muted-foreground">פרטי החשבון שלך</p>
+                {!isOwner && (
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-primary/10 text-primary border-0 mt-0.5">
+                    <ShieldCheck className="w-3 h-3 ml-0.5" />
+                    הורה שותף
+                  </Badge>
+                )}
               </div>
             </div>
             {!isEditing && (
