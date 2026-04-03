@@ -1817,6 +1817,60 @@ export type Database = {
           },
         ]
       }
+      family_members: {
+        Row: {
+          accepted_at: string | null
+          id: string
+          invited_at: string
+          invited_email: string
+          member_id: string | null
+          owner_id: string
+          receive_alerts: boolean
+          revoked_at: string | null
+          role: string
+          status: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          id?: string
+          invited_at?: string
+          invited_email: string
+          member_id?: string | null
+          owner_id: string
+          receive_alerts?: boolean
+          revoked_at?: string | null
+          role?: string
+          status?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          id?: string
+          invited_at?: string
+          invited_email?: string
+          member_id?: string | null
+          owner_id?: string
+          receive_alerts?: boolean
+          revoked_at?: string | null
+          role?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_members_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "parents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "family_members_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "parents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       insight_logs: {
         Row: {
           child_id: string
@@ -2768,6 +2822,7 @@ export type Database = {
       }
     }
     Functions: {
+      accept_family_invite: { Args: { p_invite_id: string }; Returns: Json }
       add_daily_metrics: {
         Args: {
           p_ai_delta?: number
@@ -2879,6 +2934,7 @@ export type Database = {
         }[]
       }
       get_device_settings: { Args: { p_device_id: string }; Returns: Json }
+      get_family_owner_id: { Args: never; Returns: string }
       get_parent_daily_report_for_parent: {
         Args: { p_report_date: string }
         Returns: {
@@ -2925,8 +2981,18 @@ export type Database = {
         }
         Returns: Json
       }
+      invite_co_parent: {
+        Args: { p_email: string; p_receive_alerts?: boolean }
+        Returns: Json
+      }
       is_admin: { Args: never; Returns: boolean }
+      is_child_owner: { Args: { p_child_id: string }; Returns: boolean }
       is_email_allowed: { Args: { p_email: string }; Returns: boolean }
+      is_family_parent: { Args: { p_child_id: string }; Returns: boolean }
+      is_family_parent_for_device: {
+        Args: { p_device_id: string }
+        Returns: boolean
+      }
       maybe_recalc_nearest_issur_window: {
         Args: { p_child_id: string; p_new_lat: number; p_new_lon: number }
         Returns: undefined
@@ -3028,6 +3094,7 @@ export type Database = {
         Returns: Json
       }
       retry_failed_queue_items: { Args: never; Returns: Json }
+      revoke_co_parent: { Args: { p_membership_id: string }; Returns: Json }
       send_locate_to_all_devices: { Args: never; Returns: undefined }
       update_device_location: {
         Args: {
