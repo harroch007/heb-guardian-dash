@@ -57,6 +57,7 @@ export function AddressAutocomplete({
       const data: NominatimResult[] = await res.json();
       setResults(data);
       setOpen(data.length > 0);
+      setNoResults(data.length === 0 && q.trim().length >= 3);
     } catch {
       setResults([]);
       setOpen(false);
