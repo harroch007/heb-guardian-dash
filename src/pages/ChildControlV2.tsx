@@ -43,6 +43,7 @@ import {
   TimeRequestsCard,
 } from "@/components/child-dashboard";
 import { LocationSectionV2 } from "@/components/child-dashboard/LocationSectionV2";
+import { GeofenceSection } from "@/components/child-dashboard/GeofenceSection";
 import {
   ArrowRight,
   Loader2,
