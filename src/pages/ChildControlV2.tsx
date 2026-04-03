@@ -113,6 +113,7 @@ export default function ChildControlV2() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { isOwner } = useFamilyRole();
 
   const [child, setChild] = useState<Child | null>(null);
   const [device, setDevice] = useState<Device | null>(null);
