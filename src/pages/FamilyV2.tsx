@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFamilyRole } from "@/hooks/useFamilyRole";
 import { getIsraelDate } from "@/lib/utils";
-import { Loader2, ArrowRight, Users, Wifi, AlertTriangle, Crown, Phone, Clock, UserPlus, Bell, Volume2, CheckCircle2, Mail, UserMinus, ShieldCheck } from "lucide-react";
+import { Loader2, ArrowRight, Users, Wifi, AlertTriangle, Crown, Phone, Clock, UserPlus, Bell, Volume2, CheckCircle2, Mail, UserMinus, ShieldCheck, Copy, MessageCircle, Share2 } from "lucide-react";
 import { BottomNavigationV2 } from "@/components/BottomNavigationV2";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -496,6 +496,41 @@ const FamilyV2 = () => {
                       {coParent.status === "accepted" ? "פעיל" : "ממתין לאישור"}
                     </Badge>
                   </div>
+
+                  {coParent.status === "pending" && (
+                    <div className="space-y-2 py-2">
+                      <p className="text-xs text-muted-foreground">שתף את הלינק עם ההורה המוזמן:</p>
+                      <div className="flex items-center gap-2 bg-muted/50 rounded-lg p-2">
+                        <span className="text-[11px] text-muted-foreground truncate flex-1" dir="ltr">
+                          {`${window.location.origin}/accept-invite/${coParent.id}`}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 shrink-0"
+                          onClick={() => {
+                            navigator.clipboard.writeText(`${window.location.origin}/accept-invite/${coParent.id}`);
+                            toast({ title: "הלינק הועתק!" });
+                          }}
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full gap-2"
+                        onClick={() => {
+                          const url = `${window.location.origin}/accept-invite/${coParent.id}`;
+                          const text = `הי! הזמנתי אותך להצטרף כהורה שותף באפליקציית Kippy. לחץ/י על הלינק:\n${url}`;
+                          window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+                        }}
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                        שלח בוואטסאפ
+                      </Button>
+                    </div>
+                  )}
 
                   {coParent.status === "accepted" && (
                     <div className="flex items-center justify-between py-2">
