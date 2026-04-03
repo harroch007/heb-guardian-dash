@@ -19,6 +19,7 @@ const SettingsV2 = () => {
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
   const { children, allPremium, hasFreeChildren, childCount, isLoading: subLoading } = useFamilySubscription();
+  const { isOwner, role } = useFamilyRole();
   const { isSupported, isSubscribed, isLoading: pushLoading, permission, subscribe, unsubscribe } = usePushNotifications();
   const [parentName, setParentName] = useState<string | null>(null);
   const [parentPhone, setParentPhone] = useState<string | null>(null);

@@ -469,19 +469,23 @@ export default function ChildControlV2() {
                   <RefreshCw className="w-4 h-4" />
                   חבר מחדש
                 </DropdownMenuItem>
-                {device && (
+                {device && isOwner && (
                   <DropdownMenuItem onClick={handleDisconnectDevice} disabled={disconnecting} className="gap-2">
                     <Unplug className="w-4 h-4" />
                     נתק מכשיר
                   </DropdownMenuItem>
                 )}
-                <DropdownMenuSeparator />
-                <AlertDialogTrigger asChild>
-                  <DropdownMenuItem className="gap-2 text-destructive focus:text-destructive focus:bg-destructive/10">
-                    <Trash2 className="w-4 h-4" />
-                    מחק ילד
-                  </DropdownMenuItem>
-                </AlertDialogTrigger>
+                {isOwner && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <AlertDialogTrigger asChild>
+                      <DropdownMenuItem className="gap-2 text-destructive focus:text-destructive focus:bg-destructive/10">
+                        <Trash2 className="w-4 h-4" />
+                        מחק ילד
+                      </DropdownMenuItem>
+                    </AlertDialogTrigger>
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
             <AlertDialogContent>

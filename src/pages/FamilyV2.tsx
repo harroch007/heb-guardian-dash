@@ -239,7 +239,7 @@ const FamilyV2 = () => {
     setRevoking(true);
     try {
       const { error } = await supabase.rpc("revoke_co_parent", {
-        p_member_id: coParent.id,
+        p_membership_id: coParent.id,
       });
       if (error) {
         toast({ title: "שגיאה", description: error.message || "לא ניתן לבטל", variant: "destructive" });
