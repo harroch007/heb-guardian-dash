@@ -261,7 +261,7 @@ const SettingsV2 = () => {
                   <span className="font-medium text-foreground">{premiumCount} / {childCount}</span>
                 </div>
               )}
-              {hasFreeChildren && (
+              {isOwner && hasFreeChildren && (
                 <Button
                   onClick={() => navigate('/checkout')}
                   className="w-full mt-2 gap-2 bg-gradient-to-l from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white"
