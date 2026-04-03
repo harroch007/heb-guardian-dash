@@ -40,7 +40,7 @@ export function AddressAutocomplete({
   const containerRef = useRef<HTMLDivElement>(null);
 
   const search = useCallback(async (q: string) => {
-    if (q.trim().length < 2) {
+    if (q.trim().length < 3) {
       setResults([]);
       setOpen(false);
       return;
@@ -48,7 +48,7 @@ export function AddressAutocomplete({
     setLoading(true);
     try {
       const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&countrycodes=il&limit=5&accept-language=he`
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&countrycodes=il&limit=8&accept-language=he&addressdetails=1&dedupe=1`
       );
       const data: NominatimResult[] = await res.json();
       setResults(data);
