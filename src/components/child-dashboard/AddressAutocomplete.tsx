@@ -122,7 +122,7 @@ export function AddressAutocomplete({
       {open && results.length > 0 && (
         <div className="absolute z-50 mt-1 w-full rounded-md border border-border bg-popover shadow-md max-h-48 overflow-y-auto">
           {results.map((r) => {
-            const short = r.display_name.split(",").slice(0, 3).join(",").trim();
+            const short = formatAddress(r);
             return (
               <button
                 key={r.place_id}
