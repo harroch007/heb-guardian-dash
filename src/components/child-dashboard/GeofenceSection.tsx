@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { MapPin, Home, School, Loader2, Trash2, Navigation } from "lucide-react";
 import { useChildPlaces, type ChildPlace } from "@/hooks/useChildPlaces";
 import { AddressAutocomplete } from "./AddressAutocomplete";
+import { MapPinPicker } from "./MapPinPicker";
 
 interface GeofenceSectionProps {
   childId: string;
@@ -39,6 +40,7 @@ function PlaceCard({
   onDelete: () => void;
 }) {
   const [editing, setEditing] = useState(false);
+  const [showMap, setShowMap] = useState(false);
   const [selected, setSelected] = useState<{ latitude: number; longitude: number; address: string } | null>(null);
   const defaultRadius = type === "HOME" ? 150 : 250;
   const icon = type === "HOME" ? <Home className="w-4 h-4" /> : <School className="w-4 h-4" />;
@@ -55,11 +57,13 @@ function PlaceCard({
     if (!selected) return;
     onSave(selected.latitude, selected.longitude, selected.address, place?.radius_meters ?? defaultRadius);
     setEditing(false);
+    setShowMap(false);
     setSelected(null);
   };
 
   const handleStartEdit = () => {
     setSelected(null);
+    setShowMap(false);
     setEditing(true);
   };
 
@@ -116,28 +120,37 @@ function PlaceCard({
 
       {editing && (
         <div className="space-y-2">
-          {deviceAddress && deviceLat != null && (
+          {deviceAddress && deviceLat != null && !showMap && (
             <button type="button" className="text-[11px] text-primary underline" onClick={handleUseDevice}>
               השתמש במיקום המכשיר: {deviceAddress}
             </button>
           )}
 
-          {selected ? (
+          {showMap ? (
+            <MapPinPicker
+              initialLat={deviceLat}
+              initialLng={deviceLng}
+              onConfirm={(r) => { setSelected(r); setShowMap(false); }}
+              onCancel={() => setShowMap(false)}
+            />
+          ) : selected ? (
             <div className="flex items-center gap-2 bg-muted/50 rounded px-2 py-1.5">
               <MapPin className="w-3.5 h-3.5 text-primary shrink-0" />
               <span className="text-xs truncate">{selected.address}</span>
               <button type="button" className="text-[10px] text-muted-foreground underline mr-auto" onClick={() => setSelected(null)}>שנה</button>
             </div>
           ) : (
-            <AddressAutocomplete onSelect={(r) => setSelected(r)} />
+            <AddressAutocomplete onSelect={(r) => setSelected(r)} onFallback={() => setShowMap(true)} />
           )}
 
-          <div className="flex gap-2">
-            <Button size="sm" className="text-xs flex-1" onClick={handleSave} disabled={saving || !selected}>
-              {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "שמור"}
-            </Button>
-            <Button variant="ghost" size="sm" className="text-xs" onClick={() => { setEditing(false); setSelected(null); }}>ביטול</Button>
-          </div>
+          {!showMap && (
+            <div className="flex gap-2">
+              <Button size="sm" className="text-xs flex-1" onClick={handleSave} disabled={saving || !selected}>
+                {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "שמור"}
+              </Button>
+              <Button variant="ghost" size="sm" className="text-xs" onClick={() => { setEditing(false); setShowMap(false); setSelected(null); }}>ביטול</Button>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -23,12 +23,14 @@ interface NominatimResult {
 
 interface AddressAutocompleteProps {
   onSelect: (result: { latitude: number; longitude: number; address: string }) => void;
+  onFallback?: () => void;
   placeholder?: string;
   className?: string;
 }
 
 export function AddressAutocomplete({
   onSelect,
+  onFallback,
   placeholder = "הכנס כתובת: רחוב, מספר, עיר",
   className,
 }: AddressAutocompleteProps) {
@@ -36,6 +38,7 @@ export function AddressAutocomplete({
   const [results, setResults] = useState<NominatimResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
+  const [noResults, setNoResults] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout>>();
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -43,6 +46,7 @@ export function AddressAutocomplete({
     if (q.trim().length < 3) {
       setResults([]);
       setOpen(false);
+      setNoResults(false);
       return;
     }
     setLoading(true);
@@ -53,6 +57,7 @@ export function AddressAutocomplete({
       const data: NominatimResult[] = await res.json();
       setResults(data);
       setOpen(data.length > 0);
+      setNoResults(data.length === 0 && q.trim().length >= 3);
     } catch {
       setResults([]);
       setOpen(false);
@@ -136,6 +141,23 @@ export function AddressAutocomplete({
             );
           })}
         </div>
+      )}
+
+      {noResults && !open && (
+        <div className="mt-1 text-xs text-muted-foreground space-y-1">
+          <p>לא נמצאו תוצאות</p>
+          {onFallback && (
+            <button type="button" className="text-primary underline text-[11px]" onClick={onFallback}>
+              📍 סמן על המפה
+            </button>
+          )}
+        </div>
+      )}
+
+      {!noResults && onFallback && query.length === 0 && (
+        <button type="button" className="text-[11px] text-muted-foreground underline mt-1" onClick={onFallback}>
+          לא מוצא את הכתובת? סמן על המפה
+        </button>
       )}
     </div>
   );
