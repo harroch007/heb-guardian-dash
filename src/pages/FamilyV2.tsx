@@ -2,12 +2,15 @@ import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useFamilyRole } from "@/hooks/useFamilyRole";
 import { getIsraelDate } from "@/lib/utils";
-import { Loader2, ArrowRight, Users, Wifi, AlertTriangle, Crown, Phone, Clock, UserPlus, Bell, Volume2, CheckCircle2 } from "lucide-react";
+import { Loader2, ArrowRight, Users, Wifi, AlertTriangle, Crown, Phone, Clock, UserPlus, Bell, Volume2, CheckCircle2, Mail, UserMinus, ShieldCheck } from "lucide-react";
 import { BottomNavigationV2 } from "@/components/BottomNavigationV2";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { AddChildModal } from "@/components/AddChildModal";
 import { useToast } from "@/hooks/use-toast";
 import { useRingCommand, type RingPhase } from "@/hooks/useRingCommand";
@@ -26,23 +29,43 @@ interface FamilyChild {
   unacknowledgedAlerts: number;
 }
 
+interface CoParentRow {
+  id: string;
+  invited_email: string;
+  status: string;
+  receive_alerts: boolean;
+  member_id: string | null;
+  accepted_at: string | null;
+}
+
 const FamilyV2 = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { isOwner, loading: roleLoading } = useFamilyRole();
   const [loading, setLoading] = useState(true);
   const [children, setChildren] = useState<FamilyChild[]>([]);
   const [addChildOpen, setAddChildOpen] = useState(false);
   const [addingTime, setAddingTime] = useState<string | null>(null);
 
+  // Co-parent management state
+  const [coParent, setCoParent] = useState<CoParentRow | null>(null);
+  const [coParentLoading, setCoParentLoading] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteAlerts, setInviteAlerts] = useState(false);
+  const [showInviteForm, setShowInviteForm] = useState(false);
+  const [inviting, setInviting] = useState(false);
+  const [revoking, setRevoking] = useState(false);
+  const [updatingAlerts, setUpdatingAlerts] = useState(false);
+
   const fetchData = useCallback(async () => {
     if (!user?.id) return;
     setLoading(true);
     try {
+      // No parent_id filter — RLS (is_family_parent) handles access for both owner and co-parent
       const { data: kids } = await supabase
         .from("children")
         .select("id, name, gender, subscription_tier")
-        .eq("parent_id", user.id)
         .order("created_at", { ascending: true });
 
       if (!kids || kids.length === 0) {
@@ -78,7 +101,6 @@ const FamilyV2 = () => {
           .in("child_id", childIds),
       ]);
 
-      // Build threshold map per child
       const thresholds: Record<string, number> = {};
       settingsRes.data?.forEach((s) => {
         if (s.child_id) thresholds[s.child_id] = s.alert_threshold ?? 65;
@@ -122,9 +144,35 @@ const FamilyV2 = () => {
     }
   }, [user?.id]);
 
+  // Fetch co-parent data (owner only)
+  const fetchCoParent = useCallback(async () => {
+    if (!user?.id || !isOwner) return;
+    setCoParentLoading(true);
+    try {
+      const { data } = await supabase
+        .from("family_members")
+        .select("id, invited_email, status, receive_alerts, member_id, accepted_at")
+        .eq("owner_id", user.id)
+        .in("status", ["pending", "accepted"])
+        .order("invited_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      setCoParent(data ?? null);
+    } catch (err) {
+      console.error("[FamilyV2] Co-parent fetch error:", err);
+    } finally {
+      setCoParentLoading(false);
+    }
+  }, [user?.id, isOwner]);
+
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  useEffect(() => {
+    if (!roleLoading) fetchCoParent();
+  }, [roleLoading, fetchCoParent]);
 
   const isConnected = (lastSeen: string | null) => {
     if (!lastSeen) return false;
@@ -141,8 +189,6 @@ const FamilyV2 = () => {
     if (hours < 24) return `לפני ${hours} שעות`;
     return `לפני ${Math.floor(hours / 24)} ימים`;
   };
-
-  // Ring is handled by FamilyRingButton component below
 
   const handleAddTime = async (child: FamilyChild) => {
     setAddingTime(child.id);
@@ -163,12 +209,75 @@ const FamilyV2 = () => {
     }
   };
 
+  // Co-parent actions
+  const handleInvite = async () => {
+    if (!inviteEmail.trim()) return;
+    setInviting(true);
+    try {
+      const { error } = await supabase.rpc("invite_co_parent", {
+        p_email: inviteEmail.trim().toLowerCase(),
+        p_receive_alerts: inviteAlerts,
+      });
+      if (error) {
+        toast({ title: "שגיאה", description: error.message || "לא ניתן לשלוח הזמנה", variant: "destructive" });
+        return;
+      }
+      toast({ title: "ההזמנה נשלחה", description: `הזמנה נשלחה ל-${inviteEmail}` });
+      setShowInviteForm(false);
+      setInviteEmail("");
+      setInviteAlerts(false);
+      fetchCoParent();
+    } catch {
+      toast({ title: "שגיאה", description: "שגיאה בלתי צפויה", variant: "destructive" });
+    } finally {
+      setInviting(false);
+    }
+  };
+
+  const handleRevoke = async () => {
+    if (!coParent) return;
+    setRevoking(true);
+    try {
+      const { error } = await supabase.rpc("revoke_co_parent", {
+        p_membership_id: coParent.id,
+      });
+      if (error) {
+        toast({ title: "שגיאה", description: error.message || "לא ניתן לבטל", variant: "destructive" });
+        return;
+      }
+      toast({ title: "ההזמנה בוטלה", description: "ההורה השותף הוסר בהצלחה" });
+      setCoParent(null);
+    } catch {
+      toast({ title: "שגיאה", description: "שגיאה בלתי צפויה", variant: "destructive" });
+    } finally {
+      setRevoking(false);
+    }
+  };
+
+  const handleToggleAlerts = async (checked: boolean) => {
+    if (!coParent) return;
+    setUpdatingAlerts(true);
+    try {
+      const { error } = await supabase
+        .from("family_members")
+        .update({ receive_alerts: checked })
+        .eq("id", coParent.id);
+      if (error) throw error;
+      setCoParent({ ...coParent, receive_alerts: checked });
+      toast({ title: checked ? "התראות הופעלו" : "התראות כובו" });
+    } catch {
+      toast({ title: "שגיאה", description: "לא ניתן לעדכן", variant: "destructive" });
+    } finally {
+      setUpdatingAlerts(false);
+    }
+  };
+
   const connectedCount = children.filter((c) => isConnected(c.device?.last_seen ?? null)).length;
   const totalAlerts = children.reduce((s, c) => s + c.unacknowledgedAlerts, 0);
   const premiumCount = children.filter((c) => c.subscription_tier === "premium").length;
   const hasFreeChildren = children.some((c) => c.subscription_tier !== "premium");
 
-  if (loading) {
+  if (loading || roleLoading) {
     return (
       <div className="homev2-light min-h-screen flex items-center justify-center" dir="rtl">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -241,10 +350,12 @@ const FamilyV2 = () => {
             <CardContent className="p-8 text-center">
               <Users className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
               <p className="text-muted-foreground">אין ילדים רשומים עדיין</p>
-              <Button className="mt-4" onClick={() => setAddChildOpen(true)}>
-                <UserPlus className="w-4 h-4 ml-2" />
-                הוסף ילד
-              </Button>
+              {isOwner && (
+                <Button className="mt-4" onClick={() => setAddChildOpen(true)}>
+                  <UserPlus className="w-4 h-4 ml-2" />
+                  הוסף ילד
+                </Button>
+              )}
             </CardContent>
           </Card>
         ) : (
@@ -254,7 +365,6 @@ const FamilyV2 = () => {
               return (
                 <Card key={child.id} className="overflow-hidden">
                   <CardContent className="p-4 space-y-3">
-                    {/* Child info row */}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -279,10 +389,9 @@ const FamilyV2 = () => {
                       <div className={`w-2.5 h-2.5 rounded-full ${connected ? "bg-emerald-500" : "bg-gray-300"}`} />
                     </div>
 
-                    {/* Stats row */}
                     <div className="flex items-center gap-4 text-xs text-muted-foreground">
                       {child.device?.battery_level != null && (
-                        <span className={`${child.device.battery_level < 20 ? "text-red-500" : ""}`}>
+                        <span className={`${child.device.battery_level < 20 ? "text-destructive" : ""}`}>
                           🔋 {child.device.battery_level}%
                         </span>
                       )}
@@ -295,7 +404,6 @@ const FamilyV2 = () => {
                       )}
                     </div>
 
-                    {/* Actions */}
                     <div className="flex items-center gap-2">
                       <Button
                         size="sm"
@@ -328,8 +436,8 @@ const FamilyV2 = () => {
           </div>
         )}
 
-        {/* Add Child CTA */}
-        {children.length > 0 && (
+        {/* Add Child CTA — owner only */}
+        {isOwner && children.length > 0 && (
           <Button
             variant="outline"
             className="w-full"
@@ -340,8 +448,8 @@ const FamilyV2 = () => {
           </Button>
         )}
 
-        {/* Family Subscription Summary */}
-        {hasFreeChildren && (
+        {/* Family Subscription Summary — owner only */}
+        {isOwner && hasFreeChildren && (
           <Card className="border-purple-200 bg-purple-50/50">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
@@ -354,6 +462,115 @@ const FamilyV2 = () => {
                 <Button size="sm" onClick={() => navigate("/checkout")}>
                   שדרג עכשיו
                 </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Co-Parent Management — owner only */}
+        {isOwner && (
+          <Card>
+            <CardContent className="p-4 space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <ShieldCheck className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-foreground">הורה שותף</h3>
+                  <p className="text-xs text-muted-foreground">הזמן הורה נוסף לנהל את המשפחה</p>
+                </div>
+              </div>
+
+              {coParentLoading ? (
+                <div className="flex justify-center py-3">
+                  <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : coParent ? (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between py-2 border-b border-border/30">
+                    <div className="flex items-center gap-2">
+                      <Mail className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-sm text-foreground" dir="ltr">{coParent.invited_email}</span>
+                    </div>
+                    <Badge variant={coParent.status === "accepted" ? "default" : "secondary"} className="text-[10px]">
+                      {coParent.status === "accepted" ? "פעיל" : "ממתין לאישור"}
+                    </Badge>
+                  </div>
+
+                  {coParent.status === "accepted" && (
+                    <div className="flex items-center justify-between py-2">
+                      <span className="text-sm text-foreground">קבלת התראות</span>
+                      <div dir="ltr">
+                        <Switch
+                          checked={coParent.receive_alerts}
+                          disabled={updatingAlerts}
+                          onCheckedChange={handleToggleAlerts}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRevoke}
+                    disabled={revoking}
+                    className="gap-2 text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10"
+                  >
+                    {revoking ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserMinus className="w-4 h-4" />}
+                    {coParent.status === "accepted" ? "הסר הורה שותף" : "בטל הזמנה"}
+                  </Button>
+                </div>
+              ) : showInviteForm ? (
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <label className="text-xs text-muted-foreground">אימייל ההורה השותף</label>
+                    <Input
+                      value={inviteEmail}
+                      onChange={(e) => setInviteEmail(e.target.value)}
+                      placeholder="email@example.com"
+                      type="email"
+                      dir="ltr"
+                      className="h-9 text-sm"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between py-1">
+                    <span className="text-sm text-foreground">קבלת התראות</span>
+                    <div dir="ltr">
+                      <Switch
+                        checked={inviteAlerts}
+                        onCheckedChange={setInviteAlerts}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={handleInvite} disabled={inviting || !inviteEmail.trim()} className="gap-2">
+                      {inviting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
+                      שלח הזמנה
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setShowInviteForm(false)} disabled={inviting}>
+                      ביטול
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <Button variant="outline" size="sm" onClick={() => setShowInviteForm(true)} className="gap-2">
+                  <UserPlus className="w-4 h-4" />
+                  הזמן הורה שותף
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Co-parent role badge */}
+        {!isOwner && (
+          <Card className="border-primary/20 bg-primary/5">
+            <CardContent className="p-4 flex items-center gap-3">
+              <ShieldCheck className="w-5 h-5 text-primary" />
+              <div>
+                <p className="text-sm font-medium text-foreground">הורה שותף</p>
+                <p className="text-xs text-muted-foreground">אתה מחובר כהורה שותף במשפחה הזו</p>
               </div>
             </CardContent>
           </Card>

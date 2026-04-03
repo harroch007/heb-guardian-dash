@@ -69,10 +69,10 @@ const HomeV2 = () => {
       const todayIsrael = getIsraelDate();
 
       // 1. Fetch children
+      // No parent_id filter — RLS (is_family_parent) handles access for both owner and co-parent
       const { data: children } = await supabase
         .from("children")
         .select("id, name, gender, subscription_tier")
-        .eq("parent_id", user.id)
         .order("created_at", { ascending: true });
 
       if (!children || children.length === 0) {

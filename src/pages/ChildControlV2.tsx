@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useChildControls } from "@/hooks/useChildControls";
+import { useFamilyRole } from "@/hooks/useFamilyRole";
 import { useRingCommand } from "@/hooks/useRingCommand";
 import type { RingPhase } from "@/hooks/useRingCommand";
 import { getDeviceStatus, getStatusColor, getStatusLabel, formatLastSeen } from "@/lib/deviceStatus";
@@ -112,6 +113,7 @@ export default function ChildControlV2() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { isOwner } = useFamilyRole();
 
   const [child, setChild] = useState<Child | null>(null);
   const [device, setDevice] = useState<Device | null>(null);
@@ -199,7 +201,8 @@ export default function ChildControlV2() {
     todayStart.setHours(0, 0, 0, 0);
 
     const [childRes, deviceRes, snapshotRes, settingsRes, bankRes, alertsRes, alertsTodayRes, timeReqRes, choresActiveRes, choresDoneRes] = await Promise.all([
-      supabase.from("children").select("id, name, date_of_birth, gender, subscription_tier, pairing_code").eq("id", childId).eq("parent_id", user.id).maybeSingle(),
+      // No parent_id filter — RLS (is_family_parent) handles access for both owner and co-parent
+      supabase.from("children").select("id, name, date_of_birth, gender, subscription_tier, pairing_code").eq("id", childId).maybeSingle(),
       supabase.from("devices").select("*").eq("child_id", childId).order("last_seen", { ascending: false }).limit(1).maybeSingle(),
       supabase.from("parent_home_snapshot").select("top_apps, total_usage_minutes").eq("child_id", childId).maybeSingle(),
       supabase.from("settings").select("daily_screen_time_limit_minutes").eq("child_id", childId).maybeSingle(),
@@ -466,19 +469,23 @@ export default function ChildControlV2() {
                   <RefreshCw className="w-4 h-4" />
                   חבר מחדש
                 </DropdownMenuItem>
-                {device && (
+                {device && isOwner && (
                   <DropdownMenuItem onClick={handleDisconnectDevice} disabled={disconnecting} className="gap-2">
                     <Unplug className="w-4 h-4" />
                     נתק מכשיר
                   </DropdownMenuItem>
                 )}
-                <DropdownMenuSeparator />
-                <AlertDialogTrigger asChild>
-                  <DropdownMenuItem className="gap-2 text-destructive focus:text-destructive focus:bg-destructive/10">
-                    <Trash2 className="w-4 h-4" />
-                    מחק ילד
-                  </DropdownMenuItem>
-                </AlertDialogTrigger>
+                {isOwner && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <AlertDialogTrigger asChild>
+                      <DropdownMenuItem className="gap-2 text-destructive focus:text-destructive focus:bg-destructive/10">
+                        <Trash2 className="w-4 h-4" />
+                        מחק ילד
+                      </DropdownMenuItem>
+                    </AlertDialogTrigger>
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
             <AlertDialogContent>

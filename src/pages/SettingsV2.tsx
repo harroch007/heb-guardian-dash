@@ -1,14 +1,16 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { User, Crown, Bell, BellRing, Send, Loader2, Users, Shield, FileText, MessageCircle, Bug, Lightbulb, LogOut, HelpCircle, ChevronLeft, Pencil, Check, X } from "lucide-react";
+import { User, Crown, Bell, BellRing, Send, Loader2, Users, Shield, FileText, MessageCircle, Bug, Lightbulb, LogOut, HelpCircle, ChevronLeft, Pencil, Check, X, ShieldCheck } from "lucide-react";
 import { BottomNavigationV2 } from "@/components/BottomNavigationV2";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFamilySubscription } from "@/hooks/useFamilySubscription";
+import { useFamilyRole } from "@/hooks/useFamilyRole";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
 const WHATSAPP_NUMBER = "972548383340";
@@ -17,6 +19,7 @@ const SettingsV2 = () => {
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
   const { children, allPremium, hasFreeChildren, childCount, isLoading: subLoading } = useFamilySubscription();
+  const { isOwner, role } = useFamilyRole();
   const { isSupported, isSubscribed, isLoading: pushLoading, permission, subscribe, unsubscribe } = usePushNotifications();
   const [parentName, setParentName] = useState<string | null>(null);
   const [parentPhone, setParentPhone] = useState<string | null>(null);
@@ -143,6 +146,12 @@ const SettingsV2 = () => {
               <div>
                 <h2 className="text-lg font-semibold text-foreground">חשבון</h2>
                 <p className="text-xs text-muted-foreground">פרטי החשבון שלך</p>
+                {!isOwner && (
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-primary/10 text-primary border-0 mt-0.5">
+                    <ShieldCheck className="w-3 h-3 ml-0.5" />
+                    הורה שותף
+                  </Badge>
+                )}
               </div>
             </div>
             {!isEditing && (
@@ -252,7 +261,7 @@ const SettingsV2 = () => {
                   <span className="font-medium text-foreground">{premiumCount} / {childCount}</span>
                 </div>
               )}
-              {hasFreeChildren && (
+              {isOwner && hasFreeChildren && (
                 <Button
                   onClick={() => navigate('/checkout')}
                   className="w-full mt-2 gap-2 bg-gradient-to-l from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white"
