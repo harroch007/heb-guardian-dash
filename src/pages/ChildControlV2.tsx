@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useChildControls } from "@/hooks/useChildControls";
+import { useFamilyRole } from "@/hooks/useFamilyRole";
 import { useRingCommand } from "@/hooks/useRingCommand";
 import type { RingPhase } from "@/hooks/useRingCommand";
 import { getDeviceStatus, getStatusColor, getStatusLabel, formatLastSeen } from "@/lib/deviceStatus";
