@@ -142,6 +142,23 @@ export function AddressAutocomplete({
           })}
         </div>
       )}
+
+      {noResults && !open && (
+        <div className="mt-1 text-xs text-muted-foreground space-y-1">
+          <p>לא נמצאו תוצאות</p>
+          {onFallback && (
+            <button type="button" className="text-primary underline text-[11px]" onClick={onFallback}>
+              📍 סמן על המפה
+            </button>
+          )}
+        </div>
+      )}
+
+      {!noResults && onFallback && query.length === 0 && (
+        <button type="button" className="text-[11px] text-muted-foreground underline mt-1" onClick={onFallback}>
+          לא מוצא את הכתובת? סמן על המפה
+        </button>
+      )}
     </div>
   );
 }

@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { MapPin, Home, School, Loader2, Trash2, Navigation } from "lucide-react";
 import { useChildPlaces, type ChildPlace } from "@/hooks/useChildPlaces";
 import { AddressAutocomplete } from "./AddressAutocomplete";
+import { MapPinPicker } from "./MapPinPicker";
 
 interface GeofenceSectionProps {
   childId: string;
