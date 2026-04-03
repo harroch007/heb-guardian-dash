@@ -3,11 +3,22 @@ import { Input } from "@/components/ui/input";
 import { Loader2, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+interface NominatimAddress {
+  road?: string;
+  house_number?: string;
+  city?: string;
+  town?: string;
+  village?: string;
+  suburb?: string;
+  neighbourhood?: string;
+}
+
 interface NominatimResult {
   place_id: number;
   display_name: string;
   lat: string;
   lon: string;
+  address?: NominatimAddress;
 }
 
 interface AddressAutocompleteProps {
