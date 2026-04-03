@@ -3,11 +3,22 @@ import { Input } from "@/components/ui/input";
 import { Loader2, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+interface NominatimAddress {
+  road?: string;
+  house_number?: string;
+  city?: string;
+  town?: string;
+  village?: string;
+  suburb?: string;
+  neighbourhood?: string;
+}
+
 interface NominatimResult {
   place_id: number;
   display_name: string;
   lat: string;
   lon: string;
+  address?: NominatimAddress;
 }
 
 interface AddressAutocompleteProps {
@@ -29,7 +40,7 @@ export function AddressAutocomplete({
   const containerRef = useRef<HTMLDivElement>(null);
 
   const search = useCallback(async (q: string) => {
-    if (q.trim().length < 2) {
+    if (q.trim().length < 3) {
       setResults([]);
       setOpen(false);
       return;
@@ -37,7 +48,7 @@ export function AddressAutocomplete({
     setLoading(true);
     try {
       const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&countrycodes=il&limit=5&accept-language=he`
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&countrycodes=il&limit=8&accept-language=he&addressdetails=1&dedupe=1`
       );
       const data: NominatimResult[] = await res.json();
       setResults(data);
@@ -50,6 +61,20 @@ export function AddressAutocomplete({
     }
   }, []);
 
+  const formatAddress = (r: NominatimResult): string => {
+    const a = r.address;
+    if (a) {
+      const city = a.city || a.town || a.village || "";
+      const parts: string[] = [];
+      if (a.road) {
+        parts.push(a.house_number ? `${a.road} ${a.house_number}` : a.road);
+      }
+      if (city) parts.push(city);
+      if (parts.length > 0) return parts.join(", ");
+    }
+    return r.display_name.split(",").slice(0, 3).join(",").trim();
+  };
+
   const handleChange = (value: string) => {
     setQuery(value);
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -57,7 +82,7 @@ export function AddressAutocomplete({
   };
 
   const handleSelect = (r: NominatimResult) => {
-    const shortName = r.display_name.split(",").slice(0, 3).join(",").trim();
+    const shortName = formatAddress(r);
     setQuery(shortName);
     setOpen(false);
     onSelect({
@@ -97,7 +122,7 @@ export function AddressAutocomplete({
       {open && results.length > 0 && (
         <div className="absolute z-50 mt-1 w-full rounded-md border border-border bg-popover shadow-md max-h-48 overflow-y-auto">
           {results.map((r) => {
-            const short = r.display_name.split(",").slice(0, 3).join(",").trim();
+            const short = formatAddress(r);
             return (
               <button
                 key={r.place_id}
