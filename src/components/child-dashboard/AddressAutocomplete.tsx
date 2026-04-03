@@ -61,6 +61,20 @@ export function AddressAutocomplete({
     }
   }, []);
 
+  const formatAddress = (r: NominatimResult): string => {
+    const a = r.address;
+    if (a) {
+      const city = a.city || a.town || a.village || "";
+      const parts: string[] = [];
+      if (a.road) {
+        parts.push(a.house_number ? `${a.road} ${a.house_number}` : a.road);
+      }
+      if (city) parts.push(city);
+      if (parts.length > 0) return parts.join(", ");
+    }
+    return r.display_name.split(",").slice(0, 3).join(",").trim();
+  };
+
   const handleChange = (value: string) => {
     setQuery(value);
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -68,7 +82,7 @@ export function AddressAutocomplete({
   };
 
   const handleSelect = (r: NominatimResult) => {
-    const shortName = r.display_name.split(",").slice(0, 3).join(",").trim();
+    const shortName = formatAddress(r);
     setQuery(shortName);
     setOpen(false);
     onSelect({
