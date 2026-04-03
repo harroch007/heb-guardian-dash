@@ -63,6 +63,7 @@ function PlaceCard({
 
   const handleStartEdit = () => {
     setSelected(null);
+    setShowMap(false);
     setEditing(true);
   };
 
