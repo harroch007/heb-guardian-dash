@@ -676,6 +676,13 @@ export default function ChildControlV2() {
               handleRetryRing={retryRing}
             />
 
+            <GeofenceSection
+              childId={childId!}
+              deviceLatitude={device?.latitude}
+              deviceLongitude={device?.longitude}
+              deviceAddress={device?.address}
+            />
+
             {/* ===== 10. TASKS & BONUS ===== */}
             <Card className="border-border shadow-sm bg-card">
               <CardContent className="p-4">
