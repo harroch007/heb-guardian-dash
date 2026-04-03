@@ -57,6 +57,7 @@ function PlaceCard({
     if (!selected) return;
     onSave(selected.latitude, selected.longitude, selected.address, place?.radius_meters ?? defaultRadius);
     setEditing(false);
+    setShowMap(false);
     setSelected(null);
   };
 
