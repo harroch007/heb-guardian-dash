@@ -23,6 +23,7 @@ interface NominatimResult {
 
 interface AddressAutocompleteProps {
   onSelect: (result: { latitude: number; longitude: number; address: string }) => void;
+  onFallback?: () => void;
   placeholder?: string;
   className?: string;
 }
