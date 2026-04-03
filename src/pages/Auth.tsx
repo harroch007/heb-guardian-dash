@@ -92,7 +92,13 @@ export default function Auth() {
         if (isAdmin && !isImpersonating) {
           navigate('/admin');
         } else {
-          navigate('/dashboard');
+          // Honor redirect param (used by accept-invite flow)
+          const redirectTo = searchParams.get('redirect');
+          if (redirectTo && redirectTo.startsWith('/')) {
+            navigate(redirectTo, { replace: true });
+          } else {
+            navigate('/dashboard');
+          }
         }
       }
     };
