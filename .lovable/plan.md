@@ -1,134 +1,147 @@
-## Enhanced Ring Device Status Feedback — V2 Screens
+## Co-Parent / Partner Role — Phase 1 Backend Foundation
 
-### Step 1 — Current Flow Mapping
+### 1. Current Model (Before Changes)
 
-**Ring button locations (V2 only):**
+**Core structure — single-parent ownership:**
 
-1. `ChildCardV2.tsx` (HomeV2) — simple insert, fire-and-forget, no polling
-2. `ChildControlV2.tsx` — insert + polling via `useCommandPolling`, status reflected in quick action button + `LocationSection`
-3. `FamilyV2.tsx` — simple insert, fire-and-forget, no polling
+- `parents` table: `id` (= `auth.uid()`), `full_name`, `phone`, `email`, `group_id`, `is_locked`
+- `children` table: `parent_id` column directly references the owning parent
+- No `family_members`, `memberships`, or `roles` table exists
+- No co-parent concept anywhere in the system
 
-**Current data path:**
+**Single-parent assumption locations:**
 
-- Parent clicks ring → inserts row into `device_commands` with `command_type: 'RING_DEVICE'`, `status: 'PENDING'`
-- Android agent picks it up → updates status to `ACKNOWLEDGED` → plays sound → updates to `COMPLETED`
-- `result` column exists (text, nullable) but is always NULL for ring commands today
-- Available statuses in production: `PENDING`, `ACKNOWLEDGED`, `COMPLETED`, `EXPIRED`
-- Do **not** introduce a new DB status unless you first prove it already exists in the current schema and is already supported safely end-to-end
 
-**Existing realtime in V2:**
+| Layer                    | Pattern                                                                          | Count     |
+| ------------------------ | -------------------------------------------------------------------------------- | --------- |
+| RLS policies             | `children.parent_id = auth.uid()`                                                | 24 tables |
+| RPCs                     | `delete_child_data` checks `parent_id != auth.uid()`                             | 1         |
+| RPCs                     | `generate_new_pairing_code` — relies on current ownership path / RLS assumptions | 1         |
+| RPC                      | `approve_chore` checks `parent_id = auth.uid()`                                  | 1         |
+| `children` INSERT        | `parent_id = auth.uid()`                                                         | 1         |
+| `children` DELETE        | `parent_id = auth.uid()`                                                         | 1         |
+| `device_commands` INSERT | joins `children.parent_id = auth.uid()`                                          | 1         |
+| `settings` ALL           | `parent_id = auth.uid()` or child_id match                                       | 1         |
 
-- `ChildControlV2` has a realtime subscription on `devices` table for the child's device
-- `ChildControlV2` uses polling (5s interval, 2min timeout) on `device_commands` for command status
-- `ChildCardV2` and `FamilyV2` have no command polling — just fire-and-forget
 
-**What's missing today:**
+**Key insight:** Every data access gate goes through ownership of the child, but not every table keys the same way. A co-parent needs to pass this gate without changing `children.parent_id` (which must remain the owner).
 
-- No distinction between "device received command" (ACKNOWLEDGED), "ringing now", "child stopped it", or "ring timed out naturally"
-- The `result` field is never populated by the Android agent for ring commands
-- `ChildCardV2` (HomeV2) shows no progress feedback after sending
+### 2. Design — Smallest Additive Model
 
-### Step 2 — Approach (Path A — extend existing)
+**Strategy:** Create a `family_members` table that maps additional parents to the owner's family. Then create a small set of `SECURITY DEFINER` functions so RLS can answer the right question based on the table’s real key path. Use a child-based helper for tables keyed by `child_id`, a device-based helper for tables keyed by `device_id`, and keep owner-only checks for destructive family-structure actions.
 
-Use the existing `device_commands.result` text field to carry richer ring outcome. No schema changes needed — `result` is already a nullable text column.
+**New tables:**
 
-**Convention for the** `result` **field on RING_DEVICE commands:**
-
-- `null` — no detail (backward compatible)
-- `"RING_STARTED"` — device began playing sound (set alongside `ACKNOWLEDGED` if Android can safely do it)
-- `"CHILD_STOPPED"` — child manually stopped the ring
-- `"RING_TIMEOUT"` — ring played for the full device-defined duration and stopped naturally
-- `"RING_FAILED"` — device could not play sound or the ring flow failed after pickup
-
-The Android agent already updates `status` to `COMPLETED` — it just needs to also set `result` to one of the above. This is an additive contract extension; old agents that don't set `result` still work fine (`result` stays `null`, dashboard falls back to current behavior).
-
-No new tables, no new columns, no new realtime channels.  
-Do **not** hardcode ring duration in the dashboard logic. The dashboard must react only to the existing command row `status` + `result`, while Android remains the source of truth for whether the ring ended because of child stop, timeout, or failure.
-
-### Step 3 — Dashboard Changes (V2 only)
-
-**3a.** `ChildControlV2.tsx` **— Enhanced polling interpretation**
-
-The existing `useCommandPolling` already reads `status`. Extend it to also read `result` from the same query. Map to richer UI states.
-
-Hard requirements:
-
-- Poll and interpret only the exact inserted `command_id` for the current ring action
-- Do **not** infer state from “latest command for this child” once a specific `command_id` exists
-- Do **not** widen this logic to non-ring commands
-- Keep the current polling pattern narrow and additive
-
-```
-type RingPhase = "idle" | "sending" | "ringing" | "child_stopped" | "timeout" | "failed" | "completed_legacy";
+```text
+family_members
+├── id (uuid, PK)
+├── owner_id (uuid, NOT NULL, FK → parents.id)         -- the primary parent
+├── member_id (uuid, NULL, FK → parents.id)            -- NULL while invite is pending
+├── role (text, NOT NULL, default 'co_parent')         -- 'co_parent' only for now
+├── receive_alerts (boolean, NOT NULL, default false)  -- owner-controlled, set explicitly on invite
+├── status (text, NOT NULL, default 'pending')         -- pending/accepted/revoked
+├── invited_email (text, NOT NULL)                     -- normalized/lowercased email for matching on signup
+├── invited_at (timestamptz, default now())
+├── accepted_at (timestamptz)
+├── revoked_at (timestamptz)
+├── CHECK (role = 'co_parent')
+├── CHECK (status IN ('pending', 'accepted', 'revoked'))
+├── CHECK (owner_id IS DISTINCT FROM member_id)
+├── UNIQUE(owner_id, invited_email)
 
 ```
 
-State mapping:
+**No** `family_invitations` **table** — the membership row itself carries the invitation lifecycle (pending → accepted → revoked). This avoids a second table.
+
+**New functions (all** `SECURITY DEFINER`**):**
+
+1. `is_family_parent(p_child_id uuid) → boolean` — returns true if caller is the child's `parent_id` OR has an accepted `co_parent` membership where `owner_id = child.parent_id`. This is the core gate replacement for tables keyed by `child_id`.
+2. `is_family_parent_for_device(p_device_id uuid) → boolean` — returns true if caller is the owner/co-parent of the child that owns the device. This is used for tables/RPCs keyed by `device_id`.
+3. `is_child_owner(p_child_id uuid) → boolean` — returns true only if caller is the child's `parent_id`. Used for destructive actions (delete child, add child).
+4. `get_family_owner_id() → uuid` — given `auth.uid()`, returns either `auth.uid()` (if they are an owner) or the `owner_id` from their accepted membership. Use only where an existing query truly needs the owner's `parent_id`.
+
+**RLS update strategy:**
+
+For all 24 tables with `children.parent_id = auth.uid()` pattern:
+
+- **READ (SELECT)**: Replace with the matching family helper for the table’s real key path — co-parent can see everything
+- **WRITE (INSERT/UPDATE on operational tables)**: Replace with the matching family helper — co-parent can manage apps, schedules, etc.
+- **DESTRUCTIVE (DELETE children, INSERT children)**: Keep using `is_child_owner(child_id)` or `parent_id = auth.uid()` — owner only
+
+Specific table-level decisions:
 
 
-| DB status           | DB result            | UI phase         |
-| ------------------- | -------------------- | ---------------- |
-| PENDING             | *                    | sending          |
-| ACKNOWLEDGED        | null or RING_STARTED | ringing          |
-| COMPLETED           | CHILD_STOPPED        | child_stopped    |
-| COMPLETED           | RING_TIMEOUT         | timeout          |
-| COMPLETED           | RING_FAILED          | failed           |
-| COMPLETED           | null                 | completed_legacy |
-| EXPIRED             | *                    | failed           |
-| poll timeout (2min) | —                    | failed           |
+| Table                      | SELECT                        | INSERT                                | UPDATE                                         | DELETE             |
+| -------------------------- | ----------------------------- | ------------------------------------- | ---------------------------------------------- | ------------------ |
+| `children`                 | `is_family_parent`            | owner only (`parent_id = auth.uid()`) | `is_family_parent` (non-ownership fields only) | owner only         |
+| `alerts`                   | `is_family_parent`            | N/A (device inserts)                  | `is_family_parent`                             | owner only         |
+| `app_policies`             | `is_family_parent`            | `is_family_parent`                    | `is_family_parent`                             | `is_family_parent` |
+| `schedule_windows`         | `is_family_parent`            | `is_family_parent`                    | `is_family_parent`                             | `is_family_parent` |
+| `bonus_time_grants`        | `is_family_parent`            | `is_family_parent`                    | N/A                                            | N/A                |
+| `device_commands`          | `is_family_parent_for_device` | `is_family_parent_for_device`         | N/A                                            | N/A                |
+| `chores`                   | `is_family_parent`            | `is_family_parent`                    | `is_family_parent`                             | `is_family_parent` |
+| All other read-only tables | matching family helper        | unchanged                             | unchanged                                      | unchanged          |
 
 
-Quick action button label changes:
+**RPC updates:**
 
-- idle: "צלצל"
-- sending: "שולח..." (spinner)
-- ringing: "מצלצל..." (animated speaker icon)
-- child_stopped: "הילד עצר ✓" (green, auto-reset 5s)
-- timeout: "הצלצול הסתיים ✓" (green, auto-reset 5s)
-- completed_legacy: "הצלצול הושלם ✓" (green, auto-reset 5s)
-- failed: "נכשל" (red, clickable to retry)
+- `delete_child_data`: Keep `parent_id != auth.uid()` check (owner only) — no change needed
+- `approve_chore`: Change to use `is_family_parent` — co-parent should approve chores
+- `generate_new_pairing_code`: Add explicit family-parent authorization using the correct child/device helper — reconnecting an existing child/device is an operational action and should be allowed for co-parent
 
-Toast messages updated accordingly, but keep them minimal and do not create duplicate toast spam for the same terminal state.
+### 3. Invitation Lifecycle
 
-**3b.** `LocationSection.tsx` **— Same ring status enhancement**
+```text
+Owner invites by email → row created with status='pending', member_id=NULL
+  ↓
+Invited adult signs up / logs in → matches invited_email
+  ↓
+Calls accept_family_invite(invite_id) → status='accepted', member_id=auth.uid(), accepted_at=now()
+  ↓
+Owner can revoke → status='revoked', revoked_at=now()
 
-Already receives `ringStatus` as prop. Extend the prop type to include the new phases. Update `getRingButtonContent()` with the richer labels.
+```
 
-**3c.** `ChildCardV2.tsx` **(HomeV2) — Add lightweight polling**
+**New RPCs:**
 
-Currently fire-and-forget. Add:
+- `invite_co_parent(p_email text, p_receive_alerts boolean)` — owner creates pending membership
+- `accept_family_invite(p_invite_id uuid)` — invited user accepts (matches email)
+- `revoke_co_parent(p_member_id uuid)` — owner revokes
 
-- Track the inserted `command_id`
-- Poll every 5s for up to 2min (same pattern as `ChildControlV2`)
-- Show inline status on the ring `ActionBtn`: spinner → ringing → result
-- Use a small text label or icon swap (no modal, no new UI element)
-- Poll only the exact command row that was just inserted
-- Avoid stale state if the component rerenders or multiple child cards exist on screen
+### 4. Alert Toggle
 
-**3d.** `FamilyV2.tsx` **— Add lightweight polling**
+Stored in `family_members.receive_alerts` (boolean). Owner controls it explicitly at invite time and later via owner-only update. The push notification edge function and alert delivery pipeline will check this flag in phase 2.
 
-Same as `ChildCardV2`:
+### 5. Backward Compatibility
 
-- Track the inserted `command_id`
-- Poll every 5s for up to 2min
-- Show inline feedback on the ring button
-- Poll only that exact command row
-- Keep the UI lightweight and additive
+- `is_family_parent()` first checks `children.parent_id = auth.uid()` — if true, returns immediately. Only queries `family_members` as fallback. Existing single-parent accounts never hit the membership table.
+- `is_family_parent_for_device()` resolves through the existing owner path first, then falls back to membership only if needed.
+- No columns added to `children` or `parents`.
+- No existing rows modified.
+- All existing RLS policies are replaced (not stacked), maintaining identical behavior for owner-only accounts.
 
-### Files changed
+### 6. Migration Scope
 
-1. `src/pages/ChildControlV2.tsx` — extend polling to read `result`, richer ring UI states
-2. `src/components/child-dashboard/LocationSection.tsx` — update ring button labels for new phases
-3. `src/components/home-v2/ChildCardV2.tsx` — add command polling for ring feedback
-4. `src/pages/FamilyV2.tsx` — add command polling for ring feedback
-5. Optional only if truly needed: one tiny V2-local helper/hook for ring status interpretation; do **not** refactor broader command architecture
+**One migration file containing:**
 
-### What this does NOT change
+1. Create `family_members` table with RLS
+2. Create `is_family_parent()`, `is_family_parent_for_device()`, `is_child_owner()`, `get_family_owner_id()` security definer functions
+3. Drop and recreate affected RLS policies on all 24 tables using the correct helper for each table’s real key path
+4. Create `invite_co_parent()`, `accept_family_invite()`, `revoke_co_parent()` RPCs
+5. Update `approve_chore` RPC to use `is_family_parent`
+6. Update `generate_new_pairing_code` authorization to use family-parent access
 
-- Live app screens (`ChildDashboard.tsx`, etc.) — untouched
-- No new Supabase tables or columns
-- No new realtime subscriptions (uses existing polling pattern)
-- No new navigation or modals
-- No schema migration
-- No new command transport
-- Android agent contract is additive only — old agents still work
+**No Lovable UI changes in this phase** — the backend can be validated via `supabase--curl_edge_functions` or direct RPC calls.
+
+### 7. Files Changed
+
+- `supabase/migrations/[timestamp]_co_parent_foundation.sql` — single migration with all schema + RLS + RPC changes
+
+### 8. What Remains for Phase 2
+
+- UI for owner to invite/manage co-parent (SettingsV2 or FamilyV2)
+- UI for co-parent to accept invite (Auth flow or dedicated page)
+- Push notification delivery filtering by `receive_alerts`
+- Co-parent sees correct role indicator in dashboard
+- Hide add/remove child buttons for co-parent in UI
+- AuthContext awareness of co-parent role
