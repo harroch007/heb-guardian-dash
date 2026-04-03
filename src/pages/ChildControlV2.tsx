@@ -199,7 +199,8 @@ export default function ChildControlV2() {
     todayStart.setHours(0, 0, 0, 0);
 
     const [childRes, deviceRes, snapshotRes, settingsRes, bankRes, alertsRes, alertsTodayRes, timeReqRes, choresActiveRes, choresDoneRes] = await Promise.all([
-      supabase.from("children").select("id, name, date_of_birth, gender, subscription_tier, pairing_code").eq("id", childId).eq("parent_id", user.id).maybeSingle(),
+      // No parent_id filter — RLS (is_family_parent) handles access for both owner and co-parent
+      supabase.from("children").select("id, name, date_of_birth, gender, subscription_tier, pairing_code").eq("id", childId).maybeSingle(),
       supabase.from("devices").select("*").eq("child_id", childId).order("last_seen", { ascending: false }).limit(1).maybeSingle(),
       supabase.from("parent_home_snapshot").select("top_apps, total_usage_minutes").eq("child_id", childId).maybeSingle(),
       supabase.from("settings").select("daily_screen_time_limit_minutes").eq("child_id", childId).maybeSingle(),
