@@ -30,6 +30,7 @@ interface AddressAutocompleteProps {
 
 export function AddressAutocomplete({
   onSelect,
+  onFallback,
   placeholder = "הכנס כתובת: רחוב, מספר, עיר",
   className,
 }: AddressAutocompleteProps) {
