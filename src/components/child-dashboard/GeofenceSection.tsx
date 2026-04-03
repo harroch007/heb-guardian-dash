@@ -40,6 +40,7 @@ function PlaceCard({
   onDelete: () => void;
 }) {
   const [editing, setEditing] = useState(false);
+  const [showMap, setShowMap] = useState(false);
   const [selected, setSelected] = useState<{ latitude: number; longitude: number; address: string } | null>(null);
   const defaultRadius = type === "HOME" ? 150 : 250;
   const icon = type === "HOME" ? <Home className="w-4 h-4" /> : <School className="w-4 h-4" />;
