@@ -2978,47 +2978,28 @@ export type Database = {
         }
         Returns: Json
       }
-      create_alert:
-        | {
-            Args: {
-              p_author_type?: string
-              p_chat_name?: string
-              p_chat_type?: string
-              p_client_event_id?: string
-              p_contact_hash?: string
-              p_device_id: string
-              p_message: string
-              p_message_count?: number
-              p_pii_redacted_count?: number
-              p_platform?: string
-              p_risk_level: number
-              p_sender_display?: string
-              p_source: string
-            }
-            Returns: number
-          }
-        | {
-            Args: {
-              p_ai_verdict?: string
-              p_author_type?: string
-              p_category?: string
-              p_chat_name?: string
-              p_chat_type?: string
-              p_client_event_id?: string
-              p_contact_hash?: string
-              p_device_id: string
-              p_is_processed?: boolean
-              p_message: string
-              p_message_count?: number
-              p_parent_message?: string
-              p_pii_redacted_count?: number
-              p_platform?: string
-              p_risk_level: number
-              p_sender_display?: string
-              p_source: string
-            }
-            Returns: number
-          }
+      create_alert: {
+        Args: {
+          p_ai_verdict?: string
+          p_author_type?: string
+          p_category?: string
+          p_chat_name?: string
+          p_chat_type?: string
+          p_client_event_id?: string
+          p_contact_hash?: string
+          p_device_id: string
+          p_is_processed?: boolean
+          p_message: string
+          p_message_count?: number
+          p_parent_message?: string
+          p_pii_redacted_count?: number
+          p_platform?: string
+          p_risk_level: number
+          p_sender_display?: string
+          p_source: string
+        }
+        Returns: number
+      }
       create_app_alert: {
         Args: {
           p_app_name?: string
