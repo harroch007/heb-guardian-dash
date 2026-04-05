@@ -1,31 +1,51 @@
-## Geofence Phase 3: Manual Places — COMPLETED
+## Push Notification for Time Extension Requests
 
-### What was done
-1. **Migration**: Extended `child_places` with `alert_on_enter`, `alert_on_exit`, `schedule_mode`, `days_of_week`, `start_time`, `end_time`. Added `MANUAL` to `place_type` CHECK. Fixed unique index to only constrain HOME/SCHOOL. Added validation trigger.
-2. **RPC**: `get_device_settings` now filters `geofence_places` to HOME/SCHOOL only and adds `manual_geofence_places` as a separate key.
-3. **Hook**: `useChildPlaces` extended with `manualPlaces`, `upsertManualPlace`, `deactivateManualPlace`.
-4. **UI**: "מקומות נוספים" subsection in `GeofenceSection` with list + add/edit/deactivate + scheduling.
+### Current Flow (No Changes)
 
-### What remains
-- Android detection of manual geofences (next Android phase)
-- Push notification delivery for manual place enter/exit events
+- Android calls `request_extra_time(p_child_id, p_reason)` RPC
+- RPC inserts into `time_extension_requests` with `status = 'pending'`
+- Parent sees requests via `TimeRequestsCard` polling — **no push today**
 
----
+### Implementation
 
-## Co-Parent Push Delivery — COMPLETED
+**One migration file** — add a trigger on `time_extension_requests` INSERT that sends push via the same `net.http_post` → `send-push-notification` pattern already used in `on_heartbeat_insert`.
 
-### What was done
-1. **SQL helper**: `get_alert_recipients(p_child_id uuid)` — returns owner UNION accepted co-parents with `receive_alerts = true`. Uses `SECURITY DEFINER`, `STABLE`, deduped via `UNION`.
-2. **on_heartbeat_insert trigger**: Updated to loop over `get_alert_recipients()` and call `send-push-notification` for each recipient.
-3. **analyze-alert edge function**: Replaced single `childData.parent_id` push with `rpc('get_alert_recipients')` → loop per recipient.
-4. **generate-periodic-summary edge function**: Same pattern — resolve recipients via RPC, loop push per recipient.
-5. **send-push-notification**: UNCHANGED. Still accepts one `parent_id` and sends to all their subscriptions.
+#### Trigger: `on_time_request_insert()`
 
-### Backward compatibility
-- No co-parent → `get_alert_recipients` returns only owner → identical to previous behavior
-- Co-parent with `receive_alerts = false` → excluded from results
-- `UNION` guarantees dedup if owner somehow appears in both queries
+```
+1. Only fires on INSERT (not UPDATE) → no duplicate push on approve/reject
+2. Only fires when NEW.status = 'pending' (safety check)
+3. Resolves child name: SELECT name FROM children WHERE id = NEW.child_id
+4. Resolves recipients: FOR v_recipient_id IN SELECT get_alert_recipients(NEW.child_id)
+5. Calls net.http_post to send-push-notification for each recipient
+6. Payload:
+   - title: "בקשת זמן חדשה"
+   - body: "[child_name] ביקש/ה עוד זמן למסך" (with safe fallback if child name is null/empty)
+   - url: "/child-v2/" || NEW.child_id
+```
 
-### What remains
-- Co-parent push for new notification categories (time requests, app installs, etc.) — out of scope
-- Android child-side local notifications — separate system, untouched
+Exact same pattern as the heartbeat trigger (lines 110-132 of the co-parent migration).
+
+### Files Changed
+
+
+| File              | Change                                                                             |
+| ----------------- | ---------------------------------------------------------------------------------- |
+| New migration SQL | `on_time_request_insert()` trigger function + trigger on `time_extension_requests` |
+
+
+No edge function changes. No UI changes. No schema changes.
+
+### Backward Compatibility
+
+-   
+No co-parent → `get_alert_recipients` returns owner only → same as before  
+
+-   
+Co-parent with `receive_alerts = false` → excluded  
+
+-   
+Approve/reject updates → trigger only fires on INSERT, not UPDATE  
+
+-   
+Existing polling/realtime UI → untouched  
