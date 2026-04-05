@@ -1110,7 +1110,7 @@ async function processAlert(
           };
         }
 
-        // ── Send push notification ──
+        // ── Send push notification to all alert recipients ──
         const { data: childData } = await supabase
           .from('children')
           .select('parent_id, name')
@@ -1118,7 +1118,13 @@ async function processAlert(
           .single();
 
         if (childData?.parent_id) {
-          console.log(`Sending push notification to parent ${childData.parent_id}`);
+          // Resolve all recipients: owner + co-parents with receive_alerts=true
+          const { data: recipients } = await supabase.rpc('get_alert_recipients', {
+            p_child_id: alertData.child_id,
+          });
+
+          const recipientIds: string[] = recipients?.map((r: { get_alert_recipients: string }) => r.get_alert_recipients) || [childData.parent_id];
+          console.log(`Sending push notification to ${recipientIds.length} recipient(s) for alert ${alertId}`);
 
           const { error: notifyErr } = await supabase
             .from('alerts')
@@ -1126,27 +1132,32 @@ async function processAlert(
             .eq('id', alertId);
           if (notifyErr) console.error(`Failed to update notified status for alert ${alertId}:`, notifyErr);
 
-          const pushResponse = await fetch(
-            `${supabaseUrl}/functions/v1/send-push-notification`,
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${supabaseServiceKey}`,
-              },
-              body: JSON.stringify({
-                parent_id: childData.parent_id,
-                title: updateData.ai_title || 'התראה חדשה מ-Kippy',
-                body: updateData.ai_summary || 'נמצא תוכן שדורש את תשומת לבך',
-                url: '/alerts',
-                alert_id: alertId,
-                child_name: childData.name,
-              }),
+          for (const recipientId of recipientIds) {
+            try {
+              const pushResponse = await fetch(
+                `${supabaseUrl}/functions/v1/send-push-notification`,
+                {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${supabaseServiceKey}`,
+                  },
+                  body: JSON.stringify({
+                    parent_id: recipientId,
+                    title: updateData.ai_title || 'התראה חדשה מ-Kippy',
+                    body: updateData.ai_summary || 'נמצא תוכן שדורש את תשומת לבך',
+                    url: '/alerts',
+                    alert_id: alertId,
+                    child_name: childData.name,
+                  }),
+                }
+              );
+              const pushResult = await pushResponse.json();
+              console.log(`Push result for recipient ${recipientId}:`, pushResult);
+            } catch (recipientPushErr) {
+              console.error(`Push failed for recipient ${recipientId}:`, recipientPushErr);
             }
-          );
-
-          const pushResult = await pushResponse.json();
-          console.log('Push notification result:', pushResult);
+          }
         }
       }
     } catch (pushError) {

@@ -3010,6 +3010,7 @@ export type Database = {
       generate_new_pairing_code: { Args: { p_child_id: string }; Returns: Json }
       generate_pairing_code: { Args: { p_child_id: string }; Returns: string }
       get_active_ai_config: { Args: never; Returns: Json }
+      get_alert_recipients: { Args: { p_child_id: string }; Returns: string[] }
       get_child_daily_metrics: {
         Args: { p_child_id: string; p_date: string }
         Returns: {
