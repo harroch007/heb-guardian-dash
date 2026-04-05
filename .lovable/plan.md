@@ -1,89 +1,213 @@
-Narrow Correction: Wire Geofence Push to alerts Table
+As CTO who built and knows the whole system, I am giving you one narrow task only.
 
-Problem
+Task:
 
-The current trigger (`trg_geofence_event_push` on `device_events`) is connected to a table that Android never writes to for geofence alerts. The approved Android geofence implementation reports through the existing alert path — the `alerts` table — the same table used by permission alerts, AI alerts, and all other alert types.
+Resolve the geofence parent-push contract at the backend, definitively and with proof.
 
-Current Evidence
+This is Supabase / backend only.
 
-- `device_events` table: 0 rows, no geofence data, never used by Android for the current geofence flow
-- `alerts` table: the universal landing table for alert creation
-- Android geofence implementation already uses the existing alert-reporting path, not a new `device_events` path
-- Every INSERT into `alerts` triggers `trigger_analyze_alert()` → `analyze-alert` edge function
-- `analyze-alert` skips rows where `is_processed = true` (line 625)
+Do not touch Android.
 
-Implementation
+Do not touch Lovable UI.
 
-One migration file that does two things:
+Do not redesign alerts.
 
-1. Drop the wrong trigger and function on `device_events`:
+Do not redesign push architecture.
 
-- `DROP TRIGGER trg_geofence_event_push ON device_events`
-- `DROP FUNCTION on_geofence_event_insert()`
+Do not widen scope beyond the exact `create_alert` contract needed for geofence alerts.
 
-2. Create a new AFTER INSERT trigger on `alerts` that fires only for real geofence alerts already produced by the current Android flow:
+Goal:
 
-Trigger: `trg_geofence_alert_push`  
-Table: `alerts`  
-Timing: `AFTER INSERT`  
-Function: `on_geofence_alert_insert()`
+We already have:
 
-Trigger Function Logic
+- Android geofence reporting routed through `create_alert`
 
-`on_geofence_alert_insert()`:
+- a deployed geofence parent-push trigger on `alerts`
 
-- First verify the real current geofence row shape already produced in `alerts` by the Android implementation, and use that exact row signature as the trigger guard
-- Do **not** assume a hypothetical insert contract like `category = 'geofence'` unless that is already what Android writes today
-- Use the narrowest real condition that matches existing geofence alert rows in `alerts` and excludes all other alert categories
-- `IF NEW.child_id IS NULL THEN RETURN NEW`
-- Get child name  
-`SELECT name FROM children WHERE id = NEW.child_id`
-- Build push content  
-title: `'התראת מיקום'`  
-body: built from the real existing human-readable geofence message already written by Android into the alert row (`NEW.parent_message` if present, otherwise the best existing geofence text field already populated today),  
-fallback: `child_name || ' - זוהתה חריגה מאזור מוגדר'`  
-or generic: `'זוהתה חריגה מאזור מוגדר'`
-- Send push to all recipients  
-`FOR recipient IN SELECT get_alert_recipients(NEW.child_id)`  
-`net.http_post` → `send-push-notification`  
-`parent_id, title, body, url='/alerts', alert_id=NEW.id, child_name`
+- existing parent push delivery through `send-push-notification`
 
-Why This Is Safe
+- existing recipient resolution through `get_alert_recipients(child_id)`
 
-- No duplicate push from AI pipeline: use the real current geofence alert row signature already produced by Android, and ensure the trigger fires only for that exact signature
-- If current geofence alerts are already inserted with `is_processed = true`, `analyze-alert` will continue to skip them at line 625
-- INSERT-only trigger: no re-fire on updates
-- Narrow row-signature filter: only real geofence alerts trigger push — all other alert types continue through their existing paths unchanged
-- One source of truth: push fires from the `alerts` INSERT trigger only, not from `analyze-alert`
+The only thing that matters now is:
 
-Android Contract (No Android Changes Needed)
+when Android calls `create_alert` for a geofence alert, does the resulting row in `alerts` actually match the deployed geofence push trigger contract?
 
-Android already uses the existing alert path for geofence reporting.  
-This fix must attach parent push to the exact alert row shape Android already writes today.
+This task must end in one of only two valid outcomes:
 
-Do **not** require Android to switch tables, add a new RPC, or change reporting path.  
-Do **not** assume a new direct INSERT contract if the current Android code already uses the existing alert creation helper/path.
+1. `create_alert` already supports the required geofence fields exactly → prove it with exact evidence, no code changes
 
-Backward Compatibility
+2. `create_alert` does NOT support them exactly → make the smallest safe backend fix so it does, then prove it
 
-- All existing push categories unchanged (AI, permission, periodic, time request, app alert)
-- `analyze-alert` pipeline unaffected
-- Existing `on_alert_created` trigger (`trigger_analyze_alert`) continues to fire for all inserts — geofence rows continue through the current pipeline exactly as today, with the new push attached only to the real geofence rows
-- No schema changes, no new tables, no new columns
-- `get_alert_recipients` reused — owner + co-parents with `receive_alerts = true`
+No other outcome is acceptable.
 
-Files Changed
+Critical scope rule:
 
+Do not redesign the system.
 
-| File              | Change                                                                                                                                         |
-| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| New migration SQL | Drop `device_events` trigger+function, create `alerts` trigger+function for geofence push using the real existing geofence alert row signature |
+Do not add a new alert path.
 
+Do not tell me what Android “should” send in theory.
 
-Push Payload
+Do not rely on assumptions.
 
-- Title: `התראת מיקום`
-- Body: uses the real existing human-readable geofence message already stored in the alert row by Android (prefer `NEW.parent_message` if present; otherwise the real existing geofence text field already populated today), fallback to `child_name || ' - זוהתה חריגה מאזור מוגדר'`, else `זוהתה חריגה מאזור מוגדר`
-- URL: `/alerts`
-- `alert_id`: `NEW.id`
-- `child_name`: from `children` table
+Do not return architecture ideas.
+
+Return hard proof and, only if needed, the smallest backend fix.
+
+Required geofence alert row contract:
+
+The final inserted row in `alerts` must be able to contain:
+
+- `category = 'geofence'`
+
+- `sender = 'SYSTEM'`
+
+- `platform = 'SYSTEM'`
+
+- `is_processed = true`
+
+- `ai_verdict = 'notify'`
+
+- `parent_message` = populated parent-facing Hebrew message
+
+- `child_id` resolved correctly
+
+- `device_id` resolved/persisted correctly if the current path supports it
+
+And this must be achieved through the existing `create_alert` RPC path.
+
+What you must do:
+
+1. Inspect the real current `create_alert` function
+
+I need exact proof of the current live backend contract.
+
+Show exactly:
+
+- the current function signature of `create_alert`
+
+- whether it already accepts each of these parameters:
+
+  - `p_category`
+
+  - `p_sender`
+
+  - `p_platform`
+
+  - `p_is_processed`
+
+  - `p_ai_verdict`
+
+  - `p_parent_message`
+
+  - `p_device_id`
+
+- whether `child_id` is resolved from `p_device_id` internally, and exactly how
+
+2. Inspect the real INSERT logic inside `create_alert`
+
+I need exact proof of what row is written into `alerts`.
+
+Show exactly:
+
+- which incoming params map to which `alerts` columns
+
+- whether any defaults override incoming values
+
+- whether any fields are ignored
+
+- whether `create_alert` currently forces its own values for:
+
+  - `category`
+
+  - `sender`
+
+  - `platform`
+
+  - `is_processed`
+
+  - `ai_verdict`
+
+  - `parent_message`
+
+3. Decide based on proof, not assumption
+
+If the current function already supports the geofence contract exactly:
+
+- do not change code
+
+- return proof only
+
+If the current function does NOT support the geofence contract exactly:
+
+- make the smallest safe backend fix only
+
+- extend `create_alert` narrowly so the Android geofence call can produce the required row shape
+
+- do not change unrelated alert categories
+
+- do not redesign any other part of the system
+
+4. Preserve backward compatibility
+
+Any fix must not break:
+
+- existing AI/chat alert creation
+
+- existing parent push categories
+
+- existing non-geofence `create_alert` callers
+
+- existing alert processing logic
+
+5. Exact proof required at the end
+
+Return exact execution proof only.
+
+I need:
+
+1. Exact files / migrations / functions changed
+
+2. Exact `create_alert` signature before
+
+3. Exact `create_alert` signature after (or say unchanged if no change was needed)
+
+4. Exact INSERT mapping into `alerts`
+
+5. Exact proof whether geofence rows created through `create_alert` now match all of:
+
+   - `category = 'geofence'`
+
+   - `sender = 'SYSTEM'`
+
+   - `platform = 'SYSTEM'`
+
+   - `is_processed = true`
+
+   - `ai_verdict = 'notify'`
+
+   - `parent_message` populated
+
+6. Exact proof of how `child_id` is resolved
+
+7. Exact backward compatibility proof for existing alert categories
+
+8. Migration / deploy status
+
+9. Explicit report:
+
+   - did it pass on the first try
+
+   - if not, what failed first
+
+   - exactly what you fixed
+
+Return format:
+
+Do not summarize.
+
+Do not give recommendations.
+
+Do not give future steps.
+
+Return exact technical proof only.
