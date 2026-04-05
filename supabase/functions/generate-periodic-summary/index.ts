@@ -304,23 +304,35 @@ OUTPUT FORMAT (JSON only):
     return { success: false, reason: 'db_error' };
   }
 
-  // Push notification
+  // Push notification to all alert recipients (owner + co-parents)
   if (trigger === 'cron' && childData.parent_id) {
     try {
+      const { data: recipients } = await serviceClient.rpc('get_alert_recipients', {
+        p_child_id: child_id,
+      });
+
+      const recipientIds: string[] = recipients?.map((r: { get_alert_recipients: string }) => r.get_alert_recipients) || [childData.parent_id];
+
       const notifTitle = period_type === 'weekly'
         ? `הסיכום השבועי של ${childData.name} מוכן`
         : `הסיכום החודשי של ${childData.name} מוכן`;
 
-      await serviceClient.functions.invoke('send-push-notification', {
-        body: {
-          parent_id: childData.parent_id,
-          title: notifTitle,
-          body: parsed.headline,
-          url: `/summary/${child_id}/${period_type}`,
-          child_name: childData.name,
-        },
-      });
-      console.log(`Push sent for ${period_type} summary of ${childData.name}`);
+      for (const recipientId of recipientIds) {
+        try {
+          await serviceClient.functions.invoke('send-push-notification', {
+            body: {
+              parent_id: recipientId,
+              title: notifTitle,
+              body: parsed.headline,
+              url: `/summary/${child_id}/${period_type}`,
+              child_name: childData.name,
+            },
+          });
+          console.log(`Push sent for ${period_type} summary of ${childData.name} to ${recipientId}`);
+        } catch (recipientPushErr) {
+          console.error(`Push failed for recipient ${recipientId}:`, recipientPushErr);
+        }
+      }
     } catch (pushErr) {
       console.error('Push notification failed:', pushErr);
     }
