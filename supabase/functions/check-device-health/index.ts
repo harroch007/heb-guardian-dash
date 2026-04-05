@@ -1,11 +1,13 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+const SUPABASE_URL = 'https://fsedenvbdpctzoznppwo.supabase.co';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const SUPABASE_URL = 'https://fsedenvbdpctzoznppwo.supabase.co';
+
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
 // Thresholds in minutes
@@ -145,6 +147,44 @@ Deno.serve(async (req) => {
       } else {
         alertsCreated++;
         console.log(`[check-device-health] Created alert for ${childData.name}`);
+
+        // --- Send parent push notification via existing infrastructure ---
+        try {
+          const { data: recipients } = await supabase.rpc('get_alert_recipients', {
+            p_child_id: device.child_id,
+          });
+
+          if (recipients && recipients.length > 0) {
+            const pushBody = `${childData.name} לא מחובר/ת כבר יותר משעה`;
+
+            for (const recipient of recipients) {
+              const parentId = typeof recipient === 'string' ? recipient : recipient.parent_id;
+              console.log(`[check-device-health] Sending push to parent ${parentId} for child ${childData.name}`);
+
+              const pushResp = await fetch(`${SUPABASE_URL}/functions/v1/send-push-notification`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+                },
+                body: JSON.stringify({
+                  parent_id: parentId,
+                  title: 'המכשיר לא זמין',
+                  body: pushBody,
+                  url: '/alerts',
+                  child_name: childData.name,
+                }),
+              });
+
+              const pushResult = await pushResp.json();
+              console.log(`[check-device-health] Push result for parent ${parentId}:`, pushResult);
+            }
+          } else {
+            console.log(`[check-device-health] No push recipients found for child ${device.child_id}`);
+          }
+        } catch (pushErr) {
+          console.error(`[check-device-health] Push notification error for ${childData.name}:`, pushErr);
+        }
       }
     }
 
