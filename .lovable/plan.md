@@ -1,267 +1,89 @@
-As CTO who built and knows the whole system, I am giving you one narrow task only.
+Narrow Correction: Wire Geofence Push to alerts Table
 
-Task:
+Problem
 
-Add real parent push notifications for geofence alerts, on top of the existing notification system that already exists.
+The current trigger (`trg_geofence_event_push` on `device_events`) is connected to a table that Android never writes to for geofence alerts. The approved Android geofence implementation reports through the existing alert path — the `alerts` table — the same table used by permission alerts, AI alerts, and all other alert types.
 
-This phase is Supabase / Lovable only.
+Current Evidence
 
-Do not touch Android.
+- `device_events` table: 0 rows, no geofence data, never used by Android for the current geofence flow
+- `alerts` table: the universal landing table for alert creation
+- Android geofence implementation already uses the existing alert-reporting path, not a new `device_events` path
+- Every INSERT into `alerts` triggers `trigger_analyze_alert()` → `analyze-alert` edge function
+- `analyze-alert` skips rows where `is_processed = true` (line 625)
 
-Do not redesign the push architecture.
+Implementation
 
-Do not widen scope into unrelated notification categories.
+One migration file that does two things:
 
-Goal:
+1. Drop the wrong trigger and function on `device_events`:
 
-When a geofence alert is already created by the current Android geofence system, the parent should receive an actual push notification through the same existing parent push system already used for:
+- `DROP TRIGGER trg_geofence_event_push ON device_events`
+- `DROP FUNCTION on_geofence_event_insert()`
 
-- AI safety alerts
+2. Create a new AFTER INSERT trigger on `alerts` that fires only for real geofence alerts already produced by the current Android flow:
 
-- permission revocation alerts
+Trigger: `trg_geofence_alert_push`  
+Table: `alerts`  
+Timing: `AFTER INSERT`  
+Function: `on_geofence_alert_insert()`
 
-- periodic summaries
+Trigger Function Logic
 
-- time extension request created
+`on_geofence_alert_insert()`:
 
-- new app detected
+- First verify the real current geofence row shape already produced in `alerts` by the Android implementation, and use that exact row signature as the trigger guard
+- Do **not** assume a hypothetical insert contract like `category = 'geofence'` unless that is already what Android writes today
+- Use the narrowest real condition that matches existing geofence alert rows in `alerts` and excludes all other alert categories
+- `IF NEW.child_id IS NULL THEN RETURN NEW`
+- Get child name  
+`SELECT name FROM children WHERE id = NEW.child_id`
+- Build push content  
+title: `'התראת מיקום'`  
+body: built from the real existing human-readable geofence message already written by Android into the alert row (`NEW.parent_message` if present, otherwise the best existing geofence text field already populated today),  
+fallback: `child_name || ' - זוהתה חריגה מאזור מוגדר'`  
+or generic: `'זוהתה חריגה מאזור מוגדר'`
+- Send push to all recipients  
+`FOR recipient IN SELECT get_alert_recipients(NEW.child_id)`  
+`net.http_post` → `send-push-notification`  
+`parent_id, title, body, url='/alerts', alert_id=NEW.id, child_name`
 
-And if an accepted co-parent exists with `receive_alerts = true`, they should receive it too.
+Why This Is Safe
 
-Critical scope rule:
+- No duplicate push from AI pipeline: use the real current geofence alert row signature already produced by Android, and ensure the trigger fires only for that exact signature
+- If current geofence alerts are already inserted with `is_processed = true`, `analyze-alert` will continue to skip them at line 625
+- INSERT-only trigger: no re-fire on updates
+- Narrow row-signature filter: only real geofence alerts trigger push — all other alert types continue through their existing paths unchanged
+- One source of truth: push fires from the `alerts` INSERT trigger only, not from `analyze-alert`
 
-Do not redesign `send-push-notification`.
+Android Contract (No Android Changes Needed)
 
-Do not change `push_subscriptions` schema.
+Android already uses the existing alert path for geofence reporting.  
+This fix must attach parent push to the exact alert row shape Android already writes today.
 
-Do not touch child-side local notifications.
+Do **not** require Android to switch tables, add a new RPC, or change reporting path.  
+Do **not** assume a new direct INSERT contract if the current Android code already uses the existing alert creation helper/path.
 
-Do not add new notification categories beyond geofence alerts.
+Backward Compatibility
 
-Do not redesign the geofence product itself.
+- All existing push categories unchanged (AI, permission, periodic, time request, app alert)
+- `analyze-alert` pipeline unaffected
+- Existing `on_alert_created` trigger (`trigger_analyze_alert`) continues to fire for all inserts — geofence rows continue through the current pipeline exactly as today, with the new push attached only to the real geofence rows
+- No schema changes, no new tables, no new columns
+- `get_alert_recipients` reused — owner + co-parents with `receive_alerts = true`
 
-Keep this narrow and use the current notification system we already strengthened.
+Files Changed
 
-Context already confirmed:
 
-- parent push delivery already works through `send-push-notification`
+| File              | Change                                                                                                                                         |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| New migration SQL | Drop `device_events` trigger+function, create `alerts` trigger+function for geofence push using the real existing geofence alert row signature |
 
-- co-parent recipient resolution already exists through `get_alert_recipients(child_id)`
 
-- geofence detection and reporting already exist on Android
+Push Payload
 
-- current audit showed geofence alerts do NOT yet produce real parent push
-
-- the right move is to plug geofence alerts into the existing parent push system, not to build a parallel one
-
-Your job:
-
-Extend the existing notification system so geofence alerts produce a real push notification to the correct recipients.
-
-Hard requirements:
-
-1. First map the real current geofence alert flow before changing anything
-
-Before writing code, identify exactly:
-
-- where geofence alerts are created today
-
-- what table stores them today
-
-- whether Android writes them into `alerts` or another real table/path
-
-- what fields identify them as geofence alerts today
-
-- whether they already appear in the parent dashboard via polling/realtime
-
-- what child_id is available at creation time for recipient resolution
-
-- whether geofence alert creation is one row per event or an update flow
-
-You must preserve the current geofence architecture.
-
-2. Use the existing parent push system
-
-Do not invent a new push path.
-
-Preferred implementation:
-
-- use the same `send-push-notification` edge function
-
-- use the existing `get_alert_recipients(child_id)` helper
-
-- send one push per resolved recipient
-
-Do not redesign delivery.
-
-3. Trigger point
-
-Add push only when a **new geofence alert event is first created**.
-
-Required behavior:
-
-- when the system first records a geofence alert → push once
-
-- do not push repeatedly on polling, reads, later updates, or re-syncs of the same alert row
-
-- do not accidentally re-send on later AI processing/acknowledgement/metadata updates if geofence alerts pass through the `alerts` table
-
-This task is for:
-
-- geofence alert created → push to parents
-
-Not for:
-
-- reminders
-
-- backlog replay
-
-- location history
-
-- repeated “still outside” notifications
-
-- device-local child notifications
-
-4. Recipient resolution
-
-Recipients must be:
-
-- the owner parent
-
-- any accepted co-parent where `receive_alerts = true`
-
-Use the existing `get_alert_recipients(child_id)` helper.
-
-Do not duplicate recipient logic.
-
-5. Push content
-
-Keep the message simple, clear, and parent-facing in Hebrew.
-
-You must first inspect the real current geofence alert payload/content and then choose the smallest safe mapping.
-
-Use real existing child name / alert text / type if already available.
-
-Suggested direction only:
-
-- Title: "התראת מיקום"
-
-- Body:
-
-  - if place/rule is clearly available: "[child_name] יצא/ה מאזור [place/rule]"
-
-  - otherwise: "זוהתה חריגה מאזור מוגדר"
-
-Use the real child name if it is already easily available in the current flow.
-
-If not, fall back safely.
-
-Do not redesign push templates globally.
-
-Suggested URL:
-
-- link to the relevant existing parent alert/detail surface already used for alerts
-
-Use the smallest safe existing route. Do not invent a new page.
-
-6. Narrow implementation options
-
-Use the smallest safe point in the current architecture.
-
-Acceptable options:
-
-- DB trigger on insert into the real geofence-alert table/path
-
-- edge/function path already involved in geofence alert creation
-
-- another narrow existing backend point
-
-Choose the smallest safe implementation that:
-
-- runs exactly once per new geofence alert
-
-- has access to child_id
-
-- can call `get_alert_recipients`
-
-- can invoke `send-push-notification`
-
-Do not add a big queueing system unless absolutely necessary.
-
-7. Important safety rule if geofence alerts already flow through `alerts`
-
-If geofence alerts are stored in the shared `alerts` table:
-
-- do not accidentally piggyback them onto the AI `analyze-alert` pipeline unless that is already their real push path today
-
-- do not create duplicate pushes from both a DB trigger and an edge function
-
-- choose one source of truth for geofence push and keep it deterministic
-
-8. Backward compatibility
-
-If there is no co-parent:
-
-- behavior should be owner-only, exactly as expected
-
-If a co-parent exists but `receive_alerts = false`:
-
-- owner gets push
-
-- co-parent gets nothing
-
-If geofence alerts already appear in dashboard UI:
-
-- that behavior must remain unchanged
-
-Do not break:
-
-- current geofence detection flow
-
-- current parent alerts UI
-
-- current parent push categories already working
-
-- current AI alert processing
-
-9. Exact implementation proof required
-
-Return exact implementation proof, not a summary.
-
-I need:
-
-1. Exact files changed
-
-2. Exact current geofence alert creation flow you found
-
-3. Exact trigger point chosen for push and why
-
-4. Exact use of `get_alert_recipients(child_id)`
-
-5. Exact use of `send-push-notification`
-
-6. Exact payload text used
-
-7. Exact proof that push fires only on first creation of a geofence alert event
-
-8. Exact backward compatibility proof
-
-9. Migration / deploy status
-
-10. Typecheck / function deploy result
-
-11. Explicit report:
-
-   - did it pass on the first try
-
-   - if not, what failed first
-
-   - exactly what you fixed
-
-Final restriction:
-
-Do not redesign the notification system.
-
-Do not widen scope into geofence reminders/history/repeat notifications.
-
-Do only “geofence alert created → parent/co-parent push” on top of the existing system, and report exactly what changed.
+- Title: `התראת מיקום`
+- Body: uses the real existing human-readable geofence message already stored in the alert row by Android (prefer `NEW.parent_message` if present; otherwise the real existing geofence text field already populated today), fallback to `child_name || ' - זוהתה חריגה מאזור מוגדר'`, else `זוהתה חריגה מאזור מוגדר`
+- URL: `/alerts`
+- `alert_id`: `NEW.id`
+- `child_name`: from `children` table
