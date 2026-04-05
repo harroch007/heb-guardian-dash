@@ -9,6 +9,7 @@ import { useRingCommand } from "@/hooks/useRingCommand";
 import type { RingPhase } from "@/hooks/useRingCommand";
 import { getDeviceStatus, getStatusColor, getStatusLabel, formatLastSeen } from "@/lib/deviceStatus";
 import type { DeviceHealthInfo } from "@/hooks/useChildControls";
+import { DeviceHealthBanner } from "@/components/controls/DeviceHealthBanner";
 import { cn, getIsraelDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -731,41 +732,14 @@ export default function ChildControlV2() {
             )}
 
             {/* ===== 12. DEVICE HEALTH ===== */}
-            <Card className="border-border shadow-sm bg-card">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  {deviceHealth && Object.values(deviceHealth.permissions).every(v => v !== false)
-                    ? <ShieldCheck className="w-5 h-5 text-success" />
-                    : <ShieldAlert className="w-5 h-5 text-warning" />}
-                  <span className="font-semibold text-sm text-foreground">בריאות המכשיר</span>
-                </div>
-
-                {deviceHealth ? (
-                  <div className="space-y-1.5">
-                    {Object.entries(PERMISSION_LABELS).map(([key, label]) => {
-                      const val = deviceHealth.permissions[key];
-                      if (val === undefined) return null;
-                      return (
-                        <div key={key} className="flex items-center justify-between py-1">
-                          <span className="text-xs text-muted-foreground">{label}</span>
-                          <Badge variant="secondary" className={cn("text-[10px]",
-                            val ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive")}>
-                            {val ? "פעיל" : "חסר"}
-                          </Badge>
-                        </div>
-                      );
-                    })}
-                    {deviceHealth.reportedAt && (
-                      <p className="text-[11px] text-muted-foreground/70 mt-2">
-                        דיווח אחרון: {formatLastSeen(deviceHealth.reportedAt)}
-                      </p>
-                    )}
-                  </div>
-                ) : (
+            {deviceHealth && <DeviceHealthBanner health={deviceHealth} />}
+            {!deviceHealth && (
+              <Card className="border-border shadow-sm bg-card">
+                <CardContent className="p-4">
                   <p className="text-sm text-muted-foreground text-center py-2">אין נתוני בריאות זמינים</p>
-                )}
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
           </div>
         ) : (
           <Card className="border-border shadow-sm bg-card">
