@@ -243,14 +243,14 @@ export function useChildPlaces(childId: string | undefined) {
 
     let error;
     if (existingId) {
-      ({ error } = await supabase.from("child_places").update(row).eq("id", existingId));
+      ({ error } = await supabase.from("child_places").update(row as any).eq("id", existingId));
     } else {
       ({ error } = await supabase.from("child_places").insert({
         ...row,
         child_id: childId,
-        place_type: "MANUAL",
+        place_type: "MANUAL" as any,
         is_active: true,
-      }));
+      } as any));
     }
 
     if (error) {
