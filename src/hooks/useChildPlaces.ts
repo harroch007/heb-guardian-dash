@@ -5,18 +5,37 @@ import { useToast } from "@/hooks/use-toast";
 export interface ChildPlace {
   id: string;
   child_id: string;
-  place_type: "HOME" | "SCHOOL";
+  place_type: "HOME" | "SCHOOL" | "MANUAL";
   label: string | null;
   latitude: number;
   longitude: number;
   radius_meters: number;
   is_active: boolean;
+  alert_on_enter: boolean;
+  alert_on_exit: boolean;
+  schedule_mode: "ALWAYS" | "SCHEDULED";
+  days_of_week: number[] | null;
+  start_time: string | null;
+  end_time: string | null;
 }
 
 export interface GeofenceSettings {
   home_exit_alert_enabled: boolean;
   school_exit_alert_enabled: boolean;
   exit_debounce_seconds: number;
+}
+
+export interface ManualPlaceInput {
+  label: string;
+  latitude: number;
+  longitude: number;
+  radius_meters?: number;
+  alert_on_enter: boolean;
+  alert_on_exit: boolean;
+  schedule_mode: "ALWAYS" | "SCHEDULED";
+  days_of_week?: number[];
+  start_time?: string;
+  end_time?: string;
 }
 
 const DEFAULT_SETTINGS: GeofenceSettings = {
@@ -28,6 +47,7 @@ const DEFAULT_SETTINGS: GeofenceSettings = {
 const DEFAULT_RADIUS: Record<string, number> = {
   HOME: 150,
   SCHOOL: 250,
+  MANUAL: 200,
 };
 
 export function useChildPlaces(childId: string | undefined) {
@@ -46,8 +66,7 @@ export function useChildPlaces(childId: string | undefined) {
       supabase
         .from("child_places")
         .select("*")
-        .eq("child_id", childId)
-        .eq("is_active", true),
+        .eq("child_id", childId),
       supabase
         .from("child_geofence_settings")
         .select("*")
@@ -79,7 +98,7 @@ export function useChildPlaces(childId: string | undefined) {
   }, [fetchData]);
 
   const getPlace = (type: "HOME" | "SCHOOL") =>
-    places.find((p) => p.place_type === type) || null;
+    places.find((p) => p.place_type === type && p.is_active) || null;
 
   const upsertPlace = async (
     type: "HOME" | "SCHOOL",
@@ -203,6 +222,62 @@ export function useChildPlaces(childId: string | undefined) {
     setSaving(false);
   };
 
+  const manualPlaces = places.filter((p) => p.place_type === "MANUAL" && p.is_active);
+
+  const upsertManualPlace = async (data: ManualPlaceInput, existingId?: string) => {
+    if (!childId) return;
+    setSaving(true);
+
+    const row: Record<string, unknown> = {
+      label: data.label,
+      latitude: data.latitude,
+      longitude: data.longitude,
+      radius_meters: data.radius_meters ?? DEFAULT_RADIUS.MANUAL,
+      alert_on_enter: data.alert_on_enter,
+      alert_on_exit: data.alert_on_exit,
+      schedule_mode: data.schedule_mode,
+      days_of_week: data.schedule_mode === "SCHEDULED" ? data.days_of_week : null,
+      start_time: data.schedule_mode === "SCHEDULED" ? data.start_time : null,
+      end_time: data.schedule_mode === "SCHEDULED" ? data.end_time : null,
+    };
+
+    let error;
+    if (existingId) {
+      ({ error } = await supabase.from("child_places").update(row as any).eq("id", existingId));
+    } else {
+      ({ error } = await supabase.from("child_places").insert({
+        ...row,
+        child_id: childId,
+        place_type: "MANUAL" as any,
+        is_active: true,
+      } as any));
+    }
+
+    if (error) {
+      toast({ title: "שגיאה", description: error.message || "לא ניתן לשמור את המקום", variant: "destructive" });
+    } else {
+      toast({ title: existingId ? "המקום עודכן" : "המקום נוסף בהצלחה" });
+      await fetchData();
+    }
+    setSaving(false);
+  };
+
+  const deactivateManualPlace = async (id: string) => {
+    setSaving(true);
+    const { error } = await supabase
+      .from("child_places")
+      .update({ is_active: false })
+      .eq("id", id);
+
+    if (error) {
+      toast({ title: "שגיאה", description: "לא ניתן להשבית את המקום", variant: "destructive" });
+    } else {
+      toast({ title: "המקום הושבת" });
+      await fetchData();
+    }
+    setSaving(false);
+  };
+
   return {
     places,
     settings,
@@ -213,5 +288,8 @@ export function useChildPlaces(childId: string | undefined) {
     updateRadius,
     updateSettings,
     deletePlace,
+    manualPlaces,
+    upsertManualPlace,
+    deactivateManualPlace,
   };
 }

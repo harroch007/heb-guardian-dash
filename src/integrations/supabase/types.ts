@@ -1265,8 +1265,12 @@ export type Database = {
       }
       child_places: {
         Row: {
+          alert_on_enter: boolean
+          alert_on_exit: boolean
           child_id: string
           created_at: string
+          days_of_week: number[] | null
+          end_time: string | null
           id: string
           is_active: boolean
           label: string | null
@@ -1274,11 +1278,17 @@ export type Database = {
           longitude: number
           place_type: string
           radius_meters: number
+          schedule_mode: string
+          start_time: string | null
           updated_at: string
         }
         Insert: {
+          alert_on_enter?: boolean
+          alert_on_exit?: boolean
           child_id: string
           created_at?: string
+          days_of_week?: number[] | null
+          end_time?: string | null
           id?: string
           is_active?: boolean
           label?: string | null
@@ -1286,11 +1296,17 @@ export type Database = {
           longitude: number
           place_type: string
           radius_meters: number
+          schedule_mode?: string
+          start_time?: string | null
           updated_at?: string
         }
         Update: {
+          alert_on_enter?: boolean
+          alert_on_exit?: boolean
           child_id?: string
           created_at?: string
+          days_of_week?: number[] | null
+          end_time?: string | null
           id?: string
           is_active?: boolean
           label?: string | null
@@ -1298,6 +1314,8 @@ export type Database = {
           longitude?: number
           place_type?: string
           radius_meters?: number
+          schedule_mode?: string
+          start_time?: string | null
           updated_at?: string
         }
         Relationships: [
