@@ -1,22 +1,11 @@
+## Geofence Phase 3: Manual Places — COMPLETED
 
+### What was done
+1. **Migration**: Extended `child_places` with `alert_on_enter`, `alert_on_exit`, `schedule_mode`, `days_of_week`, `start_time`, `end_time`. Added `MANUAL` to `place_type` CHECK. Fixed unique index to only constrain HOME/SCHOOL. Added validation trigger.
+2. **RPC**: `get_device_settings` now filters `geofence_places` to HOME/SCHOOL only and adds `manual_geofence_places` as a separate key.
+3. **Hook**: `useChildPlaces` extended with `manualPlaces`, `upsertManualPlace`, `deactivateManualPlace`.
+4. **UI**: "מקומות נוספים" subsection in `GeofenceSection` with list + add/edit/deactivate + scheduling.
 
-## הבעיה
-
-השינויים בוצעו בקובץ `DeviceHealthBanner.tsx`, אבל הקומפוננטה הזו **לא מיובאת ולא בשימוש** בשום מקום באפליקציה. דף `ChildControlV2.tsx` (שורות 733-768) מכיל קוד inline משלו שמציג את בריאות המכשיר — בלי הסברים ובלי כפתורי "מה לעשות?".
-
-## הפתרון
-
-להחליף את הקוד ה-inline ב-`ChildControlV2.tsx` בייבוא של `DeviceHealthBanner` שכבר מכיל את כל השיפורים.
-
-### שינויים
-
-| קובץ | פעולה |
-|-------|--------|
-| `src/pages/ChildControlV2.tsx` | ייבוא `DeviceHealthBanner` והחלפת שורות 733-768 (הסקשן ה-inline) בקריאה ל-`<DeviceHealthBanner health={deviceHealth} />` |
-
-### מה ישתנה ב-UI
-- כשיש הרשאות חסרות: רשימה אנכית עם אייקון ?, כפתור "מה לעשות?", הסברים ותיקונים
-- כשהכל תקין: כרטיס ירוק נקי "כל ההרשאות פעילות"
-- badge ניטור WhatsApp (פעיל/לקוי)
-- פרטי מכשיר + דיווח אחרון בתחתית
-
+### What remains
+- Android detection of manual geofences (next Android phase)
+- Push notification delivery for manual place enter/exit events
