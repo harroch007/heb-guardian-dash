@@ -1,64 +1,66 @@
-## Push Notification for New App Detection
+```
 
-### Current Flow (No Changes)
+  SELECT id, status, requested_minutes, responded_at
+  FROM time_extension_requests
+  WHERE child_id = v_child_id
+    AND status IN ('approved', 'rejected')
+    AND responded_at IS NOT NULL
+  ORDER BY responded_at DESC
+  LIMIT 20
+) tr;
 
-- Android calls `create_app_alert(p_device_id, p_package_name, p_app_name)` RPC
-- RPC resolves `child_id` from `devices`, inserts one row into `app_alerts`
-- Each row is a single new-app event — no updates, no re-syncs to the same row
-- Parent sees events via `NewAppsCard` polling `app_alerts` table — no push today
+v_settings := v_settings || jsonb_build_object('time_request_updates', v_time_request_updates);
+```
 
-### Implementation
+#### Filtering rules
 
-**One migration file** — add a trigger on `app_alerts` INSERT that sends push via the same `net.http_post` → `send-push-notification` pattern already used in `on_time_request_insert` and `on_heartbeat_insert`.
+-   
+Only terminal statuses (`approved`, `rejected`) — no pending rows  
 
-#### Trigger: `on_app_alert_insert()`
+-   
+Only this child's requests (`child_id = v_child_id`)  
+
+-   
+No short time-window cutoff that could hide a real response after the device was offline — bounded only by newest-first limit  
+
+-   
+Limit 20 — bounded and still safe for offline catch-up  
+
+-   
+Ordered newest first  
+
+
+#### Payload shape per item
 
 ```
-1. Fires AFTER INSERT on app_alerts — one row = one new app = one push
-2. Guard: if NEW.child_id IS NULL, return immediately with no push
-3. Resolves child name: SELECT name FROM children WHERE id = NEW.child_id
-4. Builds body:
-   - If child_name AND app_name available: "[child_name] התקין/ה את [app_name]"
-   - If only app_name: "אפליקציה חדשה זוהתה: [app_name]"
-   - Fallback: "זוהתה אפליקציה חדשה במכשיר"
-5. Resolves recipients: FOR v_recipient_id IN SELECT get_alert_recipients(NEW.child_id)
-6. Calls net.http_post to send-push-notification for each recipient
-7. Payload:
-   - title: "אפליקציה חדשה זוהתה"
-   - body: (as above)
-   - url: "/child-v2/" || NEW.child_id
+{
+  "request_id": "uuid",
+  "status": "approved" | "rejected",
+  "approved_minutes": 15 | null,
+  "responded_at": "2026-04-05T12:00:00Z"
+}
 ```
+
+No `reason`, no `parent_id`, no internal fields exposed.
 
 ### Files Changed
 
 
-| File              | Change                                                             |
-| ----------------- | ------------------------------------------------------------------ |
-| New migration SQL | `on_app_alert_insert()` trigger function + trigger on `app_alerts` |
+| File              | Change                                                                                   |
+| ----------------- | ---------------------------------------------------------------------------------------- |
+| New migration SQL | `CREATE OR REPLACE FUNCTION get_device_settings` with added `time_request_updates` block |
 
 
-No edge function changes. No UI changes. No schema changes.
+Full function body is a copy of the latest version (from migration `20260405091536`) with one new variable declaration and one new block inserted before `RETURN`.
 
 ### Backward Compatibility
 
--   
-No co-parent → `get_alert_recipients` returns owner only  
+- **Additive only** — new key `time_request_updates` is ignored by existing Android builds  
 
--   
-Co-parent with `receive_alerts = false` → excluded  
+- `bonus_time_grants` **path unchanged** — `effective_screen_time_limit_minutes` and `bonus_minutes_today` remain identical  
 
--   
-Trigger is INSERT-only → no duplicate push on later row changes even if update paths are added in future  
+- **Parent dashboard unchanged** — `TimeRequestsCard` queries `time_extension_requests` directly, not through `get_device_settings`  
 
--   
-Existing polling UI (`NewAppsCard`) → untouched  
+- **No schema changes** — no new tables, no new columns  
 
-- `create_app_alert` RPC → untouched  
-
--   
-All other push categories → untouched  
-
-
-### Technical Detail
-
-Guard for `NEW.child_id IS NULL` — if device is not paired to a child, skip push silently (same as heartbeat trigger pattern). If `app_name` is null/empty, use the fallback copy path above.
+- **No RLS changes** — `get_device_settings` is `SECURITY DEFINER`, reads internally
