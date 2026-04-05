@@ -9,6 +9,7 @@ import { useRingCommand } from "@/hooks/useRingCommand";
 import type { RingPhase } from "@/hooks/useRingCommand";
 import { getDeviceStatus, getStatusColor, getStatusLabel, formatLastSeen } from "@/lib/deviceStatus";
 import type { DeviceHealthInfo } from "@/hooks/useChildControls";
+import { DeviceHealthBanner } from "@/components/controls/DeviceHealthBanner";
 import { cn, getIsraelDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
