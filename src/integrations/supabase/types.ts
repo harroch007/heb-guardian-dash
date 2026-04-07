@@ -3010,6 +3010,7 @@ export type Database = {
       }
       delete_all_my_data: { Args: never; Returns: Json }
       delete_child_data: { Args: { p_child_id: string }; Returns: Json }
+      disconnect_device: { Args: { p_device_id: string }; Returns: undefined }
       export_my_data: { Args: never; Returns: Json }
       generate_new_pairing_code: { Args: { p_child_id: string }; Returns: Json }
       generate_pairing_code: { Args: { p_child_id: string }; Returns: string }
