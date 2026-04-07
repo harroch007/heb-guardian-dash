@@ -44,3 +44,6 @@ verify_jwt = false
 
 [functions.calculate-shabbat-times]
 verify_jwt = false
+
+[functions.bootstrap-device-auth]
+verify_jwt = false
