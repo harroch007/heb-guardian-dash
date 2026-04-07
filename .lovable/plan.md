@@ -1,213 +1,161 @@
-As CTO who built and knows the whole system, I am giving you one narrow task only.
+As CTO who built and knows the whole system, Stage 2B is still open.
+
+We are fixing one blocker only.
 
 Task:
 
-Resolve the geofence parent-push contract at the backend, definitively and with proof.
+Fix the respond_time_request backend contract so that both owner and co-parent can approve or reject a time request.
 
-This is Supabase / backend only.
+Business goal:
 
-Do not touch Android.
+A co-parent who is authorized in the family model must be able to respond to a pending time request, not just view it.
 
-Do not touch Lovable UI.
+This is a narrow implementation task.
 
-Do not redesign alerts.
+Do not widen scope.
 
-Do not redesign push architecture.
+Do NOT touch:
 
-Do not widen scope beyond the exact `create_alert` contract needed for geofence alerts.
+- request creation flow
 
-Goal:
+- request TTL / cleanup
 
-We already have:
+- realtime subscriptions
 
-- Android geofence reporting routed through `create_alert`
+- hardcoded 15-minute UI behavior
 
-- a deployed geofence parent-push trigger on `alerts`
+- notification matrix beyond what is already required by the existing RPC
 
-- existing parent push delivery through `send-push-notification`
+- Android child logic
 
-- existing recipient resolution through `get_alert_recipients(child_id)`
+- unrelated refactors
 
-The only thing that matters now is:
+Problem to fix:
 
-when Android calls `create_alert` for a geofence alert, does the resulting row in `alerts` actually match the deployed geofence push trigger contract?
+Current audit shows:
 
-This task must end in one of only two valid outcomes:
+- request_extra_time creates the row with parent_id = owner
 
-1. `create_alert` already supports the required geofence fields exactly → prove it with exact evidence, no code changes
+- respond_time_request filters with WHERE id = p_request_id AND parent_id = auth.uid()
 
-2. `create_alert` does NOT support them exactly → make the smallest safe backend fix so it does, then prove it
+- therefore co-parent callers get REQUEST_NOT_FOUND even though co-parent access is intended and RLS was updated
 
-No other outcome is acceptable.
+Required behavior after fix:
 
-Critical scope rule:
+1. Owner can approve/reject their child’s pending request.
 
-Do not redesign the system.
+2. Co-parent can also approve/reject the same pending request if they are authorized for that child/family.
 
-Do not add a new alert path.
+3. Double response must still be prevented.
 
-Do not tell me what Android “should” send in theory.
+4. Existing status transitions must remain:
 
-Do not rely on assumptions.
+   - pending -> approved
 
-Do not return architecture ideas.
+   - pending -> rejected
 
-Return hard proof and, only if needed, the smallest backend fix.
+5. Approve path must still insert bonus_time_grants and REFRESH_SETTINGS exactly as before.
 
-Required geofence alert row contract:
+6. Reject path behavior must remain unchanged for this task.
 
-The final inserted row in `alerts` must be able to contain:
+7. Do not redesign the family authorization model.
 
-- `category = 'geofence'`
+Hard scope:
 
-- `sender = 'SYSTEM'`
+Only touch code directly involved in:
 
-- `platform = 'SYSTEM'`
+- respond_time_request RPC/function
 
-- `is_processed = true`
+- the minimal SQL authorization check needed to validate owner/co-parent access
 
-- `ai_verdict = 'notify'`
+- types if required by the changed function signature/body
 
-- `parent_message` = populated parent-facing Hebrew message
+- parent-side code only if strictly required by the same existing RPC contract
 
-- `child_id` resolved correctly
+Do not change the request_extra_time RPC for this task.
 
-- `device_id` resolved/persisted correctly if the current path supports it
+What I need returned:
 
-And this must be achieved through the existing `create_alert` RPC path.
+1. Files Changed
 
-What you must do:
+- exact file list
 
-1. Inspect the real current `create_alert` function
+2. Exact Root Cause
 
-I need exact proof of the current live backend contract.
+- exact previous auth/filter logic
 
-Show exactly:
+- why co-parent failed before
 
-- the current function signature of `create_alert`
+3. Exact Fix
 
-- whether it already accepts each of these parameters:
+- exact function/migration changed
 
-  - `p_category`
+- exact new authorization rule for owner + co-parent
 
-  - `p_sender`
+- why owner still works
 
-  - `p_platform`
+- why co-parent now works
 
-  - `p_is_processed`
+4. Exact Code Proof
 
-  - `p_ai_verdict`
+Paste the real current code for:
 
-  - `p_parent_message`
+- the authorization lookup section inside respond_time_request
 
-  - `p_device_id`
+- the status transition guard
 
-- whether `child_id` is resolved from `p_device_id` internally, and exactly how
+- the approve path insertions (bonus_time_grants and REFRESH_SETTINGS)
 
-2. Inspect the real INSERT logic inside `create_alert`
+5. Behavior Proof
 
-I need exact proof of what row is written into `alerts`.
+State the result for these exact cases:
 
-Show exactly:
+- owner approves pending request
 
-- which incoming params map to which `alerts` columns
+- co-parent approves pending request
 
-- whether any defaults override incoming values
+- owner rejects pending request
 
-- whether any fields are ignored
+- co-parent rejects pending request
 
-- whether `create_alert` currently forces its own values for:
+- second parent tries to respond after first parent already responded
 
-  - `category`
+For each:
 
-  - `sender`
+- result
 
-  - `platform`
+- status transition
 
-  - `is_processed`
+- exact code path
 
-  - `ai_verdict`
+6. Deploy / Migration Status
 
-  - `parent_message`
+- migration created: yes/no
 
-3. Decide based on proof, not assumption
+- if yes: exact migration file
 
-If the current function already supports the geofence contract exactly:
+- deployed: yes/no or UNPROVEN
 
-- do not change code
+7. Stage 2B Impact
 
-- return proof only
+Return exactly one:
 
-If the current function does NOT support the geofence contract exactly:
+- BLOCKER CLOSED
 
-- make the smallest safe backend fix only
+- BLOCKER NOT CLOSED
 
-- extend `create_alert` narrowly so the Android geofence call can produce the required row shape
+Hard rejection conditions:
 
-- do not change unrelated alert categories
+Your answer will be rejected if you:
 
-- do not redesign any other part of the system
+- change unrelated flows
 
-4. Preserve backward compatibility
+- redesign the family model
 
-Any fix must not break:
+- break owner behavior
 
-- existing AI/chat alert creation
+- allow unauthorized non-family parents
 
-- existing parent push categories
+- remove the existing double-response protection
 
-- existing non-geofence `create_alert` callers
-
-- existing alert processing logic
-
-5. Exact proof required at the end
-
-Return exact execution proof only.
-
-I need:
-
-1. Exact files / migrations / functions changed
-
-2. Exact `create_alert` signature before
-
-3. Exact `create_alert` signature after (or say unchanged if no change was needed)
-
-4. Exact INSERT mapping into `alerts`
-
-5. Exact proof whether geofence rows created through `create_alert` now match all of:
-
-   - `category = 'geofence'`
-
-   - `sender = 'SYSTEM'`
-
-   - `platform = 'SYSTEM'`
-
-   - `is_processed = true`
-
-   - `ai_verdict = 'notify'`
-
-   - `parent_message` populated
-
-6. Exact proof of how `child_id` is resolved
-
-7. Exact backward compatibility proof for existing alert categories
-
-8. Migration / deploy status
-
-9. Explicit report:
-
-   - did it pass on the first try
-
-   - if not, what failed first
-
-   - exactly what you fixed
-
-Return format:
-
-Do not summarize.
-
-Do not give recommendations.
-
-Do not give future steps.
-
-Return exact technical proof only.
+- fail to show the exact updated SQL
