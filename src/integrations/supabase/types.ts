@@ -1873,6 +1873,7 @@ export type Database = {
       devices: {
         Row: {
           address: string | null
+          auth_user_id: string | null
           battery_level: number | null
           child_id: string | null
           created_at: string | null
@@ -1886,6 +1887,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          auth_user_id?: string | null
           battery_level?: number | null
           child_id?: string | null
           created_at?: string | null
@@ -1899,6 +1901,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          auth_user_id?: string | null
           battery_level?: number | null
           child_id?: string | null
           created_at?: string | null
