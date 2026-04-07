@@ -3048,6 +3048,7 @@ export type Database = {
           message_count: number
         }[]
       }
+      get_device_id_from_jwt: { Args: never; Returns: string }
       get_device_settings: { Args: { p_device_id: string }; Returns: Json }
       get_family_owner_id: { Args: never; Returns: string }
       get_parent_daily_report_for_parent: {
