@@ -1,81 +1,26 @@
-# Phase 4A Blocker Fix: Fail-Closed `get_device_settings`
 
-## Root Cause
+# Stage 7 — Device-Scoped JWT Secure Contract
 
-The current authorization block (lines 26-32 of function body):
+## Phase 1: COMPLETE ✅
 
-```
-v_jwt_role := (auth.jwt() -> 'app_metadata' ->> 'role');
-IF v_jwt_role = 'device' THEN
-    v_jwt_device_id := public.get_device_id_from_jwt();
-    IF v_jwt_device_id IS NULL OR v_jwt_device_id != p_device_id THEN
-        RETURN jsonb_build_object('error', 'DEVICE_ID_MISMATCH', 'success', false);
-    END IF;
-END IF;
-```
+Schema: `devices.auth_user_id UUID` column added with FK to `auth.users`, index created.
 
-Only validates when `role = 'device'`. Any authenticated user with a different or missing role skips the gate entirely.
+Bootstrap: `bootstrap-device-auth` edge function deployed — calls `pair_device` RPC then creates/reuses a Supabase Auth user per device with `app_metadata: {device_id, child_id, role: "device"}`.
 
-## Fix
+No breaking changes. Legacy anon path untouched.
 
-One migration file. Replace the authorization block with a strict device-only fail-closed gate:
+## Phase 2: COMPLETE ✅
 
-```
--- Fail-closed authorization gate: this function is device-facing only
-IF auth.role() IS DISTINCT FROM 'authenticated' THEN
-    RETURN jsonb_build_object('error', 'UNAUTHORIZED', 'success', false);
-END IF;
+Android client now uses device-scoped JWT auth session (established via bootstrap).
 
-v_jwt_role := (auth.jwt() -> 'app_metadata' ->> 'role');
-IF v_jwt_role IS DISTINCT FROM 'device' THEN
-    RETURN jsonb_build_object('error', 'UNAUTHORIZED', 'success', false);
-END IF;
+## Phase 3: COMPLETE ✅
 
-v_jwt_device_id := public.get_device_id_from_jwt();
-IF v_jwt_device_id IS NULL OR v_jwt_device_id != p_device_id THEN
-    RETURN jsonb_build_object('error', 'DEVICE_ID_MISMATCH', 'success', false);
-END IF;
-```
+`device_commands` hardened: dropped legacy anon `USING (true)` SELECT/UPDATE policies, replaced with JWT-scoped `authenticated` policies using `get_device_id_from_jwt()` helper. Devices can now only read/update their own command rows. Parent/admin INSERT policies unchanged.
 
-### Logic
+## Phase 4A: COMPLETE ✅
 
-1. `auth.role()` must be exactly `authenticated`.  
+`get_device_settings` hardened with fail-closed device-only authorization: (1) `EXECUTE` revoked from `PUBLIC` and `anon`, granted only to `authenticated`. (2) Three-step fail-closed gate inside function: `auth.role()` must be `authenticated`, `app_metadata.role` must be `device`, and JWT `device_id` must match `p_device_id`. Generic authenticated callers (parents, admins) are explicitly denied with `UNAUTHORIZED`. service_role callers are denied through the `auth.role()` gate. No parent/co-parent access path exists.
 
-2.   
-The JWT app_metadata role must be exactly `'device'`.  
+## Phase 4B+: PENDING (follow-up)
 
-3.   
-The JWT device_id must match `p_device_id`.  
-
-4.   
-Any other caller is denied fail-closed.  
-
-
-### Access Matrix
-
-
-| Caller                     | Result                       | Path                                                                |
-| -------------------------- | ---------------------------- | ------------------------------------------------------------------- |
-| Device A → device A        | Allowed                      | role=authenticated → app_metadata.role=device → id matches          |
-| Device A → device B        | Denied                       | role=authenticated → role=device → id mismatch → DEVICE_ID_MISMATCH |
-| Authenticated parent/admin | Denied                       | role=authenticated → app_metadata.role≠device → UNAUTHORIZED        |
-| service_role/internal      | Denied through this function | auth.role() ≠ authenticated → UNAUTHORIZED                          |
-| anon                       | Denied                       | EXECUTE revoked (previous migration)                                |
-
-
-## Scope
-
-- **One migration**: `CREATE OR REPLACE FUNCTION public.get_device_settings(p_device_id text)` with only the authorization block changed. Rest of function body identical.  
-
-- **No GRANT/REVOKE changes** — keep the previous EXECUTE state from the last approved step.  
-
-- **No other files touched**.  
-
-
-## Technical Detail: why this version is safer
-
-This keeps `get_device_settings` as a pure Android device-facing contract and removes any dependence on an unproven assumption about how `auth.jwt()` behaves for service-role callers. Supabase documents that JWT claims are the basis for authorization decisions, while the `service_role` key maps to the `service_role` Postgres role and bypasses RLS. 
-
----
-
-&nbsp;
+Harden remaining Android-facing RPCs: `update_device_status`, `report_device_heartbeat`, `create_alert`, `report_installed_apps`, and INSERT policies on alerts/app_usage/blocked_app_attempts.
