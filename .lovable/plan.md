@@ -1,139 +1,125 @@
-As CTO who built and knows the whole system, Stage 7 is still open.
+As CTO who built and knows the whole system, I am rejecting the current design-lock as NOT READY.
 
-We are fixing one blocker only.
+Reason:
+
+Your risk map is good, but your recommended model is not valid enough for Supabase Realtime.
+
+Specifically, the phase that relies on:
+
+- authenticate_device RPC
+
+- setting app.device_id session vars
+
+- then using current_setting('app.device_id', true) in RLS for device_commands
+
+is not an acceptable secure contract lock for the realtime command path.
+
+We need one corrected model only.
 
 Task:
 
-Fix the `time_request_updates.approved_minutes` contract so Android receives the actual approved amount, not the originally requested amount.
+Redo the design-lock using a device-scoped JWT model, not a session-variable model.
 
 Business goal:
 
-When the parent approves a time request with a specific amount, the Android child contract must reflect the actual granted value consistently.
+Lock one migration-ready secure contract that works for BOTH:
 
-This is a narrow backend contract fix.
+- PostgREST / RPC access
+
+- Realtime device_commands access
+
+This is still a read-only design-lock audit.
+
+Do not change code.
+
+Do not create migrations.
 
 Do not widen scope.
 
-Do NOT touch:
+Required model constraints:
 
-- device_commands security redesign
+1. pair_device may remain the bootstrap point.
 
-- blocked_apps / app_policies overlap
+2. Device must end up using a JWT-bearing authenticated contract for Android-facing backend access.
 
-- geofence payload shape
+3. The model must work for:
 
-- parent UI behavior
+   - get_device_settings
 
-- Android code
+   - device_commands read
 
-- unrelated migrations/functions
+   - device_commands status update
 
-Problem to fix:
+   - update_device_status
 
-Current audit shows:
+   - report_device_heartbeat
 
-- `respond_time_request(p_request_id, p_approved, p_minutes)` accepts the actual granted amount as `p_minutes`
+   - report_installed_apps
 
-- but `get_device_settings` currently returns `time_request_updates.approved_minutes` from `time_extension_requests.requested_minutes`
+   - create_alert
 
-- therefore Android can receive the wrong approved amount
+4. RLS/device scoping must rely on JWT/device claims, not on a DB session variable set by a previous RPC.
 
-Required behavior after fix:
+5. Choose ONE model only.
 
-1. `time_request_updates.approved_minutes` must reflect the actual granted amount.
+You must return:
 
-2. If a request was rejected, approved_minutes should remain null or absent according to the existing payload style.
+1. Why the previous session-variable model is insufficient for realtime
 
-3. Do not redesign the request-more-time model.
+- one short section
 
-4. Do not change Android payload keys beyond fixing the value source.
+- grounded in how the backend/auth path actually works
 
-Preferred fix shape:
+2. Corrected Recommended Secure Contract Model
 
-- keep the existing `time_request_updates` payload shape
+- one model only
 
-- fix only the source used for `approved_minutes`
+- exact bootstrap path
 
-- choose the narrowest authoritative backend source that already stores the granted value
+- exact token/JWT path
 
-Hard scope:
+- exact claim(s) required
 
-Only touch code directly involved in:
+- exact backend surfaces affected
 
-- `get_device_settings`
+3. Corrected Migration Sequence
 
-- if strictly required, minimal supporting persistence/query path for actual granted minutes
+- ordered phases
 
-- any migration/function needed for this fix
+- minimal safe rollout
 
-What I need returned:
+- how legacy path stays alive temporarily
 
-1. Files Changed
+- what must happen before legacy paths are disabled
 
-- exact file list
+4. Release-Blocking Scope
 
-2. Exact Root Cause
+- must-fix-now items
 
-- exact previous source of `approved_minutes`
+- allowed follow-up items
 
-- why it was wrong
+5. Files / Live Objects Reviewed
 
-3. Exact Fix
+- exact list
 
-- exact function/migration changed
+6. Final Verdict
 
-- exact new source of `approved_minutes`
+One of:
 
-- why it now reflects the real granted value
+- READY FOR IMPLEMENTATION: corrected secure contract model is now locked
 
-4. Exact Code Proof
-
-Paste the real current SQL/code for:
-
-- the `time_request_updates` projection inside `get_device_settings`
-
-- any supporting join/subquery/function changed to source actual approved minutes
-
-5. Behavior Proof
-
-State the result for these exact cases:
-
-- child requested 15, parent approved 15
-
-- child requested 15, parent approved 30
-
-- parent rejected request
-
-For each:
-
-- resulting `time_request_updates` payload
-
-- exact backend code path
-
-6. Deploy Status
-
-- migration created: yes/no
-
-- exact migration file
-
-- deployed: yes/no or UNPROVEN
-
-7. Stage 7 Impact
-
-Return exactly one:
-
-- BLOCKER CLOSED
-
-- BLOCKER NOT CLOSED
+- NOT READY: corrected secure contract model is still ambiguous
 
 Hard rejection conditions:
 
 Your answer will be rejected if you:
 
-- widen scope beyond approved_minutes
+- rely on session variables as the core realtime security model
 
-- redesign the time request model
+- propose multiple equal options
 
-- leave `approved_minutes` sourced from `requested_minutes`
+- skip device_commands
 
-- fail to show the exact updated `get_device_settings` SQL
+- skip migration sequencing
+
+- skip claim-based device scoping
