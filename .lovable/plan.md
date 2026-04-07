@@ -1,82 +1,70 @@
-As CTO who built and knows the whole system, Stage 5 is still open.
+As CTO who built and knows the whole system, Stage 7 is still open.
 
 We are fixing one blocker only.
 
 Task:
 
-Close the backend enforcement contract for the "disconnect device" action.
+Fix the `time_request_updates.approved_minutes` contract so Android receives the actual approved amount, not the originally requested amount.
 
 Business goal:
 
-Disconnecting a child device is a sensitive owner-only action.
+When the parent approves a time request with a specific amount, the Android child contract must reflect the actual granted value consistently.
 
-The backend must enforce this explicitly and deterministically, matching the UI contract.
-
-This is a narrow implementation task.
+This is a narrow backend contract fix.
 
 Do not widen scope.
 
 Do NOT touch:
 
-- chores/co-parent UI filtering
+- device_commands security redesign
 
-- invite co-parent flow
+- blocked_apps / app_policies overlap
 
-- upgrade CTA gating
+- geofence payload shape
 
-- alerts behavior
+- parent UI behavior
 
-- unrelated parent pages
+- Android code
 
-- Android child logic
+- unrelated migrations/functions
 
 Problem to fix:
 
 Current audit shows:
 
-- ChildControlV2 exposes "disconnect device" only to owner in the UI
+- `respond_time_request(p_request_id, p_approved, p_minutes)` accepts the actual granted amount as `p_minutes`
 
-- but backend enforcement is not logically closed
+- but `get_device_settings` currently returns `time_request_updates.approved_minutes` from `time_extension_requests.requested_minutes`
 
-- current path updates `devices.child_id = null` directly
-
-- audit indicates there is no clear UPDATE RLS policy on `devices`
-
-- therefore the action is either broken for everyone or not properly protected in backend
+- therefore Android can receive the wrong approved amount
 
 Required behavior after fix:
 
-1. Disconnect device must be backend-enforced as owner-only.
+1. `time_request_updates.approved_minutes` must reflect the actual granted amount.
 
-2. Co-parent must not be able to disconnect a device.
+2. If a request was rejected, approved_minutes should remain null or absent according to the existing payload style.
 
-3. Unauthorized users must not be able to disconnect another family’s device.
+3. Do not redesign the request-more-time model.
 
-4. The UI contract should remain owner-only.
-
-5. Prefer a dedicated backend path over relying on raw table update from the client.
-
-6. Do not redesign the family model.
+4. Do not change Android payload keys beyond fixing the value source.
 
 Preferred fix shape:
 
-- Add a dedicated RPC/function for disconnecting a device safely
+- keep the existing `time_request_updates` payload shape
 
-- Validate that the target device belongs to a child owned by auth.uid()
+- fix only the source used for `approved_minutes`
 
-- Perform the disconnect in backend
-
-- Update parent-side call site only as needed to use this backend path
+- choose the narrowest authoritative backend source that already stores the granted value
 
 Hard scope:
 
 Only touch code directly involved in:
 
-- disconnect device action in ChildControlV2 (or its hook)
+- `get_device_settings`
 
-- backend SQL/RPC/migration needed for explicit owner-only enforcement
+- if strictly required, minimal supporting persistence/query path for actual granted minutes
 
-- types if required by the changed RPC contract
+- any migration/function needed for this fix
 
 What I need returned:
 
@@ -86,57 +74,43 @@ What I need returned:
 
 2. Exact Root Cause
 
-- exact previous client write path
+- exact previous source of `approved_minutes`
 
-- why backend enforcement was not logically closed before
+- why it was wrong
 
 3. Exact Fix
 
-- exact RPC/function/migration added or changed
+- exact function/migration changed
 
-- exact owner-only authorization rule
+- exact new source of `approved_minutes`
 
-- why co-parent is denied
-
-- why unauthorized users are denied
+- why it now reflects the real granted value
 
 4. Exact Code Proof
 
-Paste the real current code for:
+Paste the real current SQL/code for:
 
-- the backend function/RPC that disconnects the device
+- the `time_request_updates` projection inside `get_device_settings`
 
-- the authorization check inside it
-
-- the updated frontend call site that invokes it
+- any supporting join/subquery/function changed to source actual approved minutes
 
 5. Behavior Proof
 
 State the result for these exact cases:
 
-- owner disconnects child device
+- child requested 15, parent approved 15
 
-- co-parent attempts disconnect
+- child requested 15, parent approved 30
 
-- unrelated authenticated user attempts disconnect
+- parent rejected request
 
 For each:
 
-- result
+- resulting `time_request_updates` payload
 
 - exact backend code path
 
-- whether the device is disconnected or denied
-
-6. Permission Safety
-
-- confirm owner allowed: yes/no
-
-- confirm co-parent allowed: yes/no
-
-- confirm unrelated user allowed: yes/no
-
-7. Deploy / Type Status
+6. Deploy Status
 
 - migration created: yes/no
 
@@ -144,9 +118,7 @@ For each:
 
 - deployed: yes/no or UNPROVEN
 
-- frontend typecheck status if provable, otherwise UNPROVEN
-
-8. Stage 5 Impact
+7. Stage 7 Impact
 
 Return exactly one:
 
@@ -158,10 +130,10 @@ Hard rejection conditions:
 
 Your answer will be rejected if you:
 
-- patch only the UI
+- widen scope beyond approved_minutes
 
-- continue using raw client update without explicit backend enforcement
+- redesign the time request model
 
-- allow co-parent to disconnect
+- leave `approved_minutes` sourced from `requested_minutes`
 
-- fail to show the exact authorization SQL
+- fail to show the exact updated `get_device_settings` SQL
