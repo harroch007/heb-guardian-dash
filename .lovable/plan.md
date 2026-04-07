@@ -1,78 +1,82 @@
-As CTO who built and knows the whole system, Stage 3B is still open.
+As CTO who built and knows the whole system, Stage 5 is still open.
 
 We are fixing one blocker only.
 
 Task:
 
-Add deterministic child sync-back for geofence configuration changes.
+Close the backend enforcement contract for the "disconnect device" action.
 
 Business goal:
 
-Whenever geofence configuration changes, the child device must receive REFRESH_SETTINGS deterministically, not wait for the next natural poll.
+Disconnecting a child device is a sensitive owner-only action.
+
+The backend must enforce this explicitly and deterministically, matching the UI contract.
 
 This is a narrow implementation task.
 
 Do not widen scope.
 
-Important:
+Do NOT touch:
 
-Do NOT change the geofence payload shape.
+- chores/co-parent UI filtering
 
-Do NOT redesign HOME/SCHOOL vs manual contract.
+- invite co-parent flow
 
-Do NOT touch parent UI behavior unless absolutely required.
+- upgrade CTA gating
 
-Do NOT change permissions/RLS unless strictly required for this specific fix.
+- alerts behavior
 
-Do NOT touch Android code.
+- unrelated parent pages
+
+- Android child logic
 
 Problem to fix:
 
 Current audit shows:
 
-- parent geofence write paths update child_places and child_geofence_settings directly
+- ChildControlV2 exposes "disconnect device" only to owner in the UI
 
-- but no REFRESH_SETTINGS command is inserted after those writes
+- but backend enforcement is not logically closed
 
-- therefore child sync-back is not deterministic
+- current path updates `devices.child_id = null` directly
+
+- audit indicates there is no clear UPDATE RLS policy on `devices`
+
+- therefore the action is either broken for everyone or not properly protected in backend
 
 Required behavior after fix:
 
-1. Any successful geofence config change must enqueue REFRESH_SETTINGS for that child’s device(s).
+1. Disconnect device must be backend-enforced as owner-only.
 
-2. This must cover:
+2. Co-parent must not be able to disconnect a device.
 
-   - HOME create/update/delete
+3. Unauthorized users must not be able to disconnect another family’s device.
 
-   - SCHOOL create/update/delete
+4. The UI contract should remain owner-only.
 
-   - MANUAL create/update/update-is_active
+5. Prefer a dedicated backend path over relying on raw table update from the client.
 
-   - child_geofence_settings insert/update
-
-3. Existing payload contract must remain unchanged.
-
-4. Existing owner/co-parent permissions must remain unchanged.
-
-5. Do not redesign the geofence model.
+6. Do not redesign the family model.
 
 Preferred fix shape:
 
-Implement this in backend so all current write paths are covered automatically.
+- Add a dedicated RPC/function for disconnecting a device safely
 
-Prefer trigger/function-based sync-back on the geofence tables rather than duplicating command insertion in multiple UI hooks.
+- Validate that the target device belongs to a child owned by auth.uid()
+
+- Perform the disconnect in backend
+
+- Update parent-side call site only as needed to use this backend path
 
 Hard scope:
 
 Only touch code directly involved in:
 
-- child_places change handling
+- disconnect device action in ChildControlV2 (or its hook)
 
-- child_geofence_settings change handling
+- backend SQL/RPC/migration needed for explicit owner-only enforcement
 
-- device_commands insertion for REFRESH_SETTINGS
-
-- minimal migration SQL / backend objects required
+- types if required by the changed RPC contract
 
 What I need returned:
 
@@ -82,61 +86,57 @@ What I need returned:
 
 2. Exact Root Cause
 
-- exact previous write paths
+- exact previous client write path
 
-- why child sync-back was non-deterministic before
+- why backend enforcement was not logically closed before
 
 3. Exact Fix
 
-- exact trigger/function/migration added or changed
+- exact RPC/function/migration added or changed
 
-- which table events now enqueue REFRESH_SETTINGS
+- exact owner-only authorization rule
 
-- why this covers all current parent write paths
+- why co-parent is denied
+
+- why unauthorized users are denied
 
 4. Exact Code Proof
 
-Paste the real current SQL for:
+Paste the real current code for:
 
-- the trigger function that inserts REFRESH_SETTINGS
+- the backend function/RPC that disconnects the device
 
-- trigger(s) on child_places
+- the authorization check inside it
 
-- trigger(s) on child_geofence_settings
+- the updated frontend call site that invokes it
 
 5. Behavior Proof
 
 State the result for these exact cases:
 
-- owner updates HOME radius
+- owner disconnects child device
 
-- co-parent updates SCHOOL settings
+- co-parent attempts disconnect
 
-- owner adds MANUAL place
-
-- co-parent deactivates MANUAL place
-
-- owner deletes HOME
+- unrelated authenticated user attempts disconnect
 
 For each:
 
-- whether REFRESH_SETTINGS is inserted
+- result
 
-- how child_id is resolved
+- exact backend code path
 
-- exact code path
+- whether the device is disconnected or denied
 
 6. Permission Safety
 
-- confirm owner still works
+- confirm owner allowed: yes/no
 
-- confirm co-parent still works
+- confirm co-parent allowed: yes/no
 
-- confirm unauthorized users still cannot modify another child’s config
+- confirm unrelated user allowed: yes/no
 
-- exact RLS/auth references if touched
-
-7. Deploy / Migration Status
+7. Deploy / Type Status
 
 - migration created: yes/no
 
@@ -144,7 +144,9 @@ For each:
 
 - deployed: yes/no or UNPROVEN
 
-8. Stage 3B Impact
+- frontend typecheck status if provable, otherwise UNPROVEN
+
+8. Stage 5 Impact
 
 Return exactly one:
 
@@ -156,12 +158,10 @@ Hard rejection conditions:
 
 Your answer will be rejected if you:
 
-- change payload shape
+- patch only the UI
 
-- redesign HOME/SCHOOL vs manual contract
+- continue using raw client update without explicit backend enforcement
 
-- patch only one UI hook instead of closing the backend write surface
+- allow co-parent to disconnect
 
-- fail to cover both child_places and child_geofence_settings
-
-- fail to show the exact trigger/function SQL
+- fail to show the exact authorization SQL
