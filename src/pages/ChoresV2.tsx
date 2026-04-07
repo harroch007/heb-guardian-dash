@@ -44,7 +44,6 @@ export default function ChoresV2() {
     supabase
       .from("children")
       .select("id, name")
-      .eq("parent_id", user.id)
       .then(({ data }) => {
         const kids = (data || []) as Child[];
         setChildren(kids);
