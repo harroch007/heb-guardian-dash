@@ -21,6 +21,10 @@ Android client now uses device-scoped JWT auth session (established via bootstra
 
 `get_device_settings` hardened with fail-closed device-only authorization: (1) `EXECUTE` revoked from `PUBLIC` and `anon`, granted only to `authenticated`. (2) Three-step fail-closed gate inside function: `auth.role()` must be `authenticated`, `app_metadata.role` must be `device`, and JWT `device_id` must match `p_device_id`. Generic authenticated callers (parents, admins) are explicitly denied with `UNAUTHORIZED`. service_role callers are denied through the `auth.role()` gate. No parent/co-parent access path exists.
 
-## Phase 4B+: PENDING (follow-up)
+## Phase 4B: COMPLETE ✅
 
-Harden remaining Android-facing RPCs: `update_device_status`, `report_device_heartbeat`, `create_alert`, `report_installed_apps`, and INSERT policies on alerts/app_usage/blocked_app_attempts.
+`update_device_status` hardened with fail-closed device-only authorization and overload consolidation: (1) 6-param authoritative version now enforces three-step gate: `auth.role()` must be `authenticated`, `app_metadata.role` must be `device`, JWT `device_id` must match `p_device_id`. (2) Insert-on-missing fallback removed — raises `DEVICE_NOT_FOUND_OR_NOT_PAIRED` if device row doesn't exist. (3) Legacy 4-param overload converted to thin compatibility shim delegating to authoritative 6-param path. (4) `EXECUTE` revoked from `PUBLIC` and `anon` on both overloads, granted only to `authenticated`.
+
+## Phase 4C+: PENDING (follow-up)
+
+Harden remaining Android-facing RPCs: `report_device_heartbeat`, `create_alert`, `report_installed_apps`, and INSERT policies on alerts/app_usage/blocked_app_attempts.
