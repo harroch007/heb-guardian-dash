@@ -9,13 +9,13 @@ Bootstrap: `bootstrap-device-auth` edge function deployed — calls `pair_device
 
 No breaking changes. Legacy anon path untouched.
 
-## Phase 2: PENDING
+## Phase 2: COMPLETE ✅
 
-Add JWT-aware RLS policies on `device_commands` (additive). Migrate RPCs to extract device_id from JWT claims.
+Android client now uses device-scoped JWT auth session (established via bootstrap).
 
-## Phase 3: PENDING
+## Phase 3: COMPLETE ✅
 
-Drop legacy anon `qual: true` policies after Android rollout confirmation.
+`device_commands` hardened: dropped legacy anon `USING (true)` SELECT/UPDATE policies, replaced with JWT-scoped `authenticated` policies using `get_device_id_from_jwt()` helper. Devices can now only read/update their own command rows. Parent/admin INSERT policies unchanged.
 
 ## Phase 4: PENDING (follow-up)
 
