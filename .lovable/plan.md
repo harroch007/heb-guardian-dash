@@ -1,78 +1,78 @@
-As CTO who built and knows the whole system, Stage 2B is still open.
+As CTO who built and knows the whole system, Stage 3B is still open.
 
 We are fixing one blocker only.
 
 Task:
 
-Fix the respond_time_request backend contract so that both owner and co-parent can approve or reject a time request.
+Add deterministic child sync-back for geofence configuration changes.
 
 Business goal:
 
-A co-parent who is authorized in the family model must be able to respond to a pending time request, not just view it.
+Whenever geofence configuration changes, the child device must receive REFRESH_SETTINGS deterministically, not wait for the next natural poll.
 
 This is a narrow implementation task.
 
 Do not widen scope.
 
-Do NOT touch:
+Important:
 
-- request creation flow
+Do NOT change the geofence payload shape.
 
-- request TTL / cleanup
+Do NOT redesign HOME/SCHOOL vs manual contract.
 
-- realtime subscriptions
+Do NOT touch parent UI behavior unless absolutely required.
 
-- hardcoded 15-minute UI behavior
+Do NOT change permissions/RLS unless strictly required for this specific fix.
 
-- notification matrix beyond what is already required by the existing RPC
-
-- Android child logic
-
-- unrelated refactors
+Do NOT touch Android code.
 
 Problem to fix:
 
 Current audit shows:
 
-- request_extra_time creates the row with parent_id = owner
+- parent geofence write paths update child_places and child_geofence_settings directly
 
-- respond_time_request filters with WHERE id = p_request_id AND parent_id = auth.uid()
+- but no REFRESH_SETTINGS command is inserted after those writes
 
-- therefore co-parent callers get REQUEST_NOT_FOUND even though co-parent access is intended and RLS was updated
+- therefore child sync-back is not deterministic
 
 Required behavior after fix:
 
-1. Owner can approve/reject their child’s pending request.
+1. Any successful geofence config change must enqueue REFRESH_SETTINGS for that child’s device(s).
 
-2. Co-parent can also approve/reject the same pending request if they are authorized for that child/family.
+2. This must cover:
 
-3. Double response must still be prevented.
+   - HOME create/update/delete
 
-4. Existing status transitions must remain:
+   - SCHOOL create/update/delete
 
-   - pending -> approved
+   - MANUAL create/update/update-is_active
 
-   - pending -> rejected
+   - child_geofence_settings insert/update
 
-5. Approve path must still insert bonus_time_grants and REFRESH_SETTINGS exactly as before.
+3. Existing payload contract must remain unchanged.
 
-6. Reject path behavior must remain unchanged for this task.
+4. Existing owner/co-parent permissions must remain unchanged.
 
-7. Do not redesign the family authorization model.
+5. Do not redesign the geofence model.
+
+Preferred fix shape:
+
+Implement this in backend so all current write paths are covered automatically.
+
+Prefer trigger/function-based sync-back on the geofence tables rather than duplicating command insertion in multiple UI hooks.
 
 Hard scope:
 
 Only touch code directly involved in:
 
-- respond_time_request RPC/function
+- child_places change handling
 
-- the minimal SQL authorization check needed to validate owner/co-parent access
+- child_geofence_settings change handling
 
-- types if required by the changed function signature/body
+- device_commands insertion for REFRESH_SETTINGS
 
-- parent-side code only if strictly required by the same existing RPC contract
-
-Do not change the request_extra_time RPC for this task.
+- minimal migration SQL / backend objects required
 
 What I need returned:
 
@@ -82,61 +82,69 @@ What I need returned:
 
 2. Exact Root Cause
 
-- exact previous auth/filter logic
+- exact previous write paths
 
-- why co-parent failed before
+- why child sync-back was non-deterministic before
 
 3. Exact Fix
 
-- exact function/migration changed
+- exact trigger/function/migration added or changed
 
-- exact new authorization rule for owner + co-parent
+- which table events now enqueue REFRESH_SETTINGS
 
-- why owner still works
-
-- why co-parent now works
+- why this covers all current parent write paths
 
 4. Exact Code Proof
 
-Paste the real current code for:
+Paste the real current SQL for:
 
-- the authorization lookup section inside respond_time_request
+- the trigger function that inserts REFRESH_SETTINGS
 
-- the status transition guard
+- trigger(s) on child_places
 
-- the approve path insertions (bonus_time_grants and REFRESH_SETTINGS)
+- trigger(s) on child_geofence_settings
 
 5. Behavior Proof
 
 State the result for these exact cases:
 
-- owner approves pending request
+- owner updates HOME radius
 
-- co-parent approves pending request
+- co-parent updates SCHOOL settings
 
-- owner rejects pending request
+- owner adds MANUAL place
 
-- co-parent rejects pending request
+- co-parent deactivates MANUAL place
 
-- second parent tries to respond after first parent already responded
+- owner deletes HOME
 
 For each:
 
-- result
+- whether REFRESH_SETTINGS is inserted
 
-- status transition
+- how child_id is resolved
 
 - exact code path
 
-6. Deploy / Migration Status
+6. Permission Safety
+
+- confirm owner still works
+
+- confirm co-parent still works
+
+- confirm unauthorized users still cannot modify another child’s config
+
+- exact RLS/auth references if touched
+
+7. Deploy / Migration Status
 
 - migration created: yes/no
 
-- if yes: exact migration file
+- exact migration file
 
 - deployed: yes/no or UNPROVEN
 
-7. Stage 2B Impact
+8. Stage 3B Impact
 
 Return exactly one:
 
@@ -148,14 +156,12 @@ Hard rejection conditions:
 
 Your answer will be rejected if you:
 
-- change unrelated flows
+- change payload shape
 
-- redesign the family model
+- redesign HOME/SCHOOL vs manual contract
 
-- break owner behavior
+- patch only one UI hook instead of closing the backend write surface
 
-- allow unauthorized non-family parents
+- fail to cover both child_places and child_geofence_settings
 
-- remove the existing double-response protection
-
-- fail to show the exact updated SQL
+- fail to show the exact trigger/function SQL
