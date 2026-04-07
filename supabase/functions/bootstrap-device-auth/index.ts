@@ -71,37 +71,13 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (existingDevice?.auth_user_id) {
-      // Device already has an auth identity — retrieve existing user and reset password
-      const newPassword = crypto.randomUUID();
-
-      const { error: updatePwError } = await supabaseAdmin.auth.admin.updateUserById(
-        existingDevice.auth_user_id,
-        {
-          password: newPassword,
-          app_metadata: { device_id, child_id: childId, role: "device" },
-        }
-      );
-
-      if (updatePwError) {
-        console.error("Failed to reset device user password:", updatePwError);
-        return new Response(
-          JSON.stringify({ error: "AUTH_UPDATE_FAILED" }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      const deviceEmail = `device-${device_id}@devices.kippy.internal`;
-
+      // Device already bootstrapped — reject. No password reset, no credential minting.
       return new Response(
         JSON.stringify({
-          success: true,
-          child_id: childId,
-          child_name: childName,
-          device_email: deviceEmail,
-          device_password: newPassword,
-          auth_user_id: existingDevice.auth_user_id,
+          success: false,
+          error: "DEVICE_ALREADY_BOOTSTRAPPED",
         }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
