@@ -19,7 +19,7 @@ Android client now uses device-scoped JWT auth session (established via bootstra
 
 ## Phase 4A: COMPLETE ✅
 
-`get_device_settings` hardened: added JWT device-identity gate at function entry. When caller has `role = 'device'` in `app_metadata`, `p_device_id` must match JWT `device_id` claim or the call returns `DEVICE_ID_MISMATCH`. Parent/admin callers unaffected.
+`get_device_settings` hardened with two layers: (1) `EXECUTE` revoked from `PUBLIC` and `anon`, granted only to `authenticated` — anon callers cannot invoke at all. (2) JWT device-identity gate at function entry: when caller has `role = 'device'` in `app_metadata`, `p_device_id` must match JWT `device_id` claim or the call returns `DEVICE_ID_MISMATCH`. Parent/admin callers (authenticated, non-device role) pass through safely.
 
 ## Phase 4B+: PENDING (follow-up)
 
