@@ -383,7 +383,7 @@ export default function ChildControlV2() {
   const handleDisconnectDevice = async () => {
     if (!device?.device_id) return;
     setDisconnecting(true);
-    const { error } = await supabase.from("devices").update({ child_id: null }).eq("device_id", device.device_id);
+    const { error } = await supabase.rpc("disconnect_device", { p_device_id: device.device_id });
     if (error) {
       toast({ title: "שגיאה", description: "לא ניתן לנתק את המכשיר", variant: "destructive" });
       setDisconnecting(false);
