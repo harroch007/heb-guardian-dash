@@ -2593,6 +2593,7 @@ export type Database = {
       }
       time_extension_requests: {
         Row: {
+          approved_minutes: number | null
           child_id: string
           created_at: string
           id: string
@@ -2603,6 +2604,7 @@ export type Database = {
           status: string
         }
         Insert: {
+          approved_minutes?: number | null
           child_id: string
           created_at?: string
           id?: string
@@ -2613,6 +2615,7 @@ export type Database = {
           status?: string
         }
         Update: {
+          approved_minutes?: number | null
           child_id?: string
           created_at?: string
           id?: string
@@ -3199,7 +3202,7 @@ export type Database = {
         Returns: Json
       }
       respond_time_request: {
-        Args: { p_approved: boolean; p_minutes?: number; p_request_id: string }
+        Args: { p_approved: boolean; p_minutes: number; p_request_id: string }
         Returns: Json
       }
       retry_failed_queue_items: { Args: never; Returns: Json }
