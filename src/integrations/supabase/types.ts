@@ -1884,6 +1884,7 @@ export type Database = {
           last_seen: string | null
           latitude: number | null
           longitude: number | null
+          previous_child_id: string | null
         }
         Insert: {
           address?: string | null
@@ -1898,6 +1899,7 @@ export type Database = {
           last_seen?: string | null
           latitude?: number | null
           longitude?: number | null
+          previous_child_id?: string | null
         }
         Update: {
           address?: string | null
@@ -1912,6 +1914,7 @@ export type Database = {
           last_seen?: string | null
           latitude?: number | null
           longitude?: number | null
+          previous_child_id?: string | null
         }
         Relationships: [
           {
@@ -3016,7 +3019,7 @@ export type Database = {
       }
       delete_all_my_data: { Args: never; Returns: Json }
       delete_child_data: { Args: { p_child_id: string }; Returns: Json }
-      disconnect_device: { Args: { p_device_id: string }; Returns: undefined }
+      disconnect_device: { Args: { p_device_id: string }; Returns: Json }
       export_my_data: { Args: never; Returns: Json }
       generate_new_pairing_code: { Args: { p_child_id: string }; Returns: Json }
       generate_pairing_code: { Args: { p_child_id: string }; Returns: string }
@@ -3050,6 +3053,15 @@ export type Database = {
       }
       get_device_id_from_jwt: { Args: never; Returns: string }
       get_device_settings: { Args: { p_device_id: string }; Returns: Json }
+      get_disconnected_devices: {
+        Args: { p_child_id: string }
+        Returns: {
+          device_id: string
+          device_manufacturer: string
+          device_model: string
+          last_seen: string
+        }[]
+      }
       get_family_owner_id: { Args: never; Returns: string }
       get_parent_daily_report_for_parent: {
         Args: { p_report_date: string }
