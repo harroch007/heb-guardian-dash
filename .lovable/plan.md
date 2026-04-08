@@ -1,136 +1,34 @@
 
+# Stage 7 — Device-Scoped JWT Secure Contract
 
-# Phase 4C: Harden `create_alert` — Device-Only Fail-Closed
+## Phase 1: COMPLETE ✅
 
-## Root Cause
+Schema: `devices.auth_user_id UUID` column added with FK to `auth.users`, index created.
 
-**Insecure trust path**: `create_alert` accepts a bare `p_device_id` and blindly uses it to look up the child, stamp `first_seen_at`, and insert an alert row. No JWT validation. Any caller can spoof any device_id.
+Bootstrap: `bootstrap-device-auth` edge function deployed — calls `pair_device` RPC then creates/reuses a Supabase Auth user per device with `app_metadata: {device_id, child_id, role: "device"}`.
 
-**Grant gap**: `EXECUTE` is granted to `PUBLIC`, meaning even `anon` can call it.
+No breaking changes. Legacy anon path untouched.
 
-## Fix — One Migration
+## Phase 2: COMPLETE ✅
 
-### Step 1: Replace `create_alert` with fail-closed device-only version
+Android client now uses device-scoped JWT auth session (established via bootstrap).
 
-Insert the three-step authorization gate (matching the approved pattern) at the top of the function body, before any data access. Signature, return type, and all payload logic remain identical.
+## Phase 3: COMPLETE ✅
 
-```sql
-CREATE OR REPLACE FUNCTION public.create_alert(
-  p_message text,
-  p_risk_level integer,
-  p_source text,
-  p_device_id text,
-  p_chat_type text DEFAULT 'PRIVATE',
-  p_message_count integer DEFAULT 0,
-  p_contact_hash text DEFAULT NULL,
-  p_pii_redacted_count integer DEFAULT 0,
-  p_sender_display text DEFAULT NULL,
-  p_author_type text DEFAULT 'UNKNOWN',
-  p_chat_name text DEFAULT NULL,
-  p_client_event_id text DEFAULT NULL,
-  p_platform text DEFAULT 'WHATSAPP',
-  p_category text DEFAULT NULL,
-  p_is_processed boolean DEFAULT false,
-  p_ai_verdict text DEFAULT NULL,
-  p_parent_message text DEFAULT NULL
-)
-RETURNS bigint
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path TO 'public'
-AS $$
-DECLARE
-    v_jwt_role text;
-    v_jwt_device_id text;
-    v_child_id UUID;
-    v_alert_id BIGINT;
-BEGIN
-    -- Fail-closed authorization gate: device-only
-    IF auth.role() IS DISTINCT FROM 'authenticated' THEN
-        RAISE EXCEPTION 'UNAUTHORIZED';
-    END IF;
+`device_commands` hardened: dropped legacy anon `USING (true)` SELECT/UPDATE policies, replaced with JWT-scoped `authenticated` policies using `get_device_id_from_jwt()` helper. Devices can now only read/update their own command rows. Parent/admin INSERT policies unchanged.
 
-    v_jwt_role := (auth.jwt() -> 'app_metadata' ->> 'role');
-    IF v_jwt_role IS DISTINCT FROM 'device' THEN
-        RAISE EXCEPTION 'UNAUTHORIZED';
-    END IF;
+## Phase 4A: COMPLETE ✅
 
-    v_jwt_device_id := public.get_device_id_from_jwt();
-    IF v_jwt_device_id IS NULL OR v_jwt_device_id != p_device_id THEN
-        RAISE EXCEPTION 'DEVICE_ID_MISMATCH';
-    END IF;
+`get_device_settings` hardened with fail-closed device-only authorization: (1) `EXECUTE` revoked from `PUBLIC` and `anon`, granted only to `authenticated`. (2) Three-step fail-closed gate inside function: `auth.role()` must be `authenticated`, `app_metadata.role` must be `device`, and JWT `device_id` must match `p_device_id`. Generic authenticated callers (parents, admins) are explicitly denied with `UNAUTHORIZED`. service_role callers are denied through the `auth.role()` gate. No parent/co-parent access path exists.
 
-    -- Authorized: proceed with existing logic
-    UPDATE public.devices
-    SET first_seen_at = COALESCE(first_seen_at, now())
-    WHERE device_id = p_device_id;
+## Phase 4B: COMPLETE ✅
 
-    SELECT child_id INTO v_child_id
-    FROM devices
-    WHERE device_id = p_device_id;
+`update_device_status` hardened with fail-closed device-only authorization and overload consolidation: (1) 6-param authoritative version now enforces three-step gate: `auth.role()` must be `authenticated`, `app_metadata.role` must be `device`, JWT `device_id` must match `p_device_id`. (2) Insert-on-missing fallback removed — raises `DEVICE_NOT_FOUND_OR_NOT_PAIRED` if device row doesn't exist. (3) Legacy 4-param overload converted to thin compatibility shim delegating to authoritative 6-param path. (4) `EXECUTE` revoked from `PUBLIC` and `anon` on both overloads, granted only to `authenticated`.
 
-    INSERT INTO alerts (
-        content, risk_score, sender, sender_display,
-        device_id, chat_type, message_count, child_id,
-        is_processed, should_alert, author_type, chat_name,
-        client_event_id, platform, category, ai_verdict,
-        parent_message
-    ) VALUES (
-        p_message, p_risk_level, p_source, p_sender_display,
-        p_device_id, p_chat_type, p_message_count, v_child_id,
-        p_is_processed, true, p_author_type, p_chat_name,
-        p_client_event_id, p_platform, p_category, p_ai_verdict,
-        p_parent_message
-    )
-    ON CONFLICT (device_id, client_event_id, platform)
-        WHERE client_event_id IS NOT NULL
-    DO UPDATE SET content = alerts.content
-    RETURNING id INTO v_alert_id;
+## Phase 4C: COMPLETE ✅
 
-    RETURN v_alert_id;
-END;
-$$;
-```
+`create_alert` hardened with fail-closed device-only authorization: (1) Three-step gate added: `auth.role()` must be `authenticated`, `app_metadata.role` must be `device`, JWT `device_id` must match `p_device_id`. (2) `EXECUTE` revoked from `PUBLIC` and `anon`, granted only to `authenticated`. (3) Function signature, alert payload shape, and ON CONFLICT dedup logic unchanged. (4) Devices can only create alerts for their own `device_id`.
 
-### Step 2: Lock down EXECUTE grants
+## Phase 4D+: PENDING (follow-up)
 
-```sql
-REVOKE EXECUTE ON FUNCTION public.create_alert(
-  text, integer, text, text, text, integer, text, integer,
-  text, text, text, text, text, text, boolean, text, text
-) FROM PUBLIC;
-
-REVOKE EXECUTE ON FUNCTION public.create_alert(
-  text, integer, text, text, text, integer, text, integer,
-  text, text, text, text, text, text, boolean, text, text
-) FROM anon;
-
-GRANT EXECUTE ON FUNCTION public.create_alert(
-  text, integer, text, text, text, integer, text, integer,
-  text, text, text, text, text, text, boolean, text, text
-) FROM authenticated;
-```
-
-## Access Matrix After Fix
-
-| Caller | Result | Path |
-|---|---|---|
-| Device A → alert for device A | Allowed | All three gates pass |
-| Device A → alert for device B | Denied | `RAISE EXCEPTION 'DEVICE_ID_MISMATCH'` |
-| Authenticated parent/admin | Denied | `RAISE EXCEPTION 'UNAUTHORIZED'` (role != device) |
-| service_role/internal | Denied | `RAISE EXCEPTION 'UNAUTHORIZED'` (auth.role() != authenticated) |
-| anon | Denied | EXECUTE revoked |
-
-## Files Changed
-
-- One new migration file in `supabase/migrations/`
-- `.lovable/plan.md` — update Phase 4C status
-
-## Android Impact
-
-None. The function signature is unchanged. Android already calls with its device JWT session.
-
-## Scope Confirmation
-
-Only `create_alert` is touched. No changes to `get_device_settings`, `device_commands`, `update_device_status`, `report_device_heartbeat`, `report_installed_apps`, bootstrap, or recovery flows.
-
+Harden remaining Android-facing RPCs: `report_device_heartbeat`, `report_installed_apps`, and INSERT policies on app_usage/blocked_app_attempts.
