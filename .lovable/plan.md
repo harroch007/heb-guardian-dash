@@ -25,6 +25,10 @@ Android client now uses device-scoped JWT auth session (established via bootstra
 
 `update_device_status` hardened with fail-closed device-only authorization and overload consolidation: (1) 6-param authoritative version now enforces three-step gate: `auth.role()` must be `authenticated`, `app_metadata.role` must be `device`, JWT `device_id` must match `p_device_id`. (2) Insert-on-missing fallback removed — raises `DEVICE_NOT_FOUND_OR_NOT_PAIRED` if device row doesn't exist. (3) Legacy 4-param overload converted to thin compatibility shim delegating to authoritative 6-param path. (4) `EXECUTE` revoked from `PUBLIC` and `anon` on both overloads, granted only to `authenticated`.
 
-## Phase 4C+: PENDING (follow-up)
+## Phase 4C: COMPLETE ✅
 
-Harden remaining Android-facing RPCs: `report_device_heartbeat`, `create_alert`, `report_installed_apps`, and INSERT policies on alerts/app_usage/blocked_app_attempts.
+`create_alert` hardened with fail-closed device-only authorization: (1) Three-step gate added: `auth.role()` must be `authenticated`, `app_metadata.role` must be `device`, JWT `device_id` must match `p_device_id`. (2) `EXECUTE` revoked from `PUBLIC` and `anon`, granted only to `authenticated`. (3) Function signature, alert payload shape, and ON CONFLICT dedup logic unchanged. (4) Devices can only create alerts for their own `device_id`.
+
+## Phase 4D+: PENDING (follow-up)
+
+Harden remaining Android-facing RPCs: `report_device_heartbeat`, `report_installed_apps`, and INSERT policies on app_usage/blocked_app_attempts.
