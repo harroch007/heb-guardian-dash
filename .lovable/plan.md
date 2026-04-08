@@ -29,6 +29,10 @@ Android client now uses device-scoped JWT auth session (established via bootstra
 
 `create_alert` hardened with fail-closed device-only authorization: (1) Three-step gate added: `auth.role()` must be `authenticated`, `app_metadata.role` must be `device`, JWT `device_id` must match `p_device_id`. (2) `EXECUTE` revoked from `PUBLIC` and `anon`, granted only to `authenticated`. (3) Function signature, alert payload shape, and ON CONFLICT dedup logic unchanged. (4) Devices can only create alerts for their own `device_id`.
 
-## Phase 4D+: PENDING (follow-up)
+## Phase 4D: COMPLETE ✅
 
-Harden remaining Android-facing RPCs: `report_device_heartbeat`, `report_installed_apps`, and INSERT policies on app_usage/blocked_app_attempts.
+`report_device_heartbeat` hardened with fail-closed device-only authorization: (1) Three-step gate added: `auth.role()` must be `authenticated`, `app_metadata.role` must be `device`, JWT `device_id` must match `p_device_id`. (2) `EXECUTE` revoked from `PUBLIC` and `anon`, granted only to `authenticated`. (3) `p_child_id` parameter is now ignored — child identity is resolved server-side from `devices` table using the JWT-validated `device_id`. (4) Function signature unchanged for Android compatibility.
+
+## Phase 4E+: PENDING (follow-up)
+
+Harden remaining Android-facing RPCs: `report_installed_apps`, and INSERT policies on app_usage/blocked_app_attempts.
