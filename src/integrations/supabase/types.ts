@@ -3122,6 +3122,10 @@ export type Database = {
           success: boolean
         }[]
       }
+      reconnect_device: {
+        Args: { p_child_id: string; p_device_id: string }
+        Returns: Json
+      }
       redeem_reward_minutes: {
         Args: { p_child_id: string; p_minutes: number }
         Returns: Json
