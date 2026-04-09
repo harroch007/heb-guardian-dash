@@ -3243,6 +3243,10 @@ export type Database = {
       }
       update_device_status:
         | {
+            Args: { p_battery: number; p_device_id: string }
+            Returns: undefined
+          }
+        | {
             Args: {
               p_battery: number
               p_device_id: string
