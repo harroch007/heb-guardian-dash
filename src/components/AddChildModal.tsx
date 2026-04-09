@@ -137,10 +137,16 @@ export function AddChildModal({ open, onOpenChange, onChildAdded }: AddChildModa
             description: "מספר הטלפון כבר קיים במערכת. אם אתה חושב שמדובר בטעות, פנה לשירות הלקוחות שלנו בכתובת yariv@kippyai.com",
             variant: "destructive",
           });
+        } else if (error.code === '42501' || error.message?.includes('row-level security')) {
+          toast({
+            title: "אין הרשאה",
+            description: "אין לך הרשאה להוסיף ילד. נסה להתנתק ולהתחבר מחדש. אם הבעיה נמשכת, פנה ל-support@kippyai.com",
+            variant: "destructive",
+          });
         } else {
           toast({
             title: "שגיאה",
-            description: "לא ניתן להוסיף את הילד",
+            description: "לא ניתן להוסיף את הילד. נסה שוב מאוחר יותר.",
             variant: "destructive",
           });
         }
