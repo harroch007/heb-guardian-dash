@@ -2950,6 +2950,7 @@ export type Database = {
         Args: { p_date: string; p_lat: number; p_lon: number }
         Returns: string
       }
+      can_access_child_row: { Args: { p_parent_id: string }; Returns: boolean }
       check_unresponsive_devices: { Args: never; Returns: undefined }
       claim_alert_events: {
         Args: { _event_type: string; _lease_seconds?: number; _limit?: number }
