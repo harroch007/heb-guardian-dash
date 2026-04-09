@@ -160,6 +160,13 @@ export function AddChildModal({ open, onOpenChange, onChildAdded }: AddChildModa
     }
   };
 
+  // Call onChildAdded only after step transitions to pairing
+  useEffect(() => {
+    if (step === "pairing" && childId) {
+      onChildAdded();
+    }
+  }, [step, childId]);
+
   useEffect(() => {
     if (!childId || step !== "pairing") return;
 
@@ -168,7 +175,7 @@ export function AddChildModal({ open, onOpenChange, onChildAdded }: AddChildModa
       .on(
         "postgres_changes",
         {
-          event: "*",
+          event: "INSERT",
           schema: "public",
           table: "devices",
           filter: `child_id=eq.${childId}`,

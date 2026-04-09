@@ -57,7 +57,7 @@ export function QRCodeDisplay({ childId, parentId, parentEmail, onFinish }: QRCo
       .on(
         'postgres_changes' as any,
         {
-          event: '*',
+          event: 'INSERT',
           schema: 'public',
           table: 'devices',
           filter: `child_id=eq.${childId}`,
