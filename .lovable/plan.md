@@ -1,57 +1,19 @@
 
 
-## שורש הבעיה
+## תיקון שגיאת `update_device_status` (PGRST203)
 
-ב-`FamilyV2.tsx` שורה 280 יש early return:
-```
-if (loading || roleLoading) {
-  return <Loader2 spinner />;
-}
-```
+### מה קורה עכשיו
+יש 3 גרסאות של הפונקציה `update_device_status` בדאטאבייס. כשהאפליקציה שולחת 4 פרמטרים, PostgREST לא יודע לבחור בין הגרסה עם 4 פרמטרים בדיוק לבין הגרסה עם 6 פרמטרים (שיש לה 2 defaults) — ולכן נכשל.
 
-כש-`onChildAdded` קורא ל-`fetchData()`, הפונקציה מפעילה `setLoading(true)` → הקומפוננטה מחזירה ספינר בלבד → `AddChildModal` נמחק מה-DOM → כשהטעינה נגמרת, המודאל נטען מחדש עם state ריק → חוזרים לטופס במקום למסך חיבור.
+### מה צריך לקרות
+מיגרציה אחת שמוחקת את 2 הגרסאות הישנות (shims) ומשאירה רק את הגרסה הראשית עם 6 פרמטרים. הגרסה הזו כבר כוללת `DEFAULT NULL` לשני הפרמטרים האחרונים, כך שקריאות עם 4 פרמטרים ימשיכו לעבוד.
 
-## תוכנית תיקון
-
-### 1. FamilyV2.tsx — לא להסתיר את המודאל בזמן טעינה
-
-שינוי ה-early return כך שאם המודאל פתוח (`addChildOpen === true`), לא נחזיר את הספינר. במקום זאת, נעביר את הספינר לתוך התוכן הראשי ונשאיר את `AddChildModal` תמיד מרונדר:
-
-```text
-// במקום:
-if (loading || roleLoading) {
-  return <spinner />;
-}
-
-// נשנה ל:
-// הספינר יוצג בתוך ה-layout הראשי, לא כ-early return
-// AddChildModal תמיד ירונדר בתחתית
+### מיגרציה
+```sql
+DROP FUNCTION public.update_device_status(text, integer);
+DROP FUNCTION public.update_device_status(text, integer, double precision, double precision);
 ```
 
-### 2. AddChildModal.tsx — לקרוא ל-onChildAdded רק אחרי שהמעבר לשלב pairing הושלם
-
-להעביר את הקריאה ל-`onChildAdded` ל-`useEffect` שמופעל כש-`step` משתנה ל-`"pairing"`, כדי להבטיח שה-state עודכן לפני שמתחילים את ה-refetch:
-
-```text
-// במקום לקרוא onChildAdded() ישירות ב-handleSubmit
-// נקרא לו ב-useEffect שמאזין ל-step === "pairing"
-```
-
-### 3. QRCodeDisplay — תיקון ה-realtime listener
-
-ה-realtime listener ב-`QRCodeDisplay` מאזין לכל שינוי (`event: '*'`) בטבלת `devices`, כולל שינויים שאינם חיבור חדש. צריך לסנן רק אירועי `INSERT` כדי למנוע זיהוי שגוי של חיבור.
-
-### 4. בעיית "אין נתוני בריאות"
-
-זו בעיה ידועה — ה-heartbeat reporting באפליקציית האנדרואיד (v1.8) לא פעיל עדיין. הפונקציה `sendDeviceHealthStatus` ריקה. זה לא קשור לדשבורד ההורה.
-
----
-
-### פרטים טכניים
-
-**קבצים שישתנו:**
-- `src/pages/FamilyV2.tsx` — שינוי ה-early return כך שלא ימחק את ה-`AddChildModal` בזמן refetch
-- `src/components/AddChildModal.tsx` — העברת `onChildAdded()` ל-effect שמופעל אחרי מעבר ל-pairing
-
-**הבעיה המרכזית:** `setLoading(true)` ב-`fetchData` → early return בשורה 280 → unmount של AddChildModal → איבוד state
+### שינויי קוד
+אין — הדשבורד לא קורא ישירות לפונקציה הזו. רק האנדרואיד משתמש בה.
 
