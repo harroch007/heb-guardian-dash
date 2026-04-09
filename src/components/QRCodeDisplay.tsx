@@ -55,9 +55,9 @@ export function QRCodeDisplay({ childId, parentId, parentEmail, onFinish }: QRCo
     const channel = supabase
       .channel(`device-pair-${childId}`)
       .on(
-        'postgres_changes',
+        'postgres_changes' as any,
         {
-          event: '*',
+          event: 'INSERT',
           schema: 'public',
           table: 'devices',
           filter: `child_id=eq.${childId}`,
