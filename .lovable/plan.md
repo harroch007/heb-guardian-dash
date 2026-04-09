@@ -1,86 +1,75 @@
-## אבחון — שתי בעיות נמצאו בלוגים
 
-### בעיה 1 (קריטית): המכשיר לא מאומת
+מה מצאתי
 
-הלוגים מראים שה-Authorization header מכיל את ה-**anon key** — לא device JWT:
+- זו לא בעיית דאטה שנשארה מהילד הישן.
+- בלוגים של Postgres מופיעה השגיאה המדויקת:
+  `new row violates row-level security policy for table "children"`
+- יש לך רשומת `parents` תקינה, ואין כרגע ילדים קיימים להורה הזה.
+- לכן מקור התקלה הוא ב-RLS/שאילתת ההחזרה בזמן יצירת הילד, לא בנתונים ישנים.
 
-```text
-Authorization=[Bearer eyJ...anon...]
-```
+שורש הבעיה
 
-זה אומר שה-device auth bootstrap לא הופעל, או שהסשן לא נשמר/נטען.
-כל ה-RPCs המוקשחים (`update_device_status`, `report_device_heartbeat`) חסמו `anon` — גם אם החתימה הייתה נכונה, הקריאה הייתה נדחית.
+- ב-`AddChildModal` ההוספה מתבצעת כך:
+  `insert(...).select("id").single()`
+- כלומר: אחרי ה-INSERT המערכת מנסה מיד לעשות `RETURNING/SELECT` על הרשומה החדשה.
+- מדיניות ה-SELECT של `children` הוחלפה ל:
+  `public.is_family_parent(id)`
+- הפונקציה `is_family_parent` בודקת הרשאה ע"י שאילתה חוזרת לטבלת `children`.
+- זה יוצר מצב בעייתי בהחזרת הרשומה שזה עתה נוצרה, ולכן ה-INSERT עם `select()` נופל על RLS למרות שההוספה עצמה אמורה להיות חוקית.
 
-### בעיה 2 (משנית): חתימת RPC לא תואמת
+תוכנית תיקון
 
-האנדרואיד שולח `update_device_status(p_battery, p_device_id)` — 2 פרמטרים בלבד.
-ב-DB קיימים רק:
+1. לתקן את מדיניות ה-RLS של `children`
+   - ליצור פונקציה חדשה שלא שואלת שוב את טבלת `children`, אלא מקבלת את `parent_id` של השורה עצמה.
+   - לדוגמה: פונקציה בסגנון `can_access_child_row(child_id, parent_id)`.
+   - הלוגיקה תישאר זהה:
+     - בעל המשפחה: `parent_id = auth.uid()`
+     - קו-פרנט מאושר: לפי `family_members`
+   - לעדכן את מדיניות ה-SELECT של `children` להשתמש בפונקציה החדשה.
+   - לעדכן גם את מדיניות ה-UPDATE של `children` לאותה גישה, כדי לשמור על עקביות.
 
-- 4 פרמטרים: `(text, integer, double precision, double precision)`
-- 6 פרמטרים: `(text, integer, double precision, double precision, text, text)`
+2. להשאיר את מדיניות ה-INSERT owner-only
+   - לא לשנות את כלל ההוספה:
+     `parent_id = auth.uid()`
+   - זה עדיין נכון ומאובטח.
 
-אין overload ל-2 פרמטרים, לכן PostgREST מחזיר `PGRST202`.
+3. להקשיח את ה-UI של הוספת ילד
+   - ב-`AddChildModal` לשפר טיפול בשגיאות:
+     - אם חוזרת שגיאת RLS, להציג הודעה עברית ברורה יותר במקום ההודעה הגנרית.
+   - להשאיר את הזרימה הנוכחית של מעבר מיידי למסך pairing אחרי יצירה תקינה.
 
-### מה זה מסביר
+4. לסגור חור קטן ב-`FamilyV2`
+   - כרגע `isOwner` מתחיל כברירת מחדל כ-`true` עד שה-role נטען.
+   - לכן כפתור "הוסף ילד" עלול להופיע רגעית גם לפני שסיימנו לוודא הרשאות.
+   - אעדכן את התצוגה כך שכפתור "הוסף ילד" יוצג רק אחרי ש-`roleLoading` הסתיים ורק אם המשתמש באמת owner.
 
-- `update_device_status` נכשל → לכן `last_seen` **לא** מתעדכן (מה שראינו ב-DB שכן זז — זה כנראה היה מגרסה ישנה יותר של האפליקציה שעדיין רצה)
-- `report_device_heartbeat` כנראה גם נכשל מאותן סיבות (anon + אולי חתימה)
-- לא ראינו לוג heartbeat כי אולי הקריאה לא הגיעה בכלל (או שהלוג נחתך)
+בדיקות שאבצע אחרי המימוש
 
----
+- הורה רגיל:
+  - `/family-v2`
+  - "הוסף ילד"
+  - מילוי פרטים
+  - לחיצה על "המשך חיבור מכשיר"
+  - צפייה במעבר תקין למסך pairing בלי שגיאת RLS
+- מחיקה והוספה מחדש:
+  - למחוק ילד
+  - ליצור שוב ילד חדש
+  - לוודא שה-flow עדיין תקין
+- קו-פרנט:
+  - לוודא שכפתור "הוסף ילד" לא מופיע בטעות לפני סיום טעינת ההרשאות
+- מובייל:
+  - לבדוק שהמודאל והטוסטים נראים טוב ב-RTL במסך צר כמו אצלך
 
-## תוכנית תיקון
+פרטים טכניים
 
-### שלב 1: הוראות לסוכן האנדרואיד (אתה מעביר)
-
-**בעיית Auth — עדיפות ראשונה:**
-
-> המכשיר משתמש ב-anon key במקום device session. צריך לוודא שאחרי `bootstrap-device-auth` הסשן נשמר ונטען לפני כל קריאת RPC. בדוק:
->
-> 1. האם `bootstrap-device-auth` רץ בהצלחה בעבר? (חפש לוגים של Bootstrap)
-> 2. האם הסשן נשמר ב-SessionManager/EncryptedPrefs?
-> 3. האם `supabase.auth.currentSessionOrNull()` מחזיר null? (אם כן — זו הבעיה)
-> 4. אם הסשן null — צריך להפעיל מחדש את ה-bootstrap flow
-
-**בעיית חתימה — עדיפות שנייה:**
-
-> `updateStatus` שולח רק `p_battery` ו-`p_device_id`. צריך לשלוח גם `p_lat` ו-`p_lon` (אפילו כ-null). החתימה המינימלית היא 4 פרמטרים.
-
-### שלב 2: תיקון בצד שרת (אופציונלי, כגיבוי)
-
-אם רוצים תמיכה זמנית ב-2 פרמטרים כדי שגרסאות ישנות לא ישברו, אני יכול ליצור migration שמוסיף overload ל-2 פרמטרים שמעביר null ל-lat/lon. אבל זה לא יפתור את בעיית ה-auth — חובה לתקן את ה-bootstrap בצד האנדרואיד.
-
----
-
-## פרומפט מוכן לסוכן האנדרואיד
-
-```text
-שתי בעיות נמצאו:
-
-1. AUTH: המכשיר קורא ל-RPCs עם anon key במקום device JWT.
-   - כל ה-RPCs המוקשחים (update_device_status, report_device_heartbeat) 
-     חסומים ל-anon.
-   - בדוק למה supabase.auth.currentSessionOrNull() מחזיר null.
-   - אם ה-bootstrap רץ בעבר אבל הסשן לא נשמר — תקן את שמירת הסשן.
-   - אם ה-bootstrap לא רץ — הפעל אותו.
-   - אחרי תיקון, הדפס שוב את הלוג KIPPY_DEBUG IDENTITY ווודא 
-     שמופיע role=device ו-device_id=9d5a9132b033a86b.
-
-2. SIGNATURE: updateStatus שולח 2 פרמטרים (p_battery, p_device_id).
-   הפונקציה בשרת מצפה ל-4 לפחות:
-   (p_device_id text, p_battery integer, p_lat double precision, p_lon double precision)
-   - הוסף p_lat ו-p_lon לקריאה (אפשר null אם אין מיקום).
-   - סדר הפרמטרים: p_device_id, p_battery, p_lat, p_lon.
-
-תיקון 1 (auth) הוא קריטי. בלעדיו שום RPC לא יעבוד.
-תיקון 2 (signature) הוא חובה כדי שהקריאה תתאים לחתימה בשרת.
-```
-
-### פרטים טכניים
-
-- Migration שהגדיר את ה-overloads: `20260407145242_e13a215e-dd30-4926-8ade-653ebd90d6f2.sql`
-- ה-REVOKE מ-anon נעשה בשלב 3 של אותו migration
-- ה-bootstrap edge function: `supabase/functions/bootstrap-device-auth/index.ts`  
-  
-  
-`נתתי לו לבצע, אתה תבצע רק את החלק שלך ואשלח לך את מה שביצע` 
+- קובץ UI מושפע:
+  - `src/components/AddChildModal.tsx`
+  - `src/pages/FamilyV2.tsx`
+- מקור מדיניות בעייתי:
+  - `supabase/migrations/20260403112354_3ecf9632-c801-48a0-a805-92c9d030c3a9.sql`
+- הסיבה הסבירה לנפילה:
+  - `children` SELECT policy תלויה בפונקציה שמבצעת query חוזר על `children`, וזה לא מתאים ל-`INSERT ... RETURNING` / `.select().single()`
+- תיקון נכון הוא DB-first:
+  - לא למחוק נתונים
+  - לא לעקוף אבטחה
+  - אלא לנסח RLS שמבוסס על עמודות השורה עצמה במקום query חוזר לאותה טבלה
