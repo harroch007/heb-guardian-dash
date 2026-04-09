@@ -277,7 +277,7 @@ const FamilyV2 = () => {
   const premiumCount = children.filter((c) => c.subscription_tier === "premium").length;
   const hasFreeChildren = children.some((c) => c.subscription_tier !== "premium");
 
-  if (loading || roleLoading) {
+  if ((loading || roleLoading) && !addChildOpen) {
     return (
       <div className="homev2-light min-h-screen flex items-center justify-center" dir="rtl">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />

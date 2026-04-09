@@ -155,7 +155,6 @@ export function AddChildModal({ open, onOpenChange, onChildAdded }: AddChildModa
 
       setChildId(data.id);
       setStep("pairing");
-      onChildAdded();
     } finally {
       setLoading(false);
     }
