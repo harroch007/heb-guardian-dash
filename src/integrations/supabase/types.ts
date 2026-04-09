@@ -3242,31 +3242,17 @@ export type Database = {
         Args: { p_device_id: string; p_settings: Json }
         Returns: Json
       }
-      update_device_status:
-        | {
-            Args: { p_battery: number; p_device_id: string }
-            Returns: undefined
-          }
-        | {
-            Args: {
-              p_battery: number
-              p_device_id: string
-              p_lat: number
-              p_lon: number
-            }
-            Returns: undefined
-          }
-        | {
-            Args: {
-              p_battery: number
-              p_device_id: string
-              p_device_manufacturer?: string
-              p_device_model?: string
-              p_lat: number
-              p_lon: number
-            }
-            Returns: undefined
-          }
+      update_device_status: {
+        Args: {
+          p_battery: number
+          p_device_id: string
+          p_device_manufacturer?: string
+          p_device_model?: string
+          p_lat: number
+          p_lon: number
+        }
+        Returns: undefined
+      }
       upsert_ai_engine_health: {
         Args: {
           p_child_id?: string
