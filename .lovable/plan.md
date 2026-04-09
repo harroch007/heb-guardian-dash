@@ -1,146 +1,86 @@
-מסקנה כרגע: הבעיה כבר לא נראית כמו "צריך גרסה חדשה". לפי הממצאים, צריך לבדוק למה קריאת ה-heartbeat החי לא נכתבת בפועל ל-DB של הפרויקט, למרות ש-`update_device_status` כן מצליח.
+## אבחון — שתי בעיות נמצאו בלוגים
 
-מה בדקתי
+### בעיה 1 (קריטית): המכשיר לא מאומת
 
-- ב-DB יש למכשיר `9d5a9132b033a86b`:
-  - `devices.last_seen = 2026-04-09 09:14:07+00`
-  - heartbeat אחרון ב-`device_heartbeats_raw` עדיין מ-`2026-04-03 15:07:00+00`
-- כלומר:
-  - המסלול של `update_device_status(...)` כן עובד
-  - המסלול של `report_device_heartbeat(...)` לא משתקף כרגע בנתונים
-- קראתי את קוד הווב:
-  - `useChildControls.ts` טוען את מצב ההרשאות דרך `get_child_device_health`
-  - `get_child_device_health` מחזיר את ה-heartbeat האחרון מ-`device_heartbeats_raw`
-  - `DeviceHealthBanner` מציג `reportedAt` מתוך אותו heartbeat
-- לכן הדשבורד של ההורה לא “ממציא” מצב; הוא פשוט מציג את ה-heartbeat האחרון שנשמר.
-
-מה זה אומר בפועל
-
-- אם האנדרואיד באמת שולח heartbeat חי, הוא צריך להופיע ב-`device_heartbeats_raw`.
-- כרגע זה לא קורה, או שהוא נשלח לפרויקט/זהות/סשן אחר, או שהקריאה נכשלת לפני/בזמן ה-RPC.
-
-ההשערות הכי סבירות עכשיו
-
-1. האפליקציה מחוברת עם סשן לא נכון
-
-- `report_device_heartbeat` דורש JWT של device user עם:
-  - `auth.role() = authenticated`
-  - `app_metadata.role = 'device'`
-  - `app_metadata.device_id = p_device_id`
-- אם במצב הדיבוג באנדרואיד יש session אחר, Parent session, או device user אחר — `update_device_status` וה-heartbeat לא בהכרח ירוצו מאותו הקשר כמו שאתם חושבים.
-
-2. האפליקציה מצביעה לפרויקט Supabase אחר
-
-- אם Android Studio רץ מול env אחר, הוא יכול “לעבוד בלייב” אבל לכתוב למקום אחר.
-- זה מסביר היטב מצב שבו אתה רואה לוגים באנדרואיד, אבל אצלנו אין row חדש ב-`device_heartbeats_raw`.
-
-3. הקריאה ל-`reportDeviceHeartbeat` נכשלת בשקט
-
-- למשל:
-  - שגיאת auth
-  - `DEVICE_ID_MISMATCH`
-  - בעיית serialization של JSON
-  - קריאת RPC שלא awaited נכון / exception נבלע
-- זה מתאים למצב שבו `last_seen` כן זז, אבל heartbeat לא נכתב.
-
-4. נשלח timestamp ישן מהמכשיר
-
-- ה-RPC שומר `coalesce(p_timestamp, now())`, כלומר אם האנדרואיד שולח `timestamp` מפורש והוא ישן, ה-row כן ייכתב אבל עם `reported_at` ישן.
-- זה פחות סביר כאן, כי היינו מצפים לפחות לראות rows חדשים/IDs חדשים, אבל בדיווח שראיתי אין סימן לזה עבור המכשיר הזה.
-
-מה הייתי בודק מול סוכן האנדרואיד, בדיוק
-
-1. הוכחת כתיבה אמיתית ל-project הנכון
-
-- מיד אחרי `reportDeviceHeartbeat(...)`, שידפיס:
-  - project URL
-  - user id של הסשן
-  - claims של JWT: `role`, `app_metadata.role`, `app_metadata.device_id`
-  - `deviceId` שנשלח ל-RPC
-  - `timestamp` שנשלח
-  - success/error מלא מה-Supabase client
-
-2. הוכחת RPC אמיתית, לא רק לוג לפני הקריאה
-
-- לא מספיק לוג `"Reporting full heartbeat"`.
-- צריך לוג אחרי הקריאה:
-  - `reportDeviceHeartbeat success`
-  - או `reportDeviceHeartbeat failed: ...`
-
-3. השוואת זהות בין שני המסלולים
-
-- באותו רגע, מאותו worker/run:
-  - `update_device_status(...)`
-  - `report_device_heartbeat(...)`
-- אם הראשון מצליח והשני נכשל, כמעט בטוח שמדובר ב-auth/device-identity mismatch או payload issue.
-
-4. בדיקה שה-device session הוא אכן device-scoped
-
-- בגלל שה-RPC מוקשח, Parent token לא יעבוד.
-- צריך לוודא שהמכשיר משתמש ב-session שנוצר אחרי bootstrap של device auth, לא session ישן אחר.
-
-5. בדיקת env
-
-- לוודא שב-debug build ה-`SUPABASE_URL` וה-key מצביעים בדיוק על:
-  - project ref: `fsedenvbdpctzoznppwo`
-
-הסבר פשוט למה הדשבורד ממשיך להציג מידע ישן
+הלוגים מראים שה-Authorization header מכיל את ה-**anon key** — לא device JWT:
 
 ```text
-Android update_device_status  -> מעדכן devices.last_seen
-Android report_device_heartbeat -> מוסיף שורה ל-device_heartbeats_raw
-get_child_device_health -> קורא heartbeat אחרון בלבד
-DeviceHealthBanner -> מציג permissions + reported_at מאותה שורה
+Authorization=[Bearer eyJ...anon...]
 ```
 
-לכן ייתכן לגמרי המצב הבא:
+זה אומר שה-device auth bootstrap לא הופעל, או שהסשן לא נשמר/נטען.
+כל ה-RPCs המוקשחים (`update_device_status`, `report_device_heartbeat`) חסמו `anon` — גם אם החתימה הייתה נכונה, הקריאה הייתה נדחית.
 
-- "המכשיר מחובר" = נכון
-- "כל ההרשאות פעילות" = נכון רק לפי ה-heartbeat האחרון
-- "דווח לפני 5 ימים" = גם נכון, כי לא נשמר heartbeat חדש
+### בעיה 2 (משנית): חתימת RPC לא תואמת
 
-תוכנית פעולה מומלצת
+האנדרואיד שולח `update_device_status(p_battery, p_device_id)` — 2 פרמטרים בלבד.
+ב-DB קיימים רק:
 
-1. לא להתמקד כרגע בגרסה
+- 4 פרמטרים: `(text, integer, double precision, double precision)`
+- 6 פרמטרים: `(text, integer, double precision, double precision, text, text)`
 
-- לקבל שזה לא בהכרח issue של build/version.
+אין overload ל-2 פרמטרים, לכן PostgREST מחזיר `PGRST202`.
 
-2. לבקש מהסוכן הוכחה ברמת runtime
+### מה זה מסביר
 
-- צילום לוגים של:
-  - ה-URL של Supabase
-  - device JWT claims
-  - ה-response המלא מ-`reportDeviceHeartbeat`
+- `update_device_status` נכשל → לכן `last_seen` **לא** מתעדכן (מה שראינו ב-DB שכן זז — זה כנראה היה מגרסה ישנה יותר של האפליקציה שעדיין רצה)
+- `report_device_heartbeat` כנראה גם נכשל מאותן סיבות (anon + אולי חתימה)
+- לא ראינו לוג heartbeat כי אולי הקריאה לא הגיעה בכלל (או שהלוג נחתך)
 
-3. לבצע heartbeat ידני מיידי
+---
 
-- להפעיל worker או trigger ידני
-- ואז לבדוק האם נוצר row חדש למכשיר הזה ב-`device_heartbeats_raw`
+## תוכנית תיקון
 
-4. אם עדיין אין row חדש
+### שלב 1: הוראות לסוכן האנדרואיד (אתה מעביר)
 
-- לבדוק אחד משלושה:
-  - project mismatch
-  - session mismatch
-  - RPC failure swallowed
+**בעיית Auth — עדיפות ראשונה:**
 
-5. שיפור וובי מומלץ בהמשך
+> המכשיר משתמש ב-anon key במקום device session. צריך לוודא שאחרי `bootstrap-device-auth` הסשן נשמר ונטען לפני כל קריאת RPC. בדוק:
+>
+> 1. האם `bootstrap-device-auth` רץ בהצלחה בעבר? (חפש לוגים של Bootstrap)
+> 2. האם הסשן נשמר ב-SessionManager/EncryptedPrefs?
+> 3. האם `supabase.auth.currentSessionOrNull()` מחזיר null? (אם כן — זו הבעיה)
+> 4. אם הסשן null — צריך להפעיל מחדש את ה-bootstrap flow
 
-- להוסיף בדשבורד הבחנה ברורה בין:
-  - "מחובר לשרת" (`last_seen`)
-  - "דיווח הרשאות אחרון" (`reportedAt`)
-- כך ההורה יבין מיד שהמכשיר אונליין אבל telemetry/heartbeat לא מתעדכן.
+**בעיית חתימה — עדיפות שנייה:**
 
-פרטים טכניים
+> `updateStatus` שולח רק `p_battery` ו-`p_device_id`. צריך לשלוח גם `p_lat` ו-`p_lon` (אפילו כ-null). החתימה המינימלית היא 4 פרמטרים.
 
-- מקור ה-UI:
-  - `src/hooks/useChildControls.ts`
-  - `supabase/migrations/20260307225538_68c775b7-b33d-429c-ab0e-ab9cf809afc2.sql` (`get_child_device_health`)
-- אבטחת heartbeat:
-  - `supabase/migrations/20260408201339_c0bf8d89-b5da-40d7-b015-f867fca200ec.sql`
-- אבטחת device status:
-  - `supabase/migrations/20260407145242_e13a215e-dd30-4926-8ade-653ebd90d6f2.sql`
+### שלב 2: תיקון בצד שרת (אופציונלי, כגיבוי)
 
-אם תאשר, בשלב הבא אבנה לך תוכנית בדיקה מאוד ממוקדת לסוכן האנדרואיד: בדיוק אילו 6 שורות לוג להוסיף, מה הוא צריך להדפיס, ואיך נוכל לדעת תוך דקה אם הבעיה היא auth, project, או timestamp.  
+אם רוצים תמיכה זמנית ב-2 פרמטרים כדי שגרסאות ישנות לא ישברו, אני יכול ליצור migration שמוסיף overload ל-2 פרמטרים שמעביר null ל-lat/lon. אבל זה לא יפתור את בעיית ה-auth — חובה לתקן את ה-bootstrap בצד האנדרואיד.
+
+---
+
+## פרומפט מוכן לסוכן האנדרואיד
+
+```text
+שתי בעיות נמצאו:
+
+1. AUTH: המכשיר קורא ל-RPCs עם anon key במקום device JWT.
+   - כל ה-RPCs המוקשחים (update_device_status, report_device_heartbeat) 
+     חסומים ל-anon.
+   - בדוק למה supabase.auth.currentSessionOrNull() מחזיר null.
+   - אם ה-bootstrap רץ בעבר אבל הסשן לא נשמר — תקן את שמירת הסשן.
+   - אם ה-bootstrap לא רץ — הפעל אותו.
+   - אחרי תיקון, הדפס שוב את הלוג KIPPY_DEBUG IDENTITY ווודא 
+     שמופיע role=device ו-device_id=9d5a9132b033a86b.
+
+2. SIGNATURE: updateStatus שולח 2 פרמטרים (p_battery, p_device_id).
+   הפונקציה בשרת מצפה ל-4 לפחות:
+   (p_device_id text, p_battery integer, p_lat double precision, p_lon double precision)
+   - הוסף p_lat ו-p_lon לקריאה (אפשר null אם אין מיקום).
+   - סדר הפרמטרים: p_device_id, p_battery, p_lat, p_lon.
+
+תיקון 1 (auth) הוא קריטי. בלעדיו שום RPC לא יעבוד.
+תיקון 2 (signature) הוא חובה כדי שהקריאה תתאים לחתימה בשרת.
+```
+
+### פרטים טכניים
+
+- Migration שהגדיר את ה-overloads: `20260407145242_e13a215e-dd30-4926-8ade-653ebd90d6f2.sql`
+- ה-REVOKE מ-anon נעשה בשלב 3 של אותו migration
+- ה-bootstrap edge function: `supabase/functions/bootstrap-device-auth/index.ts`  
   
-בנוסף תכתוב לי פרומט מפורט מה אתה רוצה בדיוק שהוסכן של אנדרואיד יחזיר לך כדי להיות בטוח ב100% שאנחנו מטפלים בבעיה הזאת אחת ולתמיד
+  
+`נתתי לו לבצע, אתה תבצע רק את החלק שלך ואשלח לך את מה שביצע` 
