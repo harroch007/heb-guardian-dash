@@ -347,7 +347,7 @@ const AlertsV2 = () => {
               onFeedbackChange={handleFeedbackChange}
             />
           ) : (
-            <EmptyAlertsState />
+            <EmptyAlertsState hasPremium={hasPremium} />
           )
         ) : activeTab === 'positive' ? (
           positiveAlerts.length > 0 ? (

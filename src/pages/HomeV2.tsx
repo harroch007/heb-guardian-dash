@@ -334,6 +334,7 @@ const HomeV2 = () => {
           connectedCount={connectedCount}
           openIssues={openIssues}
           permissionIssueCount={totalPermIssues}
+          hasPremium={hasPremium}
         />
 
         {childrenData.length === 0 ? (

@@ -1,10 +1,12 @@
-import { Users, ShieldCheck, AlertTriangle, Wifi } from "lucide-react";
+import { Users, ShieldCheck, AlertTriangle, Wifi, Crown } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface FamilyStatusHeroProps {
   childrenCount: number;
   connectedCount: number;
   openIssues: number;
   permissionIssueCount: number;
+  hasPremium: boolean;
 }
 
 export const FamilyStatusHero = ({
@@ -12,7 +14,9 @@ export const FamilyStatusHero = ({
   connectedCount,
   openIssues,
   permissionIssueCount,
+  hasPremium,
 }: FamilyStatusHeroProps) => {
+  const navigate = useNavigate();
   const allConnected = connectedCount === childrenCount && childrenCount > 0;
   const hasIssues = openIssues > 0;
 
@@ -20,18 +24,32 @@ export const FamilyStatusHero = ({
     <div className="rounded-2xl bg-gradient-to-bl from-blue-50 to-indigo-50 border border-blue-100 p-4">
       {/* Status line */}
       <div className="flex items-center gap-2 mb-4">
-        {hasIssues ? (
-          <AlertTriangle className="h-5 w-5 text-amber-500" />
+        {!hasPremium ? (
+          <>
+            <Crown className="h-5 w-5 text-amber-500" />
+            <span className="text-sm font-semibold text-gray-800">
+              שדרגו לפרימיום כדי להפעיל ניטור חכם
+            </span>
+          </>
+        ) : hasIssues ? (
+          <>
+            <AlertTriangle className="h-5 w-5 text-amber-500" />
+            <span className="text-sm font-semibold text-gray-800">
+              יש נושאים שדורשים תשומת לב
+            </span>
+          </>
         ) : (
-          <ShieldCheck className="h-5 w-5 text-emerald-600" />
+          <>
+            <ShieldCheck className="h-5 w-5 text-emerald-600" />
+            <span className="text-sm font-semibold text-gray-800">
+              הכול תקין כרגע
+            </span>
+          </>
         )}
-        <span className="text-sm font-semibold text-gray-800">
-          {hasIssues ? "יש נושאים שדורשים תשומת לב" : "הכול תקין כרגע"}
-        </span>
       </div>
 
       {/* Metric pills */}
-      <div className="grid grid-cols-3 gap-2">
+      <div className={`grid ${hasPremium ? 'grid-cols-3' : 'grid-cols-2'} gap-2`}>
         <Pill
           icon={<Users className="h-4 w-4 text-blue-600" />}
           value={`${connectedCount}/${childrenCount}`}
@@ -43,13 +61,25 @@ export const FamilyStatusHero = ({
           label="חיבור"
           warn={!allConnected}
         />
-        <Pill
-          icon={<AlertTriangle className="h-4 w-4 text-amber-500" />}
-          value={String(openIssues)}
-          label="פתוחים"
-          warn={openIssues > 0}
-        />
+        {hasPremium && (
+          <Pill
+            icon={<AlertTriangle className="h-4 w-4 text-amber-500" />}
+            value={String(openIssues)}
+            label="פתוחים"
+            warn={openIssues > 0}
+          />
+        )}
       </div>
+
+      {/* Upgrade button for free users */}
+      {!hasPremium && (
+        <button
+          onClick={() => navigate("/checkout")}
+          className="mt-3 w-full py-2 bg-amber-500 text-white text-xs font-semibold rounded-lg hover:bg-amber-600 transition-colors"
+        >
+          שדרוג לפרימיום
+        </button>
+      )}
     </div>
   );
 };
