@@ -1,25 +1,25 @@
 
 
-# תיקון קריסת complete_chore — NULL URL בטריגר Push
+# תיקון קריסת request_extra_time — NULL URL בטריגרי Push
 
-## הבעיה
-הטריגר `trg_chore_completed_push` על טבלת `chores` קורא ל-`net.http_post()` עם URL שמורכב מ-`current_setting('app.settings.supabase_url', true)`. ההגדרה הזו לא קיימת בדאטהבייס, מחזירה NULL, וגורמת ל-NOT NULL constraint violation ב-`http_request_queue`. כל הטרנזקציה עושה rollback והמשימה נשארת `pending`.
+## הבעיה (זהה לבאג של המשימות)
+שני טריגרים על טבלת `time_extension_requests` קוראים ל-`net.http_post()` עם URL שמגיע מ-`current_setting('app.settings.supabase_url', true)` — שמחזיר NULL. זה גורם ל-NOT NULL constraint violation ב-`http_request_queue`, כל הטרנזקציה עושה rollback, והבקשה לא נשמרת.
 
-**אותה בעיה קיימת גם ב-`on_chore_created_push`.**
+**הטריגרים הבעייתיים:**
+1. `on_time_request_insert` — נורה כשנוצרת בקשה חדשה (INSERT)
+2. `on_time_request_responded_push` — נורה כשהורה מגיב לבקשה (UPDATE)
 
-## הפתרון — מיגרציה אחת
+## הפתרון — מיגרציה אחת (זהה לדפוס שכבר עבד)
 
-### שלב 1: הוספת NULL guard לשני הטריגרים
-נוסיף בדיקה בתחילת כל טריגר — אם `v_supabase_url` הוא NULL, נדלג על שליחת ה-Push ונחזיר `NEW` בלי לקרוס. ככה גם אם ההגדרות לא מוגדרות, המשימה תעודכן בהצלחה.
-
-### שלב 2: הגדרת app.settings
-נגדיר את `app.settings.supabase_url` ו-`app.settings.service_role_key` ברמת הדאטהבייס כדי שה-Push Notifications יעבדו.
+### שינויים בשני הטריגרים:
+- **Fallback URL:** `COALESCE(current_setting(...), 'https://fsedenvbdpctzoznppwo.supabase.co')`
+- **NULL guard:** אם `v_service_role_key IS NULL` → `RETURN NEW` בלי לקרוס
 
 ## קבצים שמשתנים
-- **מיגרציה חדשה בלבד** — אפס שינויים בקוד הפרונט-אנד או באנדרואיד.
+- מיגרציה חדשה בלבד — אפס שינויים בקוד הפרונט-אנד או באנדרואיד.
 
 ## תוצאה צפויה
-- `complete_chore` מהאנדרואיד יצליח ← המשימה תעבור ל-`completed_by_child`
-- ההורה יראה את העדכון בזמן אמת דרך ה-Realtime subscription
-- Push notification יישלח להורה (אם ההגדרות מוגדרות)
+- הילד ילחץ "בקשת זמן נוסף" ← הבקשה תישמר בהצלחה
+- ההורה יראה את הבקשה בזמן אמת ויוכל לאשר/לדחות
+- Push notifications יישלחו (אם ההגדרות מוגדרות)
 
