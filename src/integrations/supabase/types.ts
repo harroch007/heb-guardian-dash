@@ -2946,6 +2946,7 @@ export type Database = {
         Returns: Json
       }
       approve_chore: { Args: { p_chore_id: string }; Returns: Json }
+      authorize_device_call: { Args: { p_device_id: string }; Returns: string }
       calc_sunset_utc: {
         Args: { p_date: string; p_lat: number; p_lon: number }
         Returns: string
@@ -2974,12 +2975,14 @@ export type Database = {
         }
       }
       cleanup_old_data: { Args: never; Returns: Json }
-      complete_chore:
-        | { Args: { p_chore_id: string }; Returns: Json }
-        | {
-            Args: { p_chore_id: string; p_photo_base64?: string }
-            Returns: Json
-          }
+      complete_chore: {
+        Args: {
+          p_chore_id: string
+          p_device_id?: string
+          p_photo_base64?: string
+        }
+        Returns: Json
+      }
       connect_child_device: {
         Args: {
           p_device_id: string
@@ -3220,7 +3223,7 @@ export type Database = {
         Returns: string
       }
       request_extra_time: {
-        Args: { p_child_id: string; p_reason: string }
+        Args: { p_child_id: string; p_device_id?: string; p_reason: string }
         Returns: Json
       }
       respond_time_request: {
