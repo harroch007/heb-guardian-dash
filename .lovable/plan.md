@@ -1,29 +1,29 @@
 
 
-# התאמת UI למשתמש חינמי
+# מסך Checkout V2 — עיצוב מחדש בסגנון V2
+
+## סיכום
+יצירת גרסת V2 של מסך ה-Checkout בסגנון "Light Premium" של שאר מסכי ה-V2, עם BottomNavigationV2 וניווט נכון.
 
 ## שינויים
 
-### 1. FamilyStatusHero — הסתרת "הכול תקין" למשתמש חינמי
-**קובץ:** `src/components/home-v2/FamilyStatusHero.tsx`
-- הוספת prop `hasPremium: boolean`
-- כשאין פרימיום: במקום "הכול תקין כרגע" להציג טקסט ניטרלי כמו "שדרגו לפרימיום כדי להפעיל ניטור חכם"
-- הסתרת pill של "פתוחים" (התראות) כי אין ניטור פעיל
+### 1. עדכון `src/pages/Checkout.tsx`
+- החלפת `<DashboardLayout>` ב-wrapper של `homev2-light` + `<BottomNavigationV2 />` (כמו SettingsV2, FamilyV2)
+- שימוש ב-`rounded-2xl bg-card border border-border/50` לכרטיסיות (כמו שאר מסכי V2)
+- כפתור חזרה בראש העמוד (`ChevronRight` + ניווט אחורה)
+- אחרי שדרוג מוצלח — ניווט ל-`/home-v2` במקום `/dashboard`
+- מצבי ריק (אין ילדים, כולם כבר Premium) — גם בעטיפת V2
 
-**קובץ:** `src/pages/HomeV2.tsx`
-- העברת `hasPremium` ל-FamilyStatusHero
+### 2. עדכון ניווטים אל `/checkout`
+כל ההפניות ל-`/checkout` כבר קיימות ונכונות — אין צורך בשינוי נתיבים. רק הניווט **מ**-checkout חזרה צריך עדכון:
+- `navigate("/dashboard")` → `navigate("/home-v2")` (בכל 3 המקומות בקובץ)
 
-### 2. FamilyV2 — הסתרת כרטיס "פרימיום" כשהערך 0
-**קובץ:** `src/pages/FamilyV2.tsx`
-- הסתרת הכרטיס עם `Crown` + "פרימיום" כש-`premiumCount === 0`
-- הכרטיס יופיע רק כשיש לפחות ילד אחד עם מנוי פרימיום
+### 3. עיצוב ספציפי
+- Header: אייקון Shield בתוך עיגול `bg-primary/10`, כותרת + תיאור
+- כרטיסי ילדים / פיצ'רים / קופון / מחיר: `rounded-2xl bg-card border border-border/50 p-5`
+- כפתורי תשלום: אותו סגנון רק עם `rounded-xl`
+- הדיאלוג "המערכת סגורה" נשאר כמו שהוא
 
-### 3. EmptyAlertsState — טקסט מותאם למשתמש חינמי
-**קובץ:** `src/components/alerts/EmptyAlertsState.tsx`
-- הוספת prop `hasPremium: boolean`
-- כשחינמי: הצגת טקסט מזמין כמו "קיפי עדיין לא מנטרת את ההודעות של ילדכם. שדרגו לפרימיום כדי לקבל התראות חכמות על תכנים מסוכנים" עם כפתור שדרוג
-- כשפרימיום: השארת הטקסט הנוכחי "הכל רגוע"
-
-**קובץ:** `src/pages/AlertsV2.tsx`
-- העברת `hasPremium` ל-EmptyAlertsState
+## תוצאה
+מסך checkout אחיד עיצובית עם שאר מסכי V2, עם ניווט תחתון וחזרה ל-home-v2.
 
