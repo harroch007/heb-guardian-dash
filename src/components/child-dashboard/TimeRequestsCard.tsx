@@ -47,6 +47,19 @@ export function TimeRequestsCard({ childId }: TimeRequestsCardProps) {
 
   useEffect(() => {
     fetchRequests();
+
+    const channel = supabase
+      .channel(`time-requests-${childId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "time_extension_requests", filter: `child_id=eq.${childId}` },
+        () => fetchRequests()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [childId]);
 
   const handleRespond = async (requestId: string, approved: boolean) => {
