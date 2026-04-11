@@ -3248,14 +3248,14 @@ export type Database = {
       }
       update_device_status: {
         Args: {
-          p_battery: number
+          p_battery?: number
           p_device_id: string
           p_device_manufacturer?: string
           p_device_model?: string
-          p_lat: number
-          p_lon: number
+          p_lat?: number
+          p_lon?: number
         }
-        Returns: undefined
+        Returns: Json
       }
       upsert_ai_engine_health: {
         Args: {
