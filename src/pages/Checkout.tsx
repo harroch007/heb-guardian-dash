@@ -2,14 +2,14 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { DashboardLayout } from "@/components/DashboardLayout";
+import { BottomNavigationV2 } from "@/components/BottomNavigationV2";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Shield, Brain, Bell, BarChart3, Star, CreditCard, Loader2, Check, Tag, ArrowRight, MessageCircle, Lock, Users } from "lucide-react";
+import { Shield, Brain, Bell, BarChart3, Star, CreditCard, Loader2, Check, Tag, ArrowRight, MessageCircle, Lock, Users, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { getFamilyPrice } from "@/hooks/useFamilySubscription";
 
@@ -76,6 +76,17 @@ const GoogleIcon = () => (
   </svg>
 );
 
+function V2Wrapper({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="homev2-light min-h-screen bg-background" dir="rtl">
+      <div className="max-w-lg mx-auto px-4 py-6 pb-24 space-y-5">
+        {children}
+      </div>
+      <BottomNavigationV2 />
+    </div>
+  );
+}
+
 export default function Checkout() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -84,7 +95,6 @@ export default function Checkout() {
   const [childrenLoading, setChildrenLoading] = useState(true);
   const [showClosedDialog, setShowClosedDialog] = useState(false);
 
-  // Promo code state
   const [promoCode, setPromoCode] = useState("");
   const [promoLoading, setPromoLoading] = useState(false);
   const [appliedPromo, setAppliedPromo] = useState<PromoResult | null>(null);
@@ -92,7 +102,6 @@ export default function Checkout() {
 
   const [paying, setPaying] = useState(false);
 
-  // Fetch children
   useEffect(() => {
     if (!user?.id) return;
     const fetchChildren = async () => {
@@ -186,7 +195,6 @@ export default function Checkout() {
         expiresAt = d.toISOString();
       }
 
-      // Upgrade ALL children at once
       const { error: updateError } = await supabase
         .from("children")
         .update({ subscription_tier: "premium", subscription_expires_at: expiresAt } as any)
@@ -194,7 +202,6 @@ export default function Checkout() {
 
       if (updateError) throw updateError;
 
-      // Auto-assign to default group if not already in a group
       try {
         const { data: parentData } = await supabase
           .from("parents")
@@ -230,7 +237,7 @@ export default function Checkout() {
       }
 
       toast.success("🎉 שדרגת ל-Premium בהצלחה!");
-      navigate("/dashboard");
+      navigate("/home-v2");
     } catch (err: any) {
       toast.error("שגיאה בתהליך התשלום: " + err.message);
       console.error(err);
@@ -241,219 +248,227 @@ export default function Checkout() {
 
   if (childrenLoading) {
     return (
-      <DashboardLayout>
-        <div className="max-w-lg mx-auto px-4 py-12 flex justify-center">
+      <V2Wrapper>
+        <div className="flex justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
-      </DashboardLayout>
+      </V2Wrapper>
     );
   }
 
   if (children.length === 0) {
     return (
-      <DashboardLayout>
-        <div className="max-w-md mx-auto px-4 py-12 text-center" dir="rtl">
+      <V2Wrapper>
+        <div className="text-center py-12">
           <p className="text-muted-foreground">לא נמצאו ילדים במשפחה</p>
-          <Button variant="outline" onClick={() => navigate("/dashboard")} className="mt-4">
-            חזרה לדשבורד
+          <Button variant="outline" onClick={() => navigate("/home-v2")} className="mt-4 rounded-xl">
+            חזרה לדף הבית
           </Button>
         </div>
-      </DashboardLayout>
+      </V2Wrapper>
     );
   }
 
   if (freeChildren.length === 0) {
     return (
-      <DashboardLayout>
-        <div className="max-w-md mx-auto px-4 py-12 text-center" dir="rtl">
-          <div className="mx-auto w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
+      <V2Wrapper>
+        <div className="text-center py-12">
+          <div className="mx-auto w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
             <Check className="h-7 w-7 text-primary" />
           </div>
           <h2 className="text-xl font-bold mb-2">כל הילדים כבר Premium! 🎉</h2>
           <p className="text-muted-foreground mb-4">כל ילדיך נהנים מהגנה מלאה עם ניתוח AI</p>
-          <Button variant="outline" onClick={() => navigate("/dashboard")}>
-            חזרה לדשבורד
+          <Button variant="outline" onClick={() => navigate("/home-v2")} className="rounded-xl">
+            חזרה לדף הבית
           </Button>
         </div>
-      </DashboardLayout>
+      </V2Wrapper>
     );
   }
 
   return (
-    <DashboardLayout>
-      <div className="max-w-lg mx-auto px-4 py-6 space-y-6" dir="rtl">
-        {/* Header */}
-        <div className="text-center space-y-2">
-          <div className="mx-auto w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center">
-            <Shield className="h-7 w-7 text-primary" />
-          </div>
-          <h1 className="text-2xl font-bold">שדרג ל-Premium</h1>
-          <p className="text-muted-foreground">הגנה מלאה עם ניתוח AI לכל המשפחה</p>
+    <V2Wrapper>
+      {/* Back button */}
+      <button
+        onClick={() => navigate("/home-v2")}
+        className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <ChevronRight className="w-4 h-4" />
+        חזרה
+      </button>
+
+      {/* Header */}
+      <div className="text-center space-y-2">
+        <div className="mx-auto w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center">
+          <Shield className="h-7 w-7 text-primary" />
         </div>
+        <h1 className="text-2xl font-bold">שדרג ל-Premium</h1>
+        <p className="text-muted-foreground text-sm">הגנה מלאה עם ניתוח AI לכל המשפחה</p>
+      </div>
 
-        {/* Children list */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Users className="w-4 h-4" />
-              ילדים שישודרגו ({freeChildren.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {children.map((child) => (
-              <div key={child.id} className="flex items-center justify-between text-sm py-1.5">
-                <span>{child.name}</span>
-                {child.subscription_tier === "premium" ? (
-                  <Badge variant="secondary" className="text-xs">Premium ✓</Badge>
-                ) : (
-                  <Badge variant="outline" className="text-xs">Free → Premium</Badge>
-                )}
+      {/* Children list */}
+      <Card className="rounded-2xl border-border/50">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            <Users className="w-4 h-4 text-primary" />
+            ילדים שישודרגו ({freeChildren.length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {children.map((child) => (
+            <div key={child.id} className="flex items-center justify-between text-sm py-1.5">
+              <span>{child.name}</span>
+              {child.subscription_tier === "premium" ? (
+                <Badge variant="secondary" className="text-xs rounded-lg">Premium ✓</Badge>
+              ) : (
+                <Badge variant="outline" className="text-xs rounded-lg">Free → Premium</Badge>
+              )}
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      {/* Features */}
+      <Card className="rounded-2xl border-border/50">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-semibold">מה כלול ב-Premium:</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {premiumFeatures.map((f, i) => (
+            <div key={i} className="flex items-center gap-3 text-sm">
+              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                <f.icon className="w-4 h-4 text-primary" />
               </div>
-            ))}
-          </CardContent>
-        </Card>
+              <span>{f.text}</span>
+              <Check className="w-4 h-4 text-green-500 mr-auto" />
+            </div>
+          ))}
+        </CardContent>
+      </Card>
 
-        {/* Features */}
-        <Card>
+      {/* Promo Code */}
+      <Card className="rounded-2xl border-border/50">
+        <CardContent className="pt-5 space-y-3">
+          <Label className="text-sm font-semibold flex items-center gap-2">
+            <Tag className="w-4 h-4 text-primary" />
+            קוד קופון
+          </Label>
+          <div className="flex gap-2">
+            <Input
+              placeholder="הכנס קוד..."
+              value={promoCode}
+              onChange={(e) => {
+                setPromoCode(e.target.value.toUpperCase());
+                setPromoError("");
+              }}
+              className="flex-1 font-mono tracking-wider rounded-xl"
+              dir="ltr"
+            />
+            <Button
+              variant="outline"
+              onClick={handleApplyPromo}
+              disabled={promoLoading || !promoCode.trim()}
+              className="rounded-xl"
+            >
+              {promoLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "החל"}
+            </Button>
+          </div>
+          {promoError && <p className="text-sm text-destructive">{promoError}</p>}
+          {appliedPromo && (
+            <div className="flex items-center gap-2 p-2 rounded-xl bg-green-500/10 border border-green-500/20">
+              <Check className="w-4 h-4 text-green-500" />
+              <span className="text-sm text-green-600 font-medium">{appliedPromo.description}</span>
+              <Badge variant="secondary" className="mr-auto text-xs rounded-lg">{appliedPromo.code}</Badge>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Price */}
+      <Card className="rounded-2xl border-primary/30">
+        <CardContent className="pt-5 text-center">
+          {appliedPromo ? (
+            <div className="space-y-1">
+              <div className="text-lg text-muted-foreground line-through">₪{basePrice}/חודש</div>
+              <div className="text-3xl font-bold text-primary">
+                {finalPrice === 0 ? "חינם" : `₪${finalPrice}`}
+                {finalPrice > 0 && <span className="text-base font-normal text-muted-foreground">/חודש</span>}
+              </div>
+              <p className="text-sm text-green-600">{appliedPromo.description}</p>
+            </div>
+          ) : (
+            <div>
+              <div className="text-3xl font-bold">₪{basePrice}</div>
+              <div className="text-sm text-muted-foreground">
+                לחודש · {children.length === 1 ? "ילד אחד" : `${children.length} ילדים`}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Payment Buttons / Upgrade with Promo */}
+      {appliedPromo ? (
+        <Button
+          onClick={handlePay}
+          disabled={paying}
+          className="w-full h-12 text-base gap-2 rounded-xl"
+        >
+          {paying ? (
+            <Loader2 className="w-5 h-5 animate-spin" />
+          ) : (
+            <Check className="w-5 h-5" />
+          )}
+          {paying ? "משדרג..." : finalPrice === 0 ? "שדרג עכשיו — חינם!" : `שדרג עכשיו — ₪${finalPrice}/חודש`}
+        </Button>
+      ) : (
+        <Card className="rounded-2xl border-border/50">
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">מה כלול ב-Premium:</CardTitle>
+            <CardTitle className="text-sm font-semibold">בחר אמצעי תשלום</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {premiumFeatures.map((f, i) => (
-              <div key={i} className="flex items-center gap-3 text-sm">
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                  <f.icon className="w-4 h-4 text-primary" />
-                </div>
-                <span>{f.text}</span>
-                <Check className="w-4 h-4 text-green-500 mr-auto" />
+            <Button
+              variant="outline"
+              className="w-full h-16 justify-between text-base rounded-xl"
+              onClick={() => setShowClosedDialog(true)}
+            >
+              <div className="flex items-center gap-3">
+                <AppleIcon />
+                <span dir="ltr">Apple Pay</span>
               </div>
-            ))}
+              <ArrowRight className="w-5 h-5 rotate-180" />
+            </Button>
+
+            <Button
+              variant="outline"
+              className="w-full h-16 justify-between text-base rounded-xl"
+              onClick={() => setShowClosedDialog(true)}
+            >
+              <div className="flex items-center gap-3">
+                <GoogleIcon />
+                <span dir="ltr">Google Pay</span>
+              </div>
+              <ArrowRight className="w-5 h-5 rotate-180" />
+            </Button>
+
+            <Button
+              variant="outline"
+              className="w-full h-16 justify-between text-base rounded-xl"
+              onClick={() => setShowClosedDialog(true)}
+            >
+              <div className="flex items-center gap-3">
+                <CreditCard className="w-6 h-6" />
+                <span>כרטיס אשראי</span>
+              </div>
+              <ArrowRight className="w-5 h-5 rotate-180" />
+            </Button>
           </CardContent>
         </Card>
+      )}
 
-        {/* Promo Code */}
-        <Card>
-          <CardContent className="pt-6 space-y-3">
-            <Label className="text-sm font-medium flex items-center gap-2">
-              <Tag className="w-4 h-4" />
-              קוד קופון
-            </Label>
-            <div className="flex gap-2">
-              <Input
-                placeholder="הכנס קוד..."
-                value={promoCode}
-                onChange={(e) => {
-                  setPromoCode(e.target.value.toUpperCase());
-                  setPromoError("");
-                }}
-                className="flex-1 font-mono tracking-wider"
-                dir="ltr"
-              />
-              <Button
-                variant="outline"
-                onClick={handleApplyPromo}
-                disabled={promoLoading || !promoCode.trim()}
-              >
-                {promoLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "החל"}
-              </Button>
-            </div>
-            {promoError && <p className="text-sm text-destructive">{promoError}</p>}
-            {appliedPromo && (
-              <div className="flex items-center gap-2 p-2 rounded-lg bg-green-500/10 border border-green-500/20">
-                <Check className="w-4 h-4 text-green-500" />
-                <span className="text-sm text-green-600 font-medium">{appliedPromo.description}</span>
-                <Badge variant="secondary" className="mr-auto text-xs">{appliedPromo.code}</Badge>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Price */}
-        <Card className="border-primary/30">
-          <CardContent className="pt-6 text-center">
-            {appliedPromo ? (
-              <div className="space-y-1">
-                <div className="text-lg text-muted-foreground line-through">₪{basePrice}/חודש</div>
-                <div className="text-3xl font-bold text-primary">
-                  {finalPrice === 0 ? "חינם" : `₪${finalPrice}`}
-                  {finalPrice > 0 && <span className="text-base font-normal text-muted-foreground">/חודש</span>}
-                </div>
-                <p className="text-sm text-green-600">{appliedPromo.description}</p>
-              </div>
-            ) : (
-              <div>
-                <div className="text-3xl font-bold">₪{basePrice}</div>
-                <div className="text-sm text-muted-foreground">
-                  לחודש · {children.length === 1 ? "ילד אחד" : `${children.length} ילדים`}
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Payment Buttons / Upgrade with Promo */}
-        {appliedPromo ? (
-          <Button
-            onClick={handlePay}
-            disabled={paying}
-            className="w-full h-12 text-base gap-2"
-          >
-            {paying ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              <Check className="w-5 h-5" />
-            )}
-            {paying ? "משדרג..." : finalPrice === 0 ? "שדרג עכשיו — חינם!" : `שדרג עכשיו — ₪${finalPrice}/חודש`}
-          </Button>
-        ) : (
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">בחר אמצעי תשלום</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Button
-                variant="outline"
-                className="w-full h-16 justify-between text-base"
-                onClick={() => setShowClosedDialog(true)}
-              >
-                <div className="flex items-center gap-3">
-                  <AppleIcon />
-                  <span dir="ltr">Apple Pay</span>
-                </div>
-                <ArrowRight className="w-5 h-5 rotate-180" />
-              </Button>
-
-              <Button
-                variant="outline"
-                className="w-full h-16 justify-between text-base"
-                onClick={() => setShowClosedDialog(true)}
-              >
-                <div className="flex items-center gap-3">
-                  <GoogleIcon />
-                  <span dir="ltr">Google Pay</span>
-                </div>
-                <ArrowRight className="w-5 h-5 rotate-180" />
-              </Button>
-
-              <Button
-                variant="outline"
-                className="w-full h-16 justify-between text-base"
-                onClick={() => setShowClosedDialog(true)}
-              >
-                <div className="flex items-center gap-3">
-                  <CreditCard className="w-6 h-6" />
-                  <span>כרטיס אשראי</span>
-                </div>
-                <ArrowRight className="w-5 h-5 rotate-180" />
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        <p className="text-xs text-center text-muted-foreground">
-          התשלום מאובטח. ניתן לבטל בכל עת.
-        </p>
-      </div>
+      <p className="text-xs text-center text-muted-foreground">
+        התשלום מאובטח. ניתן לבטל בכל עת.
+      </p>
 
       {/* System Closed Dialog */}
       <Dialog open={showClosedDialog} onOpenChange={setShowClosedDialog}>
@@ -472,7 +487,7 @@ export default function Checkout() {
               לקבלת קוד קופון לשימוש, פנו אלינו בוואטסאפ:
             </p>
             <Button
-              className="w-full gap-2"
+              className="w-full gap-2 rounded-xl"
               onClick={() => window.open(WHATSAPP_LINK, "_blank")}
             >
               <MessageCircle className="w-5 h-5" />
@@ -480,7 +495,7 @@ export default function Checkout() {
             </Button>
             <Button
               variant="ghost"
-              className="w-full"
+              className="w-full rounded-xl"
               onClick={() => setShowClosedDialog(false)}
             >
               סגור
@@ -488,6 +503,6 @@ export default function Checkout() {
           </div>
         </DialogContent>
       </Dialog>
-    </DashboardLayout>
+    </V2Wrapper>
   );
 }
