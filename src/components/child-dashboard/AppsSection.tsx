@@ -109,21 +109,11 @@ export function AppsSection({
           onClick={() => setExpanded(!expanded)}
         >
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-base">
+            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
               <Shield className="w-5 h-5 text-primary" />
               ניהול אפליקציות
             </CardTitle>
             <div className="flex items-center gap-2">
-              {!expanded && blockedTotal > 0 && (
-                <Badge variant="outline" className="text-xs border-destructive/30 text-destructive">
-                  {blockedTotal} חסומות
-                </Badge>
-              )}
-              {!expanded && pendingApps.length > 0 && (
-                <Badge variant="outline" className="text-xs border-amber-500/30 text-amber-600">
-                  {pendingApps.length} חדשות
-                </Badge>
-              )}
               {expanded ? (
                 <ChevronUp className="w-4 h-4 text-muted-foreground" />
               ) : (

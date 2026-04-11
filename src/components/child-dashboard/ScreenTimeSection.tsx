@@ -96,14 +96,11 @@ export function ScreenTimeSection({
           onClick={() => setExpanded(!expanded)}
         >
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-base">
+            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
               <Clock className="w-5 h-5 text-primary" />
               זמן מסך
             </CardTitle>
             <div className="flex items-center gap-2">
-              <span className={cn("text-lg font-bold", isOverLimit ? "text-destructive" : "text-foreground")}>
-                {formatScreenTime(currentUsageMinutes)}
-              </span>
               {expanded ? (
                 <ChevronUp className="w-4 h-4 text-muted-foreground" />
               ) : (
