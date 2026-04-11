@@ -37,7 +37,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   ProblemBanner,
-  SyncNotice,
+  
   AppsSection,
   ScreenTimeSection,
   SchedulesSection,
@@ -633,7 +633,7 @@ export default function ChildControlV2() {
             <TimeRequestsCard childId={childId!} />
 
             <ProblemBanner deviceHealth={deviceHealth} status={status} lastSeen={device.last_seen} />
-            <SyncNotice commands={recentCommands} />
+            
 
             <ScreenTimeSection
               appUsage={appUsage}

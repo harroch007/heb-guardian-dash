@@ -49,7 +49,7 @@ import { cn } from "@/lib/utils";
 import { useChildControls } from "@/hooks/useChildControls";
 import {
   ProblemBanner,
-  SyncNotice,
+  
   AppsSection,
   ScreenTimeSection,
   SchedulesSection,
@@ -583,7 +583,7 @@ export default function ChildDashboard() {
               lastSeen={device.last_seen}
             />
 
-            <SyncNotice commands={recentCommands} />
+            
 
 
             <LocationSection
