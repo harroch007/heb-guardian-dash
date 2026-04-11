@@ -3122,6 +3122,7 @@ export type Database = {
         Args: { p_device_id: string }
         Returns: boolean
       }
+      is_paired_device: { Args: { p_device_id: string }; Returns: boolean }
       maybe_recalc_nearest_issur_window: {
         Args: { p_child_id: string; p_new_lat: number; p_new_lon: number }
         Returns: undefined
