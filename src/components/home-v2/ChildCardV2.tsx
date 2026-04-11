@@ -150,7 +150,13 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
           label="זמן מסך"
           value={formatMinutes(usedMinutes)}
         />
-        {remaining !== null ? (
+        {child.activeRestriction ? (
+          <MetricCell
+            icon={<Lock className="h-3.5 w-3.5 text-amber-500" />}
+            label="הגבלה פעילה"
+            value={child.activeRestriction.name}
+          />
+        ) : remaining !== null ? (
           <MetricCell
             icon={<Clock className="h-3.5 w-3.5 text-emerald-500" />}
             label="נותר"
