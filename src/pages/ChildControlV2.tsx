@@ -14,6 +14,7 @@ import { cn, getIsraelDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { EditChildModal } from "@/components/EditChildModal";
 import { ReconnectChildModal } from "@/components/ReconnectChildModal";
 import { BottomNavigationV2 } from "@/components/BottomNavigationV2";
