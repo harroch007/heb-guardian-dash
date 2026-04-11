@@ -1,25 +1,27 @@
 
 
-# תיקון: תצוגת "נותר" כשהילד במגבלה פעילה
+# תיקון: זיהוי מגבלות שחוצות חצות (שעת שינה)
 
 ## הבעיה
-כשהילד נמצא בשעת שינה (או מגבלה אחרת), הכרטיס עדיין מציג "נותר 1:53 שעות" — מה שמטעה את ההורה לחשוב שהילד יכול להשתמש במכשיר.
+שעת השינה מוגדרת 20:00–07:00. הלוגיקה הנוכחית בודקת `currentTime >= start && currentTime <= end`, שנכשלת כשהחלון חוצה חצות.
 
 ## הפתרון
-בקובץ `ChildCardV2.tsx`, כשיש `activeRestriction`, התא האמצעי (נותר/מגבלה) יציג את שם ההגבלה הפעילה במקום את הזמן הנותר.
-
-### שינוי בקובץ `src/components/home-v2/ChildCardV2.tsx`
-
-בגריד המטריקות (שורה 153-166), להוסיף תנאי: אם יש `activeRestriction`, להציג את שם המגבלה עם אייקון נעילה במקום הזמן הנותר:
+שינוי התנאי ב-`src/pages/HomeV2.tsx` שורה 204:
 
 ```
-// לפני (כרגע):
-remaining !== null ? <MetricCell label="נותר" value="1:53 שעות" />
+// לפני:
+if (currentTime >= s.start_time && currentTime <= s.end_time)
 
 // אחרי:
-child.activeRestriction ? <MetricCell icon={🔒} label="הגבלה פעילה" value="שעת שינה" />
-: remaining !== null ? <MetricCell label="נותר" value="1:53 שעות" />
+const crossesMidnight = s.start_time > s.end_time;
+const inWindow = crossesMidnight
+  ? (currentTime >= s.start_time || currentTime <= s.end_time)
+  : (currentTime >= s.start_time && currentTime <= s.end_time);
+if (inWindow)
 ```
 
-שינוי של ~5 שורות בקובץ אחד בלבד. אפס שינויים בצד השרת.
+כשהחלון חוצה חצות (start > end), צריך OR במקום AND — השעה הנוכחית צריכה להיות **אחרי** ההתחלה **או לפני** הסיום.
+
+## היקף
+קובץ אחד, שינוי של 4 שורות. אפס סיכון לשבור משהו אחר.
 
