@@ -40,6 +40,24 @@ export function useChores(childId: string | null) {
   const [transactions, setTransactions] = useState<RewardTransaction[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const sendRefreshToAllDevices = useCallback(async () => {
+    if (!childId) return;
+    const { data: devices } = await supabase
+      .from("devices")
+      .select("device_id")
+      .eq("child_id", childId);
+
+    if (devices) {
+      for (const dev of devices) {
+        await supabase.from("device_commands").insert({
+          device_id: dev.device_id,
+          command_type: "REFRESH_SETTINGS",
+          status: "PENDING",
+        });
+      }
+    }
+  }, [childId]);
+
   const fetchChores = useCallback(async () => {
     if (!childId) return;
     const { data } = await supabase
@@ -122,6 +140,7 @@ export function useChores(childId: string | null) {
       toast({ title: "שגיאה", description: "לא ניתן להוסיף משימה", variant: "destructive" });
     } else {
       toast({ title: "נוסף", description: `המשימה "${title}" נוספה בהצלחה` });
+      await sendRefreshToAllDevices();
     }
   };
 
@@ -131,6 +150,7 @@ export function useChores(childId: string | null) {
       toast({ title: "שגיאה", description: "לא ניתן לאשר את המשימה", variant: "destructive" });
     } else {
       toast({ title: "אושר! ✅", description: `${(data as any).reward_minutes} דקות נוספו לבנק` });
+      await sendRefreshToAllDevices();
     }
   };
 
@@ -140,6 +160,7 @@ export function useChores(childId: string | null) {
       toast({ title: "שגיאה", description: "לא ניתן לדחות את המשימה", variant: "destructive" });
     } else {
       toast({ title: "נדחה", description: "המשימה הוחזרה" });
+      await sendRefreshToAllDevices();
     }
   };
 
@@ -147,6 +168,8 @@ export function useChores(childId: string | null) {
     const { error } = await supabase.from("chores").delete().eq("id", choreId);
     if (error) {
       toast({ title: "שגיאה", description: "לא ניתן למחוק את המשימה", variant: "destructive" });
+    } else {
+      await sendRefreshToAllDevices();
     }
   };
 
