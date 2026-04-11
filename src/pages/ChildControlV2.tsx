@@ -687,27 +687,35 @@ export default function ChildControlV2() {
             {/* ===== 10. TASKS & BONUS ===== */}
             <Card className="border-border shadow-sm bg-card">
               <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <ListChecks className="w-5 h-5 text-primary" />
-                  <span className="font-semibold text-sm text-foreground">משימות ובונוס</span>
-                </div>
-                <div className="grid grid-cols-3 gap-3 text-center">
-                  <div>
-                    <p className="text-lg font-bold text-foreground">{activeChoresCount}</p>
-                    <p className="text-[11px] text-muted-foreground">משימות פעילות</p>
-                  </div>
-                  <div>
-                    <p className="text-lg font-bold text-foreground">{completedTodayChoresCount}</p>
-                    <p className="text-[11px] text-muted-foreground">הושלמו היום</p>
-                  </div>
-                  <div>
-                    <p className="text-lg font-bold text-foreground">{rewardBankBalance}</p>
-                    <p className="text-[11px] text-muted-foreground">דקות בבנק</p>
-                  </div>
-                </div>
-                <Button variant="outline" size="sm" className="w-full mt-3 text-xs" onClick={() => navigate("/chores-v2")}>
-                  ניהול משימות
-                </Button>
+                <Accordion type="single" collapsible defaultValue={undefined} className="w-full">
+                  <AccordionItem value="chores" className="border-0">
+                    <AccordionTrigger className="py-0 hover:no-underline">
+                      <div className="flex items-center gap-2">
+                        <ListChecks className="w-5 h-5 text-primary" />
+                        <span className="font-semibold text-sm text-foreground">משימות ובונוס</span>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pt-4">
+                      <div className="grid grid-cols-3 gap-3 text-center">
+                        <div>
+                          <p className="text-lg font-bold text-foreground">{activeChoresCount}</p>
+                          <p className="text-[11px] text-muted-foreground">משימות פעילות</p>
+                        </div>
+                        <div>
+                          <p className="text-lg font-bold text-foreground">{completedTodayChoresCount}</p>
+                          <p className="text-[11px] text-muted-foreground">הושלמו היום</p>
+                        </div>
+                        <div>
+                          <p className="text-lg font-bold text-foreground">{rewardBankBalance}</p>
+                          <p className="text-[11px] text-muted-foreground">דקות בבנק</p>
+                        </div>
+                      </div>
+                      <Button variant="outline" size="sm" className="w-full mt-3 text-xs" onClick={() => navigate("/chores-v2")}>
+                        ניהול משימות
+                      </Button>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
               </CardContent>
             </Card>
 
