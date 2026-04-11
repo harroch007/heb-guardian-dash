@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { MapPin, Home, School, Loader2, Trash2, Navigation, Plus, Power, Edit2 } from "lucide-react";
 import { useChildPlaces, type ChildPlace, type ManualPlaceInput } from "@/hooks/useChildPlaces";
 import { AddressAutocomplete } from "./AddressAutocomplete";
@@ -249,85 +250,94 @@ export function GeofenceSection({ childId, deviceLatitude, deviceLongitude, devi
 
   return (
     <Card className="border-border shadow-sm bg-card">
-      <CardContent className="p-4 space-y-4">
-        <div className="flex items-center gap-2">
-          <MapPin className="w-5 h-5 text-primary" />
-          <span className="font-semibold text-sm text-foreground">גדר גיאוגרפית</span>
-        </div>
+      <CardContent className="p-4">
+        <Accordion type="single" collapsible defaultValue={undefined} className="w-full">
+          <AccordionItem value="geofence" className="border-0">
+            <AccordionTrigger className="py-0 hover:no-underline">
+              <div className="flex items-center gap-2">
+                <MapPin className="w-5 h-5 text-primary" />
+                <span className="font-semibold text-sm text-foreground">גדר גיאוגרפית</span>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="pt-4">
+              <div className="space-y-4">
+                <div className="space-y-3">
+                  <PlaceCard
+                    type="HOME" label="בית" place={getPlace("HOME")} saving={saving}
+                    deviceLat={deviceLatitude} deviceLng={deviceLongitude} deviceAddress={deviceAddress}
+                    onSave={(lat, lng, label, radius) => upsertPlace("HOME", { latitude: lat, longitude: lng, label, radius_meters: radius })}
+                    onUpdateRadius={(r) => updateRadius("HOME", r)} onDelete={() => deletePlace("HOME")}
+                  />
+                  <PlaceCard
+                    type="SCHOOL" label="בית ספר" place={getPlace("SCHOOL")} saving={saving}
+                    deviceLat={deviceLatitude} deviceLng={deviceLongitude} deviceAddress={deviceAddress}
+                    onSave={(lat, lng, label, radius) => upsertPlace("SCHOOL", { latitude: lat, longitude: lng, label, radius_meters: radius })}
+                    onUpdateRadius={(r) => updateRadius("SCHOOL", r)} onDelete={() => deletePlace("SCHOOL")}
+                  />
+                </div>
 
-        <div className="space-y-3">
-          <PlaceCard
-            type="HOME" label="בית" place={getPlace("HOME")} saving={saving}
-            deviceLat={deviceLatitude} deviceLng={deviceLongitude} deviceAddress={deviceAddress}
-            onSave={(lat, lng, label, radius) => upsertPlace("HOME", { latitude: lat, longitude: lng, label, radius_meters: radius })}
-            onUpdateRadius={(r) => updateRadius("HOME", r)} onDelete={() => deletePlace("HOME")}
-          />
-          <PlaceCard
-            type="SCHOOL" label="בית ספר" place={getPlace("SCHOOL")} saving={saving}
-            deviceLat={deviceLatitude} deviceLng={deviceLongitude} deviceAddress={deviceAddress}
-            onSave={(lat, lng, label, radius) => upsertPlace("SCHOOL", { latitude: lat, longitude: lng, label, radius_meters: radius })}
-            onUpdateRadius={(r) => updateRadius("SCHOOL", r)} onDelete={() => deletePlace("SCHOOL")}
-          />
-        </div>
+                <div className="border-t border-border pt-3 space-y-3">
+                  <span className="text-xs font-medium text-muted-foreground">התראות יציאה</span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">התראה ביציאה מהבית</span>
+                    <div dir="ltr"><Switch checked={settings.home_exit_alert_enabled} onCheckedChange={(v) => updateSettings({ home_exit_alert_enabled: v })} /></div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">התראה ביציאה מבית הספר</span>
+                    <div dir="ltr"><Switch checked={settings.school_exit_alert_enabled} onCheckedChange={(v) => updateSettings({ school_exit_alert_enabled: v })} /></div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">השהיה לפני התראה</span>
+                    <Select value={String(settings.exit_debounce_seconds)} onValueChange={(v) => updateSettings({ exit_debounce_seconds: Number(v) })} dir="rtl">
+                      <SelectTrigger className="h-8 w-28 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="60">דקה</SelectItem>
+                        <SelectItem value="120">2 דקות</SelectItem>
+                        <SelectItem value="180">3 דקות</SelectItem>
+                        <SelectItem value="300">5 דקות</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
 
-        <div className="border-t border-border pt-3 space-y-3">
-          <span className="text-xs font-medium text-muted-foreground">התראות יציאה</span>
-          <div className="flex items-center justify-between">
-            <span className="text-sm">התראה ביציאה מהבית</span>
-            <div dir="ltr"><Switch checked={settings.home_exit_alert_enabled} onCheckedChange={(v) => updateSettings({ home_exit_alert_enabled: v })} /></div>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm">התראה ביציאה מבית הספר</span>
-            <div dir="ltr"><Switch checked={settings.school_exit_alert_enabled} onCheckedChange={(v) => updateSettings({ school_exit_alert_enabled: v })} /></div>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm">השהיה לפני התראה</span>
-            <Select value={String(settings.exit_debounce_seconds)} onValueChange={(v) => updateSettings({ exit_debounce_seconds: Number(v) })} dir="rtl">
-              <SelectTrigger className="h-8 w-28 text-xs"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="60">דקה</SelectItem>
-                <SelectItem value="120">2 דקות</SelectItem>
-                <SelectItem value="180">3 דקות</SelectItem>
-                <SelectItem value="300">5 דקות</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+                <div className="border-t border-border pt-3 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-muted-foreground">מקומות נוספים</span>
+                    <Badge variant="secondary" className="text-[10px]">{manualPlaces.length}</Badge>
+                  </div>
 
-        <div className="border-t border-border pt-3 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground">מקומות נוספים</span>
-            <Badge variant="secondary" className="text-[10px]">{manualPlaces.length}</Badge>
-          </div>
+                  {manualPlaces.map((place) => (
+                    <ManualPlaceItem
+                      key={place.id}
+                      place={place}
+                      saving={saving}
+                      deviceLat={deviceLatitude}
+                      deviceLng={deviceLongitude}
+                      deviceAddress={deviceAddress}
+                      onUpdate={(data, id) => upsertManualPlace(data, id)}
+                      onDeactivate={(id) => deactivateManualPlace(id)}
+                    />
+                  ))}
 
-          {manualPlaces.map((place) => (
-            <ManualPlaceItem
-              key={place.id}
-              place={place}
-              saving={saving}
-              deviceLat={deviceLatitude}
-              deviceLng={deviceLongitude}
-              deviceAddress={deviceAddress}
-              onUpdate={(data, id) => upsertManualPlace(data, id)}
-              onDeactivate={(id) => deactivateManualPlace(id)}
-            />
-          ))}
-
-          {showAddForm ? (
-            <ManualPlaceForm
-              saving={saving}
-              deviceLat={deviceLatitude}
-              deviceLng={deviceLongitude}
-              deviceAddress={deviceAddress}
-              onSave={(data) => { upsertManualPlace(data); setShowAddForm(false); }}
-              onCancel={() => setShowAddForm(false)}
-            />
-          ) : (
-            <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => setShowAddForm(true)}>
-              <Plus className="w-3.5 h-3.5 ml-1" />הוסף מקום
-            </Button>
-          )}
-        </div>
+                  {showAddForm ? (
+                    <ManualPlaceForm
+                      saving={saving}
+                      deviceLat={deviceLatitude}
+                      deviceLng={deviceLongitude}
+                      deviceAddress={deviceAddress}
+                      onSave={(data) => { upsertManualPlace(data); setShowAddForm(false); }}
+                      onCancel={() => setShowAddForm(false)}
+                    />
+                  ) : (
+                    <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => setShowAddForm(true)}>
+                      <Plus className="w-3.5 h-3.5 ml-1" />הוסף מקום
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
       </CardContent>
     </Card>
   );
