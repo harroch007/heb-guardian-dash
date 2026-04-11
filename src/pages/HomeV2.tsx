@@ -201,7 +201,11 @@ const HomeV2 = () => {
           if (s.schedule_type === "shabbat") continue;
           if (!s.days_of_week || !s.start_time || !s.end_time) continue;
           if (!s.days_of_week.includes(dayOfWeek1)) continue;
-          if (currentTime >= s.start_time && currentTime <= s.end_time) {
+          const crossesMidnight = s.start_time > s.end_time;
+          const inWindow = crossesMidnight
+            ? (currentTime >= s.start_time || currentTime <= s.end_time)
+            : (currentTime >= s.start_time && currentTime <= s.end_time);
+          if (inWindow) {
             return { type: "schedule", name: s.name };
           }
         }
