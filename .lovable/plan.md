@@ -1,46 +1,88 @@
 
 
-# עדכון RPCs לתמיכה ב-Legacy Fallback עם `p_device_id`
+# תוכנית: שער אימות אחיד לכל הפונקציות שמדברות עם האנדרואיד
 
-## הבעיה
-האנדרואיד עובד במצב anon (Legacy Fallback) וצריך להעביר `p_device_id` כדי להוכיח שהוא מכשיר מורשה. שני RPCs לא מקבלים את הפרמטר הזה ולכן דוחים את הקריאה.
+## המצב היום — שתי שפות שונות
 
-## מה צריך לשנות
+יש **5 RPCs שכבר מוגנים** עם ה-2-tier gate (JWT + Legacy fallback):
+1. `update_device_status` ✅
+2. `report_device_heartbeat` ✅  
+3. `report_installed_apps` ✅
+4. `create_alert` ✅
+5. `get_device_settings` ✅
 
-### 1. `complete_chore` (שתי גרסאות קיימות)
-- גרסה 1: `(p_chore_id uuid)` 
-- גרסה 2: `(p_chore_id uuid, p_photo_base64 text)`
+ויש **2 RPCs שנשארו בלי שום הגנה** — הם פשוט פתוחים לכולם:
+6. `complete_chore` — ❌ בלי gate בכלל
+7. `request_extra_time` — ❌ בלי gate בכלל
 
-**פעולה:** מחיקת שתי הגרסאות והחלפה בגרסה אחת מאוחדת:
-```
-complete_chore(p_chore_id uuid, p_photo_base64 text DEFAULT NULL, p_device_id text DEFAULT NULL)
-```
+הבעיה: כל פעם שמוסיפים פיצ'ר חדש שדורש תקשורת Android↔Supabase, צריך לזכור להוסיף את אותו קוד אימות. זה מה שיצר את הבאג עכשיו.
 
-לוגיקת אימות:
-1. בדיקת JWT — אם יש `auth.uid()` ומשתמש מאומת, ממשיך (הורה/אדמין)
-2. אם אין JWT — בדיקה שה-`p_device_id` שייך לילד שה-chore שלו (דרך `devices` → `children`)
-3. אם שניהם חסרים — דחייה עם `UNAUTHORIZED`
+## הפתרון: פונקציית עזר אחת לכולם
 
-### 2. `request_extra_time`
-חתימה נוכחית: `(p_child_id uuid, p_reason text)`
+במקום לשכפל את אותם 15 שורות קוד בכל RPC, ניצור **פונקציה אחת** שכל ה-RPCs יקראו לה:
 
-**פעולה:** החלפה בגרסה עם device_id:
-```
-request_extra_time(p_child_id uuid, p_reason text, p_device_id text DEFAULT NULL)
+```sql
+public.authorize_device_call(p_device_id text) RETURNS uuid
 ```
 
-לוגיקת אימות זהה:
-1. JWT check — אם מאומת, ממשיך
-2. Legacy fallback — `p_device_id` שייך ל-`p_child_id` דרך טבלת `devices`
-3. אחרת — `UNAUTHORIZED`
+הפונקציה הזו:
+1. בודקת JWT — אם יש `role='device'` ו-`device_id` תואם → מחזירה את ה-`child_id`
+2. Legacy fallback — אם אין JWT, בודקת שה-`device_id` מחובר לילד בטבלת `devices` → מחזירה את ה-`child_id`
+3. אם שניהם נכשלים → זורקת `UNAUTHORIZED`
 
-## פרטים טכניים
+כל RPC שצריך לדבר עם האנדרואיד פשוט יקרא:
+```sql
+v_child_id := public.authorize_device_call(p_device_id);
+```
 
-- שתי הפונקציות יישארו `SECURITY DEFINER` כדי לעקוף RLS
-- הפרמטר `p_device_id` הוא `DEFAULT NULL` כדי לא לשבור קריאות קיימות מצד ההורה
-- בדיקת device ownership: `SELECT 1 FROM devices WHERE device_id = p_device_id AND child_id = v_child_id`
-- `GRANT EXECUTE` ל-`anon` ו-`authenticated`
+שורה אחת במקום 15.
+
+## מה ישתנה
+
+### שלב 1 — יצירת פונקציית העזר
+```sql
+CREATE FUNCTION public.authorize_device_call(p_device_id text) RETURNS uuid
+```
+
+### שלב 2 — עדכון complete_chore
+- הוספת פרמטר `p_device_id text DEFAULT NULL`
+- קריאה ל-`authorize_device_call` (אם אין JWT מאומת)
+- וידוא שה-chore שייך ל-child_id שחזר
+
+### שלב 3 — עדכון request_extra_time
+- הוספת פרמטר `p_device_id text DEFAULT NULL`
+- קריאה ל-`authorize_device_call` (אם אין JWT מאומת)
+- וידוא שה-child_id תואם
+
+### שלב 4 — רפקטור 5 ה-RPCs הקיימים (אופציונלי אבל מומלץ)
+להחליף את 15 השורות המשוכפלות ב-5 הפונקציות הקיימות בקריאה לפונקציית העזר החדשה. אותו ביטחון, פחות קוד, אפס כפילויות.
+
+## מה זה נותן לנו
+
+```text
+לפני:                              אחרי:
+┌──────────────────────┐           ┌──────────────────────┐
+│ update_device_status │           │ update_device_status │
+│  [15 שורות gate]     │           │  authorize_device()  │
+├──────────────────────┤           ├──────────────────────┤
+│ report_heartbeat     │           │ report_heartbeat     │
+│  [15 שורות gate]     │           │  authorize_device()  │
+├──────────────────────┤           ├──────────────────────┤
+│ complete_chore       │           │ complete_chore       │
+│  [אין gate!!! ❌]    │           │  authorize_device()  │
+├──────────────────────┤           ├──────────────────────┤
+│ request_extra_time   │           │ request_extra_time   │
+│  [אין gate!!! ❌]    │           │  authorize_device()  │
+└──────────────────────┘           └──────────────────────┘
+                                    כולם משתמשים באותה
+                                    פונקציה — שפה אחת
+```
+
+## תאימות לאחור
+- הפרמטר `p_device_id` הוא `DEFAULT NULL` בכל מקום — קריאות מצד ההורה (שמשתמש ב-JWT רגיל) לא יישברו
+- 5 ה-RPCs הקיימים ימשיכו לעבוד בדיוק כמו היום
+- האנדרואיד כבר שולח `p_device_id` — אז הוא מוכן
 
 ## סיכום
-מיגרציה אחת עם DROP + CREATE לשלוש הפונקציות (2 complete_chore + 1 request_extra_time). אפס שינויים בצד הקליינט של ההורה.
+מיגרציה אחת שיוצרת את `authorize_device_call` ומעדכנת את `complete_chore` ו-`request_extra_time`. אופציונלית — רפקטור ל-5 הקיימים כדי לנקות כפילויות.
 
