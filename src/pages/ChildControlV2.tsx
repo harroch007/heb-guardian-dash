@@ -609,24 +609,6 @@ export default function ChildControlV2() {
           </div>
         )}
 
-        {/* ===== 3. QUICK ACTIONS ===== */}
-        {device && (
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {[
-              { icon: Volume2, label: ringPhase === "sending" ? "שולח..." : ringPhase === "ringing" ? "מצלצל..." : ringPhase === "child_stopped" ? "הילד עצר ✓" : ringPhase === "timeout" || ringPhase === "completed_legacy" ? "הסתיים ✓" : ringPhase === "failed" ? "נכשל" : "צלצל", action: ringPhase === "failed" ? retryRing : handleRingDevice, disabled: ringPhase === "sending" || ringPhase === "ringing", active: ringPhase === "sending" || ringPhase === "ringing" },
-              { icon: Gift, label: "בונוס", action: () => grantBonusTime(15) },
-              { icon: MapPin, label: "מיקום", action: () => { const el = document.getElementById("location-section"); el?.scrollIntoView({ behavior: "smooth" }); } },
-              { icon: Shield, label: "אפליקציות", action: () => { const el = document.getElementById("apps-section"); el?.scrollIntoView({ behavior: "smooth" }); } },
-              { icon: ListChecks, label: "משימות", action: () => navigate("/chores-v2") },
-            ].map((btn, i) => (
-              <Button key={i} variant="outline" size="sm" onClick={btn.action} disabled={btn.disabled}
-                className="flex-shrink-0 gap-1.5 text-xs">
-                {btn.active ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <btn.icon className="w-3.5 h-3.5" />}
-                {btn.label}
-              </Button>
-            ))}
-          </div>
-        )}
 
         {/* ===== 4-9. EXISTING SECTIONS (reused) ===== */}
         {device ? (
