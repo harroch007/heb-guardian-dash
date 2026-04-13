@@ -28,7 +28,7 @@ export default function Landing() {
     // Redirect to dashboard if user is logged in
     // (works in both waitlist mode and regular mode)
     if (!loading && user) {
-      navigate('/dashboard', { replace: true });
+      navigate('/home-v2', { replace: true });
     }
   }, [user, loading, navigate]);
 

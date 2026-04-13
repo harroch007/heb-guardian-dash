@@ -28,7 +28,7 @@ export default function ImpersonateSession() {
         if (sessionError) throw sessionError;
 
         sessionStorage.setItem("impersonating", "true");
-        navigate("/dashboard", { replace: true });
+        navigate("/home-v2", { replace: true });
       } catch (err: any) {
         console.error("Failed to set session:", err);
         setError(err.message || "שגיאה בהגדרת הסשן");

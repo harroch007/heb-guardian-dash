@@ -85,7 +85,7 @@ const DailyReport = () => {
 
   const handleDateChange = (newDate: string) => {
     if (newDate === todayDate) {
-      navigate('/dashboard');
+      navigate('/home-v2');
     } else {
       setSelectedDate(newDate);
     }
@@ -243,7 +243,7 @@ const DailyReport = () => {
       <DashboardLayout>
         <div className="max-w-2xl mx-auto p-8 text-center" dir="rtl">
           <p className="text-muted-foreground">לא נבחר ילד</p>
-          <Button onClick={() => navigate("/dashboard")} className="mt-4">
+          <Button onClick={() => navigate("/home-v2")} className="mt-4">
             חזרה לדשבורד
           </Button>
         </div>
