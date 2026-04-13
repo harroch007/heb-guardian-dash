@@ -1,29 +1,36 @@
 
 
-# מסך Checkout V2 — עיצוב מחדש בסגנון V2
+# הפניית ניווט מ-/dashboard ל-/home-v2
 
-## סיכום
-יצירת גרסת V2 של מסך ה-Checkout בסגנון "Light Premium" של שאר מסכי ה-V2, עם BottomNavigationV2 וניווט נכון.
+## הבעיה
+כשהורה נכנס לאפליקציה, כל ההפניות מובילות ל-`/dashboard` (המסך הישן) במקום ל-`/home-v2` (המסך החדש).
 
-## שינויים
+## מקומות שדורשים שינוי
 
-### 1. עדכון `src/pages/Checkout.tsx`
-- החלפת `<DashboardLayout>` ב-wrapper של `homev2-light` + `<BottomNavigationV2 />` (כמו SettingsV2, FamilyV2)
-- שימוש ב-`rounded-2xl bg-card border border-border/50` לכרטיסיות (כמו שאר מסכי V2)
-- כפתור חזרה בראש העמוד (`ChevronRight` + ניווט אחורה)
-- אחרי שדרוג מוצלח — ניווט ל-`/home-v2` במקום `/dashboard`
-- מצבי ריק (אין ילדים, כולם כבר Premium) — גם בעטיפת V2
+### 1. `src/pages/Landing.tsx` (שורה 31)
+- `navigate('/dashboard')` → `navigate('/home-v2')`
 
-### 2. עדכון ניווטים אל `/checkout`
-כל ההפניות ל-`/checkout` כבר קיימות ונכונות — אין צורך בשינוי נתיבים. רק הניווט **מ**-checkout חזרה צריך עדכון:
-- `navigate("/dashboard")` → `navigate("/home-v2")` (בכל 3 המקומות בקובץ)
+### 2. `src/pages/Auth.tsx` (שורות 55, 100, 154, 167, 199)
+- כל 5 המופעים של `navigate('/dashboard')` → `navigate('/home-v2')`
 
-### 3. עיצוב ספציפי
-- Header: אייקון Shield בתוך עיגול `bg-primary/10`, כותרת + תיאור
-- כרטיסי ילדים / פיצ'רים / קופון / מחיר: `rounded-2xl bg-card border border-border/50 p-5`
-- כפתורי תשלום: אותו סגנון רק עם `rounded-xl`
-- הדיאלוג "המערכת סגורה" נשאר כמו שהוא
+### 3. `src/components/ProtectedRoute.tsx` (שורה 32)
+- `Navigate to="/dashboard"` → `Navigate to="/home-v2"` (redirect אחרי onboarding)
+
+### 4. `src/pages/Onboarding.tsx` (שורה 95)
+- `navigate('/family')` → `navigate('/home-v2')` (אחרי סיום onboarding)
+
+### 5. `src/pages/ImpersonateSession.tsx` (שורה 31)
+- `navigate("/dashboard")` → `navigate("/home-v2")`
+
+### 6. `src/pages/DailyReport.tsx` (שורות 88, 246)
+- הפניות חזרה ל-dashboard → `/home-v2`
+
+### 7. `src/pages/PeriodicSummary.tsx` (שורה 94)
+- הפניה חזרה ל-dashboard → `/home-v2`
+
+### 8. PWA start_url
+- בדיקה ב-`vite.config.ts` שה-start_url מוגדר ל-`/` (כבר נכון — Landing.tsx מטפל בהפניה)
 
 ## תוצאה
-מסך checkout אחיד עיצובית עם שאר מסכי V2, עם ניווט תחתון וחזרה ל-home-v2.
+הורה מחובר תמיד יגיע ל-`/home-v2` — מהלוגין, מהלנדינג, מה-onboarding, ומכל מסך שמחזיר "חזרה לדשבורד".
 
