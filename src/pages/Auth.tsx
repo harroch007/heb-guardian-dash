@@ -52,7 +52,7 @@ export default function Auth() {
       // Supabase detects the session from the URL automatically.
       // Mark this session as impersonation and redirect.
       sessionStorage.setItem('impersonating', 'true');
-      navigate('/dashboard', { replace: true });
+      navigate('/home-v2', { replace: true });
     }
   }, [searchParams, navigate]);
 
@@ -97,7 +97,7 @@ export default function Auth() {
           if (redirectTo && redirectTo.startsWith('/')) {
             navigate(redirectTo, { replace: true });
           } else {
-            navigate('/dashboard');
+            navigate('/home-v2');
           }
         }
       }
@@ -151,7 +151,7 @@ export default function Auth() {
         title: "מצב הדגמה",
         description: "נכנסת למצב הדגמה - הנתונים אינם אמיתיים",
       });
-      navigate('/dashboard');
+      navigate('/home-v2');
       return;
     }
     
@@ -164,7 +164,7 @@ export default function Auth() {
           password,
         });
         if (error) throw error;
-        navigate('/dashboard');
+        navigate('/home-v2');
       } else {
         // In waitlist mode, check if email is approved before allowing signup
         if (WAITLIST_MODE) {
@@ -196,7 +196,7 @@ export default function Auth() {
           title: "נרשמת בהצלחה!",
           description: "מתחבר לחשבון שלך...",
         });
-        navigate('/dashboard');
+        navigate('/home-v2');
       }
     } catch (error: any) {
       let errorMessage = error.message;

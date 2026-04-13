@@ -92,7 +92,7 @@ export default function Onboarding() {
         description: 'ברוך הבא למרכז הבטיחות',
       });
       
-      navigate('/family');
+      navigate('/home-v2');
     } finally {
       setLoading(false);
     }

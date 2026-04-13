@@ -91,7 +91,7 @@ const PeriodicSummaryPage = () => {
       <DashboardLayout>
         <div className="max-w-2xl mx-auto p-8 text-center" dir="rtl">
           <p className="text-muted-foreground">פרמטרים חסרים</p>
-          <button onClick={() => navigate("/dashboard")} className="mt-4 text-primary underline">חזרה לדשבורד</button>
+          <button onClick={() => navigate("/home-v2")} className="mt-4 text-primary underline">חזרה לדשבורד</button>
         </div>
       </DashboardLayout>
     );
