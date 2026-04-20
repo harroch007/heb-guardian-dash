@@ -177,6 +177,28 @@ const FamilyV2 = () => {
     if (!roleLoading) fetchCoParent();
   }, [roleLoading, fetchCoParent]);
 
+  // Realtime listener for invite acceptance
+  useEffect(() => {
+    if (!coParent?.id || coParent.status !== "pending") return;
+    const channel = supabase
+      .channel(`family_invite_${coParent.id}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "family_members", filter: `id=eq.${coParent.id}` },
+        (payload) => {
+          const next = payload.new as { status: string };
+          if (next.status === "accepted") {
+            toast({ title: "ההורה הצטרף!", description: "ההורה הנוסף אישר את ההזמנה" });
+            fetchCoParent();
+          }
+        }
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [coParent?.id, coParent?.status, toast, fetchCoParent]);
+
   const isConnected = (lastSeen: string | null) => {
     if (!lastSeen) return false;
     return Date.now() - new Date(lastSeen).getTime() < 24 * 60 * 60 * 1000;
