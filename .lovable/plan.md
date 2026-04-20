@@ -1,41 +1,73 @@
 
 
-# תיקון קריסת `get_device_settings` — עמודה `last_updated` לא קיימת
+# תיקון קריסת `get_device_settings` — טבלה `computed_shabbat_times` לא קיימת
 
 ## הבעיה
-בשורה 172 של ה-RPC:
+ב-RPC (שורות 155-175) יש שתי קריאות לטבלה בשם `computed_shabbat_times` — **טבלה זו לא קיימת**. הטבלאות בפועל הן:
+- `shabbat_times_computed` (עם עמודות `friday_date`, `start_epoch_ms`, `end_epoch_ms`)
+- `issur_melacha_windows` (עם `event_name`, `start_epoch_ms`, `end_epoch_ms`, `valid_for_date`)
+
+מקור השגיאה: `42P01: relation "computed_shabbat_times" does not exist`. כל קריאה ל-`get_device_settings` קורסת ולכן השינוי בדשבורד (חסימה/פתיחה) לא מגיע למכשיר.
+
+## התיקון (מיגרציה אחת)
+
+### החלפת בלוק `next_issur` + `issur_windows`
+במקום `computed_shabbat_times` להשתמש בטבלה הנכונה `issur_melacha_windows` שכבר מאוכלסת על ידי edge function `calculate-shabbat-times`:
+
 ```sql
-SELECT balance_minutes, last_updated INTO v_reward FROM reward_bank WHERE child_id = v_child_id;
+-- next_issur: החלון הפעיל הקרוב
+SELECT * INTO v_computed_shabbat
+FROM issur_melacha_windows
+WHERE child_id = v_child_id
+  AND is_active = true
+  AND end_epoch_ms >= (EXTRACT(EPOCH FROM now()) * 1000)::bigint
+ORDER BY start_epoch_ms LIMIT 1;
+
+IF FOUND THEN
+  v_settings := v_settings || jsonb_build_object('next_issur', jsonb_build_object(
+    'label', v_computed_shabbat.event_name,
+    'lock_type', v_computed_shabbat.lock_type,
+    'start_epoch', (v_computed_shabbat.start_epoch_ms / 1000)::bigint,
+    'end_epoch',   (v_computed_shabbat.end_epoch_ms   / 1000)::bigint,
+    'start_epoch_ms', v_computed_shabbat.start_epoch_ms,
+    'end_epoch_ms',   v_computed_shabbat.end_epoch_ms
+  ));
+END IF;
+
+-- issur_windows: 10 הקרובים
+SELECT COALESCE(jsonb_agg(jsonb_build_object(
+  'label', w.event_name,
+  'lock_type', w.lock_type,
+  'start_epoch',    (w.start_epoch_ms / 1000)::bigint,
+  'end_epoch',      (w.end_epoch_ms   / 1000)::bigint,
+  'start_epoch_ms', w.start_epoch_ms,
+  'end_epoch_ms',   w.end_epoch_ms
+)), '[]'::jsonb) INTO v_issur_windows
+FROM (
+  SELECT * FROM issur_melacha_windows
+  WHERE child_id = v_child_id AND is_active = true
+    AND end_epoch_ms >= (EXTRACT(EPOCH FROM now()) * 1000)::bigint
+  ORDER BY start_epoch_ms LIMIT 10
+) w;
+v_settings := v_settings || jsonb_build_object('issur_windows', v_issur_windows);
 ```
-הטבלה `reward_bank` **לא** מכילה עמודה בשם `last_updated`. העמודות בפועל הן: `id, child_id, balance_minutes, updated_at, current_streak, last_streak_date`.
 
-לכן כל קריאה ל-`get_device_settings` קורסת עם `42703: column "last_updated" does not exist`, וזו הסיבה שהאנדרואיד לא מצליח לסנכרן אפילו אחרי תיקון ההרשאות.
-
-בנוסף — `last_updated` נטען ל-`v_reward` אבל בכלל לא בשימוש בהמשך (רק `balance_minutes` מוחזר).
-
-## התיקון (מיגרציה אחת קצרה)
-להסיר את `last_updated` מה-SELECT:
+### שמירת הרשאות + רענון cache
 ```sql
-SELECT balance_minutes INTO v_reward FROM reward_bank WHERE child_id = v_child_id;
+GRANT EXECUTE ON FUNCTION public.get_device_settings(text) TO anon, authenticated, service_role;
+NOTIFY pgrst, 'reload schema';
 ```
 
-זהו. שינוי של מילה אחת.
+### אימות בתוך המיגרציה
+בסוף הקובץ אריץ `SELECT public.get_device_settings('9d5a9132b033a86b')` ואוודא שמתקבל JSON תקין שכולל `app_policies` עם Instagram. אם נכשל — המיגרציה תיפול.
 
-## אימות מיידי
-בסוף המיגרציה אריץ:
-```sql
-SELECT public.get_device_settings('9d5a9132b033a86b');
-```
-ואוודא שמתקבל JSON תקין הכולל את `app_policies` עם Instagram כ-`blocked` + `daily_limit_minutes: -1`. אם הקריאה נכשלת — המיגרציה תיפול במקום להצליח באופן כוזב.
-
-## תשובה לסוכן האנדרואיד אחרי התיקון
-- ה-RPC מחזיר JSON תקין, ללא שגיאת 42703
-- `app_policies` מכיל את כל האפליקציות החסומות + pending_block לאפליקציות חדשות
-- `blocked_apps` (fallback) כולל את אותן אפליקציות
-- ההרשאות (`anon`/`authenticated`) תקינות מהמיגרציה הקודמת
+## תוצאה צפויה
+- ה-RPC חוזר לעבוד ללא שגיאת 42P01
+- המכשיר יקבל סוף-סוף את `app_policies` המעודכן ויחסום את Instagram תוך שניות מהלחיצה בדשבורד
+- שדות `next_issur` / `issur_windows` עובדים עכשיו על מקור הנתונים האמיתי (Hebcal + NOAA)
 
 ## מה לא משתנה
-- אין שינוי בלוגיקה, בטריגרים, או ב-UI
-- אין שינוי בקוד React
-- רק תיקון שם עמודה אחד
+- אין שינוי בקוד React, ב-UI, או באנדרואיד
+- אין שינוי בלוגיקה האחרת של ה-RPC
+- רק 2 בלוקי SELECT מתוקנים לטבלה הנכונה
 
