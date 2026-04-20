@@ -42,6 +42,7 @@ import SettingsV2 from "./pages/SettingsV2";
 import FamilyV2 from "./pages/FamilyV2";
 import AcceptInvite from "./pages/AcceptInvite";
 import JoinFamily from "./pages/JoinFamily";
+import LandingV1 from "./pages/LandingV1";
 
 // Demo pages
 import DemoDashboard from "./pages/demo/DemoDashboard";
@@ -60,6 +61,7 @@ const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/" element={<Landing />} />
+      <Route path="/landing-v1" element={<LandingV1 />} />
       <Route path="/next" element={<NextPage />} />
       <Route path="/home-v2" element={<ProtectedRoute><HomeV2 /></ProtectedRoute>} />
       <Route path="/child-v2/:childId" element={<ProtectedRoute><ChildControlV2 /></ProtectedRoute>} />
