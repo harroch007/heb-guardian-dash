@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { AlertTriangle, WifiOff, ShieldAlert, Clock } from "lucide-react";
 import type { ChildWithData } from "@/pages/HomeV2";
+import { WHATSAPP_MONITORING_ENABLED } from "@/config/featureFlags";
 
 interface Props {
   childrenData: ChildWithData[];
@@ -19,7 +20,7 @@ export const AttentionSection = ({ childrenData }: Props) => {
   const items: AttentionItem[] = [];
 
   for (const child of childrenData) {
-    if (child.unacknowledgedAlerts > 0) {
+    if (WHATSAPP_MONITORING_ENABLED && child.unacknowledgedAlerts > 0) {
       items.push({
         id: `alert-${child.id}`,
         icon: <AlertTriangle className="h-4 w-4 text-amber-500" />,
