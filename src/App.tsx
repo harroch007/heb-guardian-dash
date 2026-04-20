@@ -41,6 +41,7 @@ import AlertsV2 from "./pages/AlertsV2";
 import SettingsV2 from "./pages/SettingsV2";
 import FamilyV2 from "./pages/FamilyV2";
 import AcceptInvite from "./pages/AcceptInvite";
+import JoinFamily from "./pages/JoinFamily";
 
 // Demo pages
 import DemoDashboard from "./pages/demo/DemoDashboard";
