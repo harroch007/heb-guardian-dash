@@ -1934,6 +1934,8 @@ export type Database = {
           invited_email: string
           member_id: string | null
           owner_id: string
+          pairing_code: string | null
+          pairing_code_expires_at: string | null
           receive_alerts: boolean
           revoked_at: string | null
           role: string
@@ -1946,6 +1948,8 @@ export type Database = {
           invited_email: string
           member_id?: string | null
           owner_id: string
+          pairing_code?: string | null
+          pairing_code_expires_at?: string | null
           receive_alerts?: boolean
           revoked_at?: string | null
           role?: string
@@ -1958,6 +1962,8 @@ export type Database = {
           invited_email?: string
           member_id?: string | null
           owner_id?: string
+          pairing_code?: string | null
+          pairing_code_expires_at?: string | null
           receive_alerts?: boolean
           revoked_at?: string | null
           role?: string
@@ -2934,6 +2940,7 @@ export type Database = {
       }
     }
     Functions: {
+      _generate_family_pairing_code: { Args: never; Returns: string }
       accept_family_invite: { Args: { p_invite_id: string }; Returns: Json }
       add_daily_metrics: {
         Args: {
@@ -2973,6 +2980,10 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      claim_family_invite_by_code: {
+        Args: { p_code: string; p_email: string }
+        Returns: Json
       }
       cleanup_old_data: { Args: never; Returns: Json }
       complete_chore: {
@@ -3020,6 +3031,10 @@ export type Database = {
           p_package_name: string
         }
         Returns: string
+      }
+      create_family_invite_with_code: {
+        Args: { p_email: string }
+        Returns: Json
       }
       delete_all_my_data: { Args: never; Returns: Json }
       delete_child_data: { Args: { p_child_id: string }; Returns: Json }
@@ -3149,6 +3164,10 @@ export type Database = {
       }
       refund_reward_minutes: {
         Args: { p_child_id: string; p_minutes_to_refund: number }
+        Returns: Json
+      }
+      regenerate_family_invite_code: {
+        Args: { p_invite_id: string }
         Returns: Json
       }
       reject_chore: { Args: { p_chore_id: string }; Returns: Json }
