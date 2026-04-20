@@ -41,6 +41,7 @@ import AlertsV2 from "./pages/AlertsV2";
 import SettingsV2 from "./pages/SettingsV2";
 import FamilyV2 from "./pages/FamilyV2";
 import AcceptInvite from "./pages/AcceptInvite";
+import JoinFamily from "./pages/JoinFamily";
 
 // Demo pages
 import DemoDashboard from "./pages/demo/DemoDashboard";
@@ -67,6 +68,7 @@ const AppRoutes = () => {
       <Route path="/settings-v2" element={<ProtectedRoute><SettingsV2 /></ProtectedRoute>} />
       <Route path="/family-v2" element={<ProtectedRoute><FamilyV2 /></ProtectedRoute>} />
       <Route path="/accept-invite/:inviteId" element={<AcceptInvite />} />
+      <Route path="/join-family" element={<JoinFamily />} />
       <Route path="/auth" element={<Auth />} />
       <Route path="/install" element={<Install />} />
       <Route path="/privacy" element={<PrivacyPolicy />} />

@@ -37,6 +37,8 @@ interface CoParentRow {
   receive_alerts: boolean;
   member_id: string | null;
   accepted_at: string | null;
+  pairing_code: string | null;
+  pairing_code_expires_at: string | null;
 }
 
 const FamilyV2 = () => {
@@ -152,7 +154,7 @@ const FamilyV2 = () => {
     try {
       const { data } = await supabase
         .from("family_members")
-        .select("id, invited_email, status, receive_alerts, member_id, accepted_at")
+        .select("id, invited_email, status, receive_alerts, member_id, accepted_at, pairing_code, pairing_code_expires_at")
         .eq("owner_id", user.id)
         .in("status", ["pending", "accepted"])
         .order("invited_at", { ascending: false })
@@ -174,6 +176,28 @@ const FamilyV2 = () => {
   useEffect(() => {
     if (!roleLoading) fetchCoParent();
   }, [roleLoading, fetchCoParent]);
+
+  // Realtime listener for invite acceptance
+  useEffect(() => {
+    if (!coParent?.id || coParent.status !== "pending") return;
+    const channel = supabase
+      .channel(`family_invite_${coParent.id}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "family_members", filter: `id=eq.${coParent.id}` },
+        (payload) => {
+          const next = payload.new as { status: string };
+          if (next.status === "accepted") {
+            toast({ title: "ההורה הצטרף!", description: "ההורה הנוסף אישר את ההזמנה" });
+            fetchCoParent();
+          }
+        }
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [coParent?.id, coParent?.status, toast, fetchCoParent]);
 
   const isConnected = (lastSeen: string | null) => {
     if (!lastSeen) return false;
@@ -215,23 +239,47 @@ const FamilyV2 = () => {
     if (!inviteEmail.trim()) return;
     setInviting(true);
     try {
-      const { error } = await supabase.rpc("invite_co_parent", {
+      const { data, error } = await supabase.rpc("create_family_invite_with_code", {
         p_email: inviteEmail.trim().toLowerCase(),
-        p_receive_alerts: inviteAlerts,
       });
       if (error) {
-        toast({ title: "שגיאה", description: error.message || "לא ניתן לשלוח הזמנה", variant: "destructive" });
+        toast({ title: "שגיאה", description: error.message || "לא ניתן ליצור קוד", variant: "destructive" });
         return;
       }
-      toast({ title: "ההזמנה נשלחה", description: `הזמנה נשלחה ל-${inviteEmail}` });
+      const result = data as { invite_id: string; email: string; code: string; expires_at: string };
+      toast({ title: "הקוד נוצר", description: "שלח את הקוד והלינק להורה הנוסף" });
       setShowInviteForm(false);
       setInviteEmail("");
       setInviteAlerts(false);
-      fetchCoParent();
+      setCoParent({
+        id: result.invite_id,
+        invited_email: result.email,
+        status: "pending",
+        receive_alerts: false,
+        member_id: null,
+        accepted_at: null,
+        pairing_code: result.code,
+        pairing_code_expires_at: result.expires_at,
+      });
     } catch {
       toast({ title: "שגיאה", description: "שגיאה בלתי צפויה", variant: "destructive" });
     } finally {
       setInviting(false);
+    }
+  };
+
+  const handleRegenerateCode = async () => {
+    if (!coParent) return;
+    try {
+      const { data, error } = await supabase.rpc("regenerate_family_invite_code", {
+        p_invite_id: coParent.id,
+      });
+      if (error) throw error;
+      const result = data as { code: string; expires_at: string };
+      setCoParent({ ...coParent, pairing_code: result.code, pairing_code_expires_at: result.expires_at });
+      toast({ title: "נוצר קוד חדש" });
+    } catch {
+      toast({ title: "שגיאה", description: "לא ניתן להפיק קוד חדש", variant: "destructive" });
     }
   };
 
@@ -503,37 +551,77 @@ const FamilyV2 = () => {
                   </div>
 
                   {coParent.status === "pending" && (
-                    <div className="space-y-2 py-2">
-                      <p className="text-xs text-muted-foreground">שתף את הלינק עם ההורה המוזמן:</p>
-                      <div className="flex items-center gap-2 bg-muted/50 rounded-lg p-2">
-                        <span className="text-[11px] text-muted-foreground truncate flex-1" dir="ltr">
-                          {`${window.location.origin}/accept-invite/${coParent.id}`}
-                        </span>
+                    <div className="space-y-3 py-2">
+                      {coParent.pairing_code ? (
+                        <>
+                          <div className="text-center space-y-1">
+                            <p className="text-xs text-muted-foreground">קוד הצטרפות (6 ספרות)</p>
+                            <p className="text-3xl font-bold tracking-[0.4em] text-primary" dir="ltr">
+                              {coParent.pairing_code}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground">
+                              תוקף עד {coParent.pairing_code_expires_at
+                                ? new Date(coParent.pairing_code_expires_at).toLocaleDateString("he-IL")
+                                : "—"}
+                            </p>
+                          </div>
+                          <Button
+                            size="sm"
+                            className="w-full gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+                            onClick={() => {
+                              const url = `${window.location.origin}/join-family`;
+                              const text = `הוזמנת להצטרף למשפחה ב-KippyAI 👨‍👩‍👧\nהיכנס/י לקישור: ${url}\nהזן/י את הקוד: ${coParent.pairing_code}\n(האימייל שלך: ${coParent.invited_email})`;
+                              window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+                            }}
+                          >
+                            <MessageCircle className="w-4 h-4" />
+                            שלח להורה דרך WhatsApp
+                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1 gap-2"
+                              onClick={() => {
+                                navigator.clipboard.writeText(coParent.pairing_code || "");
+                                toast({ title: "הקוד הועתק" });
+                              }}
+                            >
+                              <Copy className="w-3.5 h-3.5" />
+                              העתק קוד
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1 gap-2"
+                              onClick={() => {
+                                navigator.clipboard.writeText(`${window.location.origin}/join-family`);
+                                toast({ title: "הקישור הועתק" });
+                              }}
+                            >
+                              <Share2 className="w-3.5 h-3.5" />
+                              העתק קישור
+                            </Button>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full text-xs"
+                            onClick={handleRegenerateCode}
+                          >
+                            הפק קוד חדש
+                          </Button>
+                        </>
+                      ) : (
                         <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 shrink-0"
-                          onClick={() => {
-                            navigator.clipboard.writeText(`${window.location.origin}/accept-invite/${coParent.id}`);
-                            toast({ title: "הלינק הועתק!" });
-                          }}
+                          variant="outline"
+                          size="sm"
+                          className="w-full"
+                          onClick={handleRegenerateCode}
                         >
-                          <Copy className="w-3.5 h-3.5" />
+                          הפק קוד הצטרפות
                         </Button>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full gap-2"
-                        onClick={() => {
-                          const url = `${window.location.origin}/accept-invite/${coParent.id}`;
-                          const text = `הי! הזמנתי אותך להצטרף כהורה שותף באפליקציית Kippy. לחץ/י על הלינק:\n${url}`;
-                          window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
-                        }}
-                      >
-                        <MessageCircle className="w-4 h-4" />
-                        שלח בוואטסאפ
-                      </Button>
+                      )}
                     </div>
                   )}
 
