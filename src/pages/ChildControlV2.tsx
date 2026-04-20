@@ -71,6 +71,7 @@ import {
   Unplug,
   Crown,
 } from "lucide-react";
+import { WHATSAPP_MONITORING_ENABLED } from "@/config/featureFlags";
 
 // ---------- PERMISSION LABELS ----------
 const PERMISSION_LABELS: Record<string, string> = {
@@ -399,7 +400,9 @@ export default function ChildControlV2() {
   const activeRestrictionName = getActiveScheduleName();
 
   // ---------- Premium / monitoring ----------
-  const isPremium = child?.subscription_tier === "premium";
+  // When WhatsApp monitoring is disabled, treat everyone as free-tier in UI
+  // (hides smart-protection card, premium badges, and upgrade CTAs).
+  const isPremium = WHATSAPP_MONITORING_ENABLED && child?.subscription_tier === "premium";
   const isMonitoringActive = isPremium && device !== null && status === "connected";
 
   if (loading) {
@@ -703,7 +706,7 @@ export default function ChildControlV2() {
             </Card>
 
             {/* ===== 11. SMART PROTECTION — only for free users as upgrade prompt ===== */}
-            {!isPremium && (
+            {WHATSAPP_MONITORING_ENABLED && !isPremium && (
               <Card className="border-amber-200 shadow-sm bg-gradient-to-l from-amber-50 to-orange-50">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
