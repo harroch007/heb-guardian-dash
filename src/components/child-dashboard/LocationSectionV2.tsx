@@ -173,7 +173,19 @@ export function LocationSectionV2({
               </>
             )}
 
-            {!hasLocation && locateStatus !== "locating" && locateStatus !== "failed" && (
+            {!hasLocation && device.address && locateStatus !== "locating" && locateStatus !== "failed" && (
+              <div className="space-y-1">
+                <p className="text-sm text-foreground">{device.address}</p>
+                <p className="text-xs text-muted-foreground">
+                  המכשיר דיווח על כתובת אך ללא קואורדינטות מדויקות. ייתכן שאין הרשאת מיקום מדויק או שה-GPS כבוי.
+                </p>
+                {device.last_seen && (
+                  <p className="text-xs text-muted-foreground">עודכן: {formatLastSeen(device.last_seen)}</p>
+                )}
+              </div>
+            )}
+
+            {!hasLocation && !device.address && locateStatus !== "locating" && locateStatus !== "failed" && (
               <p className="text-muted-foreground text-sm text-center py-2">אין מיקום זמין</p>
             )}
           </CardContent>
