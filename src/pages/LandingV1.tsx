@@ -25,7 +25,7 @@ export default function LandingV1() {
   if (loading || user) return null;
 
   return (
-    <div className="min-h-screen bg-[#F7F7F7]" dir="rtl">
+    <div className="homev2-light min-h-screen bg-background text-foreground" dir="rtl">
       <NavbarV1 />
       <main id="main-content">
         <HeroV1 />
