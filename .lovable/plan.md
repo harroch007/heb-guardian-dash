@@ -1,36 +1,76 @@
 
 
-# הפניית ניווט מ-/dashboard ל-/home-v2
+# הסתרת ניטור WhatsApp ב-UI בלבד (ללא פגיעה בקוד)
 
-## הבעיה
-כשהורה נכנס לאפליקציה, כל ההפניות מובילות ל-`/dashboard` (המסך הישן) במקום ל-`/home-v2` (המסך החדש).
+## הגישה
+הוספת feature flag חדש `WHATSAPP_MONITORING_ENABLED = false` ב-`src/config/featureFlags.ts`. כל הקוד הקיים (טבלאות alerts, edge functions, hooks) נשאר בדיוק כמו שהוא — רק ה-UI מסתיר את כל מה שקשור לוואטסאפ/התראות/פרימיום. כשנרצה להחזיר — נשנה ל-`true` והכול חוזר.
 
-## מקומות שדורשים שינוי
+## מה מוסתר כשהדגל כבוי
 
-### 1. `src/pages/Landing.tsx` (שורה 31)
-- `navigate('/dashboard')` → `navigate('/home-v2')`
+### 1. טאב "התראות" בניווט תחתון
+**קובץ:** `src/components/BottomNavigationV2.tsx`
+- סינון פריט "התראות" מתוך מערך הטאבים כשהדגל כבוי
+- הניווט נשאר תקין (3 טאבים במקום 4)
 
-### 2. `src/pages/Auth.tsx` (שורות 55, 100, 154, 167, 199)
-- כל 5 המופעים של `navigate('/dashboard')` → `navigate('/home-v2')`
+### 2. ראוטים (לא חוסמים — רק לא מציגים CTA אליהם)
+**קובץ:** `src/App.tsx`
+- משאירים את הראוטים `/alerts-v2` ו-`/checkout` קיימים (למקרה גישה ישירה)
+- לא נוגעים בלוגיקה
 
-### 3. `src/components/ProtectedRoute.tsx` (שורה 32)
-- `Navigate to="/dashboard"` → `Navigate to="/home-v2"` (redirect אחרי onboarding)
+### 3. מסך הבית `/home-v2`
+**קובץ:** `src/pages/HomeV2.tsx`
+- הסתרת `<SmartProtectionSummary />` לחלוטין
+- העברת `hasPremium={true}` קבוע ל-`FamilyStatusHero` כדי שלא יציג CTA לשדרוג
+- ב-`AttentionSection` — סינון פריטי alerts (`unacknowledgedAlerts`) מהרשימה
 
-### 4. `src/pages/Onboarding.tsx` (שורה 95)
-- `navigate('/family')` → `navigate('/home-v2')` (אחרי סיום onboarding)
+**קובץ:** `src/components/home-v2/FamilyStatusHero.tsx`
+- כשהדגל כבוי: לא להציג בכלל את ה-block של "שדרגו לפרימיום"
+- להציג תמיד "הכול תקין כרגע" (ללא תלות ב-hasPremium)
 
-### 5. `src/pages/ImpersonateSession.tsx` (שורה 31)
-- `navigate("/dashboard")` → `navigate("/home-v2")`
+### 4. כרטיס ילד `ChildCardV2`
+**קובץ:** `src/components/home-v2/ChildCardV2.tsx`
+- הסתרת badge של "התראות פתוחות" אם קיים
+- הסתרת כל איזכור של פרימיום/Crown/שדרוג
 
-### 6. `src/pages/DailyReport.tsx` (שורות 88, 246)
-- הפניות חזרה ל-dashboard → `/home-v2`
+### 5. מסך משפחה `/family-v2`
+**קובץ:** `src/pages/FamilyV2.tsx`
+- הסתרת כפתור/קישור "שדרוג לפרימיום"
+- הכרטיס "פרימיום" כבר מוסתר כש-count=0 (נשאר כמו שהוא)
 
-### 7. `src/pages/PeriodicSummary.tsx` (שורה 94)
-- הפניה חזרה ל-dashboard → `/home-v2`
+### 6. מסך הגדרות `/settings-v2`
+**קובץ:** `src/pages/SettingsV2.tsx`
+- הסתרת סקציית מנוי/שדרוג אם קיימת
 
-### 8. PWA start_url
-- בדיקה ב-`vite.config.ts` שה-start_url מוגדר ל-`/` (כבר נכון — Landing.tsx מטפל בהפניה)
+### 7. מסך ילד `/child-v2/:id`
+**קובץ:** `src/pages/ChildControlV2.tsx` ורכיבים נלווים
+- הסתרת כל banner/CTA של "שדרגו לפרימיום לניטור WhatsApp"
+- הסתרת `PremiumUpgradeCard` אם מוצג
 
-## תוצאה
-הורה מחובר תמיד יגיע ל-`/home-v2` — מהלוגין, מהלנדינג, מה-onboarding, ומכל מסך שמחזיר "חזרה לדשבורד".
+### 8. מסך לנדינג (אופציונלי)
+**קובץ:** `src/pages/Landing.tsx` ורכיבי landing
+- אם יש סקציות שמדברות ספציפית על ניטור WhatsApp — להוסיף תנאי הסתרה
+- (אם רוצים להשאיר לשיווק — אפשר לדלג)
+
+## איך זה עובד טכנית
+```typescript
+// src/config/featureFlags.ts
+export const WAITLIST_MODE = true;
+export const WHATSAPP_MONITORING_ENABLED = false; // חדש
+```
+
+```typescript
+// בכל מקום רלוונטי:
+import { WHATSAPP_MONITORING_ENABLED } from "@/config/featureFlags";
+
+{WHATSAPP_MONITORING_ENABLED && <SmartProtectionSummary ... />}
+```
+
+## יתרונות הגישה
+1. **אפס שינוי בלוגיקה** — כל הקוד, ה-DB, ה-edge functions נשארים
+2. **חזרה מיידית** — שינוי דגל אחד מחזיר את הכול
+3. **ללא מיגרציות** — לא נוגעים ב-DB
+4. **בטוח** — אפילו אם משתמש ינווט ידנית ל-`/alerts-v2` הוא יראה את המסך (פשוט אין כפתור)
+
+## מה להבהיר לפני יישום
+האם להסתיר גם את הראוטים `/alerts-v2` ו-`/checkout` לחלוטין (redirect ל-`/home-v2`), או רק להוריד את ה-CTAs ולהשאיר גישה ישירה? המלצתי: רק להוריד CTAs — בטוח יותר.
 
