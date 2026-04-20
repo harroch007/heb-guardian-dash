@@ -1,53 +1,108 @@
 
 
-# הוספת הורה משותף — פלאו קוד + לינק WhatsApp (ללא אימייל)
+# פרומפט מפורט לסוכן Android — התאמת עיצוב אפליקציית הילד ל-V2
 
-## הרעיון
-ההורה הראשי לוחץ "הוסף הורה" → מזין את האימייל שאיתו ההורה הנוסף ירשם → המערכת יוצרת רשומת הזמנה + קוד OTP בן 6 ספרות. ההורה הראשי מקבל מסך עם **קוד + כפתור "שלח דרך WhatsApp"** שפותח wa.me עם טקסט מוכן (לינק + קוד). ההורה הנוסף נכנס דרך הלינק → מסך התחברות → נרשם/מתחבר עם האימייל שצוין → מזין את הקוד → מתחבר כ-co_parent.
+## מטרה
+להפיק מסמך **`kippy-child-app-design-prompt.md`** — פרומפט עברי, מפורט, מוכן להעברה לסוכן AI שעובד על קוד האנדרואיד של הילד. הפרומפט יגדיר במדויק את שפת העיצוב של V2 (צבעים, פונטים, רכיבים) **בלי לדרוש שינוי במבני המסכים הקיימים** — רק רענון ויזואלי (skin) על גבי ה-layouts הקיימים.
 
-## שינויים
+## מה אעשה
+1. אסרוק את `src/index.css` (`.homev2-light`), `tailwind.config.ts`, ורכיבי `home-v2/*` ו-`BottomNavigationV2.tsx` כדי לחלץ ערכים מדויקים
+2. אפיק קובץ Markdown יחיד שמכיל:
 
-### 1. DB — מיגרציה
-הוספת עמודות ל-`family_members`:
-- `pairing_code TEXT` (6 ספרות numeric)
-- `pairing_code_expires_at TIMESTAMPTZ` (תוקף 7 ימים)
+### מבנה המסמך
 
-הוספת RPCs:
-- `create_family_invite_with_code(p_email TEXT)` — יוצר רשומת הזמנה + מחזיר קוד 6 ספרות. רק owner.
-- `claim_family_invite_by_code(p_email TEXT, p_code TEXT)` — מאמת `email + code + expires_at`, מקשר `member_id = auth.uid()`, מעדכן `status='accepted'`. בדיקות: לא לקבל הזמנה של עצמך, האימייל של המשתמש המחובר חייב להיות תואם ל-`p_email`.
+**א. הקדמה ועקרונות**
+- מה לעשות / מה לא לעשות (אסור לשנות לוגיקה, navigation, או מבני XML — רק styles, colors, typography)
+- שמירה על RTL מלא, פונט Heebo, מגע ידידותי לילדים
 
-### 2. UI — מודאל הוספת הורה ב-`FamilyV2.tsx`
-החלפת המודאל הקיים בשני שלבים בסגנון V2:
-- **שלב 1:** שדה אימייל + כפתור "צור הזמנה"
-- **שלב 2 (תצוגת קוד):**
-  - תצוגה גדולה של הקוד (6 ספרות, אפשר לקופי)
-  - האימייל שאליו הוקצתה ההזמנה
-  - כפתור גדול ירוק **"שלח להורה דרך WhatsApp"** — פותח:
-    ```
-    https://wa.me/?text=<הזמנה+לקיפי>+<קישור>+<קוד>
-    ```
-    טקסט בעברית: "הוזמנת להצטרף למשפחה ב-KippyAI. היכנס לקישור: https://kippyai.com/join-family והזן את הקוד: 123456"
-  - כפתור משני "העתק קוד" / "העתק קישור"
-  - real-time listener על `family_members` — כשה-status הופך ל-`accepted` → toast הצלחה + סגירה
+**ב. פלטת צבעים — Android (HEX + שמות resources)**
+טבלה מוכנה ל-`colors.xml`:
+```xml
+<color name="kippy_bg">#F7F7F7</color>          <!-- 0 0% 97% -->
+<color name="kippy_card">#FFFFFF</color>
+<color name="kippy_primary">#2DB3A6</color>     <!-- 174 62% 47% turquoise -->
+<color name="kippy_primary_fg">#FFFFFF</color>
+<color name="kippy_text">#212329</color>
+<color name="kippy_text_muted">#6B7280</color>
+<color name="kippy_border">#D9DCE0</color>
+<color name="kippy_success">#27B47A</color>
+<color name="kippy_warning">#F59E0B</color>
+<color name="kippy_destructive">#DC3232</color>
+```
++ הסבר מתי להשתמש בכל צבע + עקרון "primary turquoise = פעולה ראשית"
 
-### 3. דף חדש `/join-family` — `src/pages/JoinFamily.tsx`
-מסך ייעודי בסגנון V2:
-- אם המשתמש לא מחובר → מציג שדות **אימייל + סיסמה** + שדה **קוד 6 ספרות** + כפתור "הצטרף":
-  1. מנסה sign-in עם האימייל/סיסמה. אם נכשל ("Invalid login credentials") → מנסה sign-up עם אותם פרטים.
-  2. אחרי הצלחה → קורא ל-`claim_family_invite_by_code(email, code)`
-  3. הצלחה → ניווט ל-`/home-v2` + toast
-- אם המשתמש כבר מחובר → רק שדה קוד + כפתור (האימייל נלקח מ-`user.email`)
-- טיפול בשגיאות: קוד שגוי / פג תוקף / אימייל לא תואם / כבר חבר במשפחה
+**ג. טיפוגרפיה**
+- פונט: **Heebo** (Google Fonts) — להוסיף ל-`res/font/heebo_*.ttf`
+- משקלים: 300/400/500/600/700/800
+- היררכיה (sp values מותאמים ילדים, מעט גדולים יותר):
+  - Display: 28sp / 700
+  - H1: 22sp / 700
+  - H2: 18sp / 600
+  - Body: 16sp / 400
+  - Caption: 13sp / 500
+- `letterSpacing`, `lineHeight` מומלצים
 
-הוספת ראוט ב-`src/App.tsx`: `/join-family` → ציבורי (ללא ProtectedRoute).
+**ד. רדיוסים, מרווחים, צללים**
+- Card radius: 16dp (rounded-2xl)
+- Button radius: 12dp
+- Pill: 999dp
+- Padding כרטיס: 16-20dp
+- Spacing scale: 4/8/12/16/20/24dp
+- Elevation: 2dp (sm), 4dp (md)
 
-### 4. הסרה
-- אין שליחת אימייל בכלל — לא צריך לגעת ב-edge function `send-email`
-- מסך `/accept-invite` הקיים נשאר כמו שהוא (לא נוגעים, למקרה הזמנות ישנות)
+**ה. רכיבים — מפת המרה**
+טבלה: רכיב V2 (web) ↔ מקבילה ב-Android XML
+- Card → MaterialCardView (radius 16, stroke kippy_border, elevation 2)
+- Primary Button → MaterialButton (background kippy_primary, text white, height 52dp, radius 12)
+- Secondary Button → OutlinedButton (stroke kippy_primary)
+- Input → TextInputLayout outlined
+- Bottom Nav → BottomNavigationView (כבר קיים, רק צבעים)
+- Avatar circle → ShapeableImageView circular
+- Status pills → Chip (סוגים: success/warning/danger)
 
-## הרשאות
-ללא שינוי — `co_parent` עם המודל Operational הקיים.
+**ו. אייקונוגרפיה**
+- ספרייה מקבילה ל-lucide → **Lucide for Android** (יש package) או SVG ידני
+- גדלים: 16dp inline, 20dp action, 24dp header
+- צבעים מותרים: text, primary, destructive
 
-## נקודה לאישור
-האם להציג את הקוד גם **אחרי** שהמודאל נסגר (כלומר לאפשר "הצג קוד שוב" בכרטיס ההורה הממתין ב-FamilyV2), או שהקוד רק מופיע פעם אחת ביצירה? המלצתי: להציג גם בכרטיס "ממתין לאישור" כך שאפשר לשלוח שוב ב-WhatsApp.
+**ז. RTL ו-Hebrew**
+- `android:supportsRtl="true"` במניפסט
+- שימוש ב-`start/end` ולא `left/right`
+- בדיקה ש-LayoutDirection=RTL
+
+**ח. אנימציות ומיקרו-אינטראקציות**
+- duration 150ms, AccelerateDecelerateInterpolator
+- Ripple על כפתורים בצבע primary @ 20% alpha
+- Confetti/celebration קל בהשלמת משימה (מותר להוסיף, מתאים לילדים)
+
+**ט. הנחיות ספציפיות לילדים (מעל ה-base)**
+- Touch targets מינימום 48dp (במקום 44 של ההורה)
+- כפתורי פעולה ראשיים — גובה 56dp, פונט 18sp/700
+- שימוש מוגבר ב-primary turquoise + accent ירוק להצלחה
+- אווירה רגועה — ללא תפריטים עמוסים
+
+**י. Checklist להטמעה (בסדר ביצוע)**
+1. הוספת Heebo ל-`res/font/`
+2. עדכון `colors.xml` עם הפלטה
+3. עדכון `themes.xml` — primary, fontFamily, cornerRadius
+4. החלפת רקעי כרטיסים ל-`kippy_card` + radius 16
+5. עדכון כפתורים ל-style החדש
+6. עדכון BottomNav לצבעי kippy_primary/text_muted
+7. בדיקת RTL במכשיר אמיתי
+8. QA: השוואה ויזואלית ל-screenshot של `/home-v2`
+
+**יא. מה אסור לגעת**
+- שמות classes, IDs, navigation graph
+- Activity/Fragment lifecycle
+- Network/DB code
+- מבני XML של מסכים (רק attributes של style)
+
+**יב. נספח — דוגמת Theme XML מוכנה**
+בלוק `<style name="Theme.Kippy.Child" parent="Theme.MaterialComponents.DayNight.NoActionBar">` עם כל הצבעים והפונט מוגדרים
+
+## תוצר
+קובץ אחד: **`/mnt/documents/kippy-child-app-design-prompt.md`** — מוכן להעתקה ישירה ל-Cursor / Copilot / כל סוכן AI שעובד על הריפו של אנדרואיד.
+
+## שאלה לאישור
+האם להוסיף גם **screenshot reference** של `/home-v2` (תמונה מצורפת) כחלק מהמסמך, כדי שהסוכן השני יראה ויזואלית את היעד? המלצתי: כן — אצרף PNG של מסך הבית הנוכחי כקובץ נפרד ב-`/mnt/documents/`.
 
