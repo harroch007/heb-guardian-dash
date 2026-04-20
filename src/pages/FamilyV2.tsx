@@ -217,23 +217,47 @@ const FamilyV2 = () => {
     if (!inviteEmail.trim()) return;
     setInviting(true);
     try {
-      const { error } = await supabase.rpc("invite_co_parent", {
+      const { data, error } = await supabase.rpc("create_family_invite_with_code", {
         p_email: inviteEmail.trim().toLowerCase(),
-        p_receive_alerts: inviteAlerts,
       });
       if (error) {
-        toast({ title: "שגיאה", description: error.message || "לא ניתן לשלוח הזמנה", variant: "destructive" });
+        toast({ title: "שגיאה", description: error.message || "לא ניתן ליצור קוד", variant: "destructive" });
         return;
       }
-      toast({ title: "ההזמנה נשלחה", description: `הזמנה נשלחה ל-${inviteEmail}` });
+      const result = data as { invite_id: string; email: string; code: string; expires_at: string };
+      toast({ title: "הקוד נוצר", description: "שלח את הקוד והלינק להורה הנוסף" });
       setShowInviteForm(false);
       setInviteEmail("");
       setInviteAlerts(false);
-      fetchCoParent();
+      setCoParent({
+        id: result.invite_id,
+        invited_email: result.email,
+        status: "pending",
+        receive_alerts: false,
+        member_id: null,
+        accepted_at: null,
+        pairing_code: result.code,
+        pairing_code_expires_at: result.expires_at,
+      });
     } catch {
       toast({ title: "שגיאה", description: "שגיאה בלתי צפויה", variant: "destructive" });
     } finally {
       setInviting(false);
+    }
+  };
+
+  const handleRegenerateCode = async () => {
+    if (!coParent) return;
+    try {
+      const { data, error } = await supabase.rpc("regenerate_family_invite_code", {
+        p_invite_id: coParent.id,
+      });
+      if (error) throw error;
+      const result = data as { code: string; expires_at: string };
+      setCoParent({ ...coParent, pairing_code: result.code, pairing_code_expires_at: result.expires_at });
+      toast({ title: "נוצר קוד חדש" });
+    } catch {
+      toast({ title: "שגיאה", description: "לא ניתן להפיק קוד חדש", variant: "destructive" });
     }
   };
 
