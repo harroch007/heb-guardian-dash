@@ -37,6 +37,8 @@ interface CoParentRow {
   receive_alerts: boolean;
   member_id: string | null;
   accepted_at: string | null;
+  pairing_code: string | null;
+  pairing_code_expires_at: string | null;
 }
 
 const FamilyV2 = () => {
