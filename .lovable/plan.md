@@ -1,76 +1,53 @@
 
 
-# הסתרת ניטור WhatsApp ב-UI בלבד (ללא פגיעה בקוד)
+# הוספת הורה משותף — פלאו קוד + לינק WhatsApp (ללא אימייל)
 
-## הגישה
-הוספת feature flag חדש `WHATSAPP_MONITORING_ENABLED = false` ב-`src/config/featureFlags.ts`. כל הקוד הקיים (טבלאות alerts, edge functions, hooks) נשאר בדיוק כמו שהוא — רק ה-UI מסתיר את כל מה שקשור לוואטסאפ/התראות/פרימיום. כשנרצה להחזיר — נשנה ל-`true` והכול חוזר.
+## הרעיון
+ההורה הראשי לוחץ "הוסף הורה" → מזין את האימייל שאיתו ההורה הנוסף ירשם → המערכת יוצרת רשומת הזמנה + קוד OTP בן 6 ספרות. ההורה הראשי מקבל מסך עם **קוד + כפתור "שלח דרך WhatsApp"** שפותח wa.me עם טקסט מוכן (לינק + קוד). ההורה הנוסף נכנס דרך הלינק → מסך התחברות → נרשם/מתחבר עם האימייל שצוין → מזין את הקוד → מתחבר כ-co_parent.
 
-## מה מוסתר כשהדגל כבוי
+## שינויים
 
-### 1. טאב "התראות" בניווט תחתון
-**קובץ:** `src/components/BottomNavigationV2.tsx`
-- סינון פריט "התראות" מתוך מערך הטאבים כשהדגל כבוי
-- הניווט נשאר תקין (3 טאבים במקום 4)
+### 1. DB — מיגרציה
+הוספת עמודות ל-`family_members`:
+- `pairing_code TEXT` (6 ספרות numeric)
+- `pairing_code_expires_at TIMESTAMPTZ` (תוקף 7 ימים)
 
-### 2. ראוטים (לא חוסמים — רק לא מציגים CTA אליהם)
-**קובץ:** `src/App.tsx`
-- משאירים את הראוטים `/alerts-v2` ו-`/checkout` קיימים (למקרה גישה ישירה)
-- לא נוגעים בלוגיקה
+הוספת RPCs:
+- `create_family_invite_with_code(p_email TEXT)` — יוצר רשומת הזמנה + מחזיר קוד 6 ספרות. רק owner.
+- `claim_family_invite_by_code(p_email TEXT, p_code TEXT)` — מאמת `email + code + expires_at`, מקשר `member_id = auth.uid()`, מעדכן `status='accepted'`. בדיקות: לא לקבל הזמנה של עצמך, האימייל של המשתמש המחובר חייב להיות תואם ל-`p_email`.
 
-### 3. מסך הבית `/home-v2`
-**קובץ:** `src/pages/HomeV2.tsx`
-- הסתרת `<SmartProtectionSummary />` לחלוטין
-- העברת `hasPremium={true}` קבוע ל-`FamilyStatusHero` כדי שלא יציג CTA לשדרוג
-- ב-`AttentionSection` — סינון פריטי alerts (`unacknowledgedAlerts`) מהרשימה
+### 2. UI — מודאל הוספת הורה ב-`FamilyV2.tsx`
+החלפת המודאל הקיים בשני שלבים בסגנון V2:
+- **שלב 1:** שדה אימייל + כפתור "צור הזמנה"
+- **שלב 2 (תצוגת קוד):**
+  - תצוגה גדולה של הקוד (6 ספרות, אפשר לקופי)
+  - האימייל שאליו הוקצתה ההזמנה
+  - כפתור גדול ירוק **"שלח להורה דרך WhatsApp"** — פותח:
+    ```
+    https://wa.me/?text=<הזמנה+לקיפי>+<קישור>+<קוד>
+    ```
+    טקסט בעברית: "הוזמנת להצטרף למשפחה ב-KippyAI. היכנס לקישור: https://kippyai.com/join-family והזן את הקוד: 123456"
+  - כפתור משני "העתק קוד" / "העתק קישור"
+  - real-time listener על `family_members` — כשה-status הופך ל-`accepted` → toast הצלחה + סגירה
 
-**קובץ:** `src/components/home-v2/FamilyStatusHero.tsx`
-- כשהדגל כבוי: לא להציג בכלל את ה-block של "שדרגו לפרימיום"
-- להציג תמיד "הכול תקין כרגע" (ללא תלות ב-hasPremium)
+### 3. דף חדש `/join-family` — `src/pages/JoinFamily.tsx`
+מסך ייעודי בסגנון V2:
+- אם המשתמש לא מחובר → מציג שדות **אימייל + סיסמה** + שדה **קוד 6 ספרות** + כפתור "הצטרף":
+  1. מנסה sign-in עם האימייל/סיסמה. אם נכשל ("Invalid login credentials") → מנסה sign-up עם אותם פרטים.
+  2. אחרי הצלחה → קורא ל-`claim_family_invite_by_code(email, code)`
+  3. הצלחה → ניווט ל-`/home-v2` + toast
+- אם המשתמש כבר מחובר → רק שדה קוד + כפתור (האימייל נלקח מ-`user.email`)
+- טיפול בשגיאות: קוד שגוי / פג תוקף / אימייל לא תואם / כבר חבר במשפחה
 
-### 4. כרטיס ילד `ChildCardV2`
-**קובץ:** `src/components/home-v2/ChildCardV2.tsx`
-- הסתרת badge של "התראות פתוחות" אם קיים
-- הסתרת כל איזכור של פרימיום/Crown/שדרוג
+הוספת ראוט ב-`src/App.tsx`: `/join-family` → ציבורי (ללא ProtectedRoute).
 
-### 5. מסך משפחה `/family-v2`
-**קובץ:** `src/pages/FamilyV2.tsx`
-- הסתרת כפתור/קישור "שדרוג לפרימיום"
-- הכרטיס "פרימיום" כבר מוסתר כש-count=0 (נשאר כמו שהוא)
+### 4. הסרה
+- אין שליחת אימייל בכלל — לא צריך לגעת ב-edge function `send-email`
+- מסך `/accept-invite` הקיים נשאר כמו שהוא (לא נוגעים, למקרה הזמנות ישנות)
 
-### 6. מסך הגדרות `/settings-v2`
-**קובץ:** `src/pages/SettingsV2.tsx`
-- הסתרת סקציית מנוי/שדרוג אם קיימת
+## הרשאות
+ללא שינוי — `co_parent` עם המודל Operational הקיים.
 
-### 7. מסך ילד `/child-v2/:id`
-**קובץ:** `src/pages/ChildControlV2.tsx` ורכיבים נלווים
-- הסתרת כל banner/CTA של "שדרגו לפרימיום לניטור WhatsApp"
-- הסתרת `PremiumUpgradeCard` אם מוצג
-
-### 8. מסך לנדינג (אופציונלי)
-**קובץ:** `src/pages/Landing.tsx` ורכיבי landing
-- אם יש סקציות שמדברות ספציפית על ניטור WhatsApp — להוסיף תנאי הסתרה
-- (אם רוצים להשאיר לשיווק — אפשר לדלג)
-
-## איך זה עובד טכנית
-```typescript
-// src/config/featureFlags.ts
-export const WAITLIST_MODE = true;
-export const WHATSAPP_MONITORING_ENABLED = false; // חדש
-```
-
-```typescript
-// בכל מקום רלוונטי:
-import { WHATSAPP_MONITORING_ENABLED } from "@/config/featureFlags";
-
-{WHATSAPP_MONITORING_ENABLED && <SmartProtectionSummary ... />}
-```
-
-## יתרונות הגישה
-1. **אפס שינוי בלוגיקה** — כל הקוד, ה-DB, ה-edge functions נשארים
-2. **חזרה מיידית** — שינוי דגל אחד מחזיר את הכול
-3. **ללא מיגרציות** — לא נוגעים ב-DB
-4. **בטוח** — אפילו אם משתמש ינווט ידנית ל-`/alerts-v2` הוא יראה את המסך (פשוט אין כפתור)
-
-## מה להבהיר לפני יישום
-האם להסתיר גם את הראוטים `/alerts-v2` ו-`/checkout` לחלוטין (redirect ל-`/home-v2`), או רק להוריד את ה-CTAs ולהשאיר גישה ישירה? המלצתי: רק להוריד CTAs — בטוח יותר.
+## נקודה לאישור
+האם להציג את הקוד גם **אחרי** שהמודאל נסגר (כלומר לאפשר "הצג קוד שוב" בכרטיס ההורה הממתין ב-FamilyV2), או שהקוד רק מופיע פעם אחת ביצירה? המלצתי: להציג גם בכרטיס "ממתין לאישור" כך שאפשר לשלוח שוב ב-WhatsApp.
 
