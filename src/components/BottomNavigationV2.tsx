@@ -1,14 +1,19 @@
 import { Home, Users, ClipboardList, Bell, Settings } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { WHATSAPP_MONITORING_ENABLED } from "@/config/featureFlags";
 
-const navItems = [
+const allNavItems = [
   { title: "בית", url: "/home-v2", icon: Home },
   { title: "משפחה", url: "/family-v2", icon: Users },
   { title: "משימות", url: "/chores-v2", icon: ClipboardList },
-  { title: "התראות", url: "/alerts-v2", icon: Bell },
+  { title: "התראות", url: "/alerts-v2", icon: Bell, requiresWhatsApp: true },
   { title: "הגדרות", url: "/settings-v2", icon: Settings },
 ];
+
+const navItems = allNavItems.filter(
+  (item) => WHATSAPP_MONITORING_ENABLED || !item.requiresWhatsApp
+);
 
 export function BottomNavigationV2() {
   const location = useLocation();

@@ -6,6 +6,7 @@ import { getIsraelDate } from "@/lib/utils";
 import { toast } from "sonner";
 import { useState } from "react";
 import { useRingCommand } from "@/hooks/useRingCommand";
+import { WHATSAPP_MONITORING_ENABLED } from "@/config/featureFlags";
 import type { ChildWithData } from "@/pages/HomeV2";
 
 interface Props {
@@ -219,7 +220,7 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
               />
             </>
           )}
-          {child.unacknowledgedAlerts > 0 && (
+          {WHATSAPP_MONITORING_ENABLED && child.unacknowledgedAlerts > 0 && (
             <ActionBtn
               icon={<Bell className="h-3.5 w-3.5" />}
               onClick={() => navigate("/alerts-v2")}

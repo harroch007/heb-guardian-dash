@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { WHATSAPP_MONITORING_ENABLED } from "@/config/featureFlags";
 
 const WHATSAPP_NUMBER = "972548383340";
 
@@ -232,48 +233,50 @@ const SettingsV2 = () => {
           )}
         </section>
 
-        {/* Subscription */}
-        <section className="p-5 rounded-2xl bg-card border border-border/50 space-y-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center">
-              <Crown className="w-5 h-5 text-amber-500" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-foreground">מינוי</h2>
-              <p className="text-xs text-muted-foreground">סטטוס המינוי המשפחתי</p>
-            </div>
-          </div>
-          {!subLoading && (
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between items-center py-2 border-b border-border/30">
-                <span className="text-muted-foreground">סטטוס</span>
-                <span className={`font-medium ${allPremium ? 'text-green-600' : 'text-foreground'}`}>
-                  {allPremium ? 'פרימיום פעיל' : 'חינמי'}
-                </span>
+        {/* Subscription — hidden when WhatsApp monitoring is disabled */}
+        {WHATSAPP_MONITORING_ENABLED && (
+          <section className="p-5 rounded-2xl bg-card border border-border/50 space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center">
+                <Crown className="w-5 h-5 text-amber-500" />
               </div>
-              <div className="flex justify-between items-center py-2 border-b border-border/30">
-                <span className="text-muted-foreground">ילדים</span>
-                <span className="font-medium text-foreground">{childCount}</span>
+              <div>
+                <h2 className="text-lg font-semibold text-foreground">מינוי</h2>
+                <p className="text-xs text-muted-foreground">סטטוס המינוי המשפחתי</p>
               </div>
-              {childCount > 0 && (
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-muted-foreground">ילדים פרימיום</span>
-                  <span className="font-medium text-foreground">{premiumCount} / {childCount}</span>
+            </div>
+            {!subLoading && (
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between items-center py-2 border-b border-border/30">
+                  <span className="text-muted-foreground">סטטוס</span>
+                  <span className={`font-medium ${allPremium ? 'text-green-600' : 'text-foreground'}`}>
+                    {allPremium ? 'פרימיום פעיל' : 'חינמי'}
+                  </span>
                 </div>
-              )}
-              {isOwner && hasFreeChildren && (
-                <Button
-                  onClick={() => navigate('/checkout')}
-                  className="w-full mt-2 gap-2 bg-gradient-to-l from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white"
-                >
-                  <Crown className="w-4 h-4" />
-                  שדרג עכשיו
-                </Button>
-              )}
-              {/* No self-service cancellation: backend only supports expiry-based downgrade */}
-            </div>
-          )}
-        </section>
+                <div className="flex justify-between items-center py-2 border-b border-border/30">
+                  <span className="text-muted-foreground">ילדים</span>
+                  <span className="font-medium text-foreground">{childCount}</span>
+                </div>
+                {childCount > 0 && (
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-muted-foreground">ילדים פרימיום</span>
+                    <span className="font-medium text-foreground">{premiumCount} / {childCount}</span>
+                  </div>
+                )}
+                {isOwner && hasFreeChildren && (
+                  <Button
+                    onClick={() => navigate('/checkout')}
+                    className="w-full mt-2 gap-2 bg-gradient-to-l from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white"
+                  >
+                    <Crown className="w-4 h-4" />
+                    שדרג עכשיו
+                  </Button>
+                )}
+                {/* No self-service cancellation: backend only supports expiry-based downgrade */}
+              </div>
+            )}
+          </section>
+        )}
 
         {/* Push Notifications */}
         {isSupported && (

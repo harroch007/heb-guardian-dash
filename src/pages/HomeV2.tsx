@@ -12,6 +12,7 @@ import { QuickActionsBar } from "@/components/home-v2/QuickActionsBar";
 import { DailyControlSummary } from "@/components/home-v2/DailyControlSummary";
 import { SmartProtectionSummary } from "@/components/home-v2/SmartProtectionSummary";
 import { BottomNavigationV2 } from "@/components/BottomNavigationV2";
+import { WHATSAPP_MONITORING_ENABLED } from "@/config/featureFlags";
 
 export interface ActiveRestriction {
   type: "schedule" | "shabbat";
@@ -318,11 +319,20 @@ const HomeV2 = () => {
     return Date.now() - new Date(c.device.last_seen).getTime() > 24 * 60 * 60 * 1000;
   }).length;
 
-  const openIssues = totalAlerts + totalTimeReqs + totalPermIssues + disconnectedCount;
+  // When WhatsApp monitoring is disabled, exclude alerts from "open issues"
+  const openIssues =
+    (WHATSAPP_MONITORING_ENABLED ? totalAlerts : 0) +
+    totalTimeReqs +
+    totalPermIssues +
+    disconnectedCount;
 
-  const hasPremium = childrenData.some(
-    (c) => c.subscription_tier === "premium" || c.subscription_tier === "pro"
-  );
+  // When WhatsApp monitoring is disabled, treat all users as premium for UI purposes
+  // (hides upgrade CTAs in FamilyStatusHero)
+  const hasPremium = WHATSAPP_MONITORING_ENABLED
+    ? childrenData.some(
+        (c) => c.subscription_tier === "premium" || c.subscription_tier === "pro"
+      )
+    : true;
 
   return (
     <div className="homev2-light min-h-screen pb-24" dir="rtl">
@@ -355,9 +365,8 @@ const HomeV2 = () => {
 
         <DailyControlSummary childrenData={childrenData} />
 
-        {/* Smart Protection: show for premium above daily summary context, 
-            for free show upgrade prompt at bottom */}
-        <SmartProtectionSummary childrenData={childrenData} />
+        {/* Smart Protection: hidden when WhatsApp monitoring is disabled */}
+        {WHATSAPP_MONITORING_ENABLED && <SmartProtectionSummary childrenData={childrenData} />}
       </div>
       <BottomNavigationV2 />
     </div>
