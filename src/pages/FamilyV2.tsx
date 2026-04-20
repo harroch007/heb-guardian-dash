@@ -154,7 +154,7 @@ const FamilyV2 = () => {
     try {
       const { data } = await supabase
         .from("family_members")
-        .select("id, invited_email, status, receive_alerts, member_id, accepted_at")
+        .select("id, invited_email, status, receive_alerts, member_id, accepted_at, pairing_code, pairing_code_expires_at")
         .eq("owner_id", user.id)
         .in("status", ["pending", "accepted"])
         .order("invited_at", { ascending: false })
