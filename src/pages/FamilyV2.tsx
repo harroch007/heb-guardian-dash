@@ -551,37 +551,77 @@ const FamilyV2 = () => {
                   </div>
 
                   {coParent.status === "pending" && (
-                    <div className="space-y-2 py-2">
-                      <p className="text-xs text-muted-foreground">שתף את הלינק עם ההורה המוזמן:</p>
-                      <div className="flex items-center gap-2 bg-muted/50 rounded-lg p-2">
-                        <span className="text-[11px] text-muted-foreground truncate flex-1" dir="ltr">
-                          {`${window.location.origin}/accept-invite/${coParent.id}`}
-                        </span>
+                    <div className="space-y-3 py-2">
+                      {coParent.pairing_code ? (
+                        <>
+                          <div className="text-center space-y-1">
+                            <p className="text-xs text-muted-foreground">קוד הצטרפות (6 ספרות)</p>
+                            <p className="text-3xl font-bold tracking-[0.4em] text-primary" dir="ltr">
+                              {coParent.pairing_code}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground">
+                              תוקף עד {coParent.pairing_code_expires_at
+                                ? new Date(coParent.pairing_code_expires_at).toLocaleDateString("he-IL")
+                                : "—"}
+                            </p>
+                          </div>
+                          <Button
+                            size="sm"
+                            className="w-full gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+                            onClick={() => {
+                              const url = `${window.location.origin}/join-family`;
+                              const text = `הוזמנת להצטרף למשפחה ב-KippyAI 👨‍👩‍👧\nהיכנס/י לקישור: ${url}\nהזן/י את הקוד: ${coParent.pairing_code}\n(האימייל שלך: ${coParent.invited_email})`;
+                              window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+                            }}
+                          >
+                            <MessageCircle className="w-4 h-4" />
+                            שלח להורה דרך WhatsApp
+                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1 gap-2"
+                              onClick={() => {
+                                navigator.clipboard.writeText(coParent.pairing_code || "");
+                                toast({ title: "הקוד הועתק" });
+                              }}
+                            >
+                              <Copy className="w-3.5 h-3.5" />
+                              העתק קוד
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1 gap-2"
+                              onClick={() => {
+                                navigator.clipboard.writeText(`${window.location.origin}/join-family`);
+                                toast({ title: "הקישור הועתק" });
+                              }}
+                            >
+                              <Share2 className="w-3.5 h-3.5" />
+                              העתק קישור
+                            </Button>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full text-xs"
+                            onClick={handleRegenerateCode}
+                          >
+                            הפק קוד חדש
+                          </Button>
+                        </>
+                      ) : (
                         <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 shrink-0"
-                          onClick={() => {
-                            navigator.clipboard.writeText(`${window.location.origin}/accept-invite/${coParent.id}`);
-                            toast({ title: "הלינק הועתק!" });
-                          }}
+                          variant="outline"
+                          size="sm"
+                          className="w-full"
+                          onClick={handleRegenerateCode}
                         >
-                          <Copy className="w-3.5 h-3.5" />
+                          הפק קוד הצטרפות
                         </Button>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full gap-2"
-                        onClick={() => {
-                          const url = `${window.location.origin}/accept-invite/${coParent.id}`;
-                          const text = `הי! הזמנתי אותך להצטרף כהורה שותף באפליקציית Kippy. לחץ/י על הלינק:\n${url}`;
-                          window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
-                        }}
-                      >
-                        <MessageCircle className="w-4 h-4" />
-                        שלח בוואטסאפ
-                      </Button>
+                      )}
                     </div>
                   )}
 
