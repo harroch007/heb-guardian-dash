@@ -1,73 +1,159 @@
 
+# למה `איסור מלאכה` בכלל נכנס לתמונה
 
-# תיקון קריסת `get_device_settings` — טבלה `computed_shabbat_times` לא קיימת
+אין קשר עסקי בין חסימת אפליקציה ספציפית לבין שבת/חגים.
 
-## הבעיה
-ב-RPC (שורות 155-175) יש שתי קריאות לטבלה בשם `computed_shabbat_times` — **טבלה זו לא קיימת**. הטבלאות בפועל הן:
-- `shabbat_times_computed` (עם עמודות `friday_date`, `start_epoch_ms`, `end_epoch_ms`)
-- `issur_melacha_windows` (עם `event_name`, `start_epoch_ms`, `end_epoch_ms`, `valid_for_date`)
+הקשר הוא טכני בלבד:
 
-מקור השגיאה: `42P01: relation "computed_shabbat_times" does not exist`. כל קריאה ל-`get_device_settings` קורסת ולכן השינוי בדשבורד (חסימה/פתיחה) לא מגיע למכשיר.
+- חסימה ספציפית נשמרת ב-`app_policies`
+- הדשבורד שולח מיד `REFRESH_SETTINGS` ל-`device_commands`
+- האפליקציה באנדרואיד מקבלת את הפקודה ואז קוראת `get_device_settings`
+- `get_device_settings` היא פונקציה אחת גדולה שמחזירה את כל ההגדרות יחד:
+  - `app_policies`
+  - מגבלה יומית
+  - לוחות זמנים
+  - שבת
+  - `next_issur` / `issur_windows`
+  - גיאופנס
+  - בקשות זמן
+  - ועוד
 
-## התיקון (מיגרציה אחת)
+לכן `איסור מלאכה` לא היה “הסיבה העסקית” לבאג, אלא רק בלוק אחד בתוך אותו RPC גדול. אם הבלוק הזה נשבר, כל ה-JSON נופל, וגם `app_policies` לא חוזר למכשיר.
 
-### החלפת בלוק `next_issur` + `issur_windows`
-במקום `computed_shabbat_times` להשתמש בטבלה הנכונה `issur_melacha_windows` שכבר מאוכלסת על ידי edge function `calculate-shabbat-times`:
+## מה כן עובד היום, ולמה זה מוכיח שהתקשורת הישירה קיימת
 
-```sql
--- next_issur: החלון הפעיל הקרוב
-SELECT * INTO v_computed_shabbat
-FROM issur_melacha_windows
-WHERE child_id = v_child_id
-  AND is_active = true
-  AND end_epoch_ms >= (EXTRACT(EPOCH FROM now()) * 1000)::bigint
-ORDER BY start_epoch_ms LIMIT 1;
+בקוד הנוכחי:
 
-IF FOUND THEN
-  v_settings := v_settings || jsonb_build_object('next_issur', jsonb_build_object(
-    'label', v_computed_shabbat.event_name,
-    'lock_type', v_computed_shabbat.lock_type,
-    'start_epoch', (v_computed_shabbat.start_epoch_ms / 1000)::bigint,
-    'end_epoch',   (v_computed_shabbat.end_epoch_ms   / 1000)::bigint,
-    'start_epoch_ms', v_computed_shabbat.start_epoch_ms,
-    'end_epoch_ms',   v_computed_shabbat.end_epoch_ms
-  ));
-END IF;
+- הדשבורד אכן מעדכן `app_policies`
+- מיד אחר כך הוא מכניס `REFRESH_SETTINGS` ל-`device_commands`
+- במסד יש פקודות `REFRESH_SETTINGS` למכשיר `9d5a9132b033a86b` בסטטוס `ACKNOWLEDGED`
+- במסד יש גם שורת policy אמיתית ל-Instagram כ-`blocked`
 
--- issur_windows: 10 הקרובים
-SELECT COALESCE(jsonb_agg(jsonb_build_object(
-  'label', w.event_name,
-  'lock_type', w.lock_type,
-  'start_epoch',    (w.start_epoch_ms / 1000)::bigint,
-  'end_epoch',      (w.end_epoch_ms   / 1000)::bigint,
-  'start_epoch_ms', w.start_epoch_ms,
-  'end_epoch_ms',   w.end_epoch_ms
-)), '[]'::jsonb) INTO v_issur_windows
-FROM (
-  SELECT * FROM issur_melacha_windows
-  WHERE child_id = v_child_id AND is_active = true
-    AND end_epoch_ms >= (EXTRACT(EPOCH FROM now()) * 1000)::bigint
-  ORDER BY start_epoch_ms LIMIT 10
-) w;
-v_settings := v_settings || jsonb_build_object('issur_windows', v_issur_windows);
+כלומר:
+
+```text
+Dashboard -> app_policies  : עובד
+Dashboard -> device_commands : עובד
+Android <- REFRESH_SETTINGS  : עובד
+Android -> get_device_settings : זו הנקודה שנפלה
 ```
 
-### שמירת הרשאות + רענון cache
+הבעיה לא הייתה “אין תקשורת”.
+הבעיה הייתה: יש תקשורת, אבל ה-RPC שמחזיר את כל ההגדרות היה שביר מדי, וכל שגיאה צדדית הפילה את כל הסנכרון.
+
+## למה ההגבלות הכלליות כן עבדו למרות זה
+
+כי אלה חוקים נפרדים ברמת האכיפה:
+
+- בית ספר / שעת שינה = חוקים לפי `schedule_windows`
+- מגבלה יומית = חוק לפי `daily_screen_time_limit_minutes` + שימוש מצטבר
+- שבת/חגים = חוקים לפי שבת/`issur`
+
+אלה מנועי אכיפה שונים.
+
+מה שנשבר היה “צינור ההובלה” של עדכוני ההגדרות החיים, לא עצם קיום מנגנון האכיפה באנדרואיד.
+
+במילים פשוטות:
+- מנגנון האכיפה באנדרואיד יודע לעבוד
+- אבל כשההורה שינה חסימת Instagram, המכשיר היה צריך להביא snapshot חדש מהשרת
+- ה-snapshot הזה נפל בגלל שגיאה בבלוק אחר בפונקציה הגדולה
+- לכן החסימה הספציפית לא התעדכנה בזמן, למרות שהפקודה עצמה כן הגיעה
+
+## למה התיקונים הקודמים לא פתרו את הבעיה באמת
+
+כי הם טיפלו בסימפטומים נקודתיים בתוך אותה פונקציה גדולה:
+
+1. פעם הפונקציה נפלה על הרשאות
+2. אחר כך על `last_updated`
+3. אחר כך על `computed_shabbat_times`
+
+כל פעם תוקן בלוק אחד, אבל הארכיטקטורה נשארה אותה ארכיטקטורה:
+RPC אחד ענק, שבו כל סעיף יכול להפיל את כל התשובה.
+
+לכן גם אם חסימת אפליקציה יושבת בתחילת הפונקציה, שום דבר לא חוזר לאנדרואיד אם שורה מאוחרת יותר קורסת.
+
+## מה צריך לעשות כדי לתקן את זה נכון
+
+לא לגעת בלוגיקה של:
+- מגבלה יומית
+- בית ספר
+- שעת שינה
+- שבת/חגים
+
+אלא לשנות רק את צורת המסירה של ההגדרות.
+
+### פתרון נכון
+להפריד בין “הגדרות קריטיות לחסימה מיידית” לבין “העשרות נוספות”.
+
+#### 1. לפצל את `get_device_settings`
+במקום פונקציה אחת שבונה הכול, לחלק ל-2 שכבות:
+
+- `get_device_core_settings(p_device_id)`:
+  - `app_policies`
+  - `blocked_apps`
+  - מגבלה יומית אפקטיבית
+  - `schedules`
+  - כל מה שקריטי לאכיפה מיידית
+
+- `get_device_extended_settings(p_device_id)`:
+  - `next_shabbat`
+  - `next_issur`
+  - `issur_windows`
+  - גיאופנס
+  - `time_request_updates`
+  - מידע משלים
+
+#### 2. לגרום ל-`REFRESH_SETTINGS` להסתמך על ה-core בלבד
+כלומר, החסימה של Instagram לא תהיה תלויה בזה שבלוק שבת/חג/גיאופנס תקין.
+
+#### 3. אם לא רוצים פיצול מלא כרגע — לפחות לבודד תקלות בתוך ה-RPC
+לכל בלוק לא-קריטי להוסיף `BEGIN ... EXCEPTION ... END`, כך שאם `issur` נשבר:
+- ה-RPC עדיין יחזיר `app_policies`
+- המכשיר עדיין יקבל את חסימת האפליקציה
+- רק השדה הבעייתי יוחזר ריק או יושמט
+
+#### 4. להגדיר במפורש מה “קריטי לאכיפה”
+הקריטי הוא:
+- `app_policies`
+- `blocked_apps`
+- `effective_screen_time_limit_minutes`
+- `schedules`
+
+כל השאר הוא לא קריטי למסלול של חסימה מיידית.
+
+#### 5. להוסיף בדיקת smoke אמיתית אחרי כל שינוי בפונקציה
+בדיקה קבועה על מכשיר אמיתי:
 ```sql
-GRANT EXECUTE ON FUNCTION public.get_device_settings(text) TO anon, authenticated, service_role;
-NOTIFY pgrst, 'reload schema';
+SELECT public.get_device_settings('9d5a9132b033a86b');
+```
+והווידוא חייב להיות:
+- הפונקציה מחזירה JSON
+- יש `app_policies`
+- Instagram מופיעה עם `policy_status='blocked'` כשצריך
+
+## התוצאה הרצויה אחרי התיקון
+
+כשלחצת חסום / פתח / חסום:
+
+```text
+Dashboard updates app_policies
+-> REFRESH_SETTINGS inserted
+-> Android fetches core settings
+-> app_policies arrives even if optional calendar/geofence data has a bug
+-> enforcement updates immediately
 ```
 
-### אימות בתוך המיגרציה
-בסוף הקובץ אריץ `SELECT public.get_device_settings('9d5a9132b033a86b')` ואוודא שמתקבל JSON תקין שכולל `app_policies` עם Instagram. אם נכשל — המיגרציה תיפול.
+## מסקנה אחת ברורה
 
-## תוצאה צפויה
-- ה-RPC חוזר לעבוד ללא שגיאת 42P01
-- המכשיר יקבל סוף-סוף את `app_policies` המעודכן ויחסום את Instagram תוך שניות מהלחיצה בדשבורד
-- שדות `next_issur` / `issur_windows` עובדים עכשיו על מקור הנתונים האמיתי (Hebcal + NOAA)
+הבעיה לא הייתה שאין תקשורת ישירה.
 
-## מה לא משתנה
-- אין שינוי בקוד React, ב-UI, או באנדרואיד
-- אין שינוי בלוגיקה האחרת של ה-RPC
-- רק 2 בלוקי SELECT מתוקנים לטבלה הנכונה
+הבעיה הייתה שיש תקשורת ישירה, אבל עטפנו יותר מדי חוקים שונים בתוך RPC אחד שביר.
+לכן תקלה בבלוק של שבת/חגים יכלה להפיל גם חסימת Instagram, למרות שאין ביניהם קשר לוגי.
 
+## היישום שאבצע אחרי אישור
+
+1. אשאיר את כל חוקי האכיפה הקיימים כמו שהם
+2. אפרק את `get_device_settings` למסלול אכיפה קריטי מול מסלול מידע משלים
+3. אבטיח שחסימות אפליקציות לא תלויות יותר ב-`issur_melacha` או בגיאופנס
+4. אוסיף אימות DB אמיתי על המכשיר שלך לפני סיום
+5. לא אשנה שום קוד Android
