@@ -14,6 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { AddChildModal } from "@/components/AddChildModal";
 import { useToast } from "@/hooks/use-toast";
 import { useRingCommand, type RingPhase } from "@/hooks/useRingCommand";
+import { WHATSAPP_MONITORING_ENABLED } from "@/config/featureFlags";
 
 interface FamilyChild {
   id: string;
@@ -320,18 +321,20 @@ const FamilyV2 = () => {
               </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center">
-                <AlertTriangle className="w-5 h-5 text-amber-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-foreground">{totalAlerts}</p>
-                <p className="text-xs text-muted-foreground">התראות פתוחות</p>
-              </div>
-            </CardContent>
-          </Card>
-          {premiumCount > 0 && (
+          {WHATSAPP_MONITORING_ENABLED && (
+            <Card>
+              <CardContent className="p-4 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center">
+                  <AlertTriangle className="w-5 h-5 text-amber-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-foreground">{totalAlerts}</p>
+                  <p className="text-xs text-muted-foreground">התראות פתוחות</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          {WHATSAPP_MONITORING_ENABLED && premiumCount > 0 && (
             <Card>
               <CardContent className="p-4 flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center">
@@ -377,7 +380,7 @@ const FamilyV2 = () => {
                         <div>
                           <div className="flex items-center gap-2">
                             <h3 className="font-semibold text-foreground">{child.name}</h3>
-                            {child.subscription_tier === "premium" && (
+                            {WHATSAPP_MONITORING_ENABLED && child.subscription_tier === "premium" && (
                               <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-purple-100 text-purple-700 border-0">
                                 פרימיום
                               </Badge>
@@ -398,7 +401,7 @@ const FamilyV2 = () => {
                         </span>
                       )}
                       <span>🏦 {child.rewardBankBalance} דק׳</span>
-                      {child.unacknowledgedAlerts > 0 && (
+                      {WHATSAPP_MONITORING_ENABLED && child.unacknowledgedAlerts > 0 && (
                         <span className="text-amber-600">
                           <Bell className="w-3 h-3 inline ml-0.5" />
                           {child.unacknowledgedAlerts} התראות
@@ -451,7 +454,7 @@ const FamilyV2 = () => {
         )}
 
         {/* Family Subscription Summary — owner only */}
-        {isOwner && hasFreeChildren && (
+        {WHATSAPP_MONITORING_ENABLED && isOwner && hasFreeChildren && (
           <Card className="border-purple-200 bg-purple-50/50">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
