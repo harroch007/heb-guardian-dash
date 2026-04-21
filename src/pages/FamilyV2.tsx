@@ -590,7 +590,12 @@ const FamilyV2 = () => {
                             className="w-full gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
                             onClick={() => {
                               const url = `${window.location.origin}/join-family`;
-                              const text = `הוזמנת להצטרף למשפחה ב-KippyAI 👨‍👩‍👧\nהיכנס/י לקישור: ${url}\nהזן/י את הקוד: ${coParent.pairing_code}\n(האימייל שלך: ${coParent.invited_email})`;
+                              const text =
+                                `שלום! הוזמנת להצטרף כהורה שותף ב-KippyAI 👨‍👩‍👧\n` +
+                                `1) פתח/י את הקישור: ${url}\n` +
+                                `2) השתמש/י באימייל: ${coParent.invited_email}\n` +
+                                `3) הזן/י את קוד ההצטרפות: ${coParent.pairing_code}\n` +
+                                `הקוד תקף ל-7 ימים.`;
                               window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
                             }}
                           >
