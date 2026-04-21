@@ -1,6 +1,7 @@
 import { Users, ShieldCheck, AlertTriangle, Wifi, Crown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { WHATSAPP_MONITORING_ENABLED } from "@/config/featureFlags";
+import { HelpTooltip } from "@/components/help/HelpTooltip";
 
 interface FamilyStatusHeroProps {
   childrenCount: number;
