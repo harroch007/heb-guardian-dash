@@ -93,7 +93,7 @@ export function AppsSection({
   })();
 
   const filters: { key: Filter; label: string; count?: number }[] = [
-    { key: "all", label: "הכל" },
+    { key: "all", label: "מאושרות" },
     { key: "blocked", label: "חסומות" },
     { key: "top", label: "הכי בשימוש" },
     { key: "new", label: "חדשות", count: pendingApps.length },
