@@ -560,7 +560,10 @@ export default function ChildControlV2() {
                 <div>
                   <Clock className="w-5 h-5 mx-auto mb-1 text-primary" />
                   <p className="text-lg font-bold text-foreground">{Math.round(totalUsageFromDb)} <span className="text-xs font-normal text-muted-foreground">דק׳</span></p>
-                  <p className="text-[11px] text-muted-foreground">זמן מסך היום</p>
+                  <div className="flex items-center justify-center gap-1">
+                    <p className="text-[11px] text-muted-foreground">זמן מסך היום</p>
+                    <HelpTooltip text="כמה זמן הילד השתמש במכשיר היום (לפי שעון ישראל, מתאפס בחצות)." iconSize={11} />
+                  </div>
                   {screenTimeLimit && (
                     <p className="text-[10px] text-muted-foreground/70">מתוך {screenTimeLimit} דק׳</p>
                   )}
@@ -568,7 +571,10 @@ export default function ChildControlV2() {
                 <div>
                   <Gift className="w-5 h-5 mx-auto mb-1 text-warning" />
                   <p className="text-lg font-bold text-foreground">{rewardBankBalance}</p>
-                  <p className="text-[11px] text-muted-foreground">דקות בבנק</p>
+                  <div className="flex items-center justify-center gap-1">
+                    <p className="text-[11px] text-muted-foreground">דקות בבנק</p>
+                    <HelpTooltip text="דקות בונוס שהילד צבר ממשימות וזמינות לפדיון להארכת זמן מסך." iconSize={11} />
+                  </div>
                   {todayBonusMinutes > 0 && (
                     <p className="text-[10px] text-warning">+{todayBonusMinutes} היום</p>
                   )}
@@ -578,12 +584,18 @@ export default function ChildControlV2() {
                   {activeRestrictionName ? (
                     <>
                       <p className="text-sm font-semibold text-success">{activeRestrictionName}</p>
-                      <p className="text-[11px] text-muted-foreground">הגבלה פעילה</p>
+                      <div className="flex items-center justify-center gap-1">
+                        <p className="text-[11px] text-muted-foreground">הגבלה פעילה</p>
+                        <HelpTooltip text="כרגע פעיל לוח זמנים שמגביל את השימוש במכשיר." iconSize={11} />
+                      </div>
                     </>
                   ) : (
                     <>
                       <p className="text-sm font-semibold text-foreground">רגיל</p>
-                      <p className="text-[11px] text-muted-foreground">ללא הגבלה</p>
+                      <div className="flex items-center justify-center gap-1">
+                        <p className="text-[11px] text-muted-foreground">ללא הגבלה</p>
+                        <HelpTooltip text="לא פעילה כרגע אף הגבלת זמן או לוח זמנים." iconSize={11} />
+                      </div>
                     </>
                   )}
                 </div>
