@@ -72,6 +72,7 @@ import {
   Crown,
 } from "lucide-react";
 import { WHATSAPP_MONITORING_ENABLED } from "@/config/featureFlags";
+import { HelpTooltip } from "@/components/help/HelpTooltip";
 
 // ---------- PERMISSION LABELS ----------
 const PERMISSION_LABELS: Record<string, string> = {
