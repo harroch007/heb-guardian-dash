@@ -136,12 +136,20 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
             </div>
           </div>
         </div>
-        {child.device && child.device.battery_level !== null && (
-          <div className="flex items-center gap-1 text-xs text-gray-500">
-            <Battery className="h-3.5 w-3.5" />
-            <span>{child.device.battery_level}%</span>
-          </div>
-        )}
+        {child.device && child.device.battery_level !== null && (() => {
+          const lvl = child.device.battery_level;
+          const color =
+            lvl >= 70 ? "text-emerald-600" :
+            lvl >= 40 ? "text-yellow-500" :
+            lvl >= 20 ? "text-orange-500" :
+            "text-red-600";
+          return (
+            <div className={`flex items-center gap-1 text-xs font-medium ${color}`}>
+              <Battery className="h-3.5 w-3.5" />
+              <span>{lvl}%</span>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Metrics grid */}
