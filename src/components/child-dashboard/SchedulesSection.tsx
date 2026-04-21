@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Calendar, Moon, BookOpen, Plus, Pencil, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { HelpTooltip } from "@/components/help/HelpTooltip";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { ScheduleEditModal } from "./ScheduleEditModal";
