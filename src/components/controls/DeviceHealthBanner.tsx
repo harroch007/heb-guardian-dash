@@ -106,18 +106,20 @@ export function DeviceHealthBanner({ health }: DeviceHealthBannerProps) {
               {allGranted ? "כל ההרשאות פעילות" : `${missingPermissions.length} הרשאות חסרות`}
             </span>
           </div>
-          <Badge
-            variant="secondary"
-            className={cn(
-              "gap-1 text-xs",
-              whatsappHealthy
-                ? "bg-success/20 text-success"
-                : "bg-destructive/20 text-destructive"
-            )}
-          >
-            <MessageCircle className="w-3 h-3" />
-            {whatsappHealthy ? "ניטור פעיל" : "ניטור לקוי"}
-          </Badge>
+          {WHATSAPP_MONITORING_ENABLED && (
+            <Badge
+              variant="secondary"
+              className={cn(
+                "gap-1 text-xs",
+                whatsappHealthy
+                  ? "bg-success/20 text-success"
+                  : "bg-destructive/20 text-destructive"
+              )}
+            >
+              <MessageCircle className="w-3 h-3" />
+              {whatsappHealthy ? "ניטור פעיל" : "ניטור לקוי"}
+            </Badge>
+          )}
         </div>
 
         {/* Permissions list */}
