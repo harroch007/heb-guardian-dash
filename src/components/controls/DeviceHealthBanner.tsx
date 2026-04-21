@@ -62,7 +62,9 @@ export function DeviceHealthBanner({ health }: DeviceHealthBannerProps) {
   const [expandedInfo, setExpandedInfo] = useState<Set<string>>(new Set());
   const [expandedFix, setExpandedFix] = useState<Set<string>>(new Set());
 
-  const allPermissions = Object.entries(PERMISSION_META);
+  const allPermissions = Object.entries(PERMISSION_META).filter(
+    ([key]) => WHATSAPP_MONITORING_ENABLED || !WHATSAPP_PERMISSION_KEYS.includes(key)
+  );
   const missingPermissions = allPermissions.filter(([key]) => permissions[key] === false);
   const allGranted = missingPermissions.length === 0;
 
