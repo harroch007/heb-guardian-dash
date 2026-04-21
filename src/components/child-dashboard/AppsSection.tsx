@@ -3,6 +3,7 @@ import { Shield, ChevronDown, ChevronUp } from "lucide-react";
 import { isSystemApp } from "@/lib/appUtils";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { HelpTooltip } from "@/components/help/HelpTooltip";
 import { AppControlsList } from "@/components/controls";
 import type { AppPolicy, BlockedAttemptSummary, InstalledApp } from "@/hooks/useChildControls";
 
