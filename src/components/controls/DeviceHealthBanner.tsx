@@ -5,6 +5,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type { DeviceHealthInfo } from "@/hooks/useChildControls";
 import { formatLastSeen } from "@/lib/deviceStatus";
+import { WHATSAPP_MONITORING_ENABLED } from "@/config/featureFlags";
+
+const WHATSAPP_PERMISSION_KEYS = ["accessibilityEnabled", "notificationListenerEnabled"];
 
 interface DeviceHealthBannerProps {
   health: DeviceHealthInfo;
