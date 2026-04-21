@@ -5,6 +5,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type { DeviceHealthInfo } from "@/hooks/useChildControls";
 import { formatLastSeen } from "@/lib/deviceStatus";
+import { WHATSAPP_MONITORING_ENABLED } from "@/config/featureFlags";
+
+const WHATSAPP_PERMISSION_KEYS = ["accessibilityEnabled", "notificationListenerEnabled"];
 
 interface DeviceHealthBannerProps {
   health: DeviceHealthInfo;
@@ -59,7 +62,9 @@ export function DeviceHealthBanner({ health }: DeviceHealthBannerProps) {
   const [expandedInfo, setExpandedInfo] = useState<Set<string>>(new Set());
   const [expandedFix, setExpandedFix] = useState<Set<string>>(new Set());
 
-  const allPermissions = Object.entries(PERMISSION_META);
+  const allPermissions = Object.entries(PERMISSION_META).filter(
+    ([key]) => WHATSAPP_MONITORING_ENABLED || !WHATSAPP_PERMISSION_KEYS.includes(key)
+  );
   const missingPermissions = allPermissions.filter(([key]) => permissions[key] === false);
   const allGranted = missingPermissions.length === 0;
 
@@ -101,18 +106,20 @@ export function DeviceHealthBanner({ health }: DeviceHealthBannerProps) {
               {allGranted ? "כל ההרשאות פעילות" : `${missingPermissions.length} הרשאות חסרות`}
             </span>
           </div>
-          <Badge
-            variant="secondary"
-            className={cn(
-              "gap-1 text-xs",
-              whatsappHealthy
-                ? "bg-success/20 text-success"
-                : "bg-destructive/20 text-destructive"
-            )}
-          >
-            <MessageCircle className="w-3 h-3" />
-            {whatsappHealthy ? "ניטור פעיל" : "ניטור לקוי"}
-          </Badge>
+          {WHATSAPP_MONITORING_ENABLED && (
+            <Badge
+              variant="secondary"
+              className={cn(
+                "gap-1 text-xs",
+                whatsappHealthy
+                  ? "bg-success/20 text-success"
+                  : "bg-destructive/20 text-destructive"
+              )}
+            >
+              <MessageCircle className="w-3 h-3" />
+              {whatsappHealthy ? "ניטור פעיל" : "ניטור לקוי"}
+            </Badge>
+          )}
         </div>
 
         {/* Permissions list */}
