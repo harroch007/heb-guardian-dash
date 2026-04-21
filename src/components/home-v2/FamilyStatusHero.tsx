@@ -23,37 +23,69 @@ export const FamilyStatusHero = ({
   // When WhatsApp monitoring is disabled, suppress all premium upsell UI
   const showPremiumUpsell = WHATSAPP_MONITORING_ENABLED && !hasPremium;
   const effectivePremium = WHATSAPP_MONITORING_ENABLED ? hasPremium : true;
+  const showIssuesPill = WHATSAPP_MONITORING_ENABLED && effectivePremium;
+
+  // When monitoring is off, status line depends only on connectivity
+  const renderStatusLine = () => {
+    if (showPremiumUpsell) {
+      return (
+        <>
+          <Crown className="h-5 w-5 text-amber-500" />
+          <span className="text-sm font-semibold text-gray-800">
+            שדרגו לפרימיום כדי להפעיל ניטור חכם
+          </span>
+        </>
+      );
+    }
+    if (!WHATSAPP_MONITORING_ENABLED) {
+      if (childrenCount > 0 && !allConnected) {
+        return (
+          <>
+            <AlertTriangle className="h-5 w-5 text-amber-500" />
+            <span className="text-sm font-semibold text-gray-800">
+              {childrenCount - connectedCount === 1 ? "יש מכשיר מנותק" : `${childrenCount - connectedCount} מכשירים מנותקים`}
+            </span>
+          </>
+        );
+      }
+      return (
+        <>
+          <ShieldCheck className="h-5 w-5 text-emerald-600" />
+          <span className="text-sm font-semibold text-gray-800">
+            הכול תקין כרגע
+          </span>
+        </>
+      );
+    }
+    if (hasIssues) {
+      return (
+        <>
+          <AlertTriangle className="h-5 w-5 text-amber-500" />
+          <span className="text-sm font-semibold text-gray-800">
+            יש נושאים שדורשים תשומת לב
+          </span>
+        </>
+      );
+    }
+    return (
+      <>
+        <ShieldCheck className="h-5 w-5 text-emerald-600" />
+        <span className="text-sm font-semibold text-gray-800">
+          הכול תקין כרגע
+        </span>
+      </>
+    );
+  };
 
   return (
     <div className="rounded-2xl bg-gradient-to-bl from-blue-50 to-indigo-50 border border-blue-100 p-4">
       {/* Status line */}
       <div className="flex items-center gap-2 mb-4">
-        {showPremiumUpsell ? (
-          <>
-            <Crown className="h-5 w-5 text-amber-500" />
-            <span className="text-sm font-semibold text-gray-800">
-              שדרגו לפרימיום כדי להפעיל ניטור חכם
-            </span>
-          </>
-        ) : hasIssues ? (
-          <>
-            <AlertTriangle className="h-5 w-5 text-amber-500" />
-            <span className="text-sm font-semibold text-gray-800">
-              יש נושאים שדורשים תשומת לב
-            </span>
-          </>
-        ) : (
-          <>
-            <ShieldCheck className="h-5 w-5 text-emerald-600" />
-            <span className="text-sm font-semibold text-gray-800">
-              הכול תקין כרגע
-            </span>
-          </>
-        )}
+        {renderStatusLine()}
       </div>
 
       {/* Metric pills */}
-      <div className={`grid ${effectivePremium ? 'grid-cols-3' : 'grid-cols-2'} gap-2`}>
+      <div className={`grid ${showIssuesPill ? 'grid-cols-3' : 'grid-cols-2'} gap-2`}>
         <Pill
           icon={<Users className="h-4 w-4 text-blue-600" />}
           value={`${connectedCount}/${childrenCount}`}
@@ -65,7 +97,7 @@ export const FamilyStatusHero = ({
           label="חיבור"
           warn={!allConnected}
         />
-        {effectivePremium && (
+        {showIssuesPill && (
           <Pill
             icon={<AlertTriangle className="h-4 w-4 text-amber-500" />}
             value={String(openIssues)}
