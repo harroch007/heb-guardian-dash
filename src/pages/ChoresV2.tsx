@@ -169,30 +169,6 @@ export default function ChoresV2() {
         {/* Reward bank */}
         <RewardBankCard balanceMinutes={bankBalance} transactions={transactions} />
 
-        {/* Quick actions */}
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex-1"
-            onClick={() => formRef.current?.scrollIntoView({ behavior: "smooth" })}
-          >
-            <Plus className="w-4 h-4 ml-1" />
-            צור משימה
-          </Button>
-          {selectedChildId && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex-1"
-              onClick={() => navigate(`/child-v2/${selectedChildId}`)}
-            >
-              <Settings className="w-4 h-4 ml-1" />
-              ניהול הילד
-            </Button>
-          )}
-        </div>
-
         {/* Add task form */}
         <div ref={formRef}>
           <h2 className="text-base font-semibold text-foreground mb-2">משימה חדשה</h2>
