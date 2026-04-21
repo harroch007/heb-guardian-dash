@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Check, X, Clock, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { HelpTooltip } from "@/components/help/HelpTooltip";
 
 interface TimeRequest {
   id: string;
