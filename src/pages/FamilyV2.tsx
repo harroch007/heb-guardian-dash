@@ -246,20 +246,40 @@ const FamilyV2 = () => {
         toast({ title: "שגיאה", description: error.message || "לא ניתן ליצור קוד", variant: "destructive" });
         return;
       }
-      const result = data as { invite_id: string; email: string; code: string; expires_at: string };
+      const result = data as {
+        success: boolean;
+        error?: string;
+        invite_id?: string;
+        invited_email?: string;
+        pairing_code?: string;
+        expires_at?: string;
+      };
+      if (!result?.success) {
+        const errorMap: Record<string, string> = {
+          NOT_AUTHENTICATED: "יש להתחבר מחדש.",
+          INVALID_EMAIL: "כתובת אימייל לא תקינה.",
+          ALREADY_MEMBER: "הורה זה כבר חבר במשפחה.",
+        };
+        toast({
+          title: "שגיאה",
+          description: errorMap[result?.error || ""] || "לא ניתן ליצור קוד",
+          variant: "destructive",
+        });
+        return;
+      }
       toast({ title: "הקוד נוצר", description: "שלח את הקוד והלינק להורה הנוסף" });
       setShowInviteForm(false);
       setInviteEmail("");
       setInviteAlerts(false);
       setCoParent({
-        id: result.invite_id,
-        invited_email: result.email,
+        id: result.invite_id!,
+        invited_email: result.invited_email!,
         status: "pending",
         receive_alerts: false,
         member_id: null,
         accepted_at: null,
-        pairing_code: result.code,
-        pairing_code_expires_at: result.expires_at,
+        pairing_code: result.pairing_code!,
+        pairing_code_expires_at: result.expires_at!,
       });
     } catch {
       toast({ title: "שגיאה", description: "שגיאה בלתי צפויה", variant: "destructive" });
