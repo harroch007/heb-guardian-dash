@@ -96,7 +96,7 @@ export function AppsSection({
     { key: "all", label: "מאושרות" },
     { key: "blocked", label: "חסומות" },
     { key: "top", label: "הכי בשימוש" },
-    { key: "new", label: "חדשות", count: pendingApps.length },
+    { key: "new", label: "ממתינות לאישור", count: pendingApps.length },
   ];
 
   const blockedTotal = visiblePolicies.filter((p) => p.is_blocked).length;
