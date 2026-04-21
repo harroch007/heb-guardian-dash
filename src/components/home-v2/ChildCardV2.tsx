@@ -188,9 +188,9 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
 
       {/* Location */}
       {child.device?.address && (
-        <div className="flex items-center gap-1.5 px-4 pb-2 text-xs text-gray-500">
-          <MapPin className="h-3 w-3" />
-          <span className="truncate">{child.device.address}</span>
+        <div className="flex items-start gap-1.5 px-4 pb-2 text-xs text-gray-500">
+          <MapPin className="h-3 w-3 flex-shrink-0 mt-0.5" />
+          <span className="break-words">{child.device.address}</span>
         </div>
       )}
 
