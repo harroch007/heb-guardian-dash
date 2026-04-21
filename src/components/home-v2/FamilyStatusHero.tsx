@@ -126,17 +126,22 @@ const Pill = ({
   value,
   label,
   warn,
+  helpText,
 }: {
   icon: React.ReactNode;
   value: string;
   label: string;
   warn?: boolean;
+  helpText?: string;
 }) => (
   <div className="flex flex-col items-center gap-1 rounded-xl bg-white/70 border border-gray-100 py-2 px-1">
     {icon}
     <span className={`text-sm font-bold ${warn ? "text-amber-600" : "text-gray-900"}`}>
       {value}
     </span>
-    <span className="text-[10px] text-gray-500">{label}</span>
+    <div className="flex items-center gap-1">
+      <span className="text-[10px] text-gray-500">{label}</span>
+      {helpText && <HelpTooltip text={helpText} iconSize={11} />}
+    </div>
   </div>
 );
