@@ -1,159 +1,77 @@
 
-# למה `איסור מלאכה` בכלל נכנס לתמונה
 
-אין קשר עסקי בין חסימת אפליקציה ספציפית לבין שבת/חגים.
+# הסיבה האמיתית — `update_device_status` דורס את הקואורדינטות
 
-הקשר הוא טכני בלבד:
+## מה מצאתי בקוד ה-RPCs
 
-- חסימה ספציפית נשמרת ב-`app_policies`
-- הדשבורד שולח מיד `REFRESH_SETTINGS` ל-`device_commands`
-- האפליקציה באנדרואיד מקבלת את הפקודה ואז קוראת `get_device_settings`
-- `get_device_settings` היא פונקציה אחת גדולה שמחזירה את כל ההגדרות יחד:
-  - `app_policies`
-  - מגבלה יומית
-  - לוחות זמנים
-  - שבת
-  - `next_issur` / `issur_windows`
-  - גיאופנס
-  - בקשות זמן
-  - ועוד
+יש שני RPCs שונים שכותבים לטבלת `devices`:
 
-לכן `איסור מלאכה` לא היה “הסיבה העסקית” לבאג, אלא רק בלוק אחד בתוך אותו RPC גדול. אם הבלוק הזה נשבר, כל ה-JSON נופל, וגם `app_policies` לא חוזר למכשיר.
-
-## מה כן עובד היום, ולמה זה מוכיח שהתקשורת הישירה קיימת
-
-בקוד הנוכחי:
-
-- הדשבורד אכן מעדכן `app_policies`
-- מיד אחר כך הוא מכניס `REFRESH_SETTINGS` ל-`device_commands`
-- במסד יש פקודות `REFRESH_SETTINGS` למכשיר `9d5a9132b033a86b` בסטטוס `ACKNOWLEDGED`
-- במסד יש גם שורת policy אמיתית ל-Instagram כ-`blocked`
-
-כלומר:
-
-```text
-Dashboard -> app_policies  : עובד
-Dashboard -> device_commands : עובד
-Android <- REFRESH_SETTINGS  : עובד
-Android -> get_device_settings : זו הנקודה שנפלה
-```
-
-הבעיה לא הייתה “אין תקשורת”.
-הבעיה הייתה: יש תקשורת, אבל ה-RPC שמחזיר את כל ההגדרות היה שביר מדי, וכל שגיאה צדדית הפילה את כל הסנכרון.
-
-## למה ההגבלות הכלליות כן עבדו למרות זה
-
-כי אלה חוקים נפרדים ברמת האכיפה:
-
-- בית ספר / שעת שינה = חוקים לפי `schedule_windows`
-- מגבלה יומית = חוק לפי `daily_screen_time_limit_minutes` + שימוש מצטבר
-- שבת/חגים = חוקים לפי שבת/`issur`
-
-אלה מנועי אכיפה שונים.
-
-מה שנשבר היה “צינור ההובלה” של עדכוני ההגדרות החיים, לא עצם קיום מנגנון האכיפה באנדרואיד.
-
-במילים פשוטות:
-- מנגנון האכיפה באנדרואיד יודע לעבוד
-- אבל כשההורה שינה חסימת Instagram, המכשיר היה צריך להביא snapshot חדש מהשרת
-- ה-snapshot הזה נפל בגלל שגיאה בבלוק אחר בפונקציה הגדולה
-- לכן החסימה הספציפית לא התעדכנה בזמן, למרות שהפקודה עצמה כן הגיעה
-
-## למה התיקונים הקודמים לא פתרו את הבעיה באמת
-
-כי הם טיפלו בסימפטומים נקודתיים בתוך אותה פונקציה גדולה:
-
-1. פעם הפונקציה נפלה על הרשאות
-2. אחר כך על `last_updated`
-3. אחר כך על `computed_shabbat_times`
-
-כל פעם תוקן בלוק אחד, אבל הארכיטקטורה נשארה אותה ארכיטקטורה:
-RPC אחד ענק, שבו כל סעיף יכול להפיל את כל התשובה.
-
-לכן גם אם חסימת אפליקציה יושבת בתחילת הפונקציה, שום דבר לא חוזר לאנדרואיד אם שורה מאוחרת יותר קורסת.
-
-## מה צריך לעשות כדי לתקן את זה נכון
-
-לא לגעת בלוגיקה של:
-- מגבלה יומית
-- בית ספר
-- שעת שינה
-- שבת/חגים
-
-אלא לשנות רק את צורת המסירה של ההגדרות.
-
-### פתרון נכון
-להפריד בין “הגדרות קריטיות לחסימה מיידית” לבין “העשרות נוספות”.
-
-#### 1. לפצל את `get_device_settings`
-במקום פונקציה אחת שבונה הכול, לחלק ל-2 שכבות:
-
-- `get_device_core_settings(p_device_id)`:
-  - `app_policies`
-  - `blocked_apps`
-  - מגבלה יומית אפקטיבית
-  - `schedules`
-  - כל מה שקריטי לאכיפה מיידית
-
-- `get_device_extended_settings(p_device_id)`:
-  - `next_shabbat`
-  - `next_issur`
-  - `issur_windows`
-  - גיאופנס
-  - `time_request_updates`
-  - מידע משלים
-
-#### 2. לגרום ל-`REFRESH_SETTINGS` להסתמך על ה-core בלבד
-כלומר, החסימה של Instagram לא תהיה תלויה בזה שבלוק שבת/חג/גיאופנס תקין.
-
-#### 3. אם לא רוצים פיצול מלא כרגע — לפחות לבודד תקלות בתוך ה-RPC
-לכל בלוק לא-קריטי להוסיף `BEGIN ... EXCEPTION ... END`, כך שאם `issur` נשבר:
-- ה-RPC עדיין יחזיר `app_policies`
-- המכשיר עדיין יקבל את חסימת האפליקציה
-- רק השדה הבעייתי יוחזר ריק או יושמט
-
-#### 4. להגדיר במפורש מה “קריטי לאכיפה”
-הקריטי הוא:
-- `app_policies`
-- `blocked_apps`
-- `effective_screen_time_limit_minutes`
-- `schedules`
-
-כל השאר הוא לא קריטי למסלול של חסימה מיידית.
-
-#### 5. להוסיף בדיקת smoke אמיתית אחרי כל שינוי בפונקציה
-בדיקה קבועה על מכשיר אמיתי:
+### 1. `update_device_location(p_device_id, p_lat, p_lon, p_address)`
+נקרא רק כשה‑Android הצליח להשיג GPS fix.
 ```sql
-SELECT public.get_device_settings('9d5a9132b033a86b');
+UPDATE devices SET
+  latitude = p_lat,
+  longitude = p_lon,
+  address = COALESCE(p_address, address),
+  last_seen = NOW()
+WHERE device_id = p_device_id;
 ```
-והווידוא חייב להיות:
-- הפונקציה מחזירה JSON
-- יש `app_policies`
-- Instagram מופיעה עם `policy_status='blocked'` כשצריך
+שים לב: `address` מוגן ב-`COALESCE`, אבל `latitude`/`longitude` **לא**.
 
-## התוצאה הרצויה אחרי התיקון
+### 2. `update_device_status(p_device_id, p_battery, p_lat, p_lon, ...)`  ← **הבעיה כאן**
+נקרא הרבה יותר תכופות (heartbeat/סטטוס/סוללה), עם `p_lat DEFAULT NULL` ו-`p_lon DEFAULT NULL`.
+```sql
+UPDATE public.devices SET
+  ...
+  latitude  = p_lat,   -- ❌ דורס ב-NULL!
+  longitude = p_lon,   -- ❌ דורס ב-NULL!
+  ...
+WHERE device_id = p_device_id;
+```
+אין כאן `COALESCE`. ברגע שה-Android שולח עדכון סטטוס בלי קואורדינטות (וזה קורה כל הזמן — סוללה, heartbeat, פתיחת אפליקציה), הפונקציה **מאפסת ב-`NULL` את הקואורדינטות שהיו קיימות**.
 
-כשלחצת חסום / פתח / חסום:
+`address` שורד כי הוא לא חלק מה-UPDATE הזה — לכן בדיוק רואים `address` תקף עם `lat/lon = null`.
 
-```text
-Dashboard updates app_policies
--> REFRESH_SETTINGS inserted
--> Android fetches core settings
--> app_policies arrives even if optional calendar/geofence data has a bug
--> enforcement updates immediately
+## למה זה תואם בדיוק לדיווח של ה-Android
+- ה-Android אמר: כשיש קואורדינטות, הוא תמיד שולח אותן ל-`update_device_location`. ✅
+- אבל בין קריאה אחת ל-`update_device_location` לבין הבאה, יש עשרות קריאות ל-`update_device_status` עם `p_lat=null, p_lon=null` (כי זה RPC כללי לסטטוס/סוללה).
+- כל אחת מהן מאפסת את הקואורדינטות.
+- התוצאה: `lat=null, lon=null, address="גדעון האוזנר, הרצליה"`.
+
+## התיקון
+
+מיגרציה אחת ממוקדת ל-`update_device_status` — להחליף את שתי השורות ל-`COALESCE`:
+
+```sql
+UPDATE public.devices SET
+  ...
+  latitude  = COALESCE(p_lat, latitude),
+  longitude = COALESCE(p_lon, longitude),
+  ...
+WHERE device_id = p_device_id;
 ```
 
-## מסקנה אחת ברורה
+זה עקבי לחלוטין עם ההתנהגות של `address` באותה טבלה ועם `update_device_location` (ש-Android סומך עליו כמקור האמת למיקום).
 
-הבעיה לא הייתה שאין תקשורת ישירה.
+## מה לא ייגע
+- שום שינוי בקוד Android (אסור)
+- שום שינוי בלוגיקת אכיפה (מגבלה יומית, שעת שינה, בית ספר, שבת/חגים)
+- שום שינוי ב-`get_device_settings` שתוקן אתמול
+- שום שינוי ב-`update_device_location` (כבר תקין)
+- שום שינוי במבנה הטבלה
+- היסטוריית `devices` נשמרת — `UPDATE` בלבד, בלי `DELETE`
 
-הבעיה הייתה שיש תקשורת ישירה, אבל עטפנו יותר מדי חוקים שונים בתוך RPC אחד שביר.
-לכן תקלה בבלוק של שבת/חגים יכלה להפיל גם חסימת Instagram, למרות שאין ביניהם קשר לוגי.
+## אימות אחרי התיקון
+1. הרצת המיגרציה.
+2. בדיקה ב-`devices` ש-`latitude`/`longitude` של "יריב חדש" מתחילים להישמר ולא להתאפס.
+3. במכשיר: לחיצה על **"אתר עכשיו"** בכרטיסיית מיקום — אמורה להופיע מפה אמיתית תוך כמה שניות, וגם להישאר נוכחת אחרי heartbeat נוסף.
+4. בנוסף, בדיקת smoke ב-DB:
+   ```sql
+   SELECT device_id, latitude, longitude, address, last_seen
+   FROM devices WHERE device_id='9d5a9132b033a86b';
+   ```
+   מצופה: `latitude`/`longitude` מספריים, לא `null`, ויציבים בין דיווחי heartbeat.
 
-## היישום שאבצע אחרי אישור
+## בונוס (אופציונלי, ממליץ)
+אחרי שזה ייוודא — לעדכן את `LocationSectionV2.tsx` כך שגם בתרחיש הקצה (אין `lat/lng` אבל יש `address`) יופיע כפתור "פתח בגוגל מפות" לפי הכתובת. שיפור UI בלבד, לא חובה לתיקון הבאג.
 
-1. אשאיר את כל חוקי האכיפה הקיימים כמו שהם
-2. אפרק את `get_device_settings` למסלול אכיפה קריטי מול מסלול מידע משלים
-3. אבטיח שחסימות אפליקציות לא תלויות יותר ב-`issur_melacha` או בגיאופנס
-4. אוסיף אימות DB אמיתי על המכשיר שלך לפני סיום
-5. לא אשנה שום קוד Android
