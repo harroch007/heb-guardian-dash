@@ -87,6 +87,7 @@ export function TimeRequestsCard({ childId }: TimeRequestsCardProps) {
         <div className="flex items-center gap-2 text-sm font-medium text-primary">
           <Clock className="w-4 h-4" />
           <span>בקשות לזמן נוסף</span>
+          <HelpTooltip text="בקשות שהילד שלח להארכת זמן מסך. אישור מוסיף 15 דקות מיידית, דחייה סוגרת את הבקשה." iconSize={12} />
         </div>
         {requests.map((req) => (
           <div key={req.id} className="flex items-center justify-between gap-2 bg-card rounded-lg px-3 py-2 border border-border/50">
