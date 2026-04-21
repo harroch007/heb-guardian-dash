@@ -10,6 +10,7 @@ import { useChildPlaces, type ChildPlace, type ManualPlaceInput } from "@/hooks/
 import { AddressAutocomplete } from "./AddressAutocomplete";
 import { MapPinPicker } from "./MapPinPicker";
 import { ManualPlaceForm } from "./ManualPlaceForm";
+import { HelpTooltip } from "@/components/help/HelpTooltip";
 
 interface GeofenceSectionProps {
   childId: string;
