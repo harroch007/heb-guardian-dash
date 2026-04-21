@@ -91,12 +91,14 @@ export const FamilyStatusHero = ({
           icon={<Users className="h-4 w-4 text-blue-600" />}
           value={`${connectedCount}/${childrenCount}`}
           label="מחוברים"
+          helpText="מספר הילדים שהמכשיר שלהם דיווח ב-24 השעות האחרונות, מתוך סך הילדים."
         />
         <Pill
           icon={<Wifi className="h-4 w-4 text-emerald-600" />}
           value={allConnected ? "תקין" : `${childrenCount - connectedCount} מנותק`}
           label="חיבור"
           warn={!allConnected}
+          helpText="מצב התקשורת של מכשירי הילדים. 'מנותק' = המכשיר לא שלח עדכון ב-24 שעות."
         />
         {showIssuesPill && (
           <Pill
@@ -104,6 +106,7 @@ export const FamilyStatusHero = ({
             value={String(openIssues)}
             label="פתוחים"
             warn={openIssues > 0}
+            helpText="התראות, בקשות זמן ובעיות הרשאה שמחכות לטיפול."
           />
         )}
       </div>
