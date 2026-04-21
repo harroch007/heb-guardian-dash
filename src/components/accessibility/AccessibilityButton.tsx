@@ -7,7 +7,7 @@ export function AccessibilityButton() {
   const { isHidden, openPanel } = useAccessibility();
   const location = useLocation();
   
-  const allowedPaths = ["/", "/dashboard"];
+  const allowedPaths = ["/", "/dashboard", "/landing-v1"];
   const isOnAllowedPage = allowedPaths.includes(location.pathname);
 
   if (isHidden || !isOnAllowedPage) {

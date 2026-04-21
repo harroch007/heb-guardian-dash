@@ -9,8 +9,9 @@ import { CoachSpotlight } from '@/components/landing-v1/CoachSpotlight';
 import { Differentiators } from '@/components/landing-v1/Differentiators';
 import { HowItWorks } from '@/components/landing-v1/HowItWorks';
 import { FreeAccessCTA } from '@/components/landing-v1/FreeAccessCTA';
-import { FooterV1 } from '@/components/landing-v1/FooterV1';
+import { FooterV1Expanded } from '@/components/landing-v1/FooterV1Expanded';
 import { CookieConsent } from '@/components/landing/CookieConsent';
+import { InstallAppCard } from '@/components/InstallAppCard';
 
 export default function LandingV1() {
   const { user, loading } = useAuth();
@@ -35,8 +36,9 @@ export default function LandingV1() {
         <Differentiators />
         <HowItWorks />
         <FreeAccessCTA />
+        <InstallAppCard variant="landing" />
       </main>
-      <FooterV1 />
+      <FooterV1Expanded />
       <CookieConsent />
     </div>
   );

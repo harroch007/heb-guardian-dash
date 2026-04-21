@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { User, Crown, Bell, BellRing, Send, Loader2, Users, Shield, FileText, MessageCircle, Bug, Lightbulb, LogOut, HelpCircle, ChevronLeft, Pencil, Check, X, ShieldCheck } from "lucide-react";
+import { User, Crown, BellRing, Send, Loader2, Users, Shield, FileText, MessageCircle, Bug, Lightbulb, LogOut, HelpCircle, ChevronLeft, Pencil, Check, X, ShieldCheck } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { InstallAppCard } from "@/components/InstallAppCard";
 import { BottomNavigationV2 } from "@/components/BottomNavigationV2";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFamilySubscription } from "@/hooks/useFamilySubscription";
@@ -281,7 +283,7 @@ const SettingsV2 = () => {
         {/* Push Notifications */}
         {isSupported && (
           <section className="p-5 rounded-2xl bg-card border border-border/50 space-y-3">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                   <BellRing className="w-5 h-5 text-primary" />
@@ -291,20 +293,42 @@ const SettingsV2 = () => {
                   <p className="text-xs text-muted-foreground">קבל התראות בזמן אמת</p>
                 </div>
               </div>
-              {permission === 'denied' ? (
-                <span className="text-xs text-destructive font-medium">חסום</span>
-              ) : (
-                <div dir="ltr">
-                  <Switch
-                    checked={isSubscribed}
-                    disabled={pushLoading}
-                    onCheckedChange={(checked) => checked ? subscribe() : unsubscribe()}
-                  />
-                </div>
-              )}
+              <div dir="ltr">
+                <Switch
+                  checked={isSubscribed}
+                  disabled={pushLoading}
+                  onCheckedChange={async (checked) => {
+                    if (checked) {
+                      const ok = await subscribe();
+                      if (!ok && Notification.permission === 'denied') {
+                        toast.error('ההתראות חסומות בדפדפן. יש לאפשר אותן בהגדרות האתר.');
+                      }
+                    } else {
+                      await unsubscribe();
+                    }
+                  }}
+                />
+              </div>
             </div>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              {isSubscribed
+                ? 'אתה מקבל התראות בזמן אמת.'
+                : permission === 'denied'
+                  ? 'ההתראות חסומות בדפדפן. אפשר לאפשר ידנית בהגדרות הדפדפן.'
+                  : 'אישור יאפשר קבלת התראות גם כשהאפליקציה סגורה.'}
+            </p>
             {permission === 'denied' && (
-              <p className="text-xs text-muted-foreground">ההתראות חסומות. יש לאפשר אותן בהגדרות הדפדפן.</p>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button type="button" className="text-xs text-primary hover:underline">
+                    איך מאפשרים?
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent dir="rtl" className="w-auto max-w-[260px] p-3 text-xs leading-relaxed text-right">
+                  לחצו על אייקון המנעול/הגדרות בסרגל הכתובת של הדפדפן ←
+                  בחרו "הגדרות אתר" ← אפשרו "התראות" עבור Kippy. רעננו את הדף.
+                </PopoverContent>
+              </Popover>
             )}
             {isSubscribed && (
               <Button
@@ -318,18 +342,12 @@ const SettingsV2 = () => {
                 שלח התראת בדיקה
               </Button>
             )}
-            <button
-              onClick={() => navigate('/notification-settings')}
-              className="flex items-center justify-between w-full text-sm text-primary hover:underline pt-1"
-            >
-              <span className="flex items-center gap-2">
-                <Bell className="w-4 h-4" />
-                הגדרות התראות מתקדמות
-              </span>
-              <ChevronLeft className="w-4 h-4" />
-            </button>
           </section>
         )}
+
+        {/* Install App (PWA) */}
+        <InstallAppCard variant="settings" />
+
 
         {/* Family Summary */}
         {!subLoading && childCount > 0 && (
