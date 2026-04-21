@@ -363,7 +363,9 @@ const HomeV2 = () => {
 
         <QuickActionsBar childrenData={childrenData} />
 
-        <DailyControlSummary childrenData={childrenData} />
+        {childrenData.length === 1 && (
+          <DailyControlSummary childrenData={childrenData} />
+        )}
 
         {/* Smart Protection: hidden when WhatsApp monitoring is disabled */}
         {WHATSAPP_MONITORING_ENABLED && <SmartProtectionSummary childrenData={childrenData} />}
