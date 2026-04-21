@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import type { DeviceHealthInfo } from "@/hooks/useChildControls";
 import { formatLastSeen } from "@/lib/deviceStatus";
 import { WHATSAPP_MONITORING_ENABLED } from "@/config/featureFlags";
+import { HelpTooltip } from "@/components/help/HelpTooltip";
 
 const WHATSAPP_PERMISSION_KEYS = ["accessibilityEnabled", "notificationListenerEnabled"];
 
@@ -105,6 +106,7 @@ export function DeviceHealthBanner({ health }: DeviceHealthBannerProps) {
             <span className="font-semibold text-sm text-foreground">
               {allGranted ? "כל ההרשאות פעילות" : `${missingPermissions.length} הרשאות חסרות`}
             </span>
+            <HelpTooltip text="הרשאות שהמכשיר צריך כדי שהפיצ׳רים השונים של Kippy יעבדו (זמן מסך, מיקום, חסימת אפליקציות ועוד)." iconSize={12} />
           </div>
           {WHATSAPP_MONITORING_ENABLED && (
             <Badge

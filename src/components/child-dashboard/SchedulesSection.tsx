@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Calendar, Moon, BookOpen, Plus, Pencil, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { HelpTooltip } from "@/components/help/HelpTooltip";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { ScheduleEditModal } from "./ScheduleEditModal";
@@ -79,6 +80,7 @@ export function SchedulesSection({
             <CardTitle className="flex items-center gap-2 text-sm font-semibold">
               <Calendar className="w-5 h-5 text-primary" />
               לוחות זמנים
+              <HelpTooltip text="חלונות זמן בהם המכשיר חסום אוטומטית — לדוגמה שינה, שיעורים או שבת." iconSize={12} />
             </CardTitle>
             <div className="flex items-center gap-2">
               {expanded ? (

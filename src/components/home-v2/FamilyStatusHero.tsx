@@ -1,6 +1,7 @@
 import { Users, ShieldCheck, AlertTriangle, Wifi, Crown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { WHATSAPP_MONITORING_ENABLED } from "@/config/featureFlags";
+import { HelpTooltip } from "@/components/help/HelpTooltip";
 
 interface FamilyStatusHeroProps {
   childrenCount: number;
@@ -90,12 +91,14 @@ export const FamilyStatusHero = ({
           icon={<Users className="h-4 w-4 text-blue-600" />}
           value={`${connectedCount}/${childrenCount}`}
           label="מחוברים"
+          helpText="מספר הילדים שהמכשיר שלהם דיווח ב-24 השעות האחרונות, מתוך סך הילדים."
         />
         <Pill
           icon={<Wifi className="h-4 w-4 text-emerald-600" />}
           value={allConnected ? "תקין" : `${childrenCount - connectedCount} מנותק`}
           label="חיבור"
           warn={!allConnected}
+          helpText="מצב התקשורת של מכשירי הילדים. 'מנותק' = המכשיר לא שלח עדכון ב-24 שעות."
         />
         {showIssuesPill && (
           <Pill
@@ -103,6 +106,7 @@ export const FamilyStatusHero = ({
             value={String(openIssues)}
             label="פתוחים"
             warn={openIssues > 0}
+            helpText="התראות, בקשות זמן ובעיות הרשאה שמחכות לטיפול."
           />
         )}
       </div>
@@ -125,17 +129,22 @@ const Pill = ({
   value,
   label,
   warn,
+  helpText,
 }: {
   icon: React.ReactNode;
   value: string;
   label: string;
   warn?: boolean;
+  helpText?: string;
 }) => (
   <div className="flex flex-col items-center gap-1 rounded-xl bg-white/70 border border-gray-100 py-2 px-1">
     {icon}
     <span className={`text-sm font-bold ${warn ? "text-amber-600" : "text-gray-900"}`}>
       {value}
     </span>
-    <span className="text-[10px] text-gray-500">{label}</span>
+    <div className="flex items-center gap-1">
+      <span className="text-[10px] text-gray-500">{label}</span>
+      {helpText && <HelpTooltip text={helpText} iconSize={11} />}
+    </div>
   </div>
 );

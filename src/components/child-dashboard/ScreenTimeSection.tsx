@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Clock, Loader2, Gift, ChevronDown, ChevronUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { HelpTooltip } from "@/components/help/HelpTooltip";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
@@ -99,6 +100,7 @@ export function ScreenTimeSection({
             <CardTitle className="flex items-center gap-2 text-sm font-semibold">
               <Clock className="w-5 h-5 text-primary" />
               זמן מסך
+              <HelpTooltip text="פירוט שימוש לפי אפליקציה היום. כאן אפשר להגדיר מגבלת זמן יומית ולהוסיף בונוסים." iconSize={12} />
             </CardTitle>
             <div className="flex items-center gap-2">
               {expanded ? (
