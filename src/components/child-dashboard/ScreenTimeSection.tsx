@@ -100,6 +100,7 @@ export function ScreenTimeSection({
             <CardTitle className="flex items-center gap-2 text-sm font-semibold">
               <Clock className="w-5 h-5 text-primary" />
               זמן מסך
+              <HelpTooltip text="פירוט שימוש לפי אפליקציה היום. כאן אפשר להגדיר מגבלת זמן יומית ולהוסיף בונוסים." iconSize={12} />
             </CardTitle>
             <div className="flex items-center gap-2">
               {expanded ? (
