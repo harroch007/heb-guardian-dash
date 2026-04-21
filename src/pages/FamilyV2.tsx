@@ -246,20 +246,40 @@ const FamilyV2 = () => {
         toast({ title: "שגיאה", description: error.message || "לא ניתן ליצור קוד", variant: "destructive" });
         return;
       }
-      const result = data as { invite_id: string; email: string; code: string; expires_at: string };
+      const result = data as {
+        success: boolean;
+        error?: string;
+        invite_id?: string;
+        invited_email?: string;
+        pairing_code?: string;
+        expires_at?: string;
+      };
+      if (!result?.success) {
+        const errorMap: Record<string, string> = {
+          NOT_AUTHENTICATED: "יש להתחבר מחדש.",
+          INVALID_EMAIL: "כתובת אימייל לא תקינה.",
+          ALREADY_MEMBER: "הורה זה כבר חבר במשפחה.",
+        };
+        toast({
+          title: "שגיאה",
+          description: errorMap[result?.error || ""] || "לא ניתן ליצור קוד",
+          variant: "destructive",
+        });
+        return;
+      }
       toast({ title: "הקוד נוצר", description: "שלח את הקוד והלינק להורה הנוסף" });
       setShowInviteForm(false);
       setInviteEmail("");
       setInviteAlerts(false);
       setCoParent({
-        id: result.invite_id,
-        invited_email: result.email,
+        id: result.invite_id!,
+        invited_email: result.invited_email!,
         status: "pending",
         receive_alerts: false,
         member_id: null,
         accepted_at: null,
-        pairing_code: result.code,
-        pairing_code_expires_at: result.expires_at,
+        pairing_code: result.pairing_code!,
+        pairing_code_expires_at: result.expires_at!,
       });
     } catch {
       toast({ title: "שגיאה", description: "שגיאה בלתי צפויה", variant: "destructive" });
@@ -570,7 +590,12 @@ const FamilyV2 = () => {
                             className="w-full gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
                             onClick={() => {
                               const url = `${window.location.origin}/join-family`;
-                              const text = `הוזמנת להצטרף למשפחה ב-KippyAI 👨‍👩‍👧\nהיכנס/י לקישור: ${url}\nהזן/י את הקוד: ${coParent.pairing_code}\n(האימייל שלך: ${coParent.invited_email})`;
+                              const text =
+                                `שלום! הוזמנת להצטרף כהורה שותף ב-KippyAI 👨‍👩‍👧\n` +
+                                `1) פתח/י את הקישור: ${url}\n` +
+                                `2) השתמש/י באימייל: ${coParent.invited_email}\n` +
+                                `3) הזן/י את קוד ההצטרפות: ${coParent.pairing_code}\n` +
+                                `הקוד תקף ל-7 ימים.`;
                               window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
                             }}
                           >
