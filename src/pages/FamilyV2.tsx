@@ -602,32 +602,6 @@ const FamilyV2 = () => {
                             <MessageCircle className="w-4 h-4" />
                             שלח להורה דרך WhatsApp
                           </Button>
-                          <div className="flex gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="flex-1 gap-2"
-                              onClick={() => {
-                                navigator.clipboard.writeText(coParent.pairing_code || "");
-                                toast({ title: "הקוד הועתק" });
-                              }}
-                            >
-                              <Copy className="w-3.5 h-3.5" />
-                              העתק קוד
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="flex-1 gap-2"
-                              onClick={() => {
-                                navigator.clipboard.writeText(`${window.location.origin}/join-family`);
-                                toast({ title: "הקישור הועתק" });
-                              }}
-                            >
-                              <Share2 className="w-3.5 h-3.5" />
-                              העתק קישור
-                            </Button>
-                          </div>
                           <Button
                             variant="ghost"
                             size="sm"
