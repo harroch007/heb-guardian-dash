@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { useState } from "react";
 import { useRingCommand } from "@/hooks/useRingCommand";
 import { WHATSAPP_MONITORING_ENABLED } from "@/config/featureFlags";
+import { HelpTooltip } from "@/components/help/HelpTooltip";
 import type { ChildWithData } from "@/pages/HomeV2";
 
 interface Props {
