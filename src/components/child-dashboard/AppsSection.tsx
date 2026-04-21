@@ -135,15 +135,10 @@ export function AppsSection({
                 <Badge
                   key={f.key}
                   variant={filter === f.key ? "default" : "outline"}
-                  className="cursor-pointer text-[10px] px-2 py-0.5"
+                  className="cursor-pointer text-[10px] px-2 py-0.5 justify-center text-center"
                   onClick={() => setFilter(f.key)}
                 >
                   {f.label}
-                  {f.count !== undefined && f.count > 0 && (
-                    <span className="mr-1 bg-amber-500/20 text-amber-600 rounded-full px-1 text-[9px]">
-                      {f.count}
-                    </span>
-                  )}
                 </Badge>
               ))}
             </div>
