@@ -106,6 +106,7 @@ export function DeviceHealthBanner({ health }: DeviceHealthBannerProps) {
             <span className="font-semibold text-sm text-foreground">
               {allGranted ? "כל ההרשאות פעילות" : `${missingPermissions.length} הרשאות חסרות`}
             </span>
+            <HelpTooltip text="הרשאות שהמכשיר צריך כדי שהפיצ׳רים השונים של Kippy יעבדו (זמן מסך, מיקום, חסימת אפליקציות ועוד)." iconSize={12} />
           </div>
           {WHATSAPP_MONITORING_ENABLED && (
             <Badge
