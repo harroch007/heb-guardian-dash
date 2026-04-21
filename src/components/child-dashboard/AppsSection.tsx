@@ -113,6 +113,7 @@ export function AppsSection({
             <CardTitle className="flex items-center gap-2 text-sm font-semibold">
               <Shield className="w-5 h-5 text-primary" />
               ניהול אפליקציות
+              <HelpTooltip text="'מאושרות' — הילד יכול להשתמש. 'ממתינות לאישור' — אפליקציות חדשות שהותקנו וצריכות החלטה שלך." iconSize={12} />
             </CardTitle>
             <div className="flex items-center gap-2">
               {expanded ? (
