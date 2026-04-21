@@ -257,6 +257,7 @@ export function GeofenceSection({ childId, deviceLatitude, deviceLongitude, devi
               <div className="flex items-center gap-2">
                 <MapPin className="w-5 h-5 text-primary" />
                 <span className="font-semibold text-sm text-foreground">גדר גיאוגרפית</span>
+                <HelpTooltip text="אזורים גאוגרפיים שתוגדר בהם התראה כשהילד נכנס או יוצא — בית, בית ספר ומקומות מותאמים." iconSize={12} />
               </div>
             </AccordionTrigger>
             <AccordionContent className="pt-4">
