@@ -148,6 +148,9 @@ export default function ChildControlV2() {
   const [syncCommandId, setSyncCommandId] = useState<string | null>(null);
   const syncPollingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Background refresh indicator (subtle "updating..." state)
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
   // Ring uses dedicated hook
   const { phase: ringPhase, sendRing, retry: retryRing } = useRingCommand(device?.device_id ?? null);
 
