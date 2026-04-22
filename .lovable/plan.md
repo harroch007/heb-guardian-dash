@@ -1,98 +1,64 @@
 
 
-# 4 שיפורים: הגדרות, PWA, פוטר ונגישות בדף הנחיתה החדש
+# תיקון: הדשבורד מציג מידע ישן למרות שהמכשיר חי לחלוטין
 
-## 1) ניקוי וסידור סקשן ההתראות בהגדרות (`/settings-v2`)
+## האבחון המלא — מה באמת קרה
 
-**להסיר**:
-- כפתור "הגדרות התראות מתקדמות" (מפנה ל-`/notification-settings` של רגישות AI — לא רלוונטי בגרסה הנוכחית בלי ניטור וואטסאפ).
+בדקתי את ה-DB ישירות עכשיו:
 
-**לתקן את חוויית ה-"חסום"**:
-היום כשהדפדפן חוסם — מוצגת רק תווית "חסום" סטטית בלי דרך פעולה. נשנה כך:
-- ה-Switch תמיד יוצג ויהיה לחיץ (לא יותר תווית "חסום" סטטית).
-- כשמשתמש לוחץ על ה-Switch ל"מאושר" וההרשאה `denied` — נקרא ל-`subscribe()` שיפעיל את בקשת ההרשאה של הדפדפן (אם ניתן). אם הדפדפן עדיין חוסם, נציג toast קצר: "ההתראות חסומות בדפדפן. יש לאפשר אותן בהגדרות האתר."
-- מתחת ל-Switch יוצג טקסט עזר אחד בלבד שמשתנה לפי המצב:
-  - מאושר: "אתה מקבל התראות בזמן אמת."
-  - לא מאושר (default): "אישור יאפשר קבלת התראות גם כשהאפליקציה סגורה."
-  - חסום (denied): "ההתראות חסומות בדפדפן. אפשר לאפשר ידנית בהגדרות הדפדפן." + לינק קטן "איך מאפשרים?" שפותח Popover עם הסבר קצר.
+| בדיקה | תוצאה |
+|---|---|
+| `last_seen` של המכשיר ב-DB | **2026-04-22 17:42:34** (לפני 7 שניות מהבדיקה) |
+| `battery_level` | 100% |
+| `latitude/longitude` | מעודכנים (גדעון האוזנר, הרצליה) |
+| פקודות `REFRESH_SETTINGS` שיצרת היום | **3 — כולן `COMPLETED`** (17:42:23, 17:42:30, 17:42:45) |
+| פקודת `LOCATE_NOW` אחרונה | `COMPLETED` ב-17:41:13 |
 
-**טקסט הכותרת** יישאר "התראות Push — קבל התראות בזמן אמת".
+**הסוכן עובד מצוין**. הבעיה היא **רק בצד הוובי** — הדשבורד מציג נתונים תקועים מהטעינה הראשונה.
 
----
+## סיבת השורש
 
-## 2) הוספת התקנה כאפליקציה (PWA) ל-2 מקומות
+ב-`ChildControlV2.tsx`:
+1. שורה 211 — שולף את `device` (כולל `last_seen`) פעם אחת ב-mount.
+2. שורה 252 — `setInterval(fetchData, 60_000)` קיים, אבל **לא רץ אם `loading=false` והמרכיב סיים להיטען לפני זמן רב, או אם הטאב היה לא-ממוקד**.
+3. שורות 257–265 — יש Realtime subscription על `devices`, אבל הוא תלוי ב-`device?.device_id`. ה-effect מאזין ל-`postgres_changes` אבל **בפועל מעט מעדכוני `last_seen` מגיעים ב-Realtime כי הסוכן עושה upsert ולא always update**, או שה-channel נופל בלי reconnect.
+4. אין `visibilitychange` listener — כשחוזרים לטאב אחרי כמה שעות, אין רענון מיידי.
 
-### א. ב-`/landing-v1` (דף הנחיתה החדש)
-נוסיף סקשן/באנר התקנה דומה למה שכבר קיים בדף הבית:
-- מיקום: בתחתית הדף, לפני ה-Footer (או בתוך `FreeAccessCTA`).
-- מציג: לוגו + כותרת "התקינו את Kippy כאפליקציה" + תיאור קצר + כפתור "התקנה".
-- שימוש ב-`usePWAInstall()` (קיים).
-- לוגיקה:
-  - Android/Chrome עם `isInstallable=true` → כפתור "התקנה" שקורא ל-`install()`.
-  - iOS → הוראות קצרות "שתף ← הוסף למסך הבית".
-  - `isInstalled=true` → להסתיר את הסקשן לחלוטין.
+**התוצאה**: ה-state של `device` נתקע על snapshot ישן, גם כש-`refresh_settings` מתבצע בהצלחה.
 
-### ב. בתוך `/settings-v2` (הגדרות)
-נוסיף סקשן חדש "התקנת אפליקציה" עם אותה לוגיקה:
-- רק אם `isInstallable || isIOS` ולא `isInstalled`.
-- כפתור "התקן את Kippy" / הוראות iOS לפי הצורך.
-- אייקון `Download` בעיצוב אחיד עם שאר הסקשנים.
+## מה לתקן
 
-קומפוננטה משותפת חדשה מומלצת: `src/components/InstallAppCard.tsx` — להימנע משכפול קוד בין דף הנחיתה להגדרות.
+### 1) רענון מיידי כשחוזרים לטאב (`visibilitychange`)
+ב-`ChildControlV2.tsx`: להוסיף effect שמאזין ל-`document.visibilitychange` וקורא ל-`fetchData(true)` כשהטאב חוזר להיות גלוי.
 
----
+### 2) רענון אחרי כל פעולה שמעדכנת הגדרות
+ב-`useCommandPolling` עבור `REFRESH_SETTINGS` (אם קיים) — אחרי `COMPLETED` להריץ refetch של ה-device ולא רק של commands. אם אין pollingForRefresh נפרד, להוסיף refetch ל-`device` אחרי `sendRefreshToAllDevices`.
 
-## 3) החלפת הפוטר ב-`/landing-v1`
+### 3) חיזוק ה-Realtime subscription
+- להחליף את ה-channel name ל-stable יותר ולא לעטוף ב-effect שתלוי ב-`device?.device_id` בלבד (זה גורם ל-tear-down/setup מיותר).
+- להוסיף `UPDATE`-only filter במקום `*` (יעיל יותר).
+- במקרה של disconnection — Supabase Realtime בדרך כלל מחזיר אוטומטית, אבל נוסיף re-subscribe כשהדף חוזר מ-hidden.
 
-הפוטר הנוכחי (`FooterV1.tsx`) דק ופשוט. נחליף אותו בפוטר המורחב מהאתר הרשמי (`src/components/landing/LandingFooter.tsx`) שכולל:
-- לוגו + תיאור החברה
-- "קישורים מהירים" (יתרונות, איך זה עובד, תמחור, שאלות נפוצות)
-- "צור קשר" (אימייל + WhatsApp)
-- שורת זכויות + לינקים לפרטיות ותנאים
+### 4) קיצור הפולינג מ-60 שניות ל-30 שניות
+זה תואם ל-`mem://features/monitoring/sync-triggers` (Push-to-Refresh עם 30 שניות).
 
-**התאמות שיידרשו**:
-- ה-`LandingFooter` המקורי משתמש ב-`#features`, `#how-it-works`, `#pricing`, `#faq` — לוודא שאלו ה-IDs הנכונים גם בסקשנים של `/landing-v1`. אם אין — להחליף לעוגנים שכן קיימים בדף, או להסיר את הקישורים שלא רלוונטיים.
-- הפוטר משתמש ב-`text-glow` ובסגנון כהה. נתאים אותו ל-theme ה-light של `homev2-light` (להחליף את הצבעים לטון בהיר/ניטרלי כמו שאר הדף).
-- אופציה נקייה יותר: ליצור `FooterV1Expanded.tsx` חדש בהשראת המקורי אבל בעיצוב ה-light — ולא לערוך את הפוטר של דף הבית הישן (כדי לא לגעת ב-V1 הפעיל).
+### 5) הוספת אינדיקציה ויזואלית עדינה ל-"מתעדכן..."
+טקסט "עודכן לפני X" יוחלף ב-spinner קטן בזמן refetch כדי שהמשתמש יראה שהמערכת חיה.
 
-קובץ מועדף: ליצור `src/components/landing-v1/FooterV1Expanded.tsx` ולהחליף בייבוא ב-`LandingV1.tsx`.
+### 6) באנר מצב Realtime (אופציונלי)
+אם ב-30 שניות האחרונות לא הגיע אף עדכון Realtime ויש פקודות `COMPLETED` חדשות — הצגת באנר קטן "לחץ לרענון" שמפעיל `fetchData(true)`.
 
----
-
-## 4) הוספת כפתור הנגישות ל-`/landing-v1`
-
-**הבעיה**: כיום `AccessibilityButton` מוצג רק ב-`/` ו-`/dashboard` (לפי ה-`allowedPaths` בקומפוננטה).
-
-**הפתרון**: להוסיף `/landing-v1` למערך `allowedPaths` ב-`src/components/accessibility/AccessibilityButton.tsx`:
-```ts
-const allowedPaths = ["/", "/dashboard", "/landing-v1"];
-```
-
-אין צורך לשנות שום דבר נוסף — `AccessibilityWrapper` כבר רץ גלובלית ב-`App.tsx` בתוך `BrowserRouter`, כולל הפאנל המלא ולוגיקת ה-Triple Escape. כל שכבת הנגישות (ניגודיות, גודל טקסט, מצב לילה, סמן מוגדל וכו') תעבוד אוטומטית גם ב-`/landing-v1`.
-
----
-
-## פרטים טכניים — קבצים צפויים לשינוי
-
-**הגדרות + PWA**:
-- `src/pages/SettingsV2.tsx` — ניקוי "הגדרות מתקדמות", שיפור Switch, הוספת סקשן התקנה
-- `src/pages/LandingV1.tsx` — שילוב סקשן/באנר התקנה
-- `src/components/InstallAppCard.tsx` (חדש) — קומפוננטה משותפת
-
-**פוטר**:
-- `src/components/landing-v1/FooterV1Expanded.tsx` (חדש) — פוטר מורחב בעיצוב light
-- `src/pages/LandingV1.tsx` — החלפת הייבוא
-
-**נגישות**:
-- `src/components/accessibility/AccessibilityButton.tsx` — הוספת `/landing-v1` ל-`allowedPaths`
+## קבצים שיעודכנו
+- `src/pages/ChildControlV2.tsx` — visibilitychange listener, פולינג מהיר יותר, refetch אחרי REFRESH_SETTINGS, חיזוק realtime subscription.
 
 ## מה לא נוגעים
-- לא משנים את דף הבית `/` (V1 הפעיל) ולא את `LandingFooter.tsx` המקורי
-- לא נוגעים ב-`AccessibilityProvider` / `AccessibilityPanel` — כבר גלובליים
-- לא משנים את לוגיקת ה-PWA / `usePWAInstall` / Service Worker
-- לא נוספים feature flags חדשים, אין שינוי DB / Edge Functions / Android
+- אין שינוי בסוכן האנדרואיד (אין צורך — הוא עובד מצוין).
+- אין שינוי ב-DB / RPC / RLS.
+- אין שינוי ב-`useChildControls` (הוא לא שולף את `last_seen` בכלל — זה ב-`ChildControlV2` עצמו).
+- אין שינוי ב-V1.
 
 ## תוצאה צפויה
-- **הגדרות**: סקשן התראות נקי וקליקבילי. מותקנת אפשרות "התקן כאפליקציה".
-- **דף נחיתה**: סקשן התקנה ב-Android/iOS, פוטר עשיר עם קישורים וצור קשר, וכפתור נגישות תמיד זמין.
+- ברגע שהסוכן יסיים `REFRESH_SETTINGS` — ה-`last_seen` יתעדכן בדשבורד תוך פחות מ-30 שניות (במקום אף פעם).
+- חזרה לטאב אחרי כמה דקות → רענון מיידי, לא צריך F5.
+- "עודכן לפני 1 ימים" יהפוך ל-"עודכן עכשיו" בתוך שניות מרגע שהמכשיר מדווח.
 
