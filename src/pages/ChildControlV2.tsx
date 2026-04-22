@@ -482,6 +482,9 @@ export default function ChildControlV2() {
                 </>
               )}
               <span>עדכון {formatLastSeen(device?.last_seen ?? null)}</span>
+              {isRefreshing && (
+                <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
+              )}
               {device && (
                 <button onClick={handleRequestSync} disabled={syncStatus === "locating"}
                   className="inline-flex items-center gap-1 text-primary hover:text-primary/80 disabled:opacity-50">
