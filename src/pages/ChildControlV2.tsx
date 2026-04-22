@@ -203,6 +203,7 @@ export default function ChildControlV2() {
   const fetchData = useCallback(async (isPolling = false) => {
     if (!childId || !user) return;
     if (!isPolling) setLoading(true);
+    else setIsRefreshing(true);
 
     const todayIsrael = getIsraelDate();
     const todayStart = new Date();
@@ -224,6 +225,7 @@ export default function ChildControlV2() {
 
     if (!childRes.data) {
       if (!isPolling) navigate("/home-v2");
+      else setIsRefreshing(false);
       return;
     }
 
@@ -247,25 +249,53 @@ export default function ChildControlV2() {
     setCompletedTodayChoresCount(doneToday);
 
     if (!isPolling) setLoading(false);
+    else setIsRefreshing(false);
   }, [childId, user, navigate]);
 
   useEffect(() => { fetchData(false); }, [fetchData]);
+
+  // Polling every 30s (aligned with sync-triggers memory)
   useEffect(() => {
     if (!childId || !user) return;
-    const interval = setInterval(() => fetchData(true), 60_000);
+    const interval = setInterval(() => fetchData(true), 30_000);
     return () => clearInterval(interval);
   }, [childId, user, fetchData]);
 
-  // ---------- Real-time device subscription ----------
+  // Refresh immediately when tab becomes visible again
   useEffect(() => {
-    if (!device?.device_id) return;
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        fetchData(true);
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("focus", handleVisibility);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("focus", handleVisibility);
+    };
+  }, [fetchData]);
+
+  // ---------- Real-time device subscription ----------
+  // Subscribe per child_id (stable) instead of device_id, so we capture the
+  // first device row inserted as well as updates. UPDATE-only filter for efficiency.
+  useEffect(() => {
+    if (!childId) return;
     const channel = supabase
-      .channel(`cv2-device-${device.device_id}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "devices", filter: `device_id=eq.${device.device_id}` },
-        (payload) => setDevice(payload.new as Device))
+      .channel(`cv2-child-${childId}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "devices", filter: `child_id=eq.${childId}` },
+        (payload) => setDevice(payload.new as Device),
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "devices", filter: `child_id=eq.${childId}` },
+        (payload) => setDevice(payload.new as Device),
+      )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [device?.device_id]);
+  }, [childId]);
 
   // ---------- Cleanup polling ----------
   useEffect(() => {
