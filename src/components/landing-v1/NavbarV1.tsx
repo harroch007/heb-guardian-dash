@@ -19,11 +19,9 @@ export function NavbarV1() {
           <span className="text-xl font-bold text-foreground">Kippy</span>
         </Link>
         <div className="flex items-center gap-2">
-          {!WAITLIST_MODE && (
-            <Link to="/auth">
-              <Button variant="ghost" size="sm">התחברות</Button>
-            </Link>
-          )}
+          <Link to="/auth">
+            <Button variant="ghost" size="sm">התחברות</Button>
+          </Link>
           {WAITLIST_MODE ? (
             <Button size="sm" onClick={handleCTA} className="bg-primary text-primary-foreground hover:bg-primary/90">
               הצטרפו חינם
