@@ -286,17 +286,19 @@ const MetricCell = ({
   label,
   value,
   warn,
+  danger,
   helpText,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string;
   warn?: boolean;
+  danger?: boolean;
   helpText?: string;
 }) => (
   <div className="flex flex-col items-center gap-0.5 py-1">
     {icon}
-    <span className={`text-xs font-bold ${warn ? "text-amber-600" : "text-gray-900"}`}>
+    <span className={`text-xs font-bold ${danger ? "text-red-600" : warn ? "text-amber-600" : "text-gray-900"}`}>
       {value}
     </span>
     <div className="flex items-center gap-1">
