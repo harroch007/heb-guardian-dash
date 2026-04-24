@@ -116,9 +116,11 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
 
   const borderClass = !connected
     ? "border-red-300 ring-1 ring-red-200"
-    : child.activeRestriction
-      ? "border-amber-300"
-      : "border-gray-200";
+    : screenTimeExceeded
+      ? "border-red-300 ring-1 ring-red-200"
+      : child.activeRestriction
+        ? "border-amber-300"
+        : "border-gray-200";
 
   return (
     <div className={`rounded-2xl bg-white border shadow-sm overflow-hidden ${borderClass}`}>
@@ -128,6 +130,15 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
           <WifiOff className="h-4 w-4 text-red-600 shrink-0" />
           <span className="text-xs font-semibold text-red-700">
             המכשיר לא מחובר — ייתכן שהשליטה אינה פעילה
+          </span>
+        </div>
+      )}
+      {/* Screen-time exceeded banner (only when connected and no scheduled restriction) */}
+      {connected && screenTimeExceeded && (
+        <div className="flex items-center gap-2 px-4 py-2 bg-red-50 border-b border-red-200">
+          <Lock className="h-4 w-4 text-red-600 shrink-0" />
+          <span className="text-xs font-semibold text-red-700">
+            המכשיר נעול — הילד חרג ממגבלת זמן המסך היומית
           </span>
         </div>
       )}
