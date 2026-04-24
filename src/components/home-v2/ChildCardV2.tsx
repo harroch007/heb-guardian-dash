@@ -47,8 +47,14 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
 
   const connected = isConnected(child.device?.last_seen ?? null);
   const usedMinutes = child.snapshot?.total_usage_minutes ?? 0;
-  const hasLimit = child.dailyLimit !== null && child.dailyLimit > 0;
-  const remaining = hasLimit ? Math.max(0, child.dailyLimit! - usedMinutes) : null;
+  const effectiveLimit =
+    child.dailyLimit !== null && child.dailyLimit > 0
+      ? child.dailyLimit + (child.todayBonusMinutes ?? 0)
+      : null;
+  const hasLimit = effectiveLimit !== null;
+  const remaining = hasLimit ? Math.max(0, effectiveLimit! - usedMinutes) : null;
+  const screenTimeExceeded =
+    hasLimit && remaining === 0 && !child.activeRestriction;
 
   const handleRing = async () => {
     const ok = await sendRing();
