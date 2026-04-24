@@ -47,8 +47,14 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
 
   const connected = isConnected(child.device?.last_seen ?? null);
   const usedMinutes = child.snapshot?.total_usage_minutes ?? 0;
-  const hasLimit = child.dailyLimit !== null && child.dailyLimit > 0;
-  const remaining = hasLimit ? Math.max(0, child.dailyLimit! - usedMinutes) : null;
+  const effectiveLimit =
+    child.dailyLimit !== null && child.dailyLimit > 0
+      ? child.dailyLimit + (child.todayBonusMinutes ?? 0)
+      : null;
+  const hasLimit = effectiveLimit !== null;
+  const remaining = hasLimit ? Math.max(0, effectiveLimit! - usedMinutes) : null;
+  const screenTimeExceeded =
+    hasLimit && remaining === 0 && !child.activeRestriction;
 
   const handleRing = async () => {
     const ok = await sendRing();
@@ -110,9 +116,11 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
 
   const borderClass = !connected
     ? "border-red-300 ring-1 ring-red-200"
-    : child.activeRestriction
-      ? "border-amber-300"
-      : "border-gray-200";
+    : screenTimeExceeded
+      ? "border-red-300 ring-1 ring-red-200"
+      : child.activeRestriction
+        ? "border-amber-300"
+        : "border-gray-200";
 
   return (
     <div className={`rounded-2xl bg-white border shadow-sm overflow-hidden ${borderClass}`}>
@@ -122,6 +130,15 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
           <WifiOff className="h-4 w-4 text-red-600 shrink-0" />
           <span className="text-xs font-semibold text-red-700">
             המכשיר לא מחובר — ייתכן שהשליטה אינה פעילה
+          </span>
+        </div>
+      )}
+      {/* Screen-time exceeded banner (only when connected and no scheduled restriction) */}
+      {connected && screenTimeExceeded && (
+        <div className="flex items-center gap-2 px-4 py-2 bg-red-50 border-b border-red-200">
+          <Lock className="h-4 w-4 text-red-600 shrink-0" />
+          <span className="text-xs font-semibold text-red-700">
+            המכשיר נעול — הילד חרג ממגבלת זמן המסך היומית
           </span>
         </div>
       )}
@@ -185,10 +202,11 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
           />
         ) : remaining !== null ? (
           <MetricCell
-            icon={<Clock className="h-3.5 w-3.5 text-emerald-500" />}
+            icon={<Clock className={`h-3.5 w-3.5 ${screenTimeExceeded ? "text-red-500" : "text-emerald-500"}`} />}
             label="נותר"
             value={formatMinutes(remaining)}
-            warn={remaining <= 15}
+            warn={!screenTimeExceeded && remaining <= 15}
+            danger={screenTimeExceeded}
             helpText="כמה זמן מסך נותר לילד היום עד סיום המגבלה היומית."
           />
         ) : (
@@ -268,17 +286,19 @@ const MetricCell = ({
   label,
   value,
   warn,
+  danger,
   helpText,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string;
   warn?: boolean;
+  danger?: boolean;
   helpText?: string;
 }) => (
   <div className="flex flex-col items-center gap-0.5 py-1">
     {icon}
-    <span className={`text-xs font-bold ${warn ? "text-amber-600" : "text-gray-900"}`}>
+    <span className={`text-xs font-bold ${danger ? "text-red-600" : warn ? "text-amber-600" : "text-gray-900"}`}>
       {value}
     </span>
     <div className="flex items-center gap-1">
