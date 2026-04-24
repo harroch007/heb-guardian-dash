@@ -202,10 +202,11 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
           />
         ) : remaining !== null ? (
           <MetricCell
-            icon={<Clock className="h-3.5 w-3.5 text-emerald-500" />}
+            icon={<Clock className={`h-3.5 w-3.5 ${screenTimeExceeded ? "text-red-500" : "text-emerald-500"}`} />}
             label="נותר"
             value={formatMinutes(remaining)}
-            warn={remaining <= 15}
+            warn={!screenTimeExceeded && remaining <= 15}
+            danger={screenTimeExceeded}
             helpText="כמה זמן מסך נותר לילד היום עד סיום המגבלה היומית."
           />
         ) : (
