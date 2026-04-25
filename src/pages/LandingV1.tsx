@@ -37,14 +37,12 @@ export default function LandingV1() {
         <CoachSpotlight />
         <FeaturesGrid />
         <HowItWorks />
+        <InstallAppCard variant="landing" />
         <WhyParents />
         <div id="faq">
           <FAQAccordion />
         </div>
         <FreeAccessCTA />
-        <div className="container mx-auto px-4 pb-12">
-          <InstallAppCard variant="landing" />
-        </div>
       </main>
       <FooterV1Expanded />
       <CookieConsent />
