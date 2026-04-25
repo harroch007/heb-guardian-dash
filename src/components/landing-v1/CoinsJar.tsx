@@ -1,6 +1,6 @@
 export function CoinsJar() {
   return (
-    <div className="relative mx-auto" style={{ width: 200, height: 240 }}>
+    <div className="relative mx-auto w-40 h-48 sm:w-[200px] sm:h-[240px]">
       <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full" />
       <svg viewBox="0 0 200 240" className="relative w-full h-full" style={{ filter: 'drop-shadow(0 0 20px hsl(var(--primary) / 0.5))' }}>
         {/* Lid */}

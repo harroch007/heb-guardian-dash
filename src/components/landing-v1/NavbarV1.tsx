@@ -25,18 +25,18 @@ export function NavbarV1() {
           <a href="#how-it-works" className="hover:text-primary transition-colors">איך זה עובד</a>
           <a href="#faq" className="hover:text-primary transition-colors">שאלות נפוצות</a>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2">
           <Link to="/auth">
-            <Button variant="ghost" size="sm">התחברות</Button>
+            <Button variant="ghost" size="sm" className="text-xs sm:text-sm px-2 sm:px-3">התחברות</Button>
           </Link>
           {WAITLIST_MODE ? (
-            <Button size="sm" onClick={handleCTA} className="bg-primary text-primary-foreground hover:bg-primary/90 glow-primary">
-              הצטרפו לרשימת ההמתנה
+            <Button size="sm" onClick={handleCTA} className="bg-primary text-primary-foreground hover:bg-primary/90 glow-primary text-xs sm:text-sm px-2.5 sm:px-3">
+              הצטרפו<span className="hidden sm:inline"> לרשימת ההמתנה</span>
             </Button>
           ) : (
             <Link to="/auth?signup=true">
-              <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90">
-                הצטרפו חינם
+              <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90 text-xs sm:text-sm px-2.5 sm:px-3">
+                הצטרפו<span className="hidden sm:inline"> חינם</span>
               </Button>
             </Link>
           )}

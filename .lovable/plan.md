@@ -1,77 +1,63 @@
-## עיצוב מחדש של דפי V2 — שפה כהה אחידה (cyber/neon-teal)
+# הפיכת /landing-v1 לרספונסיבי במובייל
 
-### עקרונות ובטיחות
-- **לא משנים פונקציונליות**: כל ה-fetches, RPCs, ניווטים, מודאלים, מצבי טעינה, BottomNavigationV2 — נשארים כפי שהם.
-- **לא מוסיפים פיצ'רים שלא קיימים ב-DB**: העיצובים שצורפו מציגים "רצף הישגים", "היסטוריית משימות", "טיפ יומי", "Samsung Galaxy A54" וכו' — **לא ניצור** רכיבים חדשים שאין להם מקור נתונים. נשתמש רק בנתונים שכבר נטענים היום.
-- **שפת עיצוב חדשה** (תואמת ל-LandingV1 החדש שבנינו): רקע `#0A0E1A`, כרטיסיות `#0F1525` עם בורדר `border-primary/20`, accent ציאן/טורקיז `hsl(174 62% 47%)` עם זוהר (`box-shadow: 0 0 20px hsl(var(--primary)/0.3)`), טקסט בהיר.
-- **רספונסיביות מובייל-first**: כל הגרידים מתחילים ב-1 עמודה ועוברים ל-2/3/4 ב-`sm:`/`md:`/`lg:`. מקסימום רוחב `max-w-7xl` למסכי דסקטופ.
+## בעיות שזוהו ב-viewport 391px
+1. **Hero** — שני טלפונים 240px כל אחד + gap זולגים מהמסך וגורמים ל-horizontal scroll
+2. **Navbar** — לוגו + "התחברות" + "הצטרפו לרשימת ההמתנה" (טקסט ארוך) נדחסים/חורגים
+3. **HeroV1 CTAs** — שני כפתורים `h-14 px-8` רחבים מדי
+4. **CoachSpotlight** — `p-8 md:p-12` עודף; CoinsJar 200px גדול
+5. **FreeAccessCTA** — `p-10 md:p-14` עודף במובייל
+6. **FooterV1Expanded** — `grid md:grid-cols-4` נופל ל-1 עמודה במובייל (בזבוז שטח)
 
-### 1. שכבת עיצוב משותפת
-- **ב-`src/index.css`**: ליצור scope חדש `.v2-dark` (במקביל ל-`.homev2-light` הקיים) עם פלטה כהה:
-  - `--background: 222 47% 6%` (≈ #0A0E1A)
-  - `--card: 222 40% 11%` (≈ #0F1525)
-  - `--primary: 174 72% 50%` (טורקיז זוהר)
-  - `--border: 222 30% 22%`, `--muted: 222 30% 18%`, `--foreground: 0 0% 96%`
-  - `font-family: 'Heebo', sans-serif`
-  - utility classes: `.v2-card` (כרטיס עם זוהר עדין), `.v2-glow` (טקסט/אייקון זוהר), `.v2-stat-card` (קוביית מספרים).
-- **ב-5 דפי V2**: להחליף `className="homev2-light ..."` ב-`className="v2-dark ..."`. שום שינוי במבנה ה-DOM הראשי או ב-`max-w-lg/2xl`.
+## שינויים מתוכננים
 
-### 2. `HomeV2.tsx` + רכיבי `home-v2/*`
-- **לא משנים**: כל ה-`fetchAllData` והלוגיקה ב-`HomeV2.tsx` (שורות 1-340).
-- **מעדכנים סגנון** ב:
-  - `HomeGreeting` — כותרת עברית גדולה עם accent טורקיז על השם, אייקון waving hand.
-  - `FamilyStatusHero` — קופסה כהה גדולה עם 3 מספרים זוהרים (ילדים / מחוברים / בעיות פתוחות) על רקע גרדיאנט עדין `from-primary/10 to-transparent`.
-  - `ChildCardV2` — כרטיס כהה עם:
-    - אווטאר עגול עם בורדר טורקיז
-    - שם + כיתה + תג סטטוס מכשיר (LIVE ירוק / נותק אדום)
-    - שורת מטריקות: זמן מסך היום, יתרת בנק דקות, התראות, בקשות זמן (כל אחד בקופסה זוהרת קטנה)
-    - אם יש `activeRestriction` — באנר סגול/ענבר זוהר ("בית ספר 8:00-14:30")
-    - כפתורי הפעולה הקיימים (פתח כרטיס ילד) — כפתור פס טורקיז
-  - `AttentionSection` / `QuickActionsBar` / `DailyControlSummary` / `SmartProtectionSummary` — רקע `bg-card`, אייקונים בטורקיז, ספירת באדג'ים זוהרת.
-- **לא נוסיף**: רצף-הישגים, היסטוריה, טיפים יומיים — אין להם DB.
+### `src/components/landing-v1/HeroV1.tsx`
+- במובייל להציג טלפון אחד בלבד (variant `overview`); שני הטלפונים יוצגו רק מ-`sm:` ומעלה
+- כפתורי CTA: `h-12 px-6 text-base sm:h-14 sm:px-8 sm:text-lg`
+- כותרת: `text-3xl sm:text-4xl md:text-5xl lg:text-6xl`
+- gap בין הטלפונים: `gap-2 sm:gap-4`
 
-### 3. `ChildControlV2.tsx` + `child-dashboard/*`
-- **לא משנים**: useChildControls, polling, ringCommand, כל הפעולות.
-- **מעדכנים סגנון**:
-  - **Header**: שם הילד + תמונה עגולה + שורת סטטוס (סוללה/אחוז, רשת, "Samsung Galaxy A54" ← כן: זה כבר נטען מ-`devices` כ-`device_id`/דגם אם קיים; **לא** נוסיף שדה דגם חדש — נשאר עם המידע הקיים: סוללה, last_seen, address).
-  - **Status Strip**: 4 קוביות מטריקות (זמן מסך חופשי / לוח פעיל / בקשות ממתינות / בונוס היום) — כולן כבר מחושבות בקוד.
-  - **LocationSectionV2**: מפת OpenStreetMap עם בורדר טורקיז זוהר, תג LIVE.
-  - **AppsSection**: כרטיסיות אפליקציות כהות עם אייקון, שם, סטטוס (מותר/חסום/מוגבל) ו-Switch בצבע טורקיז. **לא נוסיף** קטגוריות/חיפוש מתקדם — רק עיצוב מחדש של מה שקיים.
-  - **SchedulesSection**: timeline אנכי כהה עם פסים צבעוניים לכל לו"ז (כפי שמוצג בעיצוב), פתיחה למודל עריכה הקיים.
-  - **TimeRequestsCard**: כרטיסי בקשה עם כפתורי "אשר"/"דחה" טורקיז/אדום.
-  - **GeofenceSection / ScreenTimeSection / ProblemBanner**: עדכון רקעים, בורדרים, אייקונים לפלטה הכהה.
+### `src/components/landing-v1/PhoneMockup.tsx`
+- החלפת `style={{ width: 240 }}` ל-`className="w-[200px] sm:w-[240px]"` כדי לאפשר scaling במובייל
 
-### 4. `FamilyV2.tsx`
-- **לא משנים**: כל ה-co-parent flow, invite codes, ring command.
-- **מעדכנים**: כרטיסי סיכום (4 קוביות בגריד `grid-cols-2 md:grid-cols-4`), כרטיסי ילד (אווטאר + שם + תג מינוי + סטטוס מכשיר + כפתורי פעולה), section ההורה השותף בעיצוב כהה אחיד.
+### `src/components/landing-v1/NavbarV1.tsx`
+- קיצור הכפתור במובייל: "הצטרפו" עם `<span className="hidden sm:inline">לרשימת ההמתנה</span>`
+- כפתור "התחברות" עם `text-xs sm:text-sm` ו-`px-2 sm:px-3`
+- `gap-2` → `gap-1 sm:gap-2`
 
-### 5. `ChoresV2.tsx`
-- **לא משנים**: useChores hook, ChoreForm, ChoreList, RewardBankCard, אישורי משימות.
-- **מעדכנים**: 4 קוביות הסיכום (פעילות/אושרו/בנק/בונוס) בעיצוב כהה זוהר; ChoreList עם פסי צבע טורקיז למשימות פעילות, ירוק מוצק למאושרות. RewardBankCard בכרטיס גדול כהה עם הצגת היתרה כמספר זוהר ענק.
-- **לא נוסיף**: "רצף הישגים", "היסטוריית משימות שהושלמו" כמדור נפרד, "כללי בנק הדקות" — אין רכיבים/נתונים לאלה. נשאיר את `transactions` הקיים ב-`RewardBankCard` כפי שהוא.
+### `src/components/landing-v1/CoachSpotlight.tsx`
+- padding כרטיס: `p-5 sm:p-8 md:p-12`
+- כותרת: `text-2xl sm:text-3xl md:text-4xl lg:text-5xl`
+- 3 task cards: לוודא שלא נחתכים (כבר `text-[11px]` — נשאר)
+- CoinsJar wrapper: scaled responsive
 
-### 6. `SettingsV2.tsx`
-- **לא משנים**: כל ה-handlers (signOut, push subscribe, profile edit, WhatsApp links).
-- **מעדכנים**: 6 ה-`<section>` הקיימים → כרטיסי `v2-card` כהים עם אייקונים זוהרים בטורקיז, מפרידי `border-border/30`, כפתורי outline בסגנון neon.
+### `src/components/landing-v1/CoinsJar.tsx`
+- החלפת inline `style={{ width: 200, height: 240 }}` ל-`className="w-40 h-48 sm:w-[200px] sm:h-[240px]"`
 
-### 7. רכיבים משותפים שייגעו (סגנון בלבד, לא לוגיקה)
-- `BottomNavigationV2` — רקע כהה `bg-card/80 backdrop-blur` עם בורדר עליון טורקיז עדין; אייקון פעיל זוהר.
-- `EditChildModal`, `ReconnectChildModal`, `AddChildModal`, `ScheduleEditModal` — Dialog עם רקע כהה ובורדר טורקיז (משתמשים ב-tokens של `--popover`/`--border` שכבר מותאמים ב-`.v2-dark`, אז ירשו אוטומטית).
+### `src/components/landing-v1/FreeAccessCTA.tsx`
+- padding: `p-6 sm:p-10 md:p-14`
+- כותרת: `text-2xl sm:text-3xl md:text-5xl`
+- כפתור CTA: `h-12 px-6 sm:h-14 sm:px-10`
+- כפתור "קרוב" מושבת — להסתיר במובייל (`hidden sm:inline-flex`)
 
-### 8. רספונסיביות
-- כל הגרידים: `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3/4`.
-- כל הקונטיינרים: `max-w-lg` ב-Home/Family/Settings, `max-w-2xl` ב-Chores, `max-w-4xl` ב-ChildControlV2 (כדי לתת מקום למפה + sections).
-- בדיקה ב-viewport 360px (מובייל) ו-1280px+ (דסקטופ).
+### `src/components/landing-v1/FooterV1Expanded.tsx`
+- שינוי גריד מ-`grid md:grid-cols-4` ל-`grid grid-cols-2 md:grid-cols-4`
+- בלוק לוגו יישאר `col-span-2` בשתי הרזולוציות
+- padding footer: `py-10 md:py-14`
 
-### קבצים שייערכו
-- `src/index.css` — הוספת scope `.v2-dark` (~50 שורות).
-- `src/pages/HomeV2.tsx`, `FamilyV2.tsx`, `ChoresV2.tsx`, `SettingsV2.tsx`, `ChildControlV2.tsx` — החלפת `homev2-light` ל-`v2-dark` + עדכוני כיתות סגנון.
-- `src/components/home-v2/*` — 6 קבצים (סגנון בלבד).
-- `src/components/child-dashboard/*` — ~10 קבצים (סגנון בלבד).
-- `src/components/chores/*` — 3 קבצים (סגנון בלבד).
-- `src/components/BottomNavigationV2.tsx` — סגנון.
+### `src/components/landing-v1/HowItWorks.tsx`
+- בדיקה קלה — הוא כבר רספונסיבי, אעדכן רק padding כרטיסים אם נחוץ
+- `p-5 sm:p-6` בכרטיסים
 
-### מה **לא** נעשה (לפי בקשתך)
-- ❌ לא נוסיף רצף-הישגים / היסטוריית משימות / טיפים יומיים / כללי בנק הדקות / שדה דגם מכשיר / חיפוש אפליקציות / קטגוריות אפליקציות.
-- ❌ לא נשנה ניווט, כפתורים, חיבורי DB, Edge Functions, RPCs.
-- ❌ לא ניגע ב-V1, ב-Landing, או בדפי /admin/*.
+## מה לא משתנה
+- כל הלוגיקה (WaitlistModal, ניווט, Auth)
+- צבעים וטוקנים
+- אנימציות framer-motion
+- תוכן הטקסטים בעברית
+- מבנה הסקציות
+
+## אימות
+לאחר היישום אצלם screenshot ב-viewport 391×844 ו-768×1024 כדי לוודא:
+- אין horizontal scroll
+- כל הכפתורים נראים במלואם
+- הטלפון והצנצנת נכנסים יפה
+- ה-Navbar נקי וקריא

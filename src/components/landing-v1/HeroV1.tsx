@@ -18,7 +18,7 @@ export function HeroV1() {
   };
 
   const PrimaryCTA = (
-    <Button size="lg" onClick={handleCTA} className="bg-primary text-primary-foreground hover:bg-primary/90 text-lg h-14 px-8 rounded-xl glow-primary font-bold w-full sm:w-auto">
+    <Button size="lg" onClick={handleCTA} className="bg-primary text-primary-foreground hover:bg-primary/90 text-base sm:text-lg h-12 sm:h-14 px-6 sm:px-8 rounded-xl glow-primary font-bold w-full sm:w-auto">
       הצטרפו לרשימת ההמתנה
     </Button>
   );
@@ -36,12 +36,12 @@ export function HeroV1() {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.7, delay: 0.2 }}
-            className="order-2 lg:order-1 relative flex justify-center items-center gap-4"
+            className="order-2 lg:order-1 relative flex justify-center items-center gap-2 sm:gap-4"
           >
-            <div className="translate-y-6">
+            <div className="sm:translate-y-6">
               <PhoneMockup variant="overview" />
             </div>
-            <div className="-translate-y-6">
+            <div className="hidden sm:block -translate-y-6">
               <PhoneMockup variant="tasks" />
             </div>
           </motion.div>
@@ -53,7 +53,7 @@ export function HeroV1() {
             transition={{ duration: 0.6 }}
             className="order-1 lg:order-2 text-center lg:text-right"
           >
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6 text-foreground">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6 text-foreground">
               פחות מלחמות
               <br />
               על זמן מסך.
@@ -66,7 +66,7 @@ export function HeroV1() {
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start mb-4">
               {WAITLIST_MODE ? PrimaryCTA : <Link to="/auth?signup=true">{PrimaryCTA}</Link>}
-              <Button size="lg" variant="outline" onClick={() => scrollTo('how-it-works')} className="text-lg h-14 px-8 rounded-xl gap-2">
+              <Button size="lg" variant="outline" onClick={() => scrollTo('how-it-works')} className="text-base sm:text-lg h-12 sm:h-14 px-6 sm:px-8 rounded-xl gap-2 w-full sm:w-auto">
                 <PlayCircle className="w-5 h-5" />
                 ראו איך זה עובד
               </Button>

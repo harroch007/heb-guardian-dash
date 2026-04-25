@@ -26,11 +26,11 @@ export function CoachSpotlight() {
           className="relative max-w-6xl mx-auto"
         >
           <div className="absolute -inset-4 bg-gradient-to-tr from-primary/20 via-primary/5 to-transparent rounded-3xl blur-2xl" />
-          <div className="relative bg-card border border-primary/30 rounded-3xl p-8 md:p-12 shadow-xl">
-            <div className="grid lg:grid-cols-2 gap-10 items-center">
+          <div className="relative bg-card border border-primary/30 rounded-3xl p-5 sm:p-8 md:p-12 shadow-xl">
+            <div className="grid lg:grid-cols-2 gap-8 sm:gap-10 items-center">
               {/* Right: text + tasks */}
               <div>
-                <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-4 leading-tight">
+                <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-4 leading-tight">
                   זמן מסך יכול
                   <br />
                   <span className="text-primary">להפוך לכלי חינוכי</span>

@@ -6,7 +6,7 @@ interface PhoneMockupProps {
 
 export function PhoneMockup({ variant }: PhoneMockupProps) {
   return (
-    <div className="relative mx-auto" style={{ width: 240 }}>
+    <div className="relative mx-auto w-[200px] sm:w-[240px]">
       {/* Glow */}
       <div className="absolute -inset-6 bg-primary/20 rounded-[3rem] blur-2xl" />
       {/* Phone frame */}
