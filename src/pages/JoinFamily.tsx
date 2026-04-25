@@ -86,14 +86,14 @@ const JoinFamily = () => {
 
   if (checking) {
     return (
-      <div className="homev2-light min-h-screen flex items-center justify-center" dir="rtl">
+      <div className="v2-dark min-h-screen flex items-center justify-center" dir="rtl">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="homev2-light min-h-screen flex items-center justify-center px-4 py-8" dir="rtl">
+    <div className="v2-dark min-h-screen flex items-center justify-center px-4 py-8" dir="rtl">
       <div className="max-w-md w-full space-y-5">
         <div className="text-center space-y-2">
           <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">

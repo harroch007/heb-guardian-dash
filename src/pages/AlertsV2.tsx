@@ -249,7 +249,7 @@ const AlertsV2 = () => {
   const totalAlerts = alerts.length + savedAlerts.length + positiveAlerts.length;
 
   return (
-    <div className="homev2-light min-h-screen bg-background">
+    <div className="v2-dark min-h-screen bg-background">
       <div className="max-w-2xl mx-auto px-4 py-6 pb-24" dir="rtl">
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">

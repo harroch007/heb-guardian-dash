@@ -78,7 +78,7 @@ const GoogleIcon = () => (
 
 function V2Wrapper({ children }: { children: React.ReactNode }) {
   return (
-    <div className="homev2-light min-h-screen bg-background" dir="rtl">
+    <div className="v2-dark min-h-screen bg-background" dir="rtl">
       <div className="max-w-lg mx-auto px-4 py-6 pb-24 space-y-5">
         {children}
       </div>
