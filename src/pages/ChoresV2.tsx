@@ -79,14 +79,14 @@ export default function ChoresV2() {
 
   if (loadingChildren) {
     return (
-      <div className="homev2-light min-h-screen bg-background flex items-center justify-center">
+      <div className="v2-dark min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="homev2-light min-h-screen bg-background" dir="rtl">
+    <div className="v2-dark min-h-screen bg-background" dir="rtl">
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-6 pb-24">
         {/* Header */}
         <div className="flex items-center gap-3">

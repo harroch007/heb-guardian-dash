@@ -441,14 +441,14 @@ export default function ChildControlV2() {
 
   if (loading) {
     return (
-      <div className="homev2-light min-h-screen flex items-center justify-center" dir="rtl">
+      <div className="v2-dark min-h-screen flex items-center justify-center" dir="rtl">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="homev2-light min-h-screen pb-24" dir="rtl">
+    <div className="v2-dark min-h-screen pb-24" dir="rtl">
       <div className="max-w-lg mx-auto px-4 py-6 space-y-5">
 
         {/* ===== 1. CHILD HEADER ===== */}

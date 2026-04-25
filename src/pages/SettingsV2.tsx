@@ -129,7 +129,7 @@ const SettingsV2 = () => {
   const premiumCount = children.filter(c => c.subscription_tier === "premium").length;
 
   return (
-    <div className="homev2-light min-h-screen bg-background" dir="rtl">
+    <div className="v2-dark min-h-screen bg-background" dir="rtl">
       <div className="max-w-lg mx-auto px-4 py-6 space-y-5">
         {/* Header */}
         <div className="flex items-center gap-3 mb-2">
