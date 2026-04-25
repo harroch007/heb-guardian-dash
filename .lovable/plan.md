@@ -1,73 +1,63 @@
-## המטרה
-להפוך את `/landing-v1` לדף שמורכב מתמונה אחת ענקית (המוקאפ המלא של המעצב) במקום ניסיונות לשחזר את העיצוב בקוד. מעל התמונה תהיה שכבת hotspots שקופה שמחברת את הכפתורים שבתמונה ללוגיקה האמיתית הקיימת.
+# הפיכת /landing-v1 לרספונסיבי במובייל
 
-## למה הגישה הזו
-ניסינו פעמיים לשחזר חלקים בקוד והתוצאה לא הייתה 1:1. המעצב סיפק תמונה שלמה — נטמיע אותה כמו שהיא. אין יצירה חדשה, רק "גזור והדבק".
+## בעיות שזוהו ב-viewport 391px
+1. **Hero** — שני טלפונים 240px כל אחד + gap זולגים מהמסך וגורמים ל-horizontal scroll
+2. **Navbar** — לוגו + "התחברות" + "הצטרפו לרשימת ההמתנה" (טקסט ארוך) נדחסים/חורגים
+3. **HeroV1 CTAs** — שני כפתורים `h-14 px-8` רחבים מדי
+4. **CoachSpotlight** — `p-8 md:p-12` עודף; CoinsJar 200px גדול
+5. **FreeAccessCTA** — `p-10 md:p-14` עודף במובייל
+6. **FooterV1Expanded** — `grid md:grid-cols-4` נופל ל-1 עמודה במובייל (בזבוז שטח)
 
----
+## שינויים מתוכננים
 
-## שינויים טכניים
+### `src/components/landing-v1/HeroV1.tsx`
+- במובייל להציג טלפון אחד בלבד (variant `overview`); שני הטלפונים יוצגו רק מ-`sm:` ומעלה
+- כפתורי CTA: `h-12 px-6 text-base sm:h-14 sm:px-8 sm:text-lg`
+- כותרת: `text-3xl sm:text-4xl md:text-5xl lg:text-6xl`
+- gap בין הטלפונים: `gap-2 sm:gap-4`
 
-### 1. שמירת התמונה כנכס
-- **`src/assets/landing-v1/full-landing-mockup.png`** — אעתיק את התמונה שצורפה (`user-uploads://ce5a1db8-b018-44db-8d8e-39f28dd31b92-2.png`) לתיקיית הנכסים של הפרויקט.
+### `src/components/landing-v1/PhoneMockup.tsx`
+- החלפת `style={{ width: 240 }}` ל-`className="w-[200px] sm:w-[240px]"` כדי לאפשר scaling במובייל
 
-### 2. שכתוב מלא של `src/pages/LandingV1.tsx`
-**להסיר**: את כל הסקשנים הקיימים — `NavbarV1`, `HeroV1`, `EmpathyQuotes`, `ValuePillars`, `CoachSpotlight`, `FeaturesGrid`, `HowItWorks`, `WhyParents`, `FAQAccordion`, `FreeAccessCTA`, `FooterV1Expanded`, `InstallAppCard`.
+### `src/components/landing-v1/NavbarV1.tsx`
+- קיצור הכפתור במובייל: "הצטרפו" עם `<span className="hidden sm:inline">לרשימת ההמתנה</span>`
+- כפתור "התחברות" עם `text-xs sm:text-sm` ו-`px-2 sm:px-3`
+- `gap-2` → `gap-1 sm:gap-2`
 
-**להחליף ב**:
-- מבנה פשוט: `<div dir="rtl">` עם רקע כהה (`bg-[#0A0E1A]`) שתופס את כל המסך.
-- `<div className="relative max-w-[640px] mx-auto">` (התמונה במידה הטבעית של מוקאפ מובייל — כך הפרופורציות נשמרות).
-- בתוכו: `<img src={fullMockup} className="w-full h-auto block" alt="KippyAI - הגנה חכמה ופשוטה לילדים" loading="eager" />`.
-- שכבת hotspots שקופה (`<div className="absolute inset-0">`) עם כפתורים בלתי-נראים בקואורדינטות אחוזים.
-- ה-`useEffect` של ה-redirect למשתמש מחובר (`/home-v2`) נשאר.
-- ה-`<CookieConsent />` נשאר בתחתית הדף.
+### `src/components/landing-v1/CoachSpotlight.tsx`
+- padding כרטיס: `p-5 sm:p-8 md:p-12`
+- כותרת: `text-2xl sm:text-3xl md:text-4xl lg:text-5xl`
+- 3 task cards: לוודא שלא נחתכים (כבר `text-[11px]` — נשאר)
+- CoinsJar wrapper: scaled responsive
 
-### 3. מיפוי ה-Hotspots (כפתורים שקופים)
-לפי מה שאני רואה בתמונה, יש 5 אזורים אינטראקטיביים שצריך לחבר:
+### `src/components/landing-v1/CoinsJar.tsx`
+- החלפת inline `style={{ width: 200, height: 240 }}` ל-`className="w-40 h-48 sm:w-[200px] sm:h-[240px]"`
 
-| # | מיקום בתמונה | יעד | מימוש |
-|---|---|---|---|
-| 1 | כפתור טורקיז בנאבבר העליון: "הצטרפו לרשימת ההמתנה" | פתיחת `WaitlistModal` | `onClick={handleWaitlist}` |
-| 2 | "פיצ'רים" / "איך זה עובד" / "למה קיפי" / "שאלות נפוצות" בנאבבר | scroll פנימי | בלי קפיצה — סטטי (התמונה אינה מחולקת לסקשנים) |
-| 3 | כפתור ראשי בהירו: "הצטרפו לרשימת ההמתנה" | פתיחת `WaitlistModal` | `onClick={handleWaitlist}` |
-| 4 | כפתור משני בהירו: "ראו איך זה עובד" | scroll לחלק "איך זה עובד" בתוך התמונה | `scrollTo` עם offset יחסי |
-| 5 | כפתור בתחתית: "הצטרפו לרשימת ההמתנה" | פתיחת `WaitlistModal` | `onClick={handleWaitlist}` |
-| 6 | "התחברות" קטן בנאבבר (אם קיים) | אם לא רואים אותו בתמונה — לא נחבר. אוסיף קישור קטן `/auth` בפינה כ-fallback בלתי-תלוי בתמונה | `<Link to="/auth">` קטן ובלתי-נראה כמעט |
+### `src/components/landing-v1/FreeAccessCTA.tsx`
+- padding: `p-6 sm:p-10 md:p-14`
+- כותרת: `text-2xl sm:text-3xl md:text-5xl`
+- כפתור CTA: `h-12 px-6 sm:h-14 sm:px-10`
+- כפתור "קרוב" מושבת — להסתיר במובייל (`hidden sm:inline-flex`)
 
-**הערה לגבי קישורי הנאבבר הפנימיים**: כיוון שהדף כולו תמונה אחת ואין סקשנים אמיתיים בקוד, קישורי "פיצ'רים / איך זה עובד / שאלות נפוצות" שבתמונה ייגללו פשוט לאזורים היחסיים בתוך התמונה (לפי % מגובה התמונה). זה לא מושלם אבל ייתן תחושת ניווט.
+### `src/components/landing-v1/FooterV1Expanded.tsx`
+- שינוי גריד מ-`grid md:grid-cols-4` ל-`grid grid-cols-2 md:grid-cols-4`
+- בלוק לוגו יישאר `col-span-2` בשתי הרזולוציות
+- padding footer: `py-10 md:py-14`
 
-**קואורדינטות (אחוזים, יעודכנו לאחר טעינה ויזואלית)**:
-- כפתור נאבבר טורקיז: `top: 0.8%, left: 1%, width: 22%, height: 2.2%`
-- "הצטרפו" בהירו: `top: 17%, right: 12%, width: 35%, height: 2.5%`
-- "ראו איך זה עובד" בהירו: `top: 20%, right: 12%, width: 35%, height: 2.5%`
-- "הצטרפו" בתחתית: `bottom: 0.8%, left: 12%, width: 35%, height: 2.5%`
+### `src/components/landing-v1/HowItWorks.tsx`
+- בדיקה קלה — הוא כבר רספונסיבי, אעדכן רק padding כרטיסים אם נחוץ
+- `p-5 sm:p-6` בכרטיסים
 
-(אדייק את הערכים אחרי שאראה את התמונה רנדרת בפועל בתוך הדף.)
+## מה לא משתנה
+- כל הלוגיקה (WaitlistModal, ניווט, Auth)
+- צבעים וטוקנים
+- אנימציות framer-motion
+- תוכן הטקסטים בעברית
+- מבנה הסקציות
 
-### 4. נגישות ו-SEO
-- `alt` תיאורי לתמונה.
-- `aria-label` לכל כפתור hotspot.
-- `<title>` ו-`<meta description>` נשארים מה-`index.html` הנוכחי.
-- מכיוון שכל הטקסט בתוך תמונה, ה-SEO ייפגע — אוסיף `<h1 className="sr-only">KippyAI - פחות מלחמות על זמן מסך, יותר אחריות בבית</h1>` נסתר חזותית אבל קריא לזחלנים וקוראי מסך.
-
-### 5. רספונסיביות
-- התמונה תהיה `w-full h-auto` בתוך container עם `max-w-[640px]` (רוחב מובייל טבעי).
-- במסכים גדולים: התמונה תופיע ממורכזת ברוחב 640px עם רקע כהה משני הצדדים.
-- ה-hotspots מבוססי-אחוז יישארו מיושרים בכל גודל מסך כי הם יחסיים ל-container של התמונה.
-- במובייל: התמונה תמלא את הרוחב וה-hotspots יישארו ממוקמים נכון.
-
-### 6. מה שלא משתנה
-- `WaitlistModal` ולוגיקת ה-`useWaitlist` — נשארים בדיוק כמו שהם.
-- `WAITLIST_MODE` flag — נשאר. כש-false, הכפתור הראשי יוביל ל-`/auth?signup=true` במקום למודאל.
-- ה-`redirect` למשתמשים מחוברים — נשאר.
-- הקבצים של הסקשנים הישנים (`HeroV1.tsx`, `EmpathyQuotes.tsx` וכו') **לא יימחקו** — רק יפסיקו להיות מיובאים. אם תרצה למחוק אותם בעתיד, נעשה את זה בנפרד.
-
----
-
-## תוצאה צפויה
-דף `/landing-v1` יהיה **בדיוק** התמונה שצירפת — אחד לאחד, פיקסל פיקסל. ארבעה-חמישה כפתורים שקופים מעל התמונה יחברו את הקליקים ללוגיקה האמיתית של רשימת ההמתנה והניווט.
-
-## מה לאשר
-1. **רוחב התמונה** — האם להציג ב-640px max (כמו מובייל אמיתי) או לאפשר עד 1024px לדסקטופ?
-2. **קישורי נאבבר פנימיים** — האם בסדר שהם רק יגללו לתוך התמונה (ולא לסקשנים אמיתיים)?
-3. **כפתור התחברות** — האם להוסיף קישור `/auth` קטן בפינה לבעלי חשבון?
+## אימות
+לאחר היישום אצלם screenshot ב-viewport 391×844 ו-768×1024 כדי לוודא:
+- אין horizontal scroll
+- כל הכפתורים נראים במלואם
+- הטלפון והצנצנת נכנסים יפה
+- ה-Navbar נקי וקריא
