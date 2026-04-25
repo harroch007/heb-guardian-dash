@@ -183,7 +183,7 @@ export function AppControlsList({
                   {app.appName || pkg.split(".").pop()}
                 </p>
                 {app.isPending && (
-                  <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-600 px-1.5 py-0 h-4 mt-0.5">
+                  <Badge variant="outline" className="text-[10px] border-amber-500/30 text-warning px-1.5 py-0 h-4 mt-0.5">
                     ממתינה לאישור
                   </Badge>
                 )}

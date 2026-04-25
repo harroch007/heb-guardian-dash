@@ -11,7 +11,7 @@ export const EmptyAlertsState = ({ hasPremium = true }: EmptyAlertsStateProps) =
   if (!hasPremium) {
     return (
       <div className="py-12 text-center animate-fade-in">
-        <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6">
+        <div className="w-16 h-16 bg-warning/15 rounded-full flex items-center justify-center mx-auto mb-6">
           <Shield className="w-8 h-8 text-amber-500" />
         </div>
         <h2 className="text-xl font-semibold text-foreground mb-2">

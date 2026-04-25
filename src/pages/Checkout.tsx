@@ -375,9 +375,9 @@ export default function Checkout() {
           </div>
           {promoError && <p className="text-sm text-destructive">{promoError}</p>}
           {appliedPromo && (
-            <div className="flex items-center gap-2 p-2 rounded-xl bg-green-500/10 border border-green-500/20">
+            <div className="flex items-center gap-2 p-2 rounded-xl bg-success/15 border border-green-500/20">
               <Check className="w-4 h-4 text-green-500" />
-              <span className="text-sm text-green-600 font-medium">{appliedPromo.description}</span>
+              <span className="text-sm text-success font-medium">{appliedPromo.description}</span>
               <Badge variant="secondary" className="mr-auto text-xs rounded-lg">{appliedPromo.code}</Badge>
             </div>
           )}
@@ -394,7 +394,7 @@ export default function Checkout() {
                 {finalPrice === 0 ? "חינם" : `₪${finalPrice}`}
                 {finalPrice > 0 && <span className="text-base font-normal text-muted-foreground">/חודש</span>}
               </div>
-              <p className="text-sm text-green-600">{appliedPromo.description}</p>
+              <p className="text-sm text-success">{appliedPromo.description}</p>
             </div>
           ) : (
             <div>
