@@ -61,7 +61,7 @@ export function HeroV1() {
               <span className="text-primary">יותר אחריות בבית.</span>
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-xl mx-auto lg:mx-0 leading-relaxed">
-              KippyAI היא בקרת ההורים המתקדמת ביותר, עם דרך הכמה ללמד ילדים לנהל זמן מסך,
+              KippyAI היא בקרת ההורים המתקדמת ביותר, עם דרך חכמה ללמד ילדים לנהל זמן מסך,
               להרוויח דקות, ולכבד גבולות.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start mb-4">
