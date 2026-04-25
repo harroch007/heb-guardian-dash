@@ -155,6 +155,7 @@ const HomeV2 = () => {
       ]);
 
       // 3. Fetch device health per child (sequential, RPC)
+      const WHATSAPP_PERMISSION_KEYS = ["accessibilityEnabled", "notificationListenerEnabled"];
       const healthMap: Record<string, string[]> = {};
       for (const child of children) {
         try {
@@ -165,7 +166,11 @@ const HomeV2 = () => {
             const perms = (healthData as any).permissions as Record<string, boolean> | null;
             if (perms) {
               const issues = Object.entries(perms)
-                .filter(([, v]) => v === false)
+                .filter(
+                  ([k, v]) =>
+                    v === false &&
+                    (WHATSAPP_MONITORING_ENABLED || !WHATSAPP_PERMISSION_KEYS.includes(k))
+                )
                 .map(([k]) => k);
               if (issues.length > 0) healthMap[child.id] = issues;
             }
