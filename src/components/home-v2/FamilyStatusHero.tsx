@@ -79,7 +79,7 @@ export const FamilyStatusHero = ({
   };
 
   return (
-    <div className="rounded-2xl bg-gradient-to-bl from-blue-50 to-indigo-50 border border-blue-100 p-4">
+    <div className="rounded-2xl bg-gradient-to-bl from-primary/10 via-card to-card border border-primary/30 p-4">
       {/* Status line */}
       <div className="flex items-center gap-2 mb-4">
         {renderStatusLine()}
