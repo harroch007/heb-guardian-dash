@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { WAITLIST_MODE } from '@/config/featureFlags';
 import { useWaitlist } from '@/contexts/WaitlistContext';
-import kippyLogo from '@/assets/kippy-logo.svg';
+import { Sparkles } from 'lucide-react';
 
 export function NavbarV1() {
   const { openModal } = useWaitlist();
@@ -12,19 +12,26 @@ export function NavbarV1() {
   };
 
   return (
-    <nav className="sticky top-0 z-50 w-full bg-white/90 backdrop-blur border-b border-border" dir="rtl">
+    <nav className="sticky top-0 z-50 w-full bg-background/80 backdrop-blur-lg border-b border-border" dir="rtl">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <Link to="/landing-v1" className="flex items-center gap-2">
-          <img src={kippyLogo} alt="Kippy" className="h-8 w-auto" />
-          <span className="text-xl font-bold text-foreground">Kippy</span>
+          <div className="w-8 h-8 rounded-lg bg-primary/20 border border-primary/40 flex items-center justify-center">
+            <Sparkles className="w-4 h-4 text-primary" />
+          </div>
+          <span className="text-xl font-bold text-foreground">KippyAI</span>
         </Link>
+        <div className="hidden md:flex items-center gap-6 text-sm text-muted-foreground">
+          <a href="#features" className="hover:text-primary transition-colors">פיצ'רים</a>
+          <a href="#how-it-works" className="hover:text-primary transition-colors">איך זה עובד</a>
+          <a href="#faq" className="hover:text-primary transition-colors">שאלות נפוצות</a>
+        </div>
         <div className="flex items-center gap-2">
           <Link to="/auth">
             <Button variant="ghost" size="sm">התחברות</Button>
           </Link>
           {WAITLIST_MODE ? (
-            <Button size="sm" onClick={handleCTA} className="bg-primary text-primary-foreground hover:bg-primary/90">
-              הצטרפו חינם
+            <Button size="sm" onClick={handleCTA} className="bg-primary text-primary-foreground hover:bg-primary/90 glow-primary">
+              הצטרפו לרשימת ההמתנה
             </Button>
           ) : (
             <Link to="/auth?signup=true">
