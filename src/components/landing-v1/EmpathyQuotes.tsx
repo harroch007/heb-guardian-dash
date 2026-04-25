@@ -1,10 +1,13 @@
 import { motion } from 'framer-motion';
 import { ShieldCheck } from 'lucide-react';
+import boyPhone from '@/assets/landing-v1/quote-boy-phone.png';
+import girlShrug from '@/assets/landing-v1/quote-girl-shrug.png';
+import boyPleading from '@/assets/landing-v1/quote-boy-pleading.png';
 
 const quotes = [
-  { emoji: '😟', text: '"אבא, רק עוד 5 דקות"' },
-  { emoji: '🤷', text: '"אמא, זה לא אני, רוני הייתה בטלפון שלי!"' },
-  { emoji: '🙏', text: '"אבל שכחתי את הטלפון פתוח"' },
+  { img: boyPleading, alt: 'ילד מתחנן', text: '"אבא, רק עוד 5 דקות"' },
+  { img: girlShrug, alt: 'ילדה מושכת בכתפיה', text: '"אמא, זה לא אני, רוני הייתה בטלפון שלי!"' },
+  { img: boyPhone, alt: 'ילד עם טלפון', text: '"אבל שכחתי את הטלפון פתוח"' },
 ];
 
 export function EmpathyQuotes() {
@@ -20,9 +23,16 @@ export function EmpathyQuotes() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-50px' }}
               transition={{ duration: 0.4, delay: i * 0.1 }}
-              className="bg-card border border-border rounded-2xl p-6 text-center hover:border-primary/40 transition-colors"
+              className="bg-card border border-border rounded-2xl p-6 text-center hover:border-primary/40 transition-colors flex flex-col items-center"
             >
-              <div className="text-5xl mb-3">{q.emoji}</div>
+              <img
+                src={q.img}
+                alt={q.alt}
+                loading="lazy"
+                width={160}
+                height={160}
+                className="w-32 h-32 sm:w-40 sm:h-40 object-contain mb-3"
+              />
               <p className="text-base text-foreground font-medium leading-relaxed">{q.text}</p>
             </motion.div>
           ))}
