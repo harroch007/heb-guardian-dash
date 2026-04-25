@@ -1,70 +1,37 @@
 
-# למה הגבלת השבת לא עבדה — הצד שלנו (לא האנדרואיד)
+# הסתרת התראות הרשאות WhatsApp בכרטיס הילד
 
-## ממצא חד-משמעי: הקרון שמחשב את חלונות השבת **לא קיים**
+## הבעיה
+`ProblemBanner` (שמופיע בכרטיס הילד בדשבורד) עדיין סופר את `accessibilityEnabled` ו-`notificationListenerEnabled` כ"הרשאות חסרות" ומציג באנר אדום:
+> "1 הרשאות חסרות במכשיר — חסר: האזנה להתראות"
 
-בדקתי את כל השרשרת בצד שלנו והבעיה היא צד-שרת מובהקת. **לא צריך לפנות לסוכן האנדרואיד.**
+זה לא רלוונטי כי `WHATSAPP_MONITORING_ENABLED = false` — אנחנו לא מנטרים WhatsApp עד הודעה חדשה. ב-`DeviceHealthBanner` כבר עשינו את הסינון הזה (דרך `WHATSAPP_PERMISSION_KEYS`), אבל ב-`ProblemBanner` שכחנו.
 
-### מה הסוכן באנדרואיד מקבל מאיתנו
-ה-RPC `get_device_settings` מחזיר לאנדרואיד שני שדות לקביעת איסור מלאכה:
-1. `next_shabbat` — מבוסס על `shabbat_zmanim` (גלובלי, מאוכלס ✅).
-2. `next_issur` + `issur_windows` — מבוסס על `issur_melacha_windows` (פר-ילד, מחושב לפי lat/lon של המכשיר). זהו הערוץ החדש והמועדף שמכסה גם חגים.
+## השינוי
 
-### מה גיליתי בנתונים של יריב (`c30061e9...`)
-| בדיקה | תוצאה |
-|---|---|
-| המכשיר פעיל ויש lat/lon | ✅ `last_seen` היום, lat=32.16 lon=34.83 |
-| `shabbat_times_computed` ליריב | ❌ **0 שורות** |
-| `issur_melacha_windows` ליריב | ❌ **0 שורות** |
+### `src/components/child-dashboard/ProblemBanner.tsx`
+1. ייבוא `WHATSAPP_MONITORING_ENABLED` מ-`@/config/featureFlags`.
+2. הגדרת קבוע `WHATSAPP_PERMISSION_KEYS = ["accessibilityEnabled", "notificationListenerEnabled"]`.
+3. בסינון `missingPerms` — לדלג על המפתחות הללו כש-`WHATSAPP_MONITORING_ENABLED === false`.
+4. בלוק "ניטור הודעות לקוי" — להציג רק כש-`WHATSAPP_MONITORING_ENABLED === true`.
 
-### למה אין נתונים — שני כשלים מצטברים
-1. **אין cron job ל-`calculate-shabbat-times`** בכלל. בדקתי את `cron.job` — יש 9 jobs (locate, unresponsive, alert-queue), ואף אחד לא קורא ל-`calculate-shabbat-times`. הפונקציה עצמה קיימת ועובדת, אבל אף אחד לא מפעיל אותה.
-2. **החישוב האחרון רץ ידנית ב-21/3/2026** (לפני 35 ימים). מאז:
-   - יריב נוסף/הוחלף מיקום ולא קיבל חישוב מעולם → 0 windows.
-   - גם 6 הילדים שכן יש להם windows — החלון האחרון שלהם נגמר ב-18/4 (לפני שבוע). כלומר השבת הקרובה (24-25/4) **לא הייתה בטבלה לאף ילד**, וגם ה-3 שבתות הבאות חסרות.
-
-### למה בכל זאת `next_shabbat` הישן לא הציל את המצב
-ב-`shabbat_zmanim` יש שורה לשבת 24/4 (הדלקת נרות 21:46, הבדלה 22:52). תאורטית האנדרואיד יכול ליפול חזרה ל-`next_shabbat`. אבל:
-- אם הסוכן בגרסה החדשה מעדיף את `next_issur` ומתעלם מ-`next_shabbat` כשהראשון ריק vs. חסר — זה תלוי-לקוח.
-- בכל מקרה, מבחינת הצד שלנו האחריות שלנו היא להזין את `issur_windows` באופן עקבי, וזה לא קרה.
-
-## התיקון (בצד שלנו בלבד)
-
-### 1) הרצה מיידית של `calculate-shabbat-times`
-קריאה חד-פעמית ל-edge function כדי לאכלס *עכשיו* את החלונות ל-30 הימים הקרובים לכל הילדים הפעילים — כולל יריב. זה יכסה את שבת הבאה (1/5) ואת חג השבועות וכו׳.
-
-### 2) יצירת cron job קבוע
-הוספת job ב-`pg_cron` שיריץ את `calculate-shabbat-times` **פעם ביום ב-03:00 UTC** (06:00 שעון ישראל). זה תדירות בטוחה — מספיקה כדי לתפוס ילדים חדשים, שינויי מיקום, וחגים מתקרבים, ולא מציפה את Hebcal API.
-
-```sql
-SELECT cron.schedule(
-  'calculate-shabbat-times-daily',
-  '0 3 * * *',
-  $$
-  SELECT net.http_post(
-    url := 'https://fsedenvbdpctzoznppwo.supabase.co/functions/v1/calculate-shabbat-times',
-    headers := '{"Content-Type": "application/json", "Authorization": "Bearer <ANON_KEY>"}'::jsonb,
-    body := '{}'::jsonb
-  );
-  $$
+```ts
+const missingPerms = Object.entries(deviceHealth.permissions).filter(
+  ([key, val]) =>
+    val === false &&
+    (WHATSAPP_MONITORING_ENABLED || !WHATSAPP_PERMISSION_KEYS.includes(key))
 );
 ```
 
-### 3) אימות אחרי ההרצה
-- שאילתה ש-`issur_melacha_windows` ליריב מכיל את שבת 1/5.
-- בדיקת `get_device_settings` עבור ה-device_id של יריב ש-`next_issur` מוחזר נכון.
+## תוצאה
+- הבאנר האדום בכרטיס של יריב ייעלם (אם רק `notificationListenerEnabled` חסרה).
+- כשנחזיר ניטור WhatsApp בעתיד (`WHATSAPP_MONITORING_ENABLED = true`) — ההתראות יחזרו אוטומטית בלי שינויי קוד נוספים.
+- עקביות מלאה עם `DeviceHealthBanner` שכבר עושה את אותו דבר.
 
 ## מה לא נוגעים
-- אין שינוי בקוד ה-edge function `calculate-shabbat-times` — הלוגיקה שלו תקינה (NOAA + Hebcal + merge), פשוט אף אחד לא הריץ אותה.
-- אין שינוי באנדרואיד — לא נדרש.
-- אין שינוי ב-`get_device_settings`, ב-`shabbat_zmanim`, או בלוגיקת אכיפה.
-- אין שינוי ב-DB schema.
+- אין שינוי ב-DB, RPCs, או באנדרואיד.
+- אין שינוי ב-`DeviceHealthBanner` (כבר מטופל).
+- ה-`PERMISSION_LABELS` ב-`ChildControlV2.tsx` לא בשימוש פעיל — לא נוגעים.
 
-## למה זה הסבר מלא לכשל
-אצל יריב לא היה שום ערך ב-`next_issur` ולכן הסוכן לא ידע שאסור להפעיל את המכשיר בשבת. גם אם הוא נופל ל-`next_shabbat` הישן — בשבת זו הצליח אולי לעבוד אצל ילדים אחרים, אבל לא אצל יריב כי המנגנון העיקרי היה ריק. אחרי התיקון ה-payload יכלול את חלונות השבת והחגים הצפויים, וההגבלה תעבוד.
-
-## קבצים/אובייקטים שיתעדכנו
-- `cron.job` — הוספת רשומה חדשה (לא קוד).
-- הרצה חד-פעמית של edge function (לא שינוי קוד).
-
-זהו — שני שינויי-נתונים נקודתיים, ללא נגיעה בקוד היישום.
+## קובץ שיתעדכן
+- `src/components/child-dashboard/ProblemBanner.tsx`

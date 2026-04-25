@@ -2,6 +2,9 @@ import { AlertTriangle, ShieldAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { DeviceHealthInfo } from "@/hooks/useChildControls";
 import type { DeviceStatus } from "@/lib/deviceStatus";
+import { WHATSAPP_MONITORING_ENABLED } from "@/config/featureFlags";
+
+const WHATSAPP_PERMISSION_KEYS = ["accessibilityEnabled", "notificationListenerEnabled"];
 
 const PERMISSION_LABELS: Record<string, string> = {
   accessibilityEnabled: "שירות נגישות",
