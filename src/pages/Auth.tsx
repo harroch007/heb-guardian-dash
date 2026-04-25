@@ -386,7 +386,7 @@ export default function Auth() {
     <div className="min-h-screen bg-background flex flex-col">
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-center">
-          <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+          <Link to="/landing-v1" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
             <img src={kippyLogo} alt="Kippy" className="h-8" />
           </Link>
         </div>
