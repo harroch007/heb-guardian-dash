@@ -91,11 +91,11 @@ export default function ChoresV2() {
         {/* Header */}
         <div className="flex items-center gap-3">
           <div className="flex-1">
-            <h1 className="text-xl font-bold text-foreground">משימות ותגמולים</h1>
+            <h1 className="text-2xl font-bold text-foreground v2-glow-text">משימות ותגמולים</h1>
             <p className="text-sm text-muted-foreground">מערכת חיובית לניהול זמן מסך</p>
           </div>
-          <div className="p-2 rounded-xl bg-primary/10">
-            <ClipboardList className="w-6 h-6 text-primary" />
+          <div className="v2-icon-chip p-2.5">
+            <ClipboardList className="w-6 h-6" />
           </div>
         </div>
 
@@ -117,53 +117,45 @@ export default function ChoresV2() {
 
         {/* Summary cards */}
         <div className="grid grid-cols-2 gap-3">
-          <Card className="bg-card border-border">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-amber-100">
-                <Clock className="w-5 h-5 text-amber-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-foreground">{activeCount}</p>
-                <p className="text-xs text-muted-foreground">משימות פעילות</p>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="v2-card p-4 flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-warning/15 border border-warning/30">
+              <Clock className="w-5 h-5 text-warning" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-foreground">{activeCount}</p>
+              <p className="text-xs text-muted-foreground">משימות פעילות</p>
+            </div>
+          </div>
 
-          <Card className="bg-card border-border">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-emerald-100">
-                <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-foreground">{completedCount}</p>
-                <p className="text-xs text-muted-foreground">הושלמו ואושרו</p>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="v2-card p-4 flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-success/15 border border-success/30">
+              <CheckCircle2 className="w-5 h-5 text-success" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-foreground">{completedCount}</p>
+              <p className="text-xs text-muted-foreground">הושלמו ואושרו</p>
+            </div>
+          </div>
 
-          <Card className="bg-card border-border">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Coins className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-foreground">{bankBalance}</p>
-                <p className="text-xs text-muted-foreground">דק׳ בבנק</p>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="v2-card p-4 flex items-center gap-3">
+            <div className="v2-icon-chip p-2">
+              <Coins className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-foreground v2-glow-text">{bankBalance}</p>
+              <p className="text-xs text-muted-foreground">דק׳ בבנק</p>
+            </div>
+          </div>
 
-          <Card className="bg-card border-border">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-violet-100">
-                <Gift className="w-5 h-5 text-violet-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-foreground">{todayBonus}</p>
-                <p className="text-xs text-muted-foreground">בונוס היום (דק׳)</p>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="v2-card p-4 flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-accent/15 border border-accent/30">
+              <Gift className="w-5 h-5 text-accent" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-foreground">{todayBonus}</p>
+              <p className="text-xs text-muted-foreground">בונוס היום (דק׳)</p>
+            </div>
+          </div>
         </div>
 
         {/* Reward bank */}
