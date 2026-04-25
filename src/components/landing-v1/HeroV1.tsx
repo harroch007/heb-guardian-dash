@@ -54,15 +54,16 @@ export function HeroV1() {
             className="order-1 lg:order-2 text-center lg:text-right"
           >
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6 text-foreground">
-              פחות מלחמות
+              הילדים מפסיקים לבקש זמן מסך
               <br />
-              על זמן מסך.
+              ומתחילים להרוויח אותו.
               <br />
-              <span className="text-primary">יותר אחריות בבית.</span>
+              <span className="text-primary text-lg">הילדים לומדים להרוויח זמן – ולא רק לבקש.</span>
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-xl mx-auto lg:mx-0 leading-relaxed">
-              KippyAI היא בקרת ההורים המתקדמת ביותר, עם דרך חכמה ללמד ילדים לנהל זמן מסך,
-              להרוויח דקות, ולכבד גבולות.
+              קיפי מלמדת ילדים לקחת אחריות על זמן המסך 
+              <br />
+              בלי ויכוחים, בלי תזכורות, בלי כאב ראש.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start mb-4">
               {WAITLIST_MODE ? PrimaryCTA : <Link to="/auth?signup=true">{PrimaryCTA}</Link>}
@@ -73,7 +74,7 @@ export function HeroV1() {
             </div>
             <p className="text-sm text-muted-foreground flex items-center gap-1.5 justify-center lg:justify-start">
               <Star className="w-4 h-4 text-primary fill-primary" />
-              כמו דמי כיס. רק בדקות מסך.
+              עובד כבר מהיום הראשון.
             </p>
           </motion.div>
         </div>
