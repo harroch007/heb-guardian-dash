@@ -1,9 +1,9 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { Users } from 'lucide-react';
 import { WAITLIST_MODE } from '@/config/featureFlags';
 import { useWaitlist } from '@/contexts/WaitlistContext';
+import ctaBg from '@/assets/landing-v1/cta-family-night.jpg';
 
 export function FreeAccessCTA() {
   const { openModal } = useWaitlist();
@@ -25,20 +25,27 @@ export function FreeAccessCTA() {
           whileInView={{ opacity: 1, scale: 1 }}
           viewport={{ once: true, margin: '-100px' }}
           transition={{ duration: 0.5 }}
-          className="max-w-4xl mx-auto bg-card border border-primary/30 rounded-3xl p-6 sm:p-10 md:p-14 text-center shadow-2xl shadow-primary/20 relative overflow-hidden"
+          className="max-w-5xl mx-auto rounded-3xl overflow-hidden shadow-2xl shadow-primary/30 relative border border-primary/30"
         >
-          <div className="absolute top-0 right-0 w-64 h-64 bg-primary/15 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-accent/15 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
-          <div className="relative">
-            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center glow-primary">
-              <Users className="w-10 h-10 text-primary" />
-            </div>
+          {/* Background image */}
+          <img
+            src={ctaBg}
+            alt=""
+            loading="lazy"
+            className="absolute inset-0 w-full h-full object-cover"
+            aria-hidden="true"
+          />
+          {/* Dark gradient overlay for legibility */}
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/85 to-background/40" />
+          <div className="absolute inset-0 bg-gradient-to-r from-background/60 via-transparent to-background/60" />
+
+          <div className="relative px-6 sm:px-10 md:px-14 pt-44 sm:pt-56 md:pt-64 pb-8 sm:pb-12 text-center">
             <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold text-foreground mb-4 leading-tight">
               מוכנים להפוך את זמן המסך
               <br />
               <span className="text-primary">לכלי חינוכי?</span>
             </h2>
-            <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
+            <p className="text-base sm:text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
               הצטרפו עכשיו וקבלו ראשונים גישה לגרסה החדשה של KippyAI.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
