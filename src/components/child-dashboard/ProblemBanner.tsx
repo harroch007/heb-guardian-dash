@@ -2,6 +2,9 @@ import { AlertTriangle, ShieldAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { DeviceHealthInfo } from "@/hooks/useChildControls";
 import type { DeviceStatus } from "@/lib/deviceStatus";
+import { WHATSAPP_MONITORING_ENABLED } from "@/config/featureFlags";
+
+const WHATSAPP_PERMISSION_KEYS = ["accessibilityEnabled", "notificationListenerEnabled"];
 
 const PERMISSION_LABELS: Record<string, string> = {
   accessibilityEnabled: "שירות נגישות",
@@ -34,7 +37,9 @@ export function ProblemBanner({ deviceHealth, status, lastSeen }: ProblemBannerP
   // Check missing permissions
   if (deviceHealth) {
     const missingPerms = Object.entries(deviceHealth.permissions).filter(
-      ([, val]) => val === false
+      ([key, val]) =>
+        val === false &&
+        (WHATSAPP_MONITORING_ENABLED || !WHATSAPP_PERMISSION_KEYS.includes(key))
     );
     if (missingPerms.length > 0) {
       const missingNames = missingPerms
@@ -47,16 +52,18 @@ export function ProblemBanner({ deviceHealth, status, lastSeen }: ProblemBannerP
       });
     }
 
-    // WhatsApp monitoring broken
-    const whatsappBroken =
-      deviceHealth.permissions.accessibilityEnabled === false ||
-      deviceHealth.permissions.notificationListenerEnabled === false;
-    if (whatsappBroken && missingPerms.length === 0) {
-      problems.push({
-        icon: ShieldAlert,
-        text: "ניטור הודעות לקוי",
-        detail: "שירות נגישות או האזנה להתראות כבויים",
-      });
+    // WhatsApp monitoring broken (only when feature enabled)
+    if (WHATSAPP_MONITORING_ENABLED) {
+      const whatsappBroken =
+        deviceHealth.permissions.accessibilityEnabled === false ||
+        deviceHealth.permissions.notificationListenerEnabled === false;
+      if (whatsappBroken && missingPerms.length === 0) {
+        problems.push({
+          icon: ShieldAlert,
+          text: "ניטור הודעות לקוי",
+          detail: "שירות נגישות או האזנה להתראות כבויים",
+        });
+      }
     }
   }
 
