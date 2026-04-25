@@ -348,14 +348,14 @@ const FamilyV2 = () => {
 
   if ((loading || roleLoading) && !addChildOpen) {
     return (
-      <div className="homev2-light min-h-screen flex items-center justify-center" dir="rtl">
+      <div className="v2-dark min-h-screen flex items-center justify-center" dir="rtl">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="homev2-light min-h-screen pb-24" dir="rtl">
+    <div className="v2-dark min-h-screen pb-24" dir="rtl">
       <div className="max-w-lg mx-auto px-4 py-6 space-y-5">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -381,7 +381,7 @@ const FamilyV2 = () => {
           <Card>
             <CardContent className="p-4 flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-                <Wifi className="w-5 h-5 text-emerald-600" />
+                <Wifi className="w-5 h-5 text-success" />
               </div>
               <div>
                 <p className="text-2xl font-bold text-foreground">{connectedCount}</p>
@@ -393,7 +393,7 @@ const FamilyV2 = () => {
             <Card>
               <CardContent className="p-4 flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center">
-                  <AlertTriangle className="w-5 h-5 text-amber-600" />
+                  <AlertTriangle className="w-5 h-5 text-warning" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-foreground">{totalAlerts}</p>
@@ -406,7 +406,7 @@ const FamilyV2 = () => {
             <Card>
               <CardContent className="p-4 flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center">
-                  <Crown className="w-5 h-5 text-purple-600" />
+                  <Crown className="w-5 h-5 text-accent" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-foreground">{premiumCount}</p>
@@ -449,7 +449,7 @@ const FamilyV2 = () => {
                           <div className="flex items-center gap-2">
                             <h3 className="font-semibold text-foreground">{child.name}</h3>
                             {WHATSAPP_MONITORING_ENABLED && child.subscription_tier === "premium" && (
-                              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-purple-100 text-purple-700 border-0">
+                              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-accent/15 text-accent border-0">
                                 פרימיום
                               </Badge>
                             )}
@@ -470,7 +470,7 @@ const FamilyV2 = () => {
                       )}
                       <span>🏦 {child.rewardBankBalance} דק׳</span>
                       {WHATSAPP_MONITORING_ENABLED && child.unacknowledgedAlerts > 0 && (
-                        <span className="text-amber-600">
+                        <span className="text-warning">
                           <Bell className="w-3 h-3 inline ml-0.5" />
                           {child.unacknowledgedAlerts} התראות
                         </span>

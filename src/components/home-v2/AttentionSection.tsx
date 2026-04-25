@@ -26,7 +26,7 @@ export const AttentionSection = ({ childrenData }: Props) => {
         icon: <AlertTriangle className="h-4 w-4 text-amber-500" />,
         text: `${child.name}: ${child.unacknowledgedAlerts} התראות חדשות`,
         path: "/alerts-v2",
-        color: "bg-amber-50 border-amber-200",
+        color: "bg-warning/10 border-amber-200",
       });
     }
 
@@ -36,7 +36,7 @@ export const AttentionSection = ({ childrenData }: Props) => {
         icon: <ShieldAlert className="h-4 w-4 text-red-500" />,
         text: `${child.name}: בעיית הרשאות`,
         path: `/child-v2/${child.id}`,
-        color: "bg-red-50 border-red-200",
+        color: "bg-destructive/10 border-red-200",
       });
     }
 
@@ -45,10 +45,10 @@ export const AttentionSection = ({ childrenData }: Props) => {
     if (isDisconnected && child.device !== null) {
       items.push({
         id: `disc-${child.id}`,
-        icon: <WifiOff className="h-4 w-4 text-gray-500" />,
+        icon: <WifiOff className="h-4 w-4 text-muted-foreground" />,
         text: `${child.name}: מכשיר מנותק`,
         path: `/child-v2/${child.id}`,
-        color: "bg-gray-50 border-gray-200",
+        color: "bg-card border-border",
       });
     }
 
@@ -58,7 +58,7 @@ export const AttentionSection = ({ childrenData }: Props) => {
         icon: <Clock className="h-4 w-4 text-blue-500" />,
         text: `${child.name}: ${child.pendingTimeRequests} בקשות זמן`,
         path: `/child-v2/${child.id}`,
-        color: "bg-blue-50 border-blue-200",
+        color: "bg-primary/10 border-blue-200",
       });
     }
   }
@@ -67,7 +67,7 @@ export const AttentionSection = ({ childrenData }: Props) => {
 
   return (
     <div className="space-y-2">
-      <h2 className="text-sm font-semibold text-gray-700">דורש תשומת לב</h2>
+      <h2 className="text-sm font-semibold text-foreground/80">דורש תשומת לב</h2>
       <div className="space-y-2">
         {items.slice(0, 5).map((item) => (
           <button
@@ -76,8 +76,8 @@ export const AttentionSection = ({ childrenData }: Props) => {
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-right transition-colors ${item.color} hover:opacity-90`}
           >
             {item.icon}
-            <span className="text-xs font-medium text-gray-800 flex-1">{item.text}</span>
-            <span className="text-gray-400 text-xs">←</span>
+            <span className="text-xs font-medium text-foreground flex-1">{item.text}</span>
+            <span className="text-muted-foreground text-xs">←</span>
           </button>
         ))}
       </div>

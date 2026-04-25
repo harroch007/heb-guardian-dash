@@ -129,7 +129,7 @@ const SettingsV2 = () => {
   const premiumCount = children.filter(c => c.subscription_tier === "premium").length;
 
   return (
-    <div className="homev2-light min-h-screen bg-background" dir="rtl">
+    <div className="v2-dark min-h-screen bg-background" dir="rtl">
       <div className="max-w-lg mx-auto px-4 py-6 space-y-5">
         {/* Header */}
         <div className="flex items-center gap-3 mb-2">
@@ -251,7 +251,7 @@ const SettingsV2 = () => {
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between items-center py-2 border-b border-border/30">
                   <span className="text-muted-foreground">סטטוס</span>
-                  <span className={`font-medium ${allPremium ? 'text-green-600' : 'text-foreground'}`}>
+                  <span className={`font-medium ${allPremium ? 'text-success' : 'text-foreground'}`}>
                     {allPremium ? 'פרימיום פעיל' : 'חינמי'}
                   </span>
                 </div>
@@ -365,7 +365,7 @@ const SettingsV2 = () => {
               {children.map((child) => (
                 <div key={child.id} className="flex justify-between items-center py-2 border-b border-border/30 last:border-0 text-sm">
                   <span className="font-medium text-foreground">{child.name}</span>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${child.subscription_tier === 'premium' ? 'bg-amber-100 text-amber-700' : 'bg-muted text-muted-foreground'}`}>
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${child.subscription_tier === 'premium' ? 'bg-warning/15 text-warning' : 'bg-muted text-muted-foreground'}`}>
                     {child.subscription_tier === 'premium' ? 'פרימיום' : 'חינמי'}
                   </span>
                 </div>
@@ -381,8 +381,8 @@ const SettingsV2 = () => {
         {/* Privacy & Legal */}
         <section className="p-5 rounded-2xl bg-card border border-border/50 space-y-3">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center">
-              <Shield className="w-5 h-5 text-green-600" />
+            <div className="w-10 h-10 rounded-full bg-success/15 flex items-center justify-center">
+              <Shield className="w-5 h-5 text-success" />
             </div>
             <div>
               <h2 className="text-lg font-semibold text-foreground">פרטיות ושקיפות</h2>
@@ -413,7 +413,7 @@ const SettingsV2 = () => {
             </div>
           </div>
           <div className="flex flex-wrap gap-3">
-            <Button variant="outline" size="sm" onClick={() => openWhatsApp()} className="gap-2 border-green-500/30 text-green-600 hover:bg-green-50 hover:text-green-700">
+            <Button variant="outline" size="sm" onClick={() => openWhatsApp()} className="gap-2 border-green-500/30 text-success hover:bg-green-50 hover:text-success">
               <MessageCircle className="w-4 h-4" />
               WhatsApp
             </Button>

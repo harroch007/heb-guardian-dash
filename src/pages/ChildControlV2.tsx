@@ -441,14 +441,14 @@ export default function ChildControlV2() {
 
   if (loading) {
     return (
-      <div className="homev2-light min-h-screen flex items-center justify-center" dir="rtl">
+      <div className="v2-dark min-h-screen flex items-center justify-center" dir="rtl">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="homev2-light min-h-screen pb-24" dir="rtl">
+    <div className="v2-dark min-h-screen pb-24" dir="rtl">
       <div className="max-w-lg mx-auto px-4 py-6 space-y-5">
 
         {/* ===== 1. CHILD HEADER ===== */}
@@ -759,8 +759,8 @@ export default function ChildControlV2() {
               <Card className="border-amber-200 shadow-sm bg-gradient-to-l from-amber-50 to-orange-50">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
-                      <Crown className="w-5 h-5 text-amber-600" />
+                    <div className="w-10 h-10 rounded-full bg-warning/15 flex items-center justify-center shrink-0">
+                      <Crown className="w-5 h-5 text-warning" />
                     </div>
                     <div className="flex-1">
                       <p className="text-sm font-semibold text-foreground">הגנה חכמה</p>

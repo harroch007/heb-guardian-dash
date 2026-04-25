@@ -64,7 +64,7 @@ export default function AcceptInvite() {
   };
 
   return (
-    <div className="homev2-light min-h-screen flex items-center justify-center px-4" dir="rtl">
+    <div className="v2-dark min-h-screen flex items-center justify-center px-4" dir="rtl">
       <Card className="w-full max-w-sm">
         <CardContent className="p-6 text-center space-y-4">
           {status === "success" ? (

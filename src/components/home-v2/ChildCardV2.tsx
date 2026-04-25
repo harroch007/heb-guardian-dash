@@ -120,33 +120,33 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
       ? "border-red-300 ring-1 ring-red-200"
       : child.activeRestriction
         ? "border-amber-300"
-        : "border-gray-200";
+        : "border-border";
 
   return (
-    <div className={`rounded-2xl bg-white border shadow-sm overflow-hidden ${borderClass}`}>
+    <div className={`rounded-2xl bg-card border shadow-sm overflow-hidden ${borderClass}`}>
       {/* Disconnected banner (highest priority) */}
       {!connected && (
-        <div className="flex items-center gap-2 px-4 py-2 bg-red-50 border-b border-red-200">
-          <WifiOff className="h-4 w-4 text-red-600 shrink-0" />
-          <span className="text-xs font-semibold text-red-700">
+        <div className="flex items-center gap-2 px-4 py-2 bg-destructive/10 border-b border-red-200">
+          <WifiOff className="h-4 w-4 text-destructive shrink-0" />
+          <span className="text-xs font-semibold text-destructive">
             המכשיר לא מחובר — ייתכן שהשליטה אינה פעילה
           </span>
         </div>
       )}
       {/* Screen-time exceeded banner (only when connected and no scheduled restriction) */}
       {connected && screenTimeExceeded && (
-        <div className="flex items-center gap-2 px-4 py-2 bg-red-50 border-b border-red-200">
-          <Lock className="h-4 w-4 text-red-600 shrink-0" />
-          <span className="text-xs font-semibold text-red-700">
+        <div className="flex items-center gap-2 px-4 py-2 bg-destructive/10 border-b border-red-200">
+          <Lock className="h-4 w-4 text-destructive shrink-0" />
+          <span className="text-xs font-semibold text-destructive">
             המכשיר נעול — הילד חרג ממגבלת זמן המסך היומית
           </span>
         </div>
       )}
       {/* Restriction banner */}
       {child.activeRestriction && (
-        <div className="flex items-center gap-2 px-4 py-2 bg-amber-50 border-b border-amber-200">
-          <Lock className="h-4 w-4 text-amber-600 shrink-0" />
-          <span className="text-xs font-semibold text-amber-700">
+        <div className="flex items-center gap-2 px-4 py-2 bg-warning/10 border-b border-amber-200">
+          <Lock className="h-4 w-4 text-warning shrink-0" />
+          <span className="text-xs font-semibold text-warning">
             המכשיר מוגבל כרגע — {child.activeRestriction.name}
           </span>
         </div>
@@ -154,16 +154,16 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
       {/* Header */}
       <div className="flex items-center justify-between px-4 pt-4 pb-2">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-            <span className="text-blue-700 font-bold text-sm">
+          <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center">
+            <span className="text-primary font-bold text-sm">
               {child.name.charAt(0)}
             </span>
           </div>
           <div>
-            <h3 className="font-semibold text-gray-900 text-sm">{child.name}</h3>
-            <div className="flex items-center gap-1.5 text-xs text-gray-500">
+            <h3 className="font-semibold text-foreground text-sm">{child.name}</h3>
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <span
-                className={`w-2 h-2 rounded-full ${connected ? "bg-emerald-500" : "bg-red-500"}`}
+                className={`w-2 h-2 rounded-full ${connected ? "bg-success" : "bg-destructive"}`}
               />
               {formatLastSeen(child.device?.last_seen ?? null)}
             </div>
@@ -172,10 +172,10 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
         {child.device && child.device.battery_level !== null && (() => {
           const lvl = child.device.battery_level;
           const color =
-            lvl >= 70 ? "text-emerald-600" :
+            lvl >= 70 ? "text-success" :
             lvl >= 40 ? "text-yellow-500" :
             lvl >= 20 ? "text-orange-500" :
-            "text-red-600";
+            "text-destructive";
           return (
             <div className={`flex items-center gap-1 text-xs font-medium ${color}`}>
               <Battery className="h-3.5 w-3.5" />
@@ -211,7 +211,7 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
           />
         ) : (
           <MetricCell
-            icon={<Clock className="h-3.5 w-3.5 text-gray-400" />}
+            icon={<Clock className="h-3.5 w-3.5 text-muted-foreground" />}
             label="מגבלה"
             value="לא הוגדר"
             helpText="לא הוגדרה מגבלת זמן יומית. ניתן להגדיר במסך ניהול הילד."
@@ -227,7 +227,7 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
 
       {/* Location */}
       {child.device?.address && (
-        <div className="flex items-start gap-1.5 px-4 pb-2 text-xs text-gray-500">
+        <div className="flex items-start gap-1.5 px-4 pb-2 text-xs text-muted-foreground">
           <MapPin className="h-3 w-3 flex-shrink-0 mt-0.5" />
           <span className="break-words">{child.device.address}</span>
         </div>
@@ -236,17 +236,17 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
       {/* Status line */}
       {statusParts.length > 0 && (
         <div className="px-4 pb-3">
-          <p className="text-xs text-amber-600 font-medium">
+          <p className="text-xs text-warning font-medium">
             {statusParts.join("  ·  ")}
           </p>
         </div>
       )}
 
       {/* Actions */}
-      <div className="border-t border-gray-100 px-4 py-3 flex items-center justify-between">
+      <div className="border-t border-border/50 px-4 py-3 flex items-center justify-between">
         <button
           onClick={() => navigate(`/child-v2/${child.id}`)}
-          className="text-sm font-semibold text-blue-600 hover:text-blue-700"
+          className="text-sm font-semibold text-primary hover:text-primary"
         >
           ניהול הילד ←
         </button>
@@ -298,11 +298,11 @@ const MetricCell = ({
 }) => (
   <div className="flex flex-col items-center gap-0.5 py-1">
     {icon}
-    <span className={`text-xs font-bold ${danger ? "text-red-600" : warn ? "text-amber-600" : "text-gray-900"}`}>
+    <span className={`text-xs font-bold ${danger ? "text-destructive" : warn ? "text-warning" : "text-foreground"}`}>
       {value}
     </span>
     <div className="flex items-center gap-1">
-      <span className="text-[10px] text-gray-500">{label}</span>
+      <span className="text-[10px] text-muted-foreground">{label}</span>
       {helpText && <HelpTooltip text={helpText} iconSize={10} />}
     </div>
   </div>
@@ -325,11 +325,11 @@ const ActionBtn = ({
     onClick={onClick}
     disabled={disabled}
     title={title}
-    className="relative p-2 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-600 disabled:opacity-50 transition-colors"
+    className="relative p-2 rounded-lg bg-card hover:bg-muted text-muted-foreground disabled:opacity-50 transition-colors"
   >
     {icon}
     {badge && badge > 0 && (
-      <span className="absolute -top-1 -left-1 bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+      <span className="absolute -top-1 -left-1 bg-destructive text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
         {badge}
       </span>
     )}
