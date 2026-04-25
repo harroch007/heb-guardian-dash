@@ -4,7 +4,7 @@ import { Star, PlayCircle } from 'lucide-react';
 import { WAITLIST_MODE } from '@/config/featureFlags';
 import { useWaitlist } from '@/contexts/WaitlistContext';
 import { Link } from 'react-router-dom';
-import { PhoneMockup } from './PhoneMockup';
+import heroPhones from '@/assets/landing-v1/hero-phones-mockup.png';
 
 export function HeroV1() {
   const { openModal } = useWaitlist();
@@ -31,19 +31,19 @@ export function HeroV1() {
 
       <div className="container mx-auto px-4 relative z-10">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
-          {/* Phones */}
+          {/* Phones mockup image */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.7, delay: 0.2 }}
-            className="order-2 lg:order-1 relative flex justify-center items-center gap-2 sm:gap-4"
+            className="order-2 lg:order-1 flex justify-center items-center"
           >
-            <div className="sm:translate-y-6">
-              <PhoneMockup variant="overview" />
-            </div>
-            <div className="hidden sm:block -translate-y-6">
-              <PhoneMockup variant="tasks" />
-            </div>
+            <img
+              src={heroPhones}
+              alt="הדגמה של אפליקציית KippyAI על שני מסכי טלפון"
+              loading="eager"
+              className="w-full max-w-[340px] sm:max-w-[420px] lg:max-w-[520px] h-auto object-contain"
+            />
           </motion.div>
 
           {/* Text */}
