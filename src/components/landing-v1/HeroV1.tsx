@@ -57,8 +57,6 @@ export function HeroV1() {
               הילדים מפסיקים לבקש זמן מסך
               <br />
               ומתחילים להרוויח אותו.
-              <br />
-              <span className="text-primary text-lg">הילדים לומדים להרוויח זמן – ולא רק לבקש.</span>
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-xl mx-auto lg:mx-0 leading-relaxed">
               קיפי מלמדת ילדים לקחת אחריות על זמן המסך 
