@@ -20,7 +20,7 @@ const SettingsPage = () => {
 
   const handleSignOut = async () => {
     await signOut();
-    navigate('/');
+    navigate('/landing-v1');
   };
 
   const handleTestNotification = async () => {

@@ -62,7 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           title: 'החשבון נעול',
           description: 'החשבון שלך נעול. פנה לתמיכה: support@kippyai.com',
         });
-        navigate('/', { replace: true });
+        navigate('/landing-v1', { replace: true });
         return;
       }
       setIsNewUser(false);
@@ -120,7 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           });
         }
 
-        navigate('/', { replace: true });
+        navigate('/landing-v1', { replace: true });
         return false;
       }
 

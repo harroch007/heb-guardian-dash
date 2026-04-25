@@ -21,7 +21,7 @@ export function AppSidebar() {
   const handleLogout = async () => {
     if (isDemoMode) {
       exitDemoMode();
-      window.location.href = "/";
+      window.location.href = "/landing-v1";
     } else {
       await signOut();
     }
