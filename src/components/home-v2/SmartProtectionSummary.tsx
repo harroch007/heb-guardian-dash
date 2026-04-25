@@ -17,21 +17,21 @@ export const SmartProtectionSummary = ({ childrenData }: Props) => {
   if (!hasPremium) {
     return (
       <div className="space-y-2">
-        <h2 className="text-sm font-semibold text-gray-700">הגנה חכמה</h2>
+        <h2 className="text-sm font-semibold text-foreground/80">הגנה חכמה</h2>
         <div className="rounded-2xl bg-gradient-to-l from-amber-50 to-orange-50 border border-amber-200 p-4">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
-              <Crown className="h-4 w-4 text-amber-600" />
+            <div className="w-8 h-8 rounded-full bg-warning/15 flex items-center justify-center shrink-0">
+              <Crown className="h-4 w-4 text-warning" />
             </div>
             <div className="flex-1">
-              <p className="text-xs font-semibold text-gray-800">ניטור AI של WhatsApp</p>
-              <p className="text-[11px] text-gray-500 mt-0.5">
+              <p className="text-xs font-semibold text-foreground">ניטור AI של WhatsApp</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
                 שדרגו לפרימיום כדי לקבל התראות חכמות על תכנים מסוכנים
               </p>
             </div>
             <button
               onClick={() => navigate("/checkout")}
-              className="shrink-0 px-3 py-1.5 bg-amber-500 text-white text-xs font-semibold rounded-lg hover:bg-amber-600 transition-colors"
+              className="shrink-0 px-3 py-1.5 bg-warning text-white text-xs font-semibold rounded-lg hover:bg-warning transition-colors"
             >
               שדרוג
             </button>
@@ -62,16 +62,16 @@ export const SmartProtectionSummary = ({ childrenData }: Props) => {
 
   return (
     <div className="space-y-2">
-      <h2 className="text-sm font-semibold text-gray-700">הגנה חכמה</h2>
-      <div className="rounded-2xl bg-gray-50 border border-gray-200 p-4 space-y-3">
+      <h2 className="text-sm font-semibold text-foreground/80">הגנה חכמה</h2>
+      <div className="rounded-2xl bg-card border border-border p-4 space-y-3">
         {/* Status */}
         <div className="flex items-center gap-2">
           <Shield
-            className={`h-4 w-4 ${monitoringActive ? "text-emerald-500" : "text-gray-400"}`}
+            className={`h-4 w-4 ${monitoringActive ? "text-emerald-500" : "text-muted-foreground"}`}
           />
-          <span className="text-xs font-medium text-gray-700">
+          <span className="text-xs font-medium text-foreground/80">
             ניטור WhatsApp:{" "}
-            <span className={monitoringActive ? "text-emerald-600" : "text-gray-500"}>
+            <span className={monitoringActive ? "text-success" : "text-muted-foreground"}>
               {monitoringActive ? "פעיל" : "מנותק"}
             </span>
           </span>
@@ -80,7 +80,7 @@ export const SmartProtectionSummary = ({ childrenData }: Props) => {
         {/* Metrics row — use consistent alert count */}
         <div className="flex gap-4">
           {totalScanned > 0 && (
-            <div className="flex items-center gap-1.5 text-xs text-gray-600">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <BarChart3 className="h-3.5 w-3.5 text-blue-400" />
               <span>{totalScanned} הודעות נסרקו</span>
             </div>
@@ -88,7 +88,7 @@ export const SmartProtectionSummary = ({ childrenData }: Props) => {
           {totalActionableAlerts > 0 && (
             <button
               onClick={() => navigate("/alerts-v2")}
-              className="flex items-center gap-1.5 text-xs text-amber-600 font-medium hover:text-amber-700 transition-colors"
+              className="flex items-center gap-1.5 text-xs text-warning font-medium hover:text-warning transition-colors"
             >
               <Bell className="h-3.5 w-3.5 text-amber-400" />
               <span>{totalActionableAlerts} התראות פתוחות</span>

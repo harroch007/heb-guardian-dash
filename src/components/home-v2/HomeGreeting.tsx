@@ -38,7 +38,7 @@ export const HomeGreeting = () => {
 
   return (
     <div>
-      <h1 className="text-xl font-bold text-gray-900">
+      <h1 className="text-xl font-bold text-foreground">
         {getGreeting()}
         {parentName ? `, ${parentName}` : ""} 👋
       </h1>

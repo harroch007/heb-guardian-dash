@@ -32,7 +32,7 @@ export const FamilyStatusHero = ({
       return (
         <>
           <Crown className="h-5 w-5 text-amber-500" />
-          <span className="text-sm font-semibold text-gray-800">
+          <span className="text-sm font-semibold text-foreground">
             שדרגו לפרימיום כדי להפעיל ניטור חכם
           </span>
         </>
@@ -43,7 +43,7 @@ export const FamilyStatusHero = ({
         return (
           <>
             <AlertTriangle className="h-5 w-5 text-amber-500" />
-            <span className="text-sm font-semibold text-gray-800">
+            <span className="text-sm font-semibold text-foreground">
               {childrenCount - connectedCount === 1 ? "יש מכשיר מנותק" : `${childrenCount - connectedCount} מכשירים מנותקים`}
             </span>
           </>
@@ -51,8 +51,8 @@ export const FamilyStatusHero = ({
       }
       return (
         <>
-          <ShieldCheck className="h-5 w-5 text-emerald-600" />
-          <span className="text-sm font-semibold text-gray-800">
+          <ShieldCheck className="h-5 w-5 text-success" />
+          <span className="text-sm font-semibold text-foreground">
             הכול תקין כרגע
           </span>
         </>
@@ -62,7 +62,7 @@ export const FamilyStatusHero = ({
       return (
         <>
           <AlertTriangle className="h-5 w-5 text-amber-500" />
-          <span className="text-sm font-semibold text-gray-800">
+          <span className="text-sm font-semibold text-foreground">
             יש נושאים שדורשים תשומת לב
           </span>
         </>
@@ -70,8 +70,8 @@ export const FamilyStatusHero = ({
     }
     return (
       <>
-        <ShieldCheck className="h-5 w-5 text-emerald-600" />
-        <span className="text-sm font-semibold text-gray-800">
+        <ShieldCheck className="h-5 w-5 text-success" />
+        <span className="text-sm font-semibold text-foreground">
           הכול תקין כרגע
         </span>
       </>
@@ -88,13 +88,13 @@ export const FamilyStatusHero = ({
       {/* Metric pills */}
       <div className={`grid ${showIssuesPill ? 'grid-cols-3' : 'grid-cols-2'} gap-2`}>
         <Pill
-          icon={<Users className="h-4 w-4 text-blue-600" />}
+          icon={<Users className="h-4 w-4 text-primary" />}
           value={`${connectedCount}/${childrenCount}`}
           label="מחוברים"
           helpText="מספר הילדים שהמכשיר שלהם דיווח ב-24 השעות האחרונות, מתוך סך הילדים."
         />
         <Pill
-          icon={<Wifi className="h-4 w-4 text-emerald-600" />}
+          icon={<Wifi className="h-4 w-4 text-success" />}
           value={allConnected ? "תקין" : `${childrenCount - connectedCount} מנותק`}
           label="חיבור"
           warn={!allConnected}
@@ -115,7 +115,7 @@ export const FamilyStatusHero = ({
       {showPremiumUpsell && (
         <button
           onClick={() => navigate("/checkout")}
-          className="mt-3 w-full py-2 bg-amber-500 text-white text-xs font-semibold rounded-lg hover:bg-amber-600 transition-colors"
+          className="mt-3 w-full py-2 bg-warning text-white text-xs font-semibold rounded-lg hover:bg-warning transition-colors"
         >
           שדרוג לפרימיום
         </button>
@@ -137,13 +137,13 @@ const Pill = ({
   warn?: boolean;
   helpText?: string;
 }) => (
-  <div className="flex flex-col items-center gap-1 rounded-xl bg-white/70 border border-gray-100 py-2 px-1">
+  <div className="flex flex-col items-center gap-1 rounded-xl bg-card/70 border border-border/50 py-2 px-1">
     {icon}
-    <span className={`text-sm font-bold ${warn ? "text-amber-600" : "text-gray-900"}`}>
+    <span className={`text-sm font-bold ${warn ? "text-warning" : "text-foreground"}`}>
       {value}
     </span>
     <div className="flex items-center gap-1">
-      <span className="text-[10px] text-gray-500">{label}</span>
+      <span className="text-[10px] text-muted-foreground">{label}</span>
       {helpText && <HelpTooltip text={helpText} iconSize={11} />}
     </div>
   </div>

@@ -30,16 +30,16 @@ export const DailyControlSummary = ({ childrenData }: Props) => {
 
   return (
     <div className="space-y-2">
-      <h2 className="text-sm font-semibold text-gray-700">סיכום יומי</h2>
+      <h2 className="text-sm font-semibold text-foreground/80">סיכום יומי</h2>
       <div className="grid grid-cols-4 gap-2">
         {metrics.map((m, i) => (
           <div
             key={i}
-            className="flex flex-col items-center gap-1 py-3 rounded-xl bg-white border border-gray-200"
+            className="flex flex-col items-center gap-1 py-3 rounded-xl bg-card border border-border"
           >
             {m.icon}
-            <span className="text-sm font-bold text-gray-900">{m.value}</span>
-            <span className="text-[9px] text-gray-500 text-center leading-tight">{m.label}</span>
+            <span className="text-sm font-bold text-foreground">{m.value}</span>
+            <span className="text-[9px] text-muted-foreground text-center leading-tight">{m.label}</span>
           </div>
         ))}
       </div>

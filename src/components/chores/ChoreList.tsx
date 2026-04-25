@@ -18,7 +18,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   pending: { label: "ממתינה לביצוע", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" },
   completed_by_child: { label: "ממתינה לאישורך", color: "bg-orange-500/20 text-orange-400 border-orange-500/30" },
   approved: { label: "בוצע ואושר", color: "bg-green-500/20 text-green-400 border-green-500/30" },
-  rejected: { label: "נדחה", color: "bg-red-500/20 text-red-400 border-red-500/30" },
+  rejected: { label: "נדחה", color: "bg-destructive/20 text-red-400 border-red-500/30" },
 };
 
 export function ChoreList({ chores, onApprove, onReject, onDelete, childName }: ChoreListProps) {
@@ -155,7 +155,7 @@ function ChoreItem({ chore, onApprove, onReject, onDelete, childName, onPhotoCli
               <Button size="icon" variant="ghost" className="h-8 w-8 text-green-400 hover:text-green-300 hover:bg-green-500/10" onClick={() => onApprove(chore.id)}>
                 <Check className="w-4 h-4" />
               </Button>
-              <Button size="icon" variant="ghost" className="h-8 w-8 text-red-400 hover:text-red-300 hover:bg-red-500/10" onClick={() => onReject(chore.id)}>
+              <Button size="icon" variant="ghost" className="h-8 w-8 text-red-400 hover:text-red-300 hover:bg-destructive/10" onClick={() => onReject(chore.id)}>
                 <X className="w-4 h-4" />
               </Button>
             </>

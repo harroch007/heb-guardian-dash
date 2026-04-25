@@ -33,16 +33,16 @@ export const QuickActionsBar = ({ childrenData }: Props) => {
 
   return (
     <div className="space-y-2">
-      <h2 className="text-sm font-semibold text-gray-700">פעולות מהירות</h2>
+      <h2 className="text-sm font-semibold text-foreground/80">פעולות מהירות</h2>
       <div className="flex gap-3 overflow-x-auto pb-1">
         {actions.map((a, i) => (
           <button
             key={i}
             onClick={a.onClick}
-            className="flex flex-col items-center gap-1.5 min-w-[72px] py-3 px-2 rounded-xl bg-white border border-gray-200 hover:bg-gray-50 transition-colors"
+            className="flex flex-col items-center gap-1.5 min-w-[72px] py-3 px-2 rounded-xl bg-card border border-border hover:bg-card transition-colors"
           >
-            <span className="text-blue-600">{a.icon}</span>
-            <span className="text-[10px] font-medium text-gray-700">{a.label}</span>
+            <span className="text-primary">{a.icon}</span>
+            <span className="text-[10px] font-medium text-foreground/80">{a.label}</span>
           </button>
         ))}
       </div>
