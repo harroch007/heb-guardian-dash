@@ -133,7 +133,71 @@
   }
 }
 
-/* HomeV2 / ChildControlV2 Light Theme Scope */
+/* V2 Dark Theme Scope (cyber/neon-teal) — for HomeV2, ChildControlV2, FamilyV2, ChoresV2, SettingsV2 */
+.v2-dark {
+  --background: 222 47% 6%;
+  --foreground: 0 0% 96%;
+
+  --card: 222 40% 11%;
+  --card-foreground: 0 0% 96%;
+
+  --popover: 222 40% 11%;
+  --popover-foreground: 0 0% 96%;
+
+  --primary: 174 72% 50%;
+  --primary-foreground: 222 47% 6%;
+
+  --secondary: 222 30% 18%;
+  --secondary-foreground: 0 0% 96%;
+
+  --muted: 222 30% 18%;
+  --muted-foreground: 220 10% 65%;
+
+  --accent: 174 72% 50%;
+  --accent-foreground: 222 47% 6%;
+
+  --destructive: 0 72% 55%;
+  --destructive-foreground: 0 0% 100%;
+
+  --warning: 38 92% 55%;
+  --warning-foreground: 222 47% 6%;
+
+  --success: 152 65% 48%;
+  --success-foreground: 0 0% 100%;
+
+  --border: 222 30% 22%;
+  --input: 222 30% 18%;
+  --ring: 174 72% 50%;
+
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: 'Heebo', sans-serif;
+}
+
+.v2-dark .v2-card {
+  background-color: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 1rem;
+  transition: box-shadow .2s, border-color .2s;
+}
+
+.v2-dark .v2-card-glow {
+  box-shadow: 0 0 24px hsl(var(--primary) / 0.18), inset 0 0 0 1px hsl(var(--primary) / 0.18);
+  border-color: hsl(var(--primary) / 0.35);
+}
+
+.v2-dark .v2-glow-text {
+  text-shadow: 0 0 12px hsl(var(--primary) / 0.55);
+}
+
+.v2-dark .v2-icon-chip {
+  background-color: hsl(var(--primary) / 0.12);
+  border: 1px solid hsl(var(--primary) / 0.30);
+  color: hsl(var(--primary));
+  border-radius: 0.75rem;
+}
+
+/* HomeV2 / ChildControlV2 Light Theme Scope (legacy — kept for /demo and other consumers) */
 .homev2-light {
   --background: 0 0% 97%;
   --foreground: 220 15% 15%;
