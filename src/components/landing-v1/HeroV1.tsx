@@ -1,82 +1,79 @@
 import { motion } from 'framer-motion';
-import { Button } from '@/components/ui/button';
-import { Star, PlayCircle } from 'lucide-react';
 import { WAITLIST_MODE } from '@/config/featureFlags';
 import { useWaitlist } from '@/contexts/WaitlistContext';
-import { Link } from 'react-router-dom';
-import heroPhones from '@/assets/landing-v1/hero-phones-mockup.png';
+import { useNavigate } from 'react-router-dom';
+import heroFull from '@/assets/landing-v1/hero-full-mockup.png';
 
 export function HeroV1() {
   const { openModal } = useWaitlist();
+  const navigate = useNavigate();
 
   const scrollTo = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const handleCTA = () => {
-    if (WAITLIST_MODE) openModal();
+  const handlePrimaryCTA = () => {
+    if (WAITLIST_MODE) {
+      openModal();
+    } else {
+      navigate('/auth?signup=true');
+    }
   };
 
-  const PrimaryCTA = (
-    <Button size="lg" onClick={handleCTA} className="bg-primary text-primary-foreground hover:bg-primary/90 text-base sm:text-lg h-12 sm:h-14 px-6 sm:px-8 rounded-xl glow-primary font-bold w-full sm:w-auto">
-      הצטרפו לרשימת ההמתנה
-    </Button>
-  );
-
   return (
-    <section className="relative pt-12 pb-16 md:pt-20 md:pb-24 overflow-hidden" dir="rtl">
-      <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent pointer-events-none" />
-      <div className="absolute top-20 right-10 w-96 h-96 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 left-10 w-96 h-96 bg-accent/10 rounded-full blur-3xl pointer-events-none" />
+    <section className="relative bg-[#0A0E1A] overflow-hidden" dir="rtl">
+      <div className="container mx-auto px-4 py-6 md:py-10">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.6 }}
+          className="relative max-w-6xl mx-auto"
+        >
+          <img
+            src={heroFull}
+            alt="KippyAI – פחות מלחמות על זמן מסך, יותר אחריות בבית"
+            loading="eager"
+            className="w-full h-auto block select-none"
+            draggable={false}
+          />
 
-      <div className="container mx-auto px-4 relative z-10">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
-          {/* Phones mockup image */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.7, delay: 0.2 }}
-            className="order-2 lg:order-1 flex justify-center items-center"
-          >
-            <img
-              src={heroPhones}
-              alt="הדגמה של אפליקציית KippyAI על שני מסכי טלפון"
-              loading="eager"
-              className="w-full max-w-[340px] sm:max-w-[420px] lg:max-w-[520px] h-auto object-contain"
+          {/* Hotspots — clickable areas overlayed on the image buttons.
+              Coordinates are percentage-based to stay aligned across viewports. */}
+          <div className="absolute inset-0">
+            {/* Primary CTA: "הצטרפו לרשימת ההמתנה" (image-174 — center-bottom area on right side / large turquoise button) */}
+            <button
+              type="button"
+              onClick={handlePrimaryCTA}
+              aria-label="הצטרפו לרשימת ההמתנה"
+              className="absolute cursor-pointer bg-transparent rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              style={{ top: '76%', left: '17%', width: '28%', height: '8.5%' }}
             />
-          </motion.div>
-
-          {/* Text */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="order-1 lg:order-2 text-center lg:text-right"
-          >
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6 text-foreground">
-              פחות מלחמות
-              <br />
-              על זמן מסך.
-              <br />
-              <span className="text-primary">יותר אחריות בבית.</span>
-            </h1>
-            <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-xl mx-auto lg:mx-0 leading-relaxed">
-              KippyAI היא בקרת ההורים המתקדמת ביותר, עם דרך הכמה ללמד ילדים לנהל זמן מסך,
-              להרוויח דקות, ולכבד גבולות.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start mb-4">
-              {WAITLIST_MODE ? PrimaryCTA : <Link to="/auth?signup=true">{PrimaryCTA}</Link>}
-              <Button size="lg" variant="outline" onClick={() => scrollTo('how-it-works')} className="text-base sm:text-lg h-12 sm:h-14 px-6 sm:px-8 rounded-xl gap-2 w-full sm:w-auto">
-                <PlayCircle className="w-5 h-5" />
-                ראו איך זה עובד
-              </Button>
-            </div>
-            <p className="text-sm text-muted-foreground flex items-center gap-1.5 justify-center lg:justify-start">
-              <Star className="w-4 h-4 text-primary fill-primary" />
-              כמו דמי כיס. רק בדקות מסך.
-            </p>
-          </motion.div>
-        </div>
+            {/* Secondary CTA: "ראו איך זה עובד" (small button on the far left) */}
+            <button
+              type="button"
+              onClick={() => scrollTo('how-it-works')}
+              aria-label="ראו איך זה עובד"
+              className="absolute cursor-pointer bg-transparent rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              style={{ top: '76%', left: '0%', width: '16%', height: '8.5%' }}
+            />
+            {/* Secondary CTA inside the embedded mockup card (right side) — also "הצטרפו" */}
+            <button
+              type="button"
+              onClick={handlePrimaryCTA}
+              aria-label="הצטרפו לרשימת ההמתנה"
+              className="absolute cursor-pointer bg-transparent rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-primary hidden md:block"
+              style={{ top: '54%', left: '67%', width: '20%', height: '7%' }}
+            />
+            {/* "ראו איך זה עובד" inside the embedded mockup card */}
+            <button
+              type="button"
+              onClick={() => scrollTo('how-it-works')}
+              aria-label="ראו איך זה עובד"
+              className="absolute cursor-pointer bg-transparent rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-primary hidden md:block"
+              style={{ top: '63%', left: '67%', width: '20%', height: '6.5%' }}
+            />
+          </div>
+        </motion.div>
       </div>
     </section>
   );
