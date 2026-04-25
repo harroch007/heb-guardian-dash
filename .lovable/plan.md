@@ -1,37 +1,37 @@
-
-# הסתרת התראות הרשאות WhatsApp בכרטיס הילד
+# תיקון: התראת "בעיית הרשאות" בטאב הבית
 
 ## הבעיה
-`ProblemBanner` (שמופיע בכרטיס הילד בדשבורד) עדיין סופר את `accessibilityEnabled` ו-`notificationListenerEnabled` כ"הרשאות חסרות" ומציג באנר אדום:
-> "1 הרשאות חסרות במכשיר — חסר: האזנה להתראות"
+בכרטיס של יריב (תוך ChildCardV2) הכל תקין כי `ProblemBanner` כבר מסונכרן עם `WHATSAPP_MONITORING_ENABLED=false`. אבל ב-`HomeV2.tsx` (טאב הבית) הלוגיקה שמחשבת `permissionIssues` עדיין סופרת **כל** הרשאה חסרה — כולל `accessibilityEnabled` ו-`notificationListenerEnabled` שאנחנו לא צריכים כרגע.
 
-זה לא רלוונטי כי `WHATSAPP_MONITORING_ENABLED = false` — אנחנו לא מנטרים WhatsApp עד הודעה חדשה. ב-`DeviceHealthBanner` כבר עשינו את הסינון הזה (דרך `WHATSAPP_PERMISSION_KEYS`), אבל ב-`ProblemBanner` שכחנו.
+זה גורם ל:
+- "🛡️ בעיית הרשאות" בכרטיס בטאב הבית
+- "יריב: בעיית הרשאות" ב-AttentionSection ("דורש תשומת לב")
 
-## השינוי
+## התיקון
+**קובץ יחיד:** `src/pages/HomeV2.tsx` (שורות ~157-176)
 
-### `src/components/child-dashboard/ProblemBanner.tsx`
-1. ייבוא `WHATSAPP_MONITORING_ENABLED` מ-`@/config/featureFlags`.
-2. הגדרת קבוע `WHATSAPP_PERMISSION_KEYS = ["accessibilityEnabled", "notificationListenerEnabled"]`.
-3. בסינון `missingPerms` — לדלג על המפתחות הללו כש-`WHATSAPP_MONITORING_ENABLED === false`.
-4. בלוק "ניטור הודעות לקוי" — להציג רק כש-`WHATSAPP_MONITORING_ENABLED === true`.
+לייבא את `WHATSAPP_MONITORING_ENABLED` ולסנן את אותם 2 מפתחות הרשאה כשהפיצ'ר כבוי, בדיוק כמו ב-`ProblemBanner.tsx`:
 
 ```ts
-const missingPerms = Object.entries(deviceHealth.permissions).filter(
-  ([key, val]) =>
-    val === false &&
-    (WHATSAPP_MONITORING_ENABLED || !WHATSAPP_PERMISSION_KEYS.includes(key))
-);
+import { WHATSAPP_MONITORING_ENABLED } from "@/config/featureFlags";
+
+const WHATSAPP_PERMISSION_KEYS = ["accessibilityEnabled", "notificationListenerEnabled"];
+
+// בתוך הלולאה:
+const issues = Object.entries(perms)
+  .filter(([k, v]) =>
+    v === false &&
+    (WHATSAPP_MONITORING_ENABLED || !WHATSAPP_PERMISSION_KEYS.includes(k))
+  )
+  .map(([k]) => k);
 ```
 
 ## תוצאה
-- הבאנר האדום בכרטיס של יריב ייעלם (אם רק `notificationListenerEnabled` חסרה).
-- כשנחזיר ניטור WhatsApp בעתיד (`WHATSAPP_MONITORING_ENABLED = true`) — ההתראות יחזרו אוטומטית בלי שינויי קוד נוספים.
-- עקביות מלאה עם `DeviceHealthBanner` שכבר עושה את אותו דבר.
+- "בעיית הרשאות" תיעלם מכרטיס יריב בטאב הבית
+- הפריט "יריב: בעיית הרשאות" יוסר מסקשן "דורש תשומת לב"
+- כשנחזיר את ניטור וואטסאפ — הלוגיקה תחזור אוטומטית
 
 ## מה לא נוגעים
-- אין שינוי ב-DB, RPCs, או באנדרואיד.
-- אין שינוי ב-`DeviceHealthBanner` (כבר מטופל).
-- ה-`PERMISSION_LABELS` ב-`ChildControlV2.tsx` לא בשימוש פעיל — לא נוגעים.
-
-## קובץ שיתעדכן
-- `src/components/child-dashboard/ProblemBanner.tsx`
+- אין שינוי ב-DB, RPC, או באנדרואיד
+- אין שינוי ב-`ProblemBanner` (כבר תוקן)
+- אין שינוי בלוגיקת התראות אחרות
