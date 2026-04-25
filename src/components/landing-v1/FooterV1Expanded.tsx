@@ -4,7 +4,7 @@ import kippyLogo from '@/assets/kippy-logo.svg';
 
 export function FooterV1Expanded() {
   return (
-    <footer className="bg-white border-t border-border py-14" dir="rtl">
+    <footer className="bg-card border-t border-border py-14" dir="rtl">
       <div className="container mx-auto px-4">
         <div className="grid md:grid-cols-4 gap-8 mb-10">
           {/* Logo & Description */}
