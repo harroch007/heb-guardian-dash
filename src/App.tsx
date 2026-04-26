@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useParams } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { AccessibilityProvider } from "@/contexts/AccessibilityContext";
 import { WaitlistProvider } from "@/contexts/WaitlistContext";
@@ -53,6 +53,12 @@ import DemoFamily from "./pages/demo/DemoFamily";
 import DemoSettings from "./pages/demo/DemoSettings";
 
 const queryClient = new QueryClient();
+
+// Redirect helper preserving :childId param from V1 → V2
+const RedirectChildToV2 = () => {
+  const { childId } = useParams();
+  return <Navigate to={`/child-v2/${childId}`} replace />;
+};
 
 // Smart routing component that checks demo mode
 const AppRoutes = () => {
