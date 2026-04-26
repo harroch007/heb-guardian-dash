@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useParams } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { AccessibilityProvider } from "@/contexts/AccessibilityContext";
 import { WaitlistProvider } from "@/contexts/WaitlistContext";
@@ -13,7 +13,7 @@ import { WaitlistModal } from "@/components/WaitlistModal";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminRoute } from "@/components/AdminRoute";
 import { ServiceWorkerUpdatePrompt } from "@/components/ServiceWorkerUpdatePrompt";
-import Landing from "./pages/Landing";
+import { Navigate } from "react-router-dom";
 import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
@@ -54,13 +54,19 @@ import DemoSettings from "./pages/demo/DemoSettings";
 
 const queryClient = new QueryClient();
 
+// Redirect helper preserving :childId param from V1 → V2
+const RedirectChildToV2 = () => {
+  const { childId } = useParams();
+  return <Navigate to={`/child-v2/${childId}`} replace />;
+};
+
 // Smart routing component that checks demo mode
 const AppRoutes = () => {
   const { isDemoMode } = useDemo();
 
   return (
     <Routes>
-      <Route path="/" element={<Landing />} />
+      <Route path="/" element={<LandingV1 />} />
       <Route path="/landing-v1" element={<LandingV1 />} />
       <Route path="/next" element={<NextPage />} />
       <Route path="/home-v2" element={<ProtectedRoute><HomeV2 /></ProtectedRoute>} />
@@ -76,46 +82,18 @@ const AppRoutes = () => {
       <Route path="/privacy" element={<PrivacyPolicy />} />
       <Route path="/terms" element={<TermsOfService />} />
       
-      {/* Dashboard - demo or protected */}
-      <Route
-        path="/dashboard"
-        element={isDemoMode ? <DemoDashboard /> : <ProtectedRoute><Dashboard /></ProtectedRoute>}
-      />
-      
-      {/* Family - demo or protected */}
-      <Route
-        path="/family"
-        element={isDemoMode ? <DemoFamily /> : <ProtectedRoute><Family /></ProtectedRoute>}
-      />
-      
-      {/* Child Dashboard - demo or protected */}
-      <Route
-        path="/child/:childId"
-        element={isDemoMode ? <DemoChildDashboard /> : <ProtectedRoute><ChildDashboard /></ProtectedRoute>}
-      />
-      
-      {/* Alerts - demo or protected */}
-      <Route
-        path="/alerts"
-        element={isDemoMode ? <DemoAlerts /> : <ProtectedRoute><AlertsPage /></ProtectedRoute>}
-      />
-      
-      {/* Chores - protected */}
-      <Route
-        path="/chores"
-        element={<ProtectedRoute><Chores /></ProtectedRoute>}
-      />
-      
-      {/* Settings - demo or protected */}
-      <Route
-        path="/settings"
-        element={isDemoMode ? <DemoSettings /> : <ProtectedRoute><SettingsPage /></ProtectedRoute>}
-      />
+      {/* Legacy V1 routes redirect to V2 equivalents */}
+      <Route path="/dashboard" element={<Navigate to="/home-v2" replace />} />
+      <Route path="/family" element={<Navigate to="/family-v2" replace />} />
+      <Route path="/child/:childId" element={<RedirectChildToV2 />} />
+      <Route path="/alerts" element={<Navigate to="/alerts-v2" replace />} />
+      <Route path="/chores" element={<Navigate to="/chores-v2" replace />} />
+      <Route path="/settings" element={<Navigate to="/settings-v2" replace />} />
 
-      {/* Daily Report - demo or protected */}
+      {/* Daily Report - protected */}
       <Route
         path="/daily-report/:childId"
-        element={isDemoMode ? <DemoDailyReport /> : <ProtectedRoute><DailyReport /></ProtectedRoute>}
+        element={<ProtectedRoute><DailyReport /></ProtectedRoute>}
       />
       
       {/* Periodic Summary - protected only */}
