@@ -1,37 +1,48 @@
-## הבעיה
+# שחרור גרסה: דף נחיתה V1 + מסכי V2 בלבד
 
-ב-`/landing-v1` הכרטיס `InstallAppCard` כבר ממוקם בקוד (לפני הפוטר), אבל הוא לא נראה כי הוא מוסתר במקרים הבאים:
+## המטרה
+ביוזר שנכנס ל-`kippyai.com` יראה מיד את **דף הנחיתה החדש (LandingV1)**, וכל ניווט ימשיך אך ורק במסכי **V2**. הדף הישן (`Landing`) ומסכי V1 (Dashboard, Family, ChildDashboard, Alerts, Settings וכו׳) לא יוצגו יותר.
 
-1. הדפדפן עדיין לא ירה את `beforeinstallprompt` (קורה רק ב-Chrome/Edge, ולעיתים מתעכב).
-2. דפדפן שאינו Chrome ב-Android (Firefox/Samsung).
-3. דסקטופ ללא Chrome — אין אפשרות התקנה כלל אז הכרטיס נעלם.
-4. העיצוב של ה-`variant="landing"` משתמש ב-`bg-card border-border shadow-sm` — נראה דהוי על הרקע החשוך החדש של `/landing-v1`.
+## שינויים מתוכננים
 
-## הפתרון
+### 1. `src/App.tsx` — החלפת רכיב דף הבית
+- שורה 63: `<Route path="/" element={<Landing />} />` → `<Route path="/" element={<LandingV1 />} />`
+- הסרת ה־import של `Landing` (לא בשימוש יותר).
+- שמירה על המסלול `/landing-v1` כ-alias (יציג גם הוא את `LandingV1`) כדי לא לשבור לינקים קיימים.
 
-### 1. שדרוג `src/components/InstallAppCard.tsx`
-- **תמיד להציג את הכרטיס בדף הנחיתה** (לא רק כש-`isInstallable || isIOS`), כל עוד האפליקציה לא מותקנת.
-- להוסיף **זיהוי Android בדפדפן שאינו Chrome** עם הוראות "פתחו ב-Chrome → תפריט → הוסף למסך הבית".
-- להוסיף **מצב fallback לדסקטופ**: הסבר קצר "פתחו את האתר בטלפון כדי להתקין כאפליקציה" + הצעה לסרוק QR / לשתף קישור.
-- שיפור עיצוב `variant="landing"` להתאים לתמה החשוכה החדשה של V1:
-  - `bg-card/60 backdrop-blur border-primary/20`
-  - אפקט זוהר עדין `shadow-[0_0_24px_hsl(var(--primary)/0.15)]`
-  - אייקון בתוך עיגול `bg-primary/10 border border-primary/30` (במקום הלוגו על רקע בהיר)
-  - כותרת בצבע `text-foreground`, תיאור ב-`text-muted-foreground`
-- הוראות iOS — עדכון צבעי הטקסט להיראות נכון על רקע חשוך.
+### 2. הפניית מסכי V1 הישנים ל-V2
+כדי שאף משתמש (גם עם bookmark ישן) לא יראה V1, נחליף את ה-elements של המסלולים הישנים ב-`<Navigate replace>` למקבילים ב-V2:
 
-### 2. עדכון `src/pages/LandingV1.tsx`
-- הזזת בלוק ה-`InstallAppCard` למיקום בולט יותר — אחרי `HowItWorks` או לפני `FreeAccessCTA`, עם מרווח אוויר נדיב (`py-12`).
-- מעטפת `section` עם רקע מודגש כדי לא להיבלע בין הסקשנים.
+| מסלול ישן | יפנה ל |
+|---|---|
+| `/dashboard` | `/home-v2` |
+| `/family` | `/family-v2` |
+| `/child/:childId` | `/child-v2/:childId` |
+| `/alerts` | `/alerts-v2` |
+| `/settings` | `/settings-v2` |
+| `/chores` | `/chores-v2` |
 
-### 3. שמירה על תאימות
-- ה-`variant="settings"` נשאר כפי שהוא (משמש ב-`SettingsV2`/`Settings`) — לא נשנה את ההתנהגות שם.
-- אם המשתמש כבר התקין (`isInstalled === true`) — עדיין מחזיר `null` (לא מציגים כרטיס מיותר).
+הערה: גם דפי ה־demo (`DemoDashboard`, `DemoFamily` וכו׳) שמופעלים ב-`isDemoMode` יוסרו מהמסלולים האלה — חוויית הדמו תעבור גם היא דרך V2 (לא קיימים מסכי דמו ל-V2 כרגע, ולכן פשוט נפנה לכל המסכים האמיתיים; demo mode בפועל לא משמש פרודקשן).
 
-## קבצים שיתעדכנו
-- `src/components/InstallAppCard.tsx` — לוגיקת תצוגה + עיצוב חדש לתמה החשוכה
-- `src/pages/LandingV1.tsx` — מיקום ומעטפת חדשים לסקשן ההתקנה
+### 3. `src/pages/Landing.tsx` — הפניית הקובץ הישן
+לא נמחק את הקובץ (כדי לא לשבור imports שולפים), אבל אם נשארו import-ים — נסיר אותם מ-App.tsx. הקובץ עצמו יישאר בפרויקט אך לא ייטען לאף מסלול.
 
-## מה לא נוגעים
-- `usePWAInstall.ts` — לא צריך שינוי, ה-hook כבר מספק את כל המידע (`isInstalled`, `isInstallable`, `isIOS`, `isAndroid`).
-- `vite.config.ts` / Service Worker — ההתקנה עצמה כבר עובדת, רק התצוגה הייתה חסרה.
+### 4. הפניות קיימות שכבר תקינות (לא דורש שינוי)
+- `ProtectedRoute` כבר מפנה את משתמש מחובר ל-`/home-v2` ✓
+- `LandingV1` כבר מפנה משתמש מחובר ל-`/home-v2` ✓
+- כפתור התנתקות כבר מפנה ל-`/landing-v1` ✓ (בוצע במשימה קודמת)
+
+### 5. דברים שלא נוגעים בהם
+- **לא** נוגעים בלוגיקת ה-Auth, Waitlist, Onboarding או Admin.
+- **לא** מוחקים את `Landing.tsx` הישן או את הקומפוננטות שלו (`src/components/landing/*`) — נשמרים בקוד למקרה של rollback.
+- מסלולי Admin, Auth, Privacy, Terms, Install, Onboarding, Checkout, Periodic Summary, Daily Report, Notification Settings, Accept Invite, Join Family — נשארים כפי שהם.
+- דפי `/next` ו-`/landing-v1` נשארים נגישים.
+
+## תוצאה צפויה
+1. כניסה ל-`kippyai.com` → דף נחיתה V1 (כשהמשתמש לא מחובר).
+2. כניסה ל-`kippyai.com` כשמחובר → הפניה אוטומטית ל-`/home-v2`.
+3. כל לינק/bookmark ישן ל-`/dashboard`, `/family`, `/child/:id`, `/alerts`, `/settings`, `/chores` → הפניה אוטומטית למקבילה ב-V2.
+4. כל החוויה החדשה (דף נחיתה + V2) — הפעילה היחידה ליוזר.
+
+## לאחר אישור התוכנית
+לאחר ביצוע השינויים בקוד, תצטרך ללחוץ **Publish → Update** בלוונייבל כדי לשחרר את הגרסה לאוויר ב-`kippyai.com`.
