@@ -6,6 +6,7 @@ import { RefreshCw, Shield, Bell, Bookmark, Star, Crown } from "lucide-react";
 import { BottomNavigationV2 } from "@/components/BottomNavigationV2";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { getFamilyParentIds } from "@/lib/familyScope";
 import { Card } from "@/components/ui/card";
 
 interface SocialContext {
