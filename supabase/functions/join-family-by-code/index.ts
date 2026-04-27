@@ -106,12 +106,18 @@ Deno.serve(async (req) => {
       crypto.randomUUID().replace(/-/g, "") +
       crypto.randomUUID().replace(/-/g, "").slice(0, 8);
 
+    const invitedName =
+      typeof invite.invited_name === "string" && invite.invited_name.trim()
+        ? invite.invited_name.trim()
+        : cleanEmail.split("@")[0];
+
     if (!userId) {
       const { data: created, error: createErr } =
         await admin.auth.admin.createUser({
           email: cleanEmail,
           password: oneTimePassword,
           email_confirm: true,
+          user_metadata: { full_name: invitedName },
           app_metadata: { invited_as: "co_parent" },
         });
       if (createErr || !created.user) {
@@ -123,11 +129,28 @@ Deno.serve(async (req) => {
       const { error: updErr } = await admin.auth.admin.updateUserById(userId, {
         password: oneTimePassword,
         email_confirm: true,
+        user_metadata: { full_name: invitedName },
       });
       if (updErr) {
         console.error("updateUserById error:", updErr);
         return json({ error: "PASSWORD_RESET_FAILED" }, 500);
       }
+    }
+
+    // 4) Ensure a `parents` row exists for the co-parent so HomeGreeting can find a name.
+    // This row is purely for display/profile; co-parent identity for permissions is still
+    // determined by family_members (useFamilyRole).
+    try {
+      await admin.from("parents").upsert(
+        {
+          id: userId,
+          full_name: invitedName,
+          email: cleanEmail,
+        },
+        { onConflict: "id" }
+      );
+    } catch (e) {
+      console.warn("parents upsert skipped:", e);
     }
 
     return json({
