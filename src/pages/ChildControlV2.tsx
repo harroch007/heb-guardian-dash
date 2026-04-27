@@ -11,6 +11,7 @@ import { getDeviceStatus, getStatusColor, getStatusLabel, formatLastSeen } from 
 import type { DeviceHealthInfo } from "@/hooks/useChildControls";
 import { DeviceHealthBanner } from "@/components/controls/DeviceHealthBanner";
 import { cn, getIsraelDate } from "@/lib/utils";
+import { getFamilyParentIds } from "@/lib/familyScope";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
