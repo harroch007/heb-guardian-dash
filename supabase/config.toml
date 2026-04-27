@@ -47,3 +47,6 @@ verify_jwt = false
 
 [functions.bootstrap-device-auth]
 verify_jwt = false
+
+[functions.join-family-by-code]
+verify_jwt = false
