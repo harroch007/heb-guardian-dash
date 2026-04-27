@@ -4,6 +4,7 @@ import { AlertCardStack, AlertTabs, EmptyAlertsState, EmptySavedState, PositiveA
 import { supabase } from "@/integrations/supabase/client";
 import { RefreshCw, Shield, Bell, Bookmark, Star, Crown } from "lucide-react";
 import { BottomNavigationV2 } from "@/components/BottomNavigationV2";
+import { TopNavigationV2 } from "@/components/TopNavigationV2";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { getFamilyParentIds } from "@/lib/familyScope";
@@ -254,6 +255,7 @@ const AlertsV2 = () => {
 
   return (
     <div className="v2-dark min-h-screen bg-background">
+      <TopNavigationV2 />
       <div className="max-w-2xl mx-auto px-4 py-6 pb-24" dir="rtl">
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">

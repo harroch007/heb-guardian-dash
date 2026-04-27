@@ -24,6 +24,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { BottomNavigationV2 } from "@/components/BottomNavigationV2";
+import { TopNavigationV2 } from "@/components/TopNavigationV2";
 
 interface Child {
   id: string;
@@ -90,6 +91,7 @@ export default function ChoresV2() {
 
   return (
     <div className="v2-dark min-h-screen bg-background" dir="rtl">
+      <TopNavigationV2 />
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-6 pb-24">
         {/* Header */}
         <div className="flex items-center gap-3">

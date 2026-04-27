@@ -4,6 +4,7 @@ import { User, Crown, BellRing, Send, Loader2, Users, Shield, FileText, MessageC
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { InstallAppCard } from "@/components/InstallAppCard";
 import { BottomNavigationV2 } from "@/components/BottomNavigationV2";
+import { TopNavigationV2 } from "@/components/TopNavigationV2";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFamilySubscription } from "@/hooks/useFamilySubscription";
 import { useFamilyRole } from "@/hooks/useFamilyRole";
@@ -130,6 +131,7 @@ const SettingsV2 = () => {
 
   return (
     <div className="v2-dark min-h-screen bg-background" dir="rtl">
+      <TopNavigationV2 />
       <div className="max-w-lg mx-auto px-4 py-6 space-y-5">
         {/* Header */}
         <div className="flex items-center gap-3 mb-2">
