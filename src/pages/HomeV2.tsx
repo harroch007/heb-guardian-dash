@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { getIsraelDate } from "@/lib/utils";
+import { getFamilyParentIds } from "@/lib/familyScope";
 import { Loader2 } from "lucide-react";
 import { HomeGreeting } from "@/components/home-v2/HomeGreeting";
 import { FamilyStatusHero } from "@/components/home-v2/FamilyStatusHero";
