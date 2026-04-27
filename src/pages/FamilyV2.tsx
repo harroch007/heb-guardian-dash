@@ -692,6 +692,15 @@ const FamilyV2 = () => {
               ) : showInviteForm ? (
                 <div className="space-y-3">
                   <div className="space-y-1.5">
+                    <label className="text-xs text-muted-foreground">שם ההורה השותף</label>
+                    <Input
+                      value={inviteName}
+                      onChange={(e) => setInviteName(e.target.value)}
+                      placeholder="לדוגמה: יריב"
+                      className="h-9 text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
                     <label className="text-xs text-muted-foreground">אימייל ההורה השותף</label>
                     <Input
                       value={inviteEmail}
@@ -712,7 +721,12 @@ const FamilyV2 = () => {
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Button size="sm" onClick={handleInvite} disabled={inviting || !inviteEmail.trim()} className="gap-2">
+                    <Button
+                      size="sm"
+                      onClick={handleInvite}
+                      disabled={inviting || !inviteEmail.trim() || !inviteName.trim()}
+                      className="gap-2"
+                    >
                       {inviting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
                       שלח הזמנה
                     </Button>
