@@ -13,7 +13,6 @@ const JoinFamily = () => {
   const [checking, setChecking] = useState(true);
   const [signedInEmail, setSignedInEmail] = useState<string | null>(null);
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -28,49 +27,80 @@ const JoinFamily = () => {
   }, []);
 
   const claim = async (claimEmail: string, claimCode: string) => {
-    const { error } = await supabase.rpc("claim_family_invite_by_code", {
+    const { data, error } = await supabase.rpc("claim_family_invite_by_code", {
       p_email: claimEmail,
       p_code: claimCode,
     });
     if (error) throw error;
+    return data;
   };
 
   const handleSubmit = async () => {
     const cleanEmail = email.trim().toLowerCase();
     const cleanCode = code.trim();
     if (!cleanEmail || cleanCode.length !== 6) {
-      toast({ title: "שגיאה", description: "מלא אימייל וקוד בן 6 ספרות", variant: "destructive" });
+      toast({
+        title: "שגיאה",
+        description: "מלא אימייל וקוד בן 6 ספרות",
+        variant: "destructive",
+      });
       return;
     }
+
     setSubmitting(true);
     try {
-      // If not signed in, sign in or sign up
-      if (!signedInEmail) {
-        if (!password) {
-          toast({ title: "סיסמה נדרשת", description: "הזן סיסמה כדי להתחבר/להירשם", variant: "destructive" });
-          setSubmitting(false);
-          return;
-        }
-        const { error: signInErr } = await supabase.auth.signInWithPassword({
-          email: cleanEmail,
-          password,
-        });
-        if (signInErr) {
-          // Try sign up
-          const { error: signUpErr } = await supabase.auth.signUp({
-            email: cleanEmail,
-            password,
-            options: { emailRedirectTo: `${window.location.origin}/join-family` },
-          });
-          if (signUpErr) {
-            toast({ title: "שגיאה בהתחברות", description: signUpErr.message, variant: "destructive" });
-            setSubmitting(false);
-            return;
-          }
-        }
+      // Case 1: already signed in with the same email → just claim.
+      if (signedInEmail && signedInEmail.toLowerCase() === cleanEmail) {
+        await claim(cleanEmail, cleanCode);
+        toast({ title: "הצטרפת למשפחה!", description: "ברוך הבא ל-KippyAI" });
+        navigate("/home-v2", { replace: true });
+        return;
       }
 
-      await claim(cleanEmail, cleanCode);
+      // Case 2: signed in with a different email — sign out first.
+      if (signedInEmail && signedInEmail.toLowerCase() !== cleanEmail) {
+        await supabase.auth.signOut();
+      }
+
+      // Case 3: passwordless join — exchange code for a one-time password.
+      const { data, error } = await supabase.functions.invoke(
+        "join-family-by-code",
+        { body: { email: cleanEmail, code: cleanCode } }
+      );
+
+      if (error || !data?.success) {
+        const code = (data as any)?.error || "";
+        const map: Record<string, string> = {
+          INVALID_EMAIL: "כתובת אימייל לא תקינה.",
+          INVALID_CODE_FORMAT: "הקוד צריך להיות 6 ספרות.",
+          INVALID_CODE_OR_EMAIL: "האימייל או הקוד שגויים.",
+          CODE_EXPIRED: "הקוד פג תוקף. בקש מההורה הראשי קוד חדש.",
+        };
+        toast({
+          title: "לא ניתן להצטרף",
+          description: map[code] || error?.message || "נסה שוב",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Sign in with the one-time password we just received.
+      const { error: signInErr } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.one_time_password,
+      });
+      if (signInErr) {
+        toast({
+          title: "שגיאה בהתחברות",
+          description: signInErr.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Now claim the invite (RPC requires authenticated session matching email).
+      await claim(data.email, cleanCode);
+
       toast({ title: "הצטרפת למשפחה!", description: "ברוך הבא ל-KippyAI" });
       navigate("/home-v2", { replace: true });
     } catch (err: any) {
@@ -101,7 +131,7 @@ const JoinFamily = () => {
           </div>
           <h1 className="text-2xl font-bold text-foreground">הצטרפות למשפחה</h1>
           <p className="text-sm text-muted-foreground">
-            הזן את הקוד שקיבלת מההורה הראשי כדי להצטרף כהורה שותף
+            הזן את האימייל והקוד שקיבלת מההורה הראשי כדי להצטרף כהורה שותף
           </p>
         </div>
 
@@ -115,32 +145,19 @@ const JoinFamily = () => {
                 placeholder="email@example.com"
                 type="email"
                 dir="ltr"
-                disabled={!!signedInEmail || submitting}
+                disabled={submitting}
               />
             </div>
 
-            {!signedInEmail && (
-              <div className="space-y-1.5">
-                <label className="text-xs text-muted-foreground">סיסמה</label>
-                <Input
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  type="password"
-                  dir="ltr"
-                  disabled={submitting}
-                />
-                <p className="text-[11px] text-muted-foreground">
-                  אם זו הפעם הראשונה — נירשם עבורך אוטומטית
-                </p>
-              </div>
-            )}
-
             <div className="space-y-1.5">
-              <label className="text-xs text-muted-foreground">קוד הצטרפות (6 ספרות)</label>
+              <label className="text-xs text-muted-foreground">
+                קוד הצטרפות (6 ספרות)
+              </label>
               <Input
                 value={code}
-                onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                onChange={(e) =>
+                  setCode(e.target.value.replace(/\D/g, "").slice(0, 6))
+                }
                 placeholder="123456"
                 inputMode="numeric"
                 dir="ltr"
@@ -152,11 +169,19 @@ const JoinFamily = () => {
             <Button
               className="w-full gap-2"
               onClick={handleSubmit}
-              disabled={submitting || !email || code.length !== 6 || (!signedInEmail && !password)}
+              disabled={submitting || !email || code.length !== 6}
             >
-              {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
+              {submitting ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <ShieldCheck className="w-4 h-4" />
+              )}
               הצטרף למשפחה
             </Button>
+
+            <p className="text-[11px] text-muted-foreground text-center pt-1">
+              לא צריך סיסמה — הקוד מספיק כדי להיכנס.
+            </p>
           </CardContent>
         </Card>
 

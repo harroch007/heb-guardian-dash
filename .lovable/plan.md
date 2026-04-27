@@ -1,48 +1,50 @@
-# שחרור גרסה: דף נחיתה V1 + מסכי V2 בלבד
+## הבעיה
+הורה שותף שמקבל לינק הצטרפות (`/join-family`) נדרש כיום להזין אימייל + **סיסמה** + קוד OTP. אין לו סיסמה — הוא הוזמן בלינק עם קוד 6 ספרות בלבד. כתוצאה מכך הוא נתקע ב"Invalid code or email".
 
 ## המטרה
-ביוזר שנכנס ל-`kippyai.com` יראה מיד את **דף הנחיתה החדש (LandingV1)**, וכל ניווט ימשיך אך ורק במסכי **V2**. הדף הישן (`Landing`) ומסכי V1 (Dashboard, Family, ChildDashboard, Alerts, Settings וכו׳) לא יוצגו יותר.
+מסך הצטרפות פשוט: ההורה השני מזין רק **אימייל** (זה שההורה הראשי הזמין) + **קוד 6 ספרות**, ונכנס אוטומטית למערכת כהורה שותף — בלי סיסמה, בלי OTP, בלי מייל אישור.
 
-## שינויים מתוכננים
+## השינויים
 
-### 1. `src/App.tsx` — החלפת רכיב דף הבית
-- שורה 63: `<Route path="/" element={<Landing />} />` → `<Route path="/" element={<LandingV1 />} />`
-- הסרת ה־import של `Landing` (לא בשימוש יותר).
-- שמירה על המסלול `/landing-v1` כ-alias (יציג גם הוא את `LandingV1`) כדי לא לשבור לינקים קיימים.
+### 1. Edge Function חדשה: `join-family-by-code`
+קובץ: `supabase/functions/join-family-by-code/index.ts` (+ רישום ב-`supabase/config.toml` עם `verify_jwt = false`).
 
-### 2. הפניית מסכי V1 הישנים ל-V2
-כדי שאף משתמש (גם עם bookmark ישן) לא יראה V1, נחליף את ה-elements של המסלולים הישנים ב-`<Navigate replace>` למקבילים ב-V2:
+הזרימה (עם service role):
+1. מקבלת `{ email, code }`.
+2. מאמתת מול `family_members`: שורה עם `lower(invited_email)=email`, `pairing_code=code`, `status='pending'`, `revoked_at IS NULL`, ו-`pairing_code_expires_at > now()`. אם לא נמצא → `INVALID_CODE_OR_EMAIL`.
+3. אם `WAITLIST_MODE` פעיל — מוסיפה אוטומטית את האימייל ל-`allowed_emails` (כי ההורה הראשי הזמין אותו במפורש, זה השער לעקיפת רשימת ההמתנה ללגיטימית).
+4. בודקת אם המשתמש קיים ב-`auth.users`:
+   - **לא קיים** → יוצרת משתמש חדש עם `auth.admin.createUser` (`email_confirm: true`, סיסמה אקראית פנימית).
+   - **קיים** → מאפסת לו סיסמה זמנית חד-פעמית עם `auth.admin.updateUserById`.
+5. מחזירה ללקוח `{ email, one_time_password }` — סיסמה זמנית שמשמשת רק לכניסה מיידית בצד הלקוח.
+6. הלקוח מבצע `signInWithPassword` ואז קורא ל-RPC `claim_family_invite_by_code` (כמו היום), שמשייך את `member_id` לחשבון ומסמן `accepted`.
 
-| מסלול ישן | יפנה ל |
-|---|---|
-| `/dashboard` | `/home-v2` |
-| `/family` | `/family-v2` |
-| `/child/:childId` | `/child-v2/:childId` |
-| `/alerts` | `/alerts-v2` |
-| `/settings` | `/settings-v2` |
-| `/chores` | `/chores-v2` |
+הערה אבטחתית: הסיסמה הזמנית נחשפת רק אחרי אימות מוצלח של קוד 6 ספרות עם תפוגה — אותו רף אבטחה כמו OTP. אחרי השימוש החד-פעמי המשתמש מקבל פרופיל רגיל.
 
-הערה: גם דפי ה־demo (`DemoDashboard`, `DemoFamily` וכו׳) שמופעלים ב-`isDemoMode` יוסרו מהמסלולים האלה — חוויית הדמו תעבור גם היא דרך V2 (לא קיימים מסכי דמו ל-V2 כרגע, ולכן פשוט נפנה לכל המסכים האמיתיים; demo mode בפועל לא משמש פרודקשן).
+### 2. RPC `claim_family_invite_by_code` — תיקון קטן
+כיום הוא דורש שהאימייל ב-`auth.users` יהיה זהה לאימייל בקריאה. נשאיר את הבדיקה (כי זה תקין — המשתמש כבר מחובר עם אותו אימייל). לא צריך לשנות.
 
-### 3. `src/pages/Landing.tsx` — הפניית הקובץ הישן
-לא נמחק את הקובץ (כדי לא לשבור imports שולפים), אבל אם נשארו import-ים — נסיר אותם מ-App.tsx. הקובץ עצמו יישאר בפרויקט אך לא ייטען לאף מסלול.
+### 3. עדכון `src/pages/JoinFamily.tsx`
+- **הסרת שדה הסיסמה לחלוטין**.
+- שני שדות בלבד: אימייל + קוד 6 ספרות.
+- במקום `signInWithPassword`/`signUp` ידני — קריאה ל-`supabase.functions.invoke('join-family-by-code', { body: { email, code } })`, ואז `signInWithPassword` עם הסיסמה החד-פעמית שהוחזרה, ואז `claim_family_invite_by_code`.
+- אם המשתמש כבר מחובר עם אותו אימייל → דילוג על שלב הכניסה, קריאה ישירה ל-RPC.
+- ניווט ל-`/home-v2` בסיום + טוסט "הצטרפת למשפחה!".
+- הודעות שגיאה בעברית: קוד שגוי / קוד פג תוקף / לא ניתן להצטרף.
 
-### 4. הפניות קיימות שכבר תקינות (לא דורש שינוי)
-- `ProtectedRoute` כבר מפנה את משתמש מחובר ל-`/home-v2` ✓
-- `LandingV1` כבר מפנה משתמש מחובר ל-`/home-v2` ✓
-- כפתור התנתקות כבר מפנה ל-`/landing-v1` ✓ (בוצע במשימה קודמת)
+### 4. עדכון הודעת ההזמנה ב-WhatsApp (`FamilyV2.tsx`)
+שורות 593-598: עדכון הטקסט כך שלא יזכיר סיסמה כלל. ההודעה תכלול: לינק → אימייל → קוד. (כבר ככה היום, אבל נוודא שאין אזכורי סיסמה.)
 
-### 5. דברים שלא נוגעים בהם
-- **לא** נוגעים בלוגיקת ה-Auth, Waitlist, Onboarding או Admin.
-- **לא** מוחקים את `Landing.tsx` הישן או את הקומפוננטות שלו (`src/components/landing/*`) — נשמרים בקוד למקרה של rollback.
-- מסלולי Admin, Auth, Privacy, Terms, Install, Onboarding, Checkout, Periodic Summary, Daily Report, Notification Settings, Accept Invite, Join Family — נשארים כפי שהם.
-- דפי `/next` ו-`/landing-v1` נשארים נגישים.
+### 5. Onboarding
+ההורה השותף מדלג על onboarding (אין לו ילדים משלו — הוא חבר במשפחה של ההורה הראשי). כבר היום `useFamilyRole` מזהה `co_parent` דרך `family_members`. נוודא ש-`ProtectedRoute` / `Auth.tsx` לא דוחפים אותו ל-`/onboarding` במקרה הזה. אם כן — נוסיף בדיקה: אם המשתמש קיים ב-`family_members` כ-`accepted`, הוא נחשב מצורף וננתב ל-`/home-v2`.
 
-## תוצאה צפויה
-1. כניסה ל-`kippyai.com` → דף נחיתה V1 (כשהמשתמש לא מחובר).
-2. כניסה ל-`kippyai.com` כשמחובר → הפניה אוטומטית ל-`/home-v2`.
-3. כל לינק/bookmark ישן ל-`/dashboard`, `/family`, `/child/:id`, `/alerts`, `/settings`, `/chores` → הפניה אוטומטית למקבילה ב-V2.
-4. כל החוויה החדשה (דף נחיתה + V2) — הפעילה היחידה ליוזר.
+## חוויית משתמש סופית
+1. הורה ראשי: לוחץ "שלח להורה דרך WhatsApp" → הודעה עם לינק + אימייל + קוד.
+2. הורה שותף: פותח לינק → רואה אימייל + קוד → לוחץ "הצטרף למשפחה" → נכנס מיידית לדשבורד V2 כהורה שותף. בלי סיסמה. בלי OTP. בלי מייל.
 
-## לאחר אישור התוכנית
-לאחר ביצוע השינויים בקוד, תצטרך ללחוץ **Publish → Update** בלוונייבל כדי לשחרר את הגרסה לאוויר ב-`kippyai.com`.
+## קבצים שיושפעו
+- חדש: `supabase/functions/join-family-by-code/index.ts`
+- חדש: רישום ב-`supabase/config.toml`
+- עריכה: `src/pages/JoinFamily.tsx` (הסרת סיסמה, זרימה חדשה)
+- עריכה קלה: `src/pages/FamilyV2.tsx` (טקסט WhatsApp, אם צריך)
+- בדיקה: `src/pages/Auth.tsx` / `ProtectedRoute.tsx` שלא ידחפו co-parent ל-onboarding
