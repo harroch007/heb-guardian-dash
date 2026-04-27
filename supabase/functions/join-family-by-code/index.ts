@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
     const { data: invite, error: inviteErr } = await admin
       .from("family_members")
       .select(
-        "id, owner_id, invited_email, pairing_code, pairing_code_expires_at, status, revoked_at"
+        "id, owner_id, invited_email, invited_name, pairing_code, pairing_code_expires_at, status, revoked_at"
       )
       .ilike("invited_email", cleanEmail)
       .eq("pairing_code", cleanCode)

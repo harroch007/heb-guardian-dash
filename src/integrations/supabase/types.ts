@@ -1932,6 +1932,7 @@ export type Database = {
           id: string
           invited_at: string
           invited_email: string
+          invited_name: string | null
           member_id: string | null
           owner_id: string
           pairing_code: string | null
@@ -1946,6 +1947,7 @@ export type Database = {
           id?: string
           invited_at?: string
           invited_email: string
+          invited_name?: string | null
           member_id?: string | null
           owner_id: string
           pairing_code?: string | null
@@ -1960,6 +1962,7 @@ export type Database = {
           id?: string
           invited_at?: string
           invited_email?: string
+          invited_name?: string | null
           member_id?: string | null
           owner_id?: string
           pairing_code?: string | null
@@ -3032,10 +3035,9 @@ export type Database = {
         }
         Returns: string
       }
-      create_family_invite_with_code: {
-        Args: { p_email: string }
-        Returns: Json
-      }
+      create_family_invite_with_code:
+        | { Args: { p_email: string }; Returns: Json }
+        | { Args: { p_email: string; p_name?: string }; Returns: Json }
       delete_all_my_data: { Args: never; Returns: Json }
       delete_child_data: { Args: { p_child_id: string }; Returns: Json }
       disconnect_device: { Args: { p_device_id: string }; Returns: Json }
