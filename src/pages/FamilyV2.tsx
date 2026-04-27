@@ -57,6 +57,7 @@ const FamilyV2 = () => {
   const [coParent, setCoParent] = useState<CoParentRow | null>(null);
   const [coParentLoading, setCoParentLoading] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteName, setInviteName] = useState("");
   const [inviteAlerts, setInviteAlerts] = useState(false);
   const [showInviteForm, setShowInviteForm] = useState(false);
   const [inviting, setInviting] = useState(false);
