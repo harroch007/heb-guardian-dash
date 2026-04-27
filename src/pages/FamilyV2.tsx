@@ -307,7 +307,14 @@ const FamilyV2 = () => {
       });
       if (error) throw error;
       const result = data as { code: string; expires_at: string };
-      setCoParent({ ...coParent, pairing_code: result.code, pairing_code_expires_at: result.expires_at });
+      setCoParent({
+        ...coParent,
+        status: "pending",
+        member_id: null,
+        accepted_at: null,
+        pairing_code: result.code,
+        pairing_code_expires_at: result.expires_at,
+      });
       toast({ title: "נוצר קוד חדש" });
     } catch {
       toast({ title: "שגיאה", description: "לא ניתן להפיק קוד חדש", variant: "destructive" });
