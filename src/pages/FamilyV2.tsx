@@ -65,10 +65,13 @@ const FamilyV2 = () => {
     if (!user?.id) return;
     setLoading(true);
     try {
-      // No parent_id filter — RLS (is_family_parent) handles access for both owner and co-parent
+      // Explicitly scope to this family's owners (own + accepted co-parent owners)
+      // so admin RLS bypass doesn't leak other families' children.
+      const allowedParentIds = await getFamilyParentIds(user.id);
       const { data: kids } = await supabase
         .from("children")
         .select("id, name, gender, subscription_tier")
+        .in("parent_id", allowedParentIds)
         .order("created_at", { ascending: true });
 
       if (!kids || kids.length === 0) {
