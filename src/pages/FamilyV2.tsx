@@ -579,9 +579,16 @@ const FamilyV2 = () => {
               ) : coParent ? (
                 <div className="space-y-3">
                   <div className="flex items-center justify-between py-2 border-b border-border/30">
-                    <div className="flex items-center gap-2">
-                      <Mail className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm text-foreground" dir="ltr">{coParent.invited_email}</span>
+                    <div className="flex flex-col gap-0.5">
+                      {coParent.invited_name && (
+                        <span className="text-sm font-semibold text-foreground">
+                          {coParent.invited_name}
+                        </span>
+                      )}
+                      <div className="flex items-center gap-2">
+                        <Mail className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground" dir="ltr">{coParent.invited_email}</span>
+                      </div>
                     </div>
                     <Badge variant={coParent.status === "accepted" ? "default" : "secondary"} className="text-[10px]">
                       {coParent.status === "accepted" ? "פעיל" : "ממתין לאישור"}
