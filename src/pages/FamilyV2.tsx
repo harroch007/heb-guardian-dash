@@ -34,6 +34,7 @@ interface FamilyChild {
 interface CoParentRow {
   id: string;
   invited_email: string;
+  invited_name: string | null;
   status: string;
   receive_alerts: boolean;
   member_id: string | null;
