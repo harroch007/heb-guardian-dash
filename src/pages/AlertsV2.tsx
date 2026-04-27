@@ -6,6 +6,7 @@ import { RefreshCw, Shield, Bell, Bookmark, Star, Crown } from "lucide-react";
 import { BottomNavigationV2 } from "@/components/BottomNavigationV2";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { getFamilyParentIds } from "@/lib/familyScope";
 import { Card } from "@/components/ui/card";
 
 interface SocialContext {
@@ -57,7 +58,7 @@ const ALERT_SELECT_FIELDS = `
 `;
 
 const AlertsV2 = () => {
-  const { parentId } = useAuth();
+  const { user, parentId } = useAuth();
   const navigate = useNavigate();
   const [children, setChildren] = useState<Child[]>([]);
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
@@ -68,17 +69,20 @@ const AlertsV2 = () => {
   const [activeTab, setActiveTab] = useState<'new' | 'saved' | 'positive'>('new');
   const [feedbackMap, setFeedbackMap] = useState<Record<number, 'important' | 'not_relevant'>>({});
 
-  // Fetch children list
+  // Fetch children list — explicitly scoped to this family
   useEffect(() => {
+    if (!user?.id) return;
     const fetchChildren = async () => {
+      const allowedParentIds = await getFamilyParentIds(user.id);
       const { data } = await supabase
         .from('children')
         .select('id, name, subscription_tier')
+        .in('parent_id', allowedParentIds)
         .order('created_at');
       if (data) setChildren(data);
     };
     fetchChildren();
-  }, []);
+  }, [user?.id]);
 
   const fetchAlerts = async () => {
     try {

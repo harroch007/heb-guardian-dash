@@ -13,16 +13,22 @@ export const HomeGreeting = () => {
         .from("parents")
         .select("full_name")
         .eq("id", user.id)
-        .single();
-      if (data?.full_name) {
-        const name = data.full_name.includes("@")
-          ? data.full_name.split("@")[0]
-          : data.full_name.split(" ")[0];
+        .maybeSingle();
+
+      // Prefer parents.full_name; fall back to auth user_metadata.full_name; then email local-part.
+      const raw =
+        data?.full_name ||
+        (user.user_metadata as { full_name?: string } | undefined)?.full_name ||
+        user.email?.split("@")[0] ||
+        "";
+
+      if (raw) {
+        const name = raw.includes("@") ? raw.split("@")[0] : raw.split(" ")[0];
         setParentName(name);
       }
     };
     fetch();
-  }, [user?.id]);
+  }, [user?.id, user?.email, user?.user_metadata]);
 
   const getGreeting = () => {
     const now = new Date();

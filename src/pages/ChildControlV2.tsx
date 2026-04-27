@@ -11,6 +11,7 @@ import { getDeviceStatus, getStatusColor, getStatusLabel, formatLastSeen } from 
 import type { DeviceHealthInfo } from "@/hooks/useChildControls";
 import { DeviceHealthBanner } from "@/components/controls/DeviceHealthBanner";
 import { cn, getIsraelDate } from "@/lib/utils";
+import { getFamilyParentIds } from "@/lib/familyScope";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -209,9 +210,11 @@ export default function ChildControlV2() {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
 
+    // Explicitly scope by family ownership so admin RLS bypass cannot open another family's child.
+    const allowedParentIds = await getFamilyParentIds(user.id);
+
     const [childRes, deviceRes, snapshotRes, settingsRes, bankRes, alertsRes, alertsTodayRes, timeReqRes, choresActiveRes, choresDoneRes] = await Promise.all([
-      // No parent_id filter — RLS (is_family_parent) handles access for both owner and co-parent
-      supabase.from("children").select("id, name, date_of_birth, gender, subscription_tier, pairing_code").eq("id", childId).maybeSingle(),
+      supabase.from("children").select("id, name, date_of_birth, gender, subscription_tier, pairing_code, parent_id").eq("id", childId).in("parent_id", allowedParentIds).maybeSingle(),
       supabase.from("devices").select("*").eq("child_id", childId).order("last_seen", { ascending: false }).limit(1).maybeSingle(),
       supabase.from("parent_home_snapshot").select("top_apps, total_usage_minutes").eq("child_id", childId).maybeSingle(),
       supabase.from("settings").select("daily_screen_time_limit_minutes").eq("child_id", childId).maybeSingle(),

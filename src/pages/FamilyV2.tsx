@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFamilyRole } from "@/hooks/useFamilyRole";
 import { getIsraelDate } from "@/lib/utils";
+import { getFamilyParentIds } from "@/lib/familyScope";
 import { Loader2, ArrowRight, Users, Wifi, AlertTriangle, Crown, Phone, Clock, UserPlus, Bell, Volume2, CheckCircle2, Mail, UserMinus, ShieldCheck, Copy, MessageCircle, Share2 } from "lucide-react";
 import { BottomNavigationV2 } from "@/components/BottomNavigationV2";
 import { Card, CardContent } from "@/components/ui/card";
@@ -33,6 +34,7 @@ interface FamilyChild {
 interface CoParentRow {
   id: string;
   invited_email: string;
+  invited_name: string | null;
   status: string;
   receive_alerts: boolean;
   member_id: string | null;
@@ -55,6 +57,7 @@ const FamilyV2 = () => {
   const [coParent, setCoParent] = useState<CoParentRow | null>(null);
   const [coParentLoading, setCoParentLoading] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteName, setInviteName] = useState("");
   const [inviteAlerts, setInviteAlerts] = useState(false);
   const [showInviteForm, setShowInviteForm] = useState(false);
   const [inviting, setInviting] = useState(false);
@@ -65,10 +68,13 @@ const FamilyV2 = () => {
     if (!user?.id) return;
     setLoading(true);
     try {
-      // No parent_id filter — RLS (is_family_parent) handles access for both owner and co-parent
+      // Explicitly scope to this family's owners (own + accepted co-parent owners)
+      // so admin RLS bypass doesn't leak other families' children.
+      const allowedParentIds = await getFamilyParentIds(user.id);
       const { data: kids } = await supabase
         .from("children")
         .select("id, name, gender, subscription_tier")
+        .in("parent_id", allowedParentIds)
         .order("created_at", { ascending: true });
 
       if (!kids || kids.length === 0) {
@@ -154,7 +160,7 @@ const FamilyV2 = () => {
     try {
       const { data } = await supabase
         .from("family_members")
-        .select("id, invited_email, status, receive_alerts, member_id, accepted_at, pairing_code, pairing_code_expires_at")
+        .select("id, invited_email, invited_name, status, receive_alerts, member_id, accepted_at, pairing_code, pairing_code_expires_at")
         .eq("owner_id", user.id)
         .in("status", ["pending", "accepted"])
         .order("invited_at", { ascending: false })
@@ -236,11 +242,12 @@ const FamilyV2 = () => {
 
   // Co-parent actions
   const handleInvite = async () => {
-    if (!inviteEmail.trim()) return;
+    if (!inviteEmail.trim() || !inviteName.trim()) return;
     setInviting(true);
     try {
       const { data, error } = await supabase.rpc("create_family_invite_with_code", {
         p_email: inviteEmail.trim().toLowerCase(),
+        p_name: inviteName.trim(),
       });
       if (error) {
         toast({ title: "שגיאה", description: error.message || "לא ניתן ליצור קוד", variant: "destructive" });
@@ -251,6 +258,7 @@ const FamilyV2 = () => {
         error?: string;
         invite_id?: string;
         invited_email?: string;
+        invited_name?: string;
         pairing_code?: string;
         expires_at?: string;
       };
@@ -258,6 +266,7 @@ const FamilyV2 = () => {
         const errorMap: Record<string, string> = {
           NOT_AUTHENTICATED: "יש להתחבר מחדש.",
           INVALID_EMAIL: "כתובת אימייל לא תקינה.",
+          MISSING_NAME: "יש להזין שם להורה.",
           ALREADY_MEMBER: "הורה זה כבר חבר במשפחה.",
         };
         toast({
@@ -270,10 +279,12 @@ const FamilyV2 = () => {
       toast({ title: "הקוד נוצר", description: "שלח את הקוד והלינק להורה הנוסף" });
       setShowInviteForm(false);
       setInviteEmail("");
+      setInviteName("");
       setInviteAlerts(false);
       setCoParent({
         id: result.invite_id!,
         invited_email: result.invited_email!,
+        invited_name: result.invited_name ?? null,
         status: "pending",
         receive_alerts: false,
         member_id: null,
@@ -296,7 +307,14 @@ const FamilyV2 = () => {
       });
       if (error) throw error;
       const result = data as { code: string; expires_at: string };
-      setCoParent({ ...coParent, pairing_code: result.code, pairing_code_expires_at: result.expires_at });
+      setCoParent({
+        ...coParent,
+        status: "pending",
+        member_id: null,
+        accepted_at: null,
+        pairing_code: result.code,
+        pairing_code_expires_at: result.expires_at,
+      });
       toast({ title: "נוצר קוד חדש" });
     } catch {
       toast({ title: "שגיאה", description: "לא ניתן להפיק קוד חדש", variant: "destructive" });
@@ -561,9 +579,16 @@ const FamilyV2 = () => {
               ) : coParent ? (
                 <div className="space-y-3">
                   <div className="flex items-center justify-between py-2 border-b border-border/30">
-                    <div className="flex items-center gap-2">
-                      <Mail className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm text-foreground" dir="ltr">{coParent.invited_email}</span>
+                    <div className="flex flex-col gap-0.5">
+                      {coParent.invited_name && (
+                        <span className="text-sm font-semibold text-foreground">
+                          {coParent.invited_name}
+                        </span>
+                      )}
+                      <div className="flex items-center gap-2">
+                        <Mail className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground" dir="ltr">{coParent.invited_email}</span>
+                      </div>
                     </div>
                     <Badge variant={coParent.status === "accepted" ? "default" : "secondary"} className="text-[10px]">
                       {coParent.status === "accepted" ? "פעיל" : "ממתין לאישור"}
@@ -590,8 +615,11 @@ const FamilyV2 = () => {
                             className="w-full gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
                             onClick={() => {
                               const url = `${window.location.origin}/join-family`;
+                              const greeting = coParent.invited_name
+                                ? `שלום ${coParent.invited_name}!`
+                                : `שלום!`;
                               const text =
-                                `שלום! הוזמנת להצטרף כהורה שותף ב-KippyAI 👨‍👩‍👧\n` +
+                                `${greeting} הוזמנת להצטרף כהורה שותף ב-KippyAI 👨‍👩‍👧\n` +
                                 `1) פתח/י את הקישור: ${url}\n` +
                                 `2) השתמש/י באימייל: ${coParent.invited_email}\n` +
                                 `3) הזן/י את קוד ההצטרפות: ${coParent.pairing_code}\n` +
@@ -625,15 +653,28 @@ const FamilyV2 = () => {
                   )}
 
                   {coParent.status === "accepted" && (
-                    <div className="flex items-center justify-between py-2">
-                      <span className="text-sm text-foreground">קבלת התראות</span>
-                      <div dir="ltr">
-                        <Switch
-                          checked={coParent.receive_alerts}
-                          disabled={updatingAlerts}
-                          onCheckedChange={handleToggleAlerts}
-                        />
+                    <div className="space-y-3 py-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-foreground">קבלת התראות</span>
+                        <div dir="ltr">
+                          <Switch
+                            checked={coParent.receive_alerts}
+                            disabled={updatingAlerts}
+                            onCheckedChange={handleToggleAlerts}
+                          />
+                        </div>
                       </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        onClick={handleRegenerateCode}
+                      >
+                        הפק קוד חדש לכניסה מחדש
+                      </Button>
+                      <p className="text-[11px] text-muted-foreground text-center">
+                        אם ההורה השותף התנתק והוא צריך להיכנס מחדש, הפק קוד חדש ושלח לו.
+                      </p>
                     </div>
                   )}
 
@@ -650,6 +691,15 @@ const FamilyV2 = () => {
                 </div>
               ) : showInviteForm ? (
                 <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <label className="text-xs text-muted-foreground">שם ההורה השותף</label>
+                    <Input
+                      value={inviteName}
+                      onChange={(e) => setInviteName(e.target.value)}
+                      placeholder="לדוגמה: יריב"
+                      className="h-9 text-sm"
+                    />
+                  </div>
                   <div className="space-y-1.5">
                     <label className="text-xs text-muted-foreground">אימייל ההורה השותף</label>
                     <Input
@@ -671,7 +721,12 @@ const FamilyV2 = () => {
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Button size="sm" onClick={handleInvite} disabled={inviting || !inviteEmail.trim()} className="gap-2">
+                    <Button
+                      size="sm"
+                      onClick={handleInvite}
+                      disabled={inviting || !inviteEmail.trim() || !inviteName.trim()}
+                      className="gap-2"
+                    >
                       {inviting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
                       שלח הזמנה
                     </Button>

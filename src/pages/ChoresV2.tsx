@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useChores } from "@/hooks/useChores";
 import { getIsraelDate } from "@/lib/utils";
+import { getFamilyParentIds } from "@/lib/familyScope";
 import { ChoreForm } from "@/components/chores/ChoreForm";
 import { ChoreList } from "@/components/chores/ChoreList";
 import { RewardBankCard } from "@/components/chores/RewardBankCard";
@@ -38,18 +39,20 @@ export default function ChoresV2() {
   const [todayBonus, setTodayBonus] = useState<number>(0);
   const formRef = useRef<HTMLDivElement>(null);
 
-  // Fetch children
+  // Fetch children — explicitly scoped to this family
   useEffect(() => {
     if (!user) return;
-    supabase
-      .from("children")
-      .select("id, name")
-      .then(({ data }) => {
-        const kids = (data || []) as Child[];
-        setChildren(kids);
-        if (kids.length > 0) setSelectedChildId(kids[0].id);
-        setLoadingChildren(false);
-      });
+    (async () => {
+      const allowedParentIds = await getFamilyParentIds(user.id);
+      const { data } = await supabase
+        .from("children")
+        .select("id, name")
+        .in("parent_id", allowedParentIds);
+      const kids = (data || []) as Child[];
+      setChildren(kids);
+      if (kids.length > 0) setSelectedChildId(kids[0].id);
+      setLoadingChildren(false);
+    })();
   }, [user]);
 
   // Fetch today's bonus grants
