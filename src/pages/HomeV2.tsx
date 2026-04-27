@@ -69,11 +69,13 @@ const HomeV2 = () => {
     try {
       const todayIsrael = getIsraelDate();
 
-      // 1. Fetch children
-      // No parent_id filter — RLS (is_family_parent) handles access for both owner and co-parent
+      // 1. Fetch children — explicitly scoped to this family (own + accepted co-parent owners)
+      // so admin-level RLS bypass doesn't leak other families' children into the parent UI.
+      const allowedParentIds = await getFamilyParentIds(user.id);
       const { data: children } = await supabase
         .from("children")
         .select("id, name, gender, subscription_tier")
+        .in("parent_id", allowedParentIds)
         .order("created_at", { ascending: true });
 
       if (!children || children.length === 0) {
