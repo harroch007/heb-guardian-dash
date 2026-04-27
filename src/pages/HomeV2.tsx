@@ -13,6 +13,7 @@ import { QuickActionsBar } from "@/components/home-v2/QuickActionsBar";
 import { DailyControlSummary } from "@/components/home-v2/DailyControlSummary";
 import { SmartProtectionSummary } from "@/components/home-v2/SmartProtectionSummary";
 import { BottomNavigationV2 } from "@/components/BottomNavigationV2";
+import { TopNavigationV2 } from "@/components/TopNavigationV2";
 import { WHATSAPP_MONITORING_ENABLED } from "@/config/featureFlags";
 
 export interface ActiveRestriction {
@@ -344,6 +345,7 @@ const HomeV2 = () => {
 
   return (
     <div className="v2-dark min-h-screen pb-24" dir="rtl">
+      <TopNavigationV2 />
       <div className="max-w-lg mx-auto px-4 py-6 space-y-5">
         <HomeGreeting />
 

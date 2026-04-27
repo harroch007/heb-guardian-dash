@@ -7,6 +7,7 @@ import { getIsraelDate } from "@/lib/utils";
 import { getFamilyParentIds } from "@/lib/familyScope";
 import { Loader2, ArrowRight, Users, Wifi, AlertTriangle, Crown, Phone, Clock, UserPlus, Bell, Volume2, CheckCircle2, Mail, UserMinus, ShieldCheck, Copy, MessageCircle, Share2 } from "lucide-react";
 import { BottomNavigationV2 } from "@/components/BottomNavigationV2";
+import { TopNavigationV2 } from "@/components/TopNavigationV2";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -374,6 +375,7 @@ const FamilyV2 = () => {
 
   return (
     <div className="v2-dark min-h-screen pb-24" dir="rtl">
+      <TopNavigationV2 />
       <div className="max-w-lg mx-auto px-4 py-6 space-y-5">
         {/* Header */}
         <div className="flex items-center justify-between">

@@ -9,18 +9,27 @@ export const HomeGreeting = () => {
   useEffect(() => {
     const fetch = async () => {
       if (!user?.id) return;
+
+      // Source priority:
+      // 1. parents.full_name — but ONLY if it's not an email address (legacy bad data
+      //    sometimes stored email as full_name, which would show e.g. "yariv" for a
+      //    co-parent whose actual name is "אמא גאה").
+      // 2. auth user_metadata.full_name (set by join-family-by-code on co-parent join).
+      // 3. Email local-part as last resort.
       const { data } = await supabase
         .from("parents")
         .select("full_name")
         .eq("id", user.id)
         .maybeSingle();
 
-      // Prefer parents.full_name; fall back to auth user_metadata.full_name; then email local-part.
-      const raw =
-        data?.full_name ||
-        (user.user_metadata as { full_name?: string } | undefined)?.full_name ||
-        user.email?.split("@")[0] ||
-        "";
+      const metaName = (user.user_metadata as { full_name?: string } | undefined)
+        ?.full_name;
+      const emailLocal = user.email?.split("@")[0] || "";
+
+      const dbName = data?.full_name?.trim() || "";
+      const dbLooksLikeEmail = dbName.includes("@");
+
+      const raw = !dbLooksLikeEmail && dbName ? dbName : metaName?.trim() || emailLocal;
 
       if (raw) {
         const name = raw.includes("@") ? raw.split("@")[0] : raw.split(" ")[0];
@@ -34,12 +43,12 @@ export const HomeGreeting = () => {
     const now = new Date();
     const h = now.getHours();
     const m = now.getMinutes();
-    const timeVal = h * 60 + m; // minutes since midnight
-    if (timeVal < 330) return "לילה טוב";        // 00:00–05:29
-    if (timeVal < 720) return "בוקר טוב";         // 05:30–11:59
-    if (timeVal < 1020) return "צהריים טובים";     // 12:00–16:59
-    if (timeVal < 1260) return "ערב טוב";          // 17:00–20:59
-    return "לילה טוב";                             // 21:00–23:59
+    const timeVal = h * 60 + m;
+    if (timeVal < 330) return "לילה טוב";
+    if (timeVal < 720) return "בוקר טוב";
+    if (timeVal < 1020) return "צהריים טובים";
+    if (timeVal < 1260) return "ערב טוב";
+    return "לילה טוב";
   };
 
   return (

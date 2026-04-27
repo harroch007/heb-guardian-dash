@@ -106,10 +106,17 @@ Deno.serve(async (req) => {
       crypto.randomUUID().replace(/-/g, "") +
       crypto.randomUUID().replace(/-/g, "").slice(0, 8);
 
-    const invitedName =
-      typeof invite.invited_name === "string" && invite.invited_name.trim()
-        ? invite.invited_name.trim()
-        : cleanEmail.split("@")[0];
+    const invitedNameRaw =
+      typeof invite.invited_name === "string" ? invite.invited_name.trim() : "";
+
+    if (!invitedNameRaw) {
+      // Refuse to fall back to email local-part — that caused co-parents to show
+      // the inviter's name (e.g. "yariv") in the greeting. Owner must regenerate
+      // the invite with a proper name.
+      return json({ error: "INVITE_MISSING_NAME" }, 400);
+    }
+
+    const invitedName = invitedNameRaw;
 
     if (!userId) {
       const { data: created, error: createErr } =
@@ -138,8 +145,8 @@ Deno.serve(async (req) => {
     }
 
     // 4) Ensure a `parents` row exists for the co-parent so HomeGreeting can find a name.
-    // This row is purely for display/profile; co-parent identity for permissions is still
-    // determined by family_members (useFamilyRole).
+    // Force-overwrite full_name with the invited name (legacy rows may contain an
+    // email or stale value).
     try {
       await admin.from("parents").upsert(
         {
@@ -149,6 +156,12 @@ Deno.serve(async (req) => {
         },
         { onConflict: "id" }
       );
+      // Belt-and-suspenders: explicit update in case upsert hit a conflict path
+      // that didn't refresh full_name.
+      await admin
+        .from("parents")
+        .update({ full_name: invitedName })
+        .eq("id", userId);
     } catch (e) {
       console.warn("parents upsert skipped:", e);
     }
