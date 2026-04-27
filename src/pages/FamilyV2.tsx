@@ -653,15 +653,28 @@ const FamilyV2 = () => {
                   )}
 
                   {coParent.status === "accepted" && (
-                    <div className="flex items-center justify-between py-2">
-                      <span className="text-sm text-foreground">קבלת התראות</span>
-                      <div dir="ltr">
-                        <Switch
-                          checked={coParent.receive_alerts}
-                          disabled={updatingAlerts}
-                          onCheckedChange={handleToggleAlerts}
-                        />
+                    <div className="space-y-3 py-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-foreground">קבלת התראות</span>
+                        <div dir="ltr">
+                          <Switch
+                            checked={coParent.receive_alerts}
+                            disabled={updatingAlerts}
+                            onCheckedChange={handleToggleAlerts}
+                          />
+                        </div>
                       </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        onClick={handleRegenerateCode}
+                      >
+                        הפק קוד חדש לכניסה מחדש
+                      </Button>
+                      <p className="text-[11px] text-muted-foreground text-center">
+                        אם ההורה השותף התנתק והוא צריך להיכנס מחדש, הפק קוד חדש ושלח לו.
+                      </p>
                     </div>
                   )}
 
