@@ -242,11 +242,12 @@ const FamilyV2 = () => {
 
   // Co-parent actions
   const handleInvite = async () => {
-    if (!inviteEmail.trim()) return;
+    if (!inviteEmail.trim() || !inviteName.trim()) return;
     setInviting(true);
     try {
       const { data, error } = await supabase.rpc("create_family_invite_with_code", {
         p_email: inviteEmail.trim().toLowerCase(),
+        p_name: inviteName.trim(),
       });
       if (error) {
         toast({ title: "שגיאה", description: error.message || "לא ניתן ליצור קוד", variant: "destructive" });
@@ -257,6 +258,7 @@ const FamilyV2 = () => {
         error?: string;
         invite_id?: string;
         invited_email?: string;
+        invited_name?: string;
         pairing_code?: string;
         expires_at?: string;
       };
@@ -264,6 +266,7 @@ const FamilyV2 = () => {
         const errorMap: Record<string, string> = {
           NOT_AUTHENTICATED: "יש להתחבר מחדש.",
           INVALID_EMAIL: "כתובת אימייל לא תקינה.",
+          MISSING_NAME: "יש להזין שם להורה.",
           ALREADY_MEMBER: "הורה זה כבר חבר במשפחה.",
         };
         toast({
@@ -276,10 +279,12 @@ const FamilyV2 = () => {
       toast({ title: "הקוד נוצר", description: "שלח את הקוד והלינק להורה הנוסף" });
       setShowInviteForm(false);
       setInviteEmail("");
+      setInviteName("");
       setInviteAlerts(false);
       setCoParent({
         id: result.invite_id!,
         invited_email: result.invited_email!,
+        invited_name: result.invited_name ?? null,
         status: "pending",
         receive_alerts: false,
         member_id: null,
