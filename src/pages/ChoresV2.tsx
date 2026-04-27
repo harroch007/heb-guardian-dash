@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useChores } from "@/hooks/useChores";
 import { getIsraelDate } from "@/lib/utils";
+import { getFamilyParentIds } from "@/lib/familyScope";
 import { ChoreForm } from "@/components/chores/ChoreForm";
 import { ChoreList } from "@/components/chores/ChoreList";
 import { RewardBankCard } from "@/components/chores/RewardBankCard";
