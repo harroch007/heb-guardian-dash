@@ -13,16 +13,16 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getAgeYears, getAgeBand, getChildIcon, getChildAvatarClasses } from "@/lib/childAvatar";
 import {
-  ArrowRight,
+  AlertCircle,
   ClipboardList,
   CheckCircle2,
   Clock,
   Coins,
   Gift,
   Plus,
-  Settings,
   Loader2,
 } from "lucide-react";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { BottomNavigationV2 } from "@/components/BottomNavigationV2";
 import { TopNavigationV2 } from "@/components/TopNavigationV2";
 
@@ -187,34 +187,97 @@ export default function ChoresV2() {
           </div>
         </div>
 
-        {/* Reward bank */}
-        <RewardBankCard balanceMinutes={bankBalance} transactions={transactions} />
+        {/* Accordion sections */}
+        {(() => {
+          const pendingApprovalChores = chores.filter((c) => c.status === "completed_by_child");
+          const hasPending = pendingApprovalChores.length > 0;
+          const defaultOpen: string[] = hasPending ? ["pending"] : [];
 
-        {/* Add task form */}
-        <div ref={formRef}>
-          <h2 className="text-base font-semibold text-foreground mb-2">משימה חדשה</h2>
-          <ChoreForm onSubmit={addChore} />
-        </div>
+          return (
+            <Accordion type="multiple" defaultValue={defaultOpen} className="space-y-3">
+              {/* 1. Pending approval — only when relevant */}
+              {hasPending && (
+                <AccordionItem
+                  value="pending"
+                  className="v2-card border-orange-500/30 px-4"
+                >
+                  <AccordionTrigger className="hover:no-underline py-3">
+                    <div className="flex items-center gap-2 text-orange-400">
+                      <AlertCircle className="w-5 h-5" />
+                      <span className="font-semibold">
+                        {pendingApprovalChores.length} משימות ממתינות לאישור
+                      </span>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="pt-1">
+                    <ChoreList
+                      chores={pendingApprovalChores}
+                      onApprove={approveChore}
+                      onReject={rejectChore}
+                      onDelete={deleteChore}
+                      childName={childName}
+                    />
+                  </AccordionContent>
+                </AccordionItem>
+              )}
 
-        {/* Tasks list */}
-        <div>
-          <h2 className="text-base font-semibold text-foreground mb-2">משימות</h2>
-          {loading ? (
-            <div className="space-y-2">
-              {[1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-16 w-full" />
-              ))}
-            </div>
-          ) : (
-            <ChoreList
-              chores={chores}
-              onApprove={approveChore}
-              onReject={rejectChore}
-              onDelete={deleteChore}
-              childName={childName}
-            />
-          )}
-        </div>
+              {/* 2. All tasks */}
+              <AccordionItem value="all-tasks" className="v2-card border-border/50 px-4">
+                <AccordionTrigger className="hover:no-underline py-3">
+                  <div className="flex items-center gap-2 text-foreground">
+                    <ClipboardList className="w-5 h-5 text-primary" />
+                    <span className="font-semibold">כל המשימות ({chores.length})</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="pt-1">
+                  {loading ? (
+                    <div className="space-y-2">
+                      {[1, 2, 3].map((i) => (
+                        <Skeleton key={i} className="h-16 w-full" />
+                      ))}
+                    </div>
+                  ) : (
+                    <ChoreList
+                      chores={chores}
+                      onApprove={approveChore}
+                      onReject={rejectChore}
+                      onDelete={deleteChore}
+                      childName={childName}
+                    />
+                  )}
+                </AccordionContent>
+              </AccordionItem>
+
+              {/* 3. Add new task */}
+              <AccordionItem value="add-task" className="v2-card border-border/50 px-4">
+                <AccordionTrigger className="hover:no-underline py-3">
+                  <div className="flex items-center gap-2 text-foreground">
+                    <Plus className="w-5 h-5 text-primary" />
+                    <span className="font-semibold">הוסף משימה חדשה</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="pt-1" ref={formRef as any}>
+                  <ChoreForm onSubmit={addChore} />
+                </AccordionContent>
+              </AccordionItem>
+
+              {/* 4. Reward bank & history */}
+              <AccordionItem value="bank" className="v2-card border-border/50 px-4">
+                <AccordionTrigger className="hover:no-underline py-3">
+                  <div className="flex items-center gap-2 text-foreground">
+                    <Coins className="w-5 h-5 text-primary" />
+                    <span className="font-semibold">
+                      בנק תגמולים · <span className="v2-glow-text">{bankBalance}</span> דק׳
+                    </span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="pt-1">
+                  <RewardBankCard balanceMinutes={bankBalance} transactions={transactions} />
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          );
+        })()}
       </div>
       <BottomNavigationV2 />
     </div>
