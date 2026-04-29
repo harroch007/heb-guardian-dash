@@ -439,19 +439,64 @@ const SettingsV2 = () => {
               </div>
               <div>
                 <h2 className="text-lg font-semibold text-foreground">משפחה</h2>
-                <p className="text-xs text-muted-foreground">{childCount} ילדים מחוברים</p>
+                <p className="text-xs text-muted-foreground">
+                  {childCount} ילדים • {familyParents.length} {familyParents.length === 1 ? "הורה" : "הורים"}
+                </p>
               </div>
             </div>
-            <div className="space-y-2">
-              {children.map((child) => (
-                <div key={child.id} className="flex justify-between items-center py-2 border-b border-border/30 last:border-0 text-sm">
-                  <span className="font-medium text-foreground">{child.name}</span>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${child.subscription_tier === 'premium' ? 'bg-warning/15 text-warning' : 'bg-muted text-muted-foreground'}`}>
-                    {child.subscription_tier === 'premium' ? 'פרימיום' : 'חינמי'}
-                  </span>
+
+            {/* Parents */}
+            {familyParents.length > 0 && (
+              <div>
+                <p className="text-xs text-muted-foreground mb-1.5">הורים</p>
+                <div className="space-y-1">
+                  {familyParents.map((p) => (
+                    <div
+                      key={p.id}
+                      className="flex justify-between items-center py-2 border-b border-border/30 last:border-0 text-sm"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-foreground">{p.name}</span>
+                        {p.isMe && <span className="text-[10px] text-muted-foreground">(אני)</span>}
+                        {p.status === "pending" && (
+                          <span className="text-[10px] text-muted-foreground">(ממתין/ת)</span>
+                        )}
+                      </div>
+                      <span
+                        className={`text-xs px-2 py-0.5 rounded-full ${
+                          p.role === "owner"
+                            ? "bg-primary/15 text-primary"
+                            : "bg-muted text-muted-foreground"
+                        }`}
+                      >
+                        {p.role === "owner" ? "הורה ראשי" : "הורה שותף"}
+                      </span>
+                    </div>
+                  ))}
                 </div>
-              ))}
+                {isOwner && familyParents.length === 1 && (
+                  <p className="text-[11px] text-muted-foreground mt-1.5">
+                    אפשר להוסיף הורה שותף ב"ניהול משפחה"
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Children */}
+            <div className="pt-1">
+              <p className="text-xs text-muted-foreground mb-1.5">ילדים</p>
+              <div className="space-y-1">
+                {children.map((child) => (
+                  <div key={child.id} className="flex justify-between items-center py-2 border-b border-border/30 last:border-0 text-sm">
+                    <span className="font-medium text-foreground">{child.name}</span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${child.subscription_tier === 'premium' ? 'bg-warning/15 text-warning' : 'bg-muted text-muted-foreground'}`}>
+                      {child.subscription_tier === 'premium' ? 'פרימיום' : 'חינמי'}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
+
             <Button variant="outline" size="sm" onClick={() => navigate('/family-v2')} className="gap-2 mt-1">
               <Users className="w-4 h-4" />
               ניהול משפחה
