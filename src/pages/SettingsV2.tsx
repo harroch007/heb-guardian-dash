@@ -16,6 +16,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { WHATSAPP_MONITORING_ENABLED } from "@/config/featureFlags";
+import { getAgeYears, getAgeBand, getChildIcon, getChildAvatarClasses } from "@/lib/childAvatar";
 
 const WHATSAPP_NUMBER = "972548383340";
 
