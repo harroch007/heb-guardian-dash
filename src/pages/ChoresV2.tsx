@@ -99,27 +99,49 @@ export default function ChoresV2() {
         <div className="flex items-center gap-3">
           <div className="flex-1">
             <h1 className="text-2xl font-bold text-foreground v2-glow-text">משימות ותגמולים</h1>
-            <p className="text-sm text-muted-foreground">מערכת חיובית לניהול זמן מסך</p>
+            <p className="text-sm text-muted-foreground">
+              {childName ? (
+                <>
+                  מציג עבור <span className="text-primary font-medium">{childName}</span> · מערכת חיובית לניהול זמן מסך
+                </>
+              ) : (
+                "מערכת חיובית לניהול זמן מסך"
+              )}
+            </p>
           </div>
           <div className="v2-icon-chip p-2.5">
             <ClipboardList className="w-6 h-6" />
           </div>
         </div>
 
-        {/* Child filter */}
+        {/* Child tabs */}
         {children.length > 1 && (
-          <Select value={selectedChildId || ""} onValueChange={setSelectedChildId}>
-            <SelectTrigger className="bg-card border-border">
-              <SelectValue placeholder="בחר ילד/ה" />
-            </SelectTrigger>
-            <SelectContent>
-              {children.map((child) => (
-                <SelectItem key={child.id} value={child.id}>
-                  {child.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+            {children.map((child) => {
+              const age = getAgeYears(child.date_of_birth);
+              const band = getAgeBand(age);
+              const Icon = getChildIcon(child.gender, band);
+              const av = getChildAvatarClasses(child.gender, band);
+              const isActive = child.id === selectedChildId;
+              return (
+                <button
+                  key={child.id}
+                  type="button"
+                  onClick={() => setSelectedChildId(child.id)}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all whitespace-nowrap flex-shrink-0 ${
+                    isActive
+                      ? "bg-primary/15 border-primary/40 text-primary shadow-md shadow-primary/20"
+                      : "bg-card border-border/50 text-muted-foreground hover:border-border hover:text-foreground"
+                  }`}
+                >
+                  <span className={`flex items-center justify-center w-7 h-7 rounded-full ${av.bg}`}>
+                    <Icon className={`w-4 h-4 ${av.text}`} />
+                  </span>
+                  <span className="text-sm font-medium">{child.name}</span>
+                </button>
+              );
+            })}
+          </div>
         )}
 
         {/* Summary cards */}
