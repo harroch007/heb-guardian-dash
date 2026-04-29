@@ -23,11 +23,18 @@ const SettingsV2 = () => {
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
   const { children, allPremium, hasFreeChildren, childCount, isLoading: subLoading } = useFamilySubscription();
-  const { isOwner, role } = useFamilyRole();
+  const { isOwner, role, membership } = useFamilyRole();
   const { isSupported, isSubscribed, isLoading: pushLoading, permission, subscribe, unsubscribe } = usePushNotifications();
   const [parentName, setParentName] = useState<string | null>(null);
   const [parentPhone, setParentPhone] = useState<string | null>(null);
   const [isSendingTest, setIsSendingTest] = useState(false);
+
+  // Family parents (owner + co-parent) for the משפחה card
+  type FamilyParent = { id: string; name: string; role: "owner" | "co_parent"; isMe: boolean; status?: string };
+  const [familyParents, setFamilyParents] = useState<FamilyParent[]>([]);
+
+  const cleanName = (n?: string | null) =>
+    n && !n.includes("@") && n.trim().length > 0 ? n.trim() : null;
 
   // Profile edit state
   const [isEditing, setIsEditing] = useState(false);
