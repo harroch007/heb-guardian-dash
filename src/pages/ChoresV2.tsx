@@ -49,7 +49,7 @@ export default function ChoresV2() {
       const allowedParentIds = await getFamilyParentIds(user.id);
       const { data } = await supabase
         .from("children")
-        .select("id, name")
+        .select("id, name, date_of_birth, gender")
         .in("parent_id", allowedParentIds);
       const kids = (data || []) as Child[];
       setChildren(kids);
