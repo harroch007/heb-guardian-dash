@@ -1335,6 +1335,7 @@ export type Database = {
           date_of_birth: string
           gender: string
           id: string
+          kippy_tag: string | null
           name: string
           pairing_code: string | null
           pairing_code_expires_at: string | null
@@ -1350,6 +1351,7 @@ export type Database = {
           date_of_birth: string
           gender: string
           id?: string
+          kippy_tag?: string | null
           name: string
           pairing_code?: string | null
           pairing_code_expires_at?: string | null
@@ -1365,6 +1367,7 @@ export type Database = {
           date_of_birth?: string
           gender?: string
           id?: string
+          kippy_tag?: string | null
           name?: string
           pairing_code?: string | null
           pairing_code_expires_at?: string | null
@@ -1985,6 +1988,48 @@ export type Database = {
             columns: ["owner_id"]
             isOneToOne: false
             referencedRelation: "parents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      friendships: {
+        Row: {
+          created_at: string
+          id: string
+          receiver_id: string
+          requester_id: string
+          responded_at: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          receiver_id: string
+          requester_id: string
+          responded_at?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          receiver_id?: string
+          requester_id?: string
+          responded_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "friendships_receiver_id_fkey"
+            columns: ["receiver_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "friendships_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "children"
             referencedColumns: ["id"]
           },
         ]
@@ -3042,6 +3087,7 @@ export type Database = {
       delete_child_data: { Args: { p_child_id: string }; Returns: Json }
       disconnect_device: { Args: { p_device_id: string }; Returns: Json }
       export_my_data: { Args: never; Returns: Json }
+      generate_kippy_tag: { Args: never; Returns: string }
       generate_new_pairing_code: { Args: { p_child_id: string }; Returns: Json }
       generate_pairing_code: { Args: { p_child_id: string }; Returns: string }
       get_active_ai_config: { Args: never; Returns: Json }
@@ -3056,6 +3102,17 @@ export type Database = {
         }[]
       }
       get_child_device_health: { Args: { p_child_id: string }; Returns: Json }
+      get_child_friends: {
+        Args: { p_child_id: string }
+        Returns: {
+          created_at: string
+          friend_child_id: string
+          friend_kippy_tag: string
+          friend_name: string
+          friendship_id: string
+          status: string
+        }[]
+      }
       get_child_top_apps: {
         Args: { p_child_id: string; p_date: string; p_limit?: number }
         Returns: {
@@ -3084,6 +3141,7 @@ export type Database = {
         }[]
       }
       get_family_owner_id: { Args: never; Returns: string }
+      get_my_kippy_tag: { Args: { p_child_id: string }; Returns: string }
       get_parent_daily_report_for_parent: {
         Args: { p_report_date: string }
         Returns: {
@@ -3135,6 +3193,10 @@ export type Database = {
         Returns: Json
       }
       is_admin: { Args: never; Returns: boolean }
+      is_child_of_calling_device: {
+        Args: { p_child_id: string }
+        Returns: boolean
+      }
       is_child_owner: { Args: { p_child_id: string }; Returns: boolean }
       is_email_allowed: { Args: { p_email: string }; Returns: boolean }
       is_family_parent: { Args: { p_child_id: string }; Returns: boolean }
@@ -3247,12 +3309,24 @@ export type Database = {
         Args: { p_child_id: string; p_device_id?: string; p_reason: string }
         Returns: Json
       }
+      respond_friend_request: {
+        Args: {
+          p_accept: boolean
+          p_friendship_id: string
+          p_receiver_child_id: string
+        }
+        Returns: Json
+      }
       respond_time_request: {
         Args: { p_approved: boolean; p_minutes: number; p_request_id: string }
         Returns: Json
       }
       retry_failed_queue_items: { Args: never; Returns: Json }
       revoke_co_parent: { Args: { p_membership_id: string }; Returns: Json }
+      send_friend_request: {
+        Args: { p_requester_child_id: string; p_target_kippy_tag: string }
+        Returns: Json
+      }
       send_locate_to_all_devices: { Args: never; Returns: undefined }
       update_device_location: {
         Args: {
