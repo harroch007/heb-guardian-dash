@@ -1090,6 +1090,51 @@ export type Database = {
           },
         ]
       }
+      chat_messages: {
+        Row: {
+          content: string
+          created_at: string
+          friendship_id: string
+          id: string
+          is_view_once: boolean
+          message_type: string
+          sender_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          friendship_id: string
+          id?: string
+          is_view_once?: boolean
+          message_type: string
+          sender_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          friendship_id?: string
+          id?: string
+          is_view_once?: boolean
+          message_type?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_friendship_id_fkey"
+            columns: ["friendship_id"]
+            isOneToOne: false
+            referencedRelation: "friendships"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       child_daily_insights: {
         Row: {
           child_id: string
@@ -2169,6 +2214,42 @@ export type Database = {
           },
         ]
       }
+      media_views: {
+        Row: {
+          id: string
+          message_id: string
+          viewed_at: string
+          viewer_id: string
+        }
+        Insert: {
+          id?: string
+          message_id: string
+          viewed_at?: string
+          viewer_id: string
+        }
+        Update: {
+          id?: string
+          message_id?: string
+          viewed_at?: string
+          viewer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "media_views_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "chat_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "media_views_viewer_id_fkey"
+            columns: ["viewer_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       nightly_usage_reports: {
         Row: {
           child_id: string | null
@@ -3085,6 +3166,10 @@ export type Database = {
         | { Args: { p_email: string; p_name?: string }; Returns: Json }
       delete_all_my_data: { Args: never; Returns: Json }
       delete_child_data: { Args: { p_child_id: string }; Returns: Json }
+      delete_friendship_chat: {
+        Args: { p_child_id: string; p_friendship_id: string }
+        Returns: Json
+      }
       disconnect_device: { Args: { p_device_id: string }; Returns: Json }
       export_my_data: { Args: never; Returns: Json }
       generate_kippy_tag: { Args: never; Returns: string }
@@ -3092,6 +3177,24 @@ export type Database = {
       generate_pairing_code: { Args: { p_child_id: string }; Returns: string }
       get_active_ai_config: { Args: never; Returns: Json }
       get_alert_recipients: { Args: { p_child_id: string }; Returns: string[] }
+      get_chat_thread: {
+        Args: {
+          p_before?: string
+          p_child_id: string
+          p_friendship_id: string
+          p_limit?: number
+        }
+        Returns: {
+          consumed: boolean
+          content: string
+          created_at: string
+          id: string
+          is_view_once: boolean
+          message_type: string
+          sender_id: string
+          signed_url: string
+        }[]
+      }
       get_child_daily_metrics: {
         Args: { p_child_id: string; p_date: string }
         Returns: {
@@ -3193,6 +3296,14 @@ export type Database = {
         Returns: Json
       }
       is_admin: { Args: never; Returns: boolean }
+      is_calling_device_in_friendship: {
+        Args: { p_friendship_id: string }
+        Returns: boolean
+      }
+      is_child_in_friendship: {
+        Args: { p_child_id: string; p_friendship_id: string }
+        Returns: boolean
+      }
       is_child_of_calling_device: {
         Args: { p_child_id: string }
         Returns: boolean
@@ -3205,6 +3316,10 @@ export type Database = {
         Returns: boolean
       }
       is_paired_device: { Args: { p_device_id: string }; Returns: boolean }
+      mark_media_viewed: {
+        Args: { p_message_id: string; p_viewer_id: string }
+        Returns: Json
+      }
       maybe_recalc_nearest_issur_window: {
         Args: { p_child_id: string; p_new_lat: number; p_new_lon: number }
         Returns: undefined
@@ -3218,6 +3333,8 @@ export type Database = {
           success: boolean
         }[]
       }
+      purge_consumed_view_once_media: { Args: never; Returns: undefined }
+      purge_expired_chat_messages: { Args: never; Returns: undefined }
       reconnect_device: {
         Args: { p_child_id: string; p_device_id: string }
         Returns: Json
@@ -3323,6 +3440,16 @@ export type Database = {
       }
       retry_failed_queue_items: { Args: never; Returns: Json }
       revoke_co_parent: { Args: { p_membership_id: string }; Returns: Json }
+      send_chat_message: {
+        Args: {
+          p_content: string
+          p_friendship_id: string
+          p_is_view_once?: boolean
+          p_message_type: string
+          p_sender_id: string
+        }
+        Returns: Json
+      }
       send_friend_request: {
         Args: { p_requester_child_id: string; p_target_kippy_tag: string }
         Returns: Json
