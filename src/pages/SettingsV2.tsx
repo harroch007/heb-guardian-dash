@@ -23,11 +23,18 @@ const SettingsV2 = () => {
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
   const { children, allPremium, hasFreeChildren, childCount, isLoading: subLoading } = useFamilySubscription();
-  const { isOwner, role } = useFamilyRole();
+  const { isOwner, role, membership } = useFamilyRole();
   const { isSupported, isSubscribed, isLoading: pushLoading, permission, subscribe, unsubscribe } = usePushNotifications();
   const [parentName, setParentName] = useState<string | null>(null);
   const [parentPhone, setParentPhone] = useState<string | null>(null);
   const [isSendingTest, setIsSendingTest] = useState(false);
+
+  // Family parents (owner + co-parent) for the משפחה card
+  type FamilyParent = { id: string; name: string; role: "owner" | "co_parent"; isMe: boolean; status?: string };
+  const [familyParents, setFamilyParents] = useState<FamilyParent[]>([]);
+
+  const cleanName = (n?: string | null) =>
+    n && !n.includes("@") && n.trim().length > 0 ? n.trim() : null;
 
   // Profile edit state
   const [isEditing, setIsEditing] = useState(false);
@@ -42,6 +49,78 @@ const SettingsV2 = () => {
       if (data?.phone) setParentPhone(data.phone);
     });
   }, [user?.id]);
+
+  // Build the family parents list (owner + co-parent) based on the user's role
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+
+    const build = async () => {
+      const meName = cleanName(parentName) ?? cleanName(user.user_metadata?.full_name as string) ?? "אני";
+
+      if (isOwner) {
+        // Owner sees themselves + any accepted/pending co-parents they invited
+        const { data } = await supabase
+          .from("family_members")
+          .select("id, member_id, invited_name, invited_email, status")
+          .eq("owner_id", user.id)
+          .in("status", ["accepted", "pending"]);
+
+        // For accepted members, prefer parents.full_name (canonical)
+        const acceptedIds = (data ?? [])
+          .filter((m) => m.status === "accepted" && m.member_id)
+          .map((m) => m.member_id as string);
+        let nameById = new Map<string, string>();
+        if (acceptedIds.length > 0) {
+          const { data: pData } = await supabase
+            .from("parents")
+            .select("id, full_name")
+            .in("id", acceptedIds);
+          pData?.forEach((p) => {
+            const n = cleanName(p.full_name);
+            if (n) nameById.set(p.id, n);
+          });
+        }
+
+        const list: FamilyParent[] = [
+          { id: user.id, name: meName, role: "owner", isMe: true },
+          ...(data ?? []).map((m) => ({
+            id: m.id,
+            name:
+              (m.member_id ? nameById.get(m.member_id) : null) ??
+              cleanName(m.invited_name) ??
+              cleanName(m.invited_email?.split("@")[0]) ??
+              "הורה שותף",
+            role: "co_parent" as const,
+            isMe: false,
+            status: m.status,
+          })),
+        ];
+        if (!cancelled) setFamilyParents(list);
+      } else if (membership?.owner_id) {
+        // Co-parent sees the owner + themselves
+        const { data: ownerData } = await supabase
+          .from("parents")
+          .select("full_name")
+          .eq("id", membership.owner_id)
+          .maybeSingle();
+        const ownerName = cleanName(ownerData?.full_name) ?? "הורה ראשי";
+
+        const list: FamilyParent[] = [
+          { id: membership.owner_id, name: ownerName, role: "owner", isMe: false },
+          { id: user.id, name: meName, role: "co_parent", isMe: true },
+        ];
+        if (!cancelled) setFamilyParents(list);
+      } else {
+        if (!cancelled) setFamilyParents([{ id: user.id, name: meName, role: "owner", isMe: true }]);
+      }
+    };
+
+    build();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, isOwner, membership?.owner_id, parentName, user?.user_metadata?.full_name]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -360,19 +439,64 @@ const SettingsV2 = () => {
               </div>
               <div>
                 <h2 className="text-lg font-semibold text-foreground">משפחה</h2>
-                <p className="text-xs text-muted-foreground">{childCount} ילדים מחוברים</p>
+                <p className="text-xs text-muted-foreground">
+                  {childCount} ילדים • {familyParents.length} {familyParents.length === 1 ? "הורה" : "הורים"}
+                </p>
               </div>
             </div>
-            <div className="space-y-2">
-              {children.map((child) => (
-                <div key={child.id} className="flex justify-between items-center py-2 border-b border-border/30 last:border-0 text-sm">
-                  <span className="font-medium text-foreground">{child.name}</span>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${child.subscription_tier === 'premium' ? 'bg-warning/15 text-warning' : 'bg-muted text-muted-foreground'}`}>
-                    {child.subscription_tier === 'premium' ? 'פרימיום' : 'חינמי'}
-                  </span>
+
+            {/* Parents */}
+            {familyParents.length > 0 && (
+              <div>
+                <p className="text-xs text-muted-foreground mb-1.5">הורים</p>
+                <div className="space-y-1">
+                  {familyParents.map((p) => (
+                    <div
+                      key={p.id}
+                      className="flex justify-between items-center py-2 border-b border-border/30 last:border-0 text-sm"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-foreground">{p.name}</span>
+                        {p.isMe && <span className="text-[10px] text-muted-foreground">(אני)</span>}
+                        {p.status === "pending" && (
+                          <span className="text-[10px] text-muted-foreground">(ממתין/ת)</span>
+                        )}
+                      </div>
+                      <span
+                        className={`text-xs px-2 py-0.5 rounded-full ${
+                          p.role === "owner"
+                            ? "bg-primary/15 text-primary"
+                            : "bg-muted text-muted-foreground"
+                        }`}
+                      >
+                        {p.role === "owner" ? "הורה ראשי" : "הורה שותף"}
+                      </span>
+                    </div>
+                  ))}
                 </div>
-              ))}
+                {isOwner && familyParents.length === 1 && (
+                  <p className="text-[11px] text-muted-foreground mt-1.5">
+                    אפשר להוסיף הורה שותף ב"ניהול משפחה"
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Children */}
+            <div className="pt-1">
+              <p className="text-xs text-muted-foreground mb-1.5">ילדים</p>
+              <div className="space-y-1">
+                {children.map((child) => (
+                  <div key={child.id} className="flex justify-between items-center py-2 border-b border-border/30 last:border-0 text-sm">
+                    <span className="font-medium text-foreground">{child.name}</span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${child.subscription_tier === 'premium' ? 'bg-warning/15 text-warning' : 'bg-muted text-muted-foreground'}`}>
+                      {child.subscription_tier === 'premium' ? 'פרימיום' : 'חינמי'}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
+
             <Button variant="outline" size="sm" onClick={() => navigate('/family-v2')} className="gap-2 mt-1">
               <Users className="w-4 h-4" />
               ניהול משפחה
