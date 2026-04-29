@@ -486,14 +486,25 @@ const SettingsV2 = () => {
             <div className="pt-1">
               <p className="text-xs text-muted-foreground mb-1.5">ילדים</p>
               <div className="space-y-1">
-                {children.map((child) => (
-                  <div key={child.id} className="flex justify-between items-center py-2 border-b border-border/30 last:border-0 text-sm">
-                    <span className="font-medium text-foreground">{child.name}</span>
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${child.subscription_tier === 'premium' ? 'bg-warning/15 text-warning' : 'bg-muted text-muted-foreground'}`}>
-                      {child.subscription_tier === 'premium' ? 'פרימיום' : 'חינמי'}
-                    </span>
-                  </div>
-                ))}
+                {children.map((child) => {
+                  const age = getAgeYears(child.date_of_birth);
+                  const band = getAgeBand(age);
+                  const Icon = getChildIcon(child.gender, band);
+                  const { text, bg } = getChildAvatarClasses(child.gender, band);
+                  return (
+                    <div key={child.id} className="flex justify-between items-center py-2 border-b border-border/30 last:border-0 text-sm">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-7 h-7 rounded-full flex items-center justify-center ${bg}`}>
+                          <Icon className={`w-4 h-4 ${text}`} />
+                        </div>
+                        <span className="font-medium text-foreground">{child.name}</span>
+                      </div>
+                      {age !== null && (
+                        <span className="text-xs text-muted-foreground">גיל {age}</span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
