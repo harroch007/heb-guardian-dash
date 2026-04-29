@@ -50,6 +50,78 @@ const SettingsV2 = () => {
     });
   }, [user?.id]);
 
+  // Build the family parents list (owner + co-parent) based on the user's role
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+
+    const build = async () => {
+      const meName = cleanName(parentName) ?? cleanName(user.user_metadata?.full_name as string) ?? "אני";
+
+      if (isOwner) {
+        // Owner sees themselves + any accepted/pending co-parents they invited
+        const { data } = await supabase
+          .from("family_members")
+          .select("id, member_id, invited_name, invited_email, status")
+          .eq("owner_id", user.id)
+          .in("status", ["accepted", "pending"]);
+
+        // For accepted members, prefer parents.full_name (canonical)
+        const acceptedIds = (data ?? [])
+          .filter((m) => m.status === "accepted" && m.member_id)
+          .map((m) => m.member_id as string);
+        let nameById = new Map<string, string>();
+        if (acceptedIds.length > 0) {
+          const { data: pData } = await supabase
+            .from("parents")
+            .select("id, full_name")
+            .in("id", acceptedIds);
+          pData?.forEach((p) => {
+            const n = cleanName(p.full_name);
+            if (n) nameById.set(p.id, n);
+          });
+        }
+
+        const list: FamilyParent[] = [
+          { id: user.id, name: meName, role: "owner", isMe: true },
+          ...(data ?? []).map((m) => ({
+            id: m.id,
+            name:
+              (m.member_id ? nameById.get(m.member_id) : null) ??
+              cleanName(m.invited_name) ??
+              cleanName(m.invited_email?.split("@")[0]) ??
+              "הורה שותף",
+            role: "co_parent" as const,
+            isMe: false,
+            status: m.status,
+          })),
+        ];
+        if (!cancelled) setFamilyParents(list);
+      } else if (membership?.owner_id) {
+        // Co-parent sees the owner + themselves
+        const { data: ownerData } = await supabase
+          .from("parents")
+          .select("full_name")
+          .eq("id", membership.owner_id)
+          .maybeSingle();
+        const ownerName = cleanName(ownerData?.full_name) ?? "הורה ראשי";
+
+        const list: FamilyParent[] = [
+          { id: membership.owner_id, name: ownerName, role: "owner", isMe: false },
+          { id: user.id, name: meName, role: "co_parent", isMe: true },
+        ];
+        if (!cancelled) setFamilyParents(list);
+      } else {
+        if (!cancelled) setFamilyParents([{ id: user.id, name: meName, role: "owner", isMe: true }]);
+      }
+    };
+
+    build();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, isOwner, membership?.owner_id, parentName, user?.user_metadata?.full_name]);
+
   const handleSignOut = async () => {
     await signOut();
     navigate('/landing-v1');
