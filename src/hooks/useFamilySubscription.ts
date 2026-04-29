@@ -6,6 +6,8 @@ interface ChildSubscriptionInfo {
   id: string;
   name: string;
   subscription_tier: string | null;
+  gender: string | null;
+  date_of_birth: string | null;
 }
 
 interface UseFamilySubscriptionResult {
@@ -39,7 +41,7 @@ export function useFamilySubscription(): UseFamilySubscriptionResult {
       try {
         const { data, error } = await supabase
           .from("children")
-          .select("id, name, subscription_tier")
+          .select("id, name, subscription_tier, gender, date_of_birth")
           .eq("parent_id", user.id);
 
         if (error) throw error;
