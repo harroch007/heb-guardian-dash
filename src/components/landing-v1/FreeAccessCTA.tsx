@@ -41,11 +41,8 @@ export function FreeAccessCTA() {
             <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
               הצטרפו עכשיו וקבלו ראשונים גישה לגרסה החדשה של KippyAI.
             </p>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <div className="flex justify-center">
               {WAITLIST_MODE ? button : <Link to="/auth?signup=true">{button}</Link>}
-              <Button size="lg" variant="outline" disabled className="hidden sm:inline-flex text-lg h-14 px-10 rounded-xl">
-                קרוב
-              </Button>
             </div>
           </div>
         </motion.div>
