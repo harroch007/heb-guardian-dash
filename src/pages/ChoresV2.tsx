@@ -29,6 +29,8 @@ import { TopNavigationV2 } from "@/components/TopNavigationV2";
 interface Child {
   id: string;
   name: string;
+  date_of_birth: string | null;
+  gender: string | null;
 }
 
 export default function ChoresV2() {
