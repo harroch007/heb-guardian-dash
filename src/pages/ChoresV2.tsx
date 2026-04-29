@@ -13,16 +13,16 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getAgeYears, getAgeBand, getChildIcon, getChildAvatarClasses } from "@/lib/childAvatar";
 import {
-  ArrowRight,
+  AlertCircle,
   ClipboardList,
   CheckCircle2,
   Clock,
   Coins,
   Gift,
   Plus,
-  Settings,
   Loader2,
 } from "lucide-react";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { BottomNavigationV2 } from "@/components/BottomNavigationV2";
 import { TopNavigationV2 } from "@/components/TopNavigationV2";
 
