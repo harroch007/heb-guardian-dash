@@ -8,10 +8,10 @@ import { getFamilyParentIds } from "@/lib/familyScope";
 import { ChoreForm } from "@/components/chores/ChoreForm";
 import { ChoreList } from "@/components/chores/ChoreList";
 import { RewardBankCard } from "@/components/chores/RewardBankCard";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getAgeYears, getAgeBand, getChildIcon, getChildAvatarClasses } from "@/lib/childAvatar";
 import {
   ArrowRight,
   ClipboardList,
