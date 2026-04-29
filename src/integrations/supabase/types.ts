@@ -3333,7 +3333,6 @@ export type Database = {
           success: boolean
         }[]
       }
-      purge_consumed_view_once_media: { Args: never; Returns: undefined }
       purge_expired_chat_messages: { Args: never; Returns: undefined }
       reconnect_device: {
         Args: { p_child_id: string; p_device_id: string }
