@@ -508,11 +508,6 @@ const SettingsV2 = () => {
                 })}
               </div>
             </div>
-
-            <Button variant="outline" size="sm" onClick={() => navigate('/family-v2')} className="gap-2 mt-1">
-              <Users className="w-4 h-4" />
-              ניהול משפחה
-            </Button>
           </section>
         )}
 
