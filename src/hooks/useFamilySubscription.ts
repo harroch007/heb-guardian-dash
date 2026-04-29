@@ -6,6 +6,8 @@ interface ChildSubscriptionInfo {
   id: string;
   name: string;
   subscription_tier: string | null;
+  gender: string | null;
+  date_of_birth: string | null;
 }
 
 interface UseFamilySubscriptionResult {
