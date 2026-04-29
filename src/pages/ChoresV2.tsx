@@ -278,6 +278,7 @@ export default function ChoresV2() {
             </Accordion>
           );
         })()}
+      </div>
       <BottomNavigationV2 />
     </div>
   );
