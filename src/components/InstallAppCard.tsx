@@ -27,11 +27,11 @@ export function InstallAppCard({ variant = "settings" }: InstallAppCardProps) {
   const Action = isInstallable ? (
     <Button onClick={install} className="gap-2 w-full sm:w-auto">
       <Download className="w-4 h-4" />
-      התקנה
+      הוסיפו למסך הבית
     </Button>
   ) : isIOS ? (
     <div className="text-sm space-y-1.5 leading-relaxed">
-      <p className="font-medium text-foreground">להתקנה ב-iPhone:</p>
+      <p className="font-medium text-foreground">להוספת לוח ההורה למסך הבית ב-iPhone:</p>
       <p className="flex items-center gap-1.5 flex-wrap text-muted-foreground">
         <span>1. לחצו על</span>
         <Share className="w-4 h-4 inline text-primary" />
@@ -45,7 +45,7 @@ export function InstallAppCard({ variant = "settings" }: InstallAppCardProps) {
     </div>
   ) : isAndroidNonChrome ? (
     <div className="text-sm space-y-1.5 leading-relaxed">
-      <p className="font-medium text-foreground">להתקנה ב-Android:</p>
+      <p className="font-medium text-foreground">להוספת לוח ההורה למסך הבית ב-Android:</p>
       <p className="flex items-center gap-1.5 flex-wrap text-muted-foreground">
         <span>1. פתחו את האתר ב-</span>
         <Chrome className="w-4 h-4 inline text-primary" />
@@ -61,10 +61,10 @@ export function InstallAppCard({ variant = "settings" }: InstallAppCardProps) {
     <div className="text-sm space-y-1.5 leading-relaxed">
       <p className="font-medium text-foreground flex items-center gap-2">
         <Smartphone className="w-4 h-4 text-primary" />
-        רוצים להתקין כאפליקציה?
+        רוצים לפתוח את לוח ההורה גם מהטלפון?
       </p>
       <p className="text-muted-foreground">
-        פתחו את האתר בטלפון (Chrome ב-Android, או Safari ב-iPhone) ותקבלו אפשרות התקנה ישירה למסך הבית — ללא חנות אפליקציות.
+        זו האפליקציה שלכם כהורים (לא של הילד). פתחו את הכתובת בטלפון (Chrome ב-Android, או Safari ב-iPhone) ותקבלו אפשרות להוסיף קיצור למסך הבית — בלי להוריד אפליקציה מהחנות.
       </p>
     </div>
   ) : null;
@@ -79,8 +79,8 @@ export function InstallAppCard({ variant = "settings" }: InstallAppCardProps) {
                 <Download className="w-6 h-6 text-primary" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-foreground">התקינו את KippyAI כאפליקציה</h2>
-                <p className="text-sm text-muted-foreground mt-1">גישה מהירה ממסך הבית — בלי חנות אפליקציות, עובד בכל טלפון</p>
+                <h2 className="text-xl font-bold text-foreground">קיצור ללוח ההורה במסך הבית</h2>
+                <p className="text-sm text-muted-foreground mt-1">לוח ההורה שלכם, גישה מהירה ממסך הבית של הטלפון. לא מחליף את אפליקציית הילד — זו אפליקציה נפרדת בשבילכם, ללא צורך בחנות אפליקציות.</p>
               </div>
             </div>
             {Action}
@@ -97,8 +97,8 @@ export function InstallAppCard({ variant = "settings" }: InstallAppCardProps) {
         <Download className="w-5 h-5 text-primary" />
       </div>
       <div>
-        <h2 className="text-lg font-semibold text-foreground">התקינו את Kippy כאפליקציה</h2>
-        <p className="text-xs text-muted-foreground">גישה מהירה ממסך הבית, חוויית אפליקציה מלאה</p>
+        <h2 className="text-lg font-semibold text-foreground">קיצור ללוח ההורה במסך הבית</h2>
+        <p className="text-xs text-muted-foreground">פתיחה מהירה של לוח ההורה מהטלפון, בלי חנות אפליקציות</p>
       </div>
     </div>
   );
