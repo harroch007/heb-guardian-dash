@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { MapPin } from "lucide-react";
@@ -65,11 +65,32 @@ function escapeHtml(s: string): string {
 export const FamilyLocationsMap = ({ children }: Props) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
-  const markersRef = useRef<L.Marker[]>([]);
+  const markersRef = useRef<Map<string, L.Marker>>(new Map());
+  const didInitialFitRef = useRef(false);
 
-  const located = children.filter(
-    (c) => c.device?.lat != null && c.device?.lon != null,
-  );
+  // Stable signature so the effect only runs when actual location/connection
+  // data changes — not on every parent refetch.
+  const locatedKey = children
+    .map(
+      (c) =>
+        `${c.id}|${c.device?.lat ?? ""}|${c.device?.lon ?? ""}|${c.device?.last_seen ?? ""}|${c.name}|${c.device?.address ?? ""}`,
+    )
+    .join(",");
+
+  const located = useMemo(() => {
+    return children
+      .filter((c) => c.device?.lat != null && c.device?.lon != null)
+      .map((c) => ({
+        id: c.id,
+        name: c.name,
+        lat: c.device!.lat!,
+        lon: c.device!.lon!,
+        address: c.device!.address ?? null,
+        lastSeen: c.device!.last_seen,
+        connected: isConnected(c.device!.last_seen),
+      }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [locatedKey]);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -90,7 +111,8 @@ export const FamilyLocationsMap = ({ children }: Props) => {
     return () => {
       map.remove();
       mapRef.current = null;
-      markersRef.current = [];
+      markersRef.current.clear();
+      didInitialFitRef.current = false;
     };
   }, []);
 
@@ -98,41 +120,47 @@ export const FamilyLocationsMap = ({ children }: Props) => {
     const map = mapRef.current;
     if (!map) return;
 
-    markersRef.current.forEach((m) => m.remove());
-    markersRef.current = [];
-
-    if (located.length === 0) return;
-
-    const latlngs: L.LatLngExpression[] = [];
+    const seen = new Set<string>();
 
     located.forEach((c) => {
-      const lat = c.device!.lat!;
-      const lon = c.device!.lon!;
-      const connected = isConnected(c.device!.last_seen);
-      const initial = c.name.charAt(0);
-
-      const marker = L.marker([lat, lon], { icon: makePin(initial, connected) }).addTo(map);
-
-      const addressLine = c.device!.address
-        ? `<div style="font-size:11px;color:#555;margin-top:2px;">${escapeHtml(c.device!.address)}</div>`
-        : "";
-
-      marker.bindPopup(
-        `<div dir="rtl" style="font-family: system-ui, sans-serif; min-width: 140px;">
+      seen.add(c.id);
+      const popupHtml = `<div dir="rtl" style="font-family: system-ui, sans-serif; min-width: 140px;">
            <div style="font-weight:700;font-size:13px;color:#111;">${escapeHtml(c.name)}</div>
-           ${addressLine}
-           <div style="font-size:11px;color:#888;margin-top:4px;">${formatLastSeen(c.device!.last_seen)}</div>
-         </div>`,
-      );
+           ${c.address ? `<div style="font-size:11px;color:#555;margin-top:2px;">${escapeHtml(c.address)}</div>` : ""}
+           <div style="font-size:11px;color:#888;margin-top:4px;">${formatLastSeen(c.lastSeen)}</div>
+         </div>`;
 
-      markersRef.current.push(marker);
-      latlngs.push([lat, lon]);
+      const existing = markersRef.current.get(c.id);
+      if (existing) {
+        existing.setLatLng([c.lat, c.lon]);
+        existing.setIcon(makePin(c.name.charAt(0), c.connected));
+        existing.setPopupContent(popupHtml);
+      } else {
+        const marker = L.marker([c.lat, c.lon], {
+          icon: makePin(c.name.charAt(0), c.connected),
+        }).addTo(map);
+        marker.bindPopup(popupHtml);
+        markersRef.current.set(c.id, marker);
+      }
     });
 
-    if (latlngs.length === 1) {
-      map.setView(latlngs[0], 15);
-    } else {
-      map.fitBounds(L.latLngBounds(latlngs), { padding: [40, 40], maxZoom: 15 });
+    // Remove markers no longer present
+    for (const [id, marker] of markersRef.current) {
+      if (!seen.has(id)) {
+        marker.remove();
+        markersRef.current.delete(id);
+      }
+    }
+
+    // Fit/center only ONCE — never override the user's zoom/pan on refetches.
+    if (!didInitialFitRef.current && located.length > 0) {
+      const latlngs = located.map((c) => [c.lat, c.lon] as L.LatLngExpression);
+      if (latlngs.length === 1) {
+        map.setView(latlngs[0], 15);
+      } else {
+        map.fitBounds(L.latLngBounds(latlngs), { padding: [40, 40], maxZoom: 15 });
+      }
+      didInitialFitRef.current = true;
     }
   }, [located]);
 
