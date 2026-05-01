@@ -14,6 +14,7 @@ import { DailyControlSummary } from "@/components/home-v2/DailyControlSummary";
 import { SmartProtectionSummary } from "@/components/home-v2/SmartProtectionSummary";
 import { BottomNavigationV2 } from "@/components/BottomNavigationV2";
 import { TopNavigationV2 } from "@/components/TopNavigationV2";
+import { Accordion } from "@/components/ui/accordion";
 import { WHATSAPP_MONITORING_ENABLED } from "@/config/featureFlags";
 
 export interface ActiveRestriction {
@@ -362,11 +363,11 @@ const HomeV2 = () => {
             <p className="text-gray-500 text-sm">אין ילדים רשומים עדיין</p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <Accordion type="single" collapsible className="space-y-4">
             {childrenData.map((child) => (
               <ChildCardV2 key={child.id} child={child} onRefresh={fetchAllData} />
             ))}
-          </div>
+          </Accordion>
         )}
 
         <AttentionSection childrenData={childrenData} />
