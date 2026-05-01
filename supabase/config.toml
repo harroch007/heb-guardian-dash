@@ -50,3 +50,6 @@ verify_jwt = false
 
 [functions.join-family-by-code]
 verify_jwt = false
+
+[functions.seed-mock-peer]
+verify_jwt = false
