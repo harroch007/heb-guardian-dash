@@ -8,6 +8,7 @@ import { useState } from "react";
 import { useRingCommand } from "@/hooks/useRingCommand";
 import { WHATSAPP_MONITORING_ENABLED } from "@/config/featureFlags";
 import { HelpTooltip } from "@/components/help/HelpTooltip";
+import { AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import type { ChildWithData } from "@/pages/HomeV2";
 
 interface Props {
@@ -56,13 +57,15 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
   const screenTimeExceeded =
     hasLimit && remaining === 0 && !child.activeRestriction;
 
-  const handleRing = async () => {
+  const handleRing = async (e?: React.MouseEvent) => {
+    e?.stopPropagation();
     const ok = await sendRing();
     if (ok) toast.success("פקודת צלצול נשלחה");
     else toast.error("שגיאה בשליחת צלצול");
   };
 
-  const handleAddTime = async () => {
+  const handleAddTime = async (e?: React.MouseEvent) => {
+    e?.stopPropagation();
     if (!user?.id) return;
     setAddingTime(true);
     try {
@@ -90,11 +93,11 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
 
   // Ring icon/label helpers
   const getRingIcon = () => {
-    if (ringPhase === "sending") return <Loader2 className="h-3.5 w-3.5 animate-spin" />;
-    if (ringPhase === "ringing") return <Volume2 className="h-3.5 w-3.5 animate-pulse" />;
-    if (ringPhase === "child_stopped" || ringPhase === "timeout" || ringPhase === "completed_legacy") return <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />;
-    if (ringPhase === "failed") return <AlertTriangle className="h-3.5 w-3.5 text-red-500" />;
-    return <Volume2 className="h-3.5 w-3.5" />;
+    if (ringPhase === "sending") return <Loader2 className="h-4 w-4 animate-spin" />;
+    if (ringPhase === "ringing") return <Volume2 className="h-4 w-4 animate-pulse" />;
+    if (ringPhase === "child_stopped" || ringPhase === "timeout" || ringPhase === "completed_legacy") return <CheckCircle2 className="h-4 w-4 text-emerald-500" />;
+    if (ringPhase === "failed") return <AlertTriangle className="h-4 w-4 text-red-500" />;
+    return <Volume2 className="h-4 w-4" />;
   };
 
   const getRingTitle = () => {
@@ -103,7 +106,7 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
     if (ringPhase === "child_stopped") return "הילד עצר ✓";
     if (ringPhase === "timeout" || ringPhase === "completed_legacy") return "הסתיים ✓";
     if (ringPhase === "failed") return "נכשל";
-    return "צלצל";
+    return "צלצל למכשיר";
   };
 
   const isRingBusy = ringPhase === "sending" || ringPhase === "ringing";
@@ -123,7 +126,10 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
         : "border-border";
 
   return (
-    <div className={`rounded-2xl bg-card border shadow-sm overflow-hidden ${borderClass}`}>
+    <AccordionItem
+      value={child.id}
+      className={`rounded-2xl bg-card border shadow-sm overflow-hidden ${borderClass}`}
+    >
       {/* Disconnected banner (highest priority) */}
       {!connected && (
         <div className="flex items-center gap-2 px-4 py-2 bg-destructive/10 border-b border-red-200">
@@ -133,7 +139,7 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
           </span>
         </div>
       )}
-      {/* Screen-time exceeded banner (only when connected and no scheduled restriction) */}
+      {/* Screen-time exceeded banner */}
       {connected && screenTimeExceeded && (
         <div className="flex items-center gap-2 px-4 py-2 bg-destructive/10 border-b border-red-200">
           <Lock className="h-4 w-4 text-destructive shrink-0" />
@@ -151,133 +157,140 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
           </span>
         </div>
       )}
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 pt-4 pb-2">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center">
-            <span className="text-primary font-bold text-sm">
-              {child.name.charAt(0)}
-            </span>
-          </div>
-          <div>
-            <h3 className="font-semibold text-foreground text-sm">{child.name}</h3>
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <span
-                className={`w-2 h-2 rounded-full ${connected ? "bg-success" : "bg-destructive"}`}
-              />
-              {formatLastSeen(child.device?.last_seen ?? null)}
+
+      {/* Header (Accordion Trigger) */}
+      <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-muted/30 [&[data-state=open]]:border-b [&[data-state=open]]:border-border/50">
+        <div className="flex items-center justify-between w-full gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+              <span className="text-primary font-bold text-sm">
+                {child.name.charAt(0)}
+              </span>
+            </div>
+            <div className="text-right min-w-0">
+              <h3 className="font-semibold text-foreground text-sm truncate">{child.name}</h3>
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span
+                  className={`w-2 h-2 rounded-full ${connected ? "bg-success" : "bg-destructive"}`}
+                />
+                {formatLastSeen(child.device?.last_seen ?? null)}
+              </div>
             </div>
           </div>
+          {child.device && child.device.battery_level !== null && (() => {
+            const lvl = child.device.battery_level;
+            const color =
+              lvl >= 70 ? "text-success" :
+              lvl >= 40 ? "text-yellow-500" :
+              lvl >= 20 ? "text-orange-500" :
+              "text-destructive";
+            return (
+              <div className={`flex items-center gap-1 text-xs font-medium ${color} shrink-0`}>
+                <Battery className="h-3.5 w-3.5" />
+                <span>{lvl}%</span>
+              </div>
+            );
+          })()}
         </div>
-        {child.device && child.device.battery_level !== null && (() => {
-          const lvl = child.device.battery_level;
-          const color =
-            lvl >= 70 ? "text-success" :
-            lvl >= 40 ? "text-yellow-500" :
-            lvl >= 20 ? "text-orange-500" :
-            "text-destructive";
-          return (
-            <div className={`flex items-center gap-1 text-xs font-medium ${color}`}>
-              <Battery className="h-3.5 w-3.5" />
-              <span>{lvl}%</span>
-            </div>
-          );
-        })()}
-      </div>
+      </AccordionTrigger>
 
-      {/* Metrics grid */}
-      <div className="grid grid-cols-3 gap-2 px-4 py-3">
-        <MetricCell
-          icon={<Clock className="h-3.5 w-3.5 text-blue-500" />}
-          label="זמן מסך"
-          value={formatMinutes(usedMinutes)}
-          helpText="כמה זמן הילד השתמש במכשיר היום (לפי שעון ישראל, מתאפס בחצות)."
-        />
-        {child.activeRestriction ? (
+      <AccordionContent className="pb-0 pt-0">
+        {/* Metrics grid */}
+        <div className="grid grid-cols-3 gap-2 px-4 py-3">
           <MetricCell
-            icon={<Lock className="h-3.5 w-3.5 text-amber-500" />}
-            label="הגבלה פעילה"
-            value={child.activeRestriction.name}
-            helpText="כרגע פעיל לוח זמנים שמגביל את השימוש במכשיר."
+            icon={<Clock className="h-3.5 w-3.5 text-blue-500" />}
+            label="זמן מסך"
+            value={formatMinutes(usedMinutes)}
+            helpText="כמה זמן הילד השתמש במכשיר היום (לפי שעון ישראל, מתאפס בחצות)."
           />
-        ) : remaining !== null ? (
-          <MetricCell
-            icon={<Clock className={`h-3.5 w-3.5 ${screenTimeExceeded ? "text-red-500" : "text-emerald-500"}`} />}
-            label="נותר"
-            value={formatMinutes(remaining)}
-            warn={!screenTimeExceeded && remaining <= 15}
-            danger={screenTimeExceeded}
-            helpText="כמה זמן מסך נותר לילד היום עד סיום המגבלה היומית."
-          />
-        ) : (
-          <MetricCell
-            icon={<Clock className="h-3.5 w-3.5 text-muted-foreground" />}
-            label="מגבלה"
-            value="לא הוגדר"
-            helpText="לא הוגדרה מגבלת זמן יומית. ניתן להגדיר במסך ניהול הילד."
-          />
-        )}
-        <MetricCell
-          icon={<Smartphone className="h-3.5 w-3.5 text-purple-500" />}
-          label="בנק בונוס"
-          value={`${child.rewardBankBalance} דק׳`}
-          helpText="דקות בונוס שהילד צבר ממשימות וזמינות לפדיון."
-        />
-      </div>
-
-      {/* Location */}
-      {child.device?.address && (
-        <div className="flex items-start gap-1.5 px-4 pb-2 text-xs text-muted-foreground">
-          <MapPin className="h-3 w-3 flex-shrink-0 mt-0.5" />
-          <span className="break-words">{child.device.address}</span>
-        </div>
-      )}
-
-      {/* Status line */}
-      {statusParts.length > 0 && (
-        <div className="px-4 pb-3">
-          <p className="text-xs text-warning font-medium">
-            {statusParts.join("  ·  ")}
-          </p>
-        </div>
-      )}
-
-      {/* Actions */}
-      <div className="border-t border-border/50 px-4 py-3 flex items-center justify-between">
-        <button
-          onClick={() => navigate(`/child-v2/${child.id}`)}
-          className="text-sm font-semibold text-primary hover:text-primary"
-        >
-          ניהול הילד ←
-        </button>
-        <div className="flex items-center gap-2">
-          {child.device && (
-            <>
-              <ActionBtn
-                icon={getRingIcon()}
-                onClick={ringPhase === "failed" ? retryRing : handleRing}
-                disabled={isRingBusy || isRingDone}
-                title={getRingTitle()}
-              />
-              <ActionBtn
-                icon={<Plus className="h-3.5 w-3.5" />}
-                onClick={handleAddTime}
-                disabled={addingTime}
-                title="הוסף זמן"
-              />
-            </>
-          )}
-          {WHATSAPP_MONITORING_ENABLED && child.unacknowledgedAlerts > 0 && (
-            <ActionBtn
-              icon={<Bell className="h-3.5 w-3.5" />}
-              onClick={() => navigate("/alerts-v2")}
-              badge={child.unacknowledgedAlerts}
-              title="התראות"
+          {child.activeRestriction ? (
+            <MetricCell
+              icon={<Lock className="h-3.5 w-3.5 text-amber-500" />}
+              label="הגבלה פעילה"
+              value={child.activeRestriction.name}
+              helpText="כרגע פעיל לוח זמנים שמגביל את השימוש במכשיר."
+            />
+          ) : remaining !== null ? (
+            <MetricCell
+              icon={<Clock className={`h-3.5 w-3.5 ${screenTimeExceeded ? "text-red-500" : "text-emerald-500"}`} />}
+              label="נותר"
+              value={formatMinutes(remaining)}
+              warn={!screenTimeExceeded && remaining <= 15}
+              danger={screenTimeExceeded}
+              helpText="כמה זמן מסך נותר לילד היום עד סיום המגבלה היומית."
+            />
+          ) : (
+            <MetricCell
+              icon={<Clock className="h-3.5 w-3.5 text-muted-foreground" />}
+              label="מגבלה"
+              value="לא הוגדר"
+              helpText="לא הוגדרה מגבלת זמן יומית. ניתן להגדיר במסך ניהול הילד."
             />
           )}
+          <MetricCell
+            icon={<Smartphone className="h-3.5 w-3.5 text-purple-500" />}
+            label="בנק בונוס"
+            value={`${child.rewardBankBalance} דק׳`}
+            helpText="דקות בונוס שהילד צבר ממשימות וזמינות לפדיון."
+          />
         </div>
-      </div>
-    </div>
+
+        {/* Location */}
+        {child.device?.address && (
+          <div className="flex items-start gap-1.5 px-4 pb-2 text-xs text-muted-foreground">
+            <MapPin className="h-3 w-3 flex-shrink-0 mt-0.5" />
+            <span className="break-words">{child.device.address}</span>
+          </div>
+        )}
+
+        {/* Status line */}
+        {statusParts.length > 0 && (
+          <div className="px-4 pb-3">
+            <p className="text-xs text-warning font-medium">
+              {statusParts.join("  ·  ")}
+            </p>
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="border-t border-border/50 px-4 py-3">
+          {child.device ? (
+            <div className="flex items-center justify-center gap-3">
+              <button
+                onClick={handleAddTime}
+                disabled={addingTime}
+                className="flex-1 max-w-[180px] flex items-center justify-center gap-2 h-10 rounded-lg bg-muted/60 hover:bg-muted text-foreground text-xs font-medium disabled:opacity-50 transition-colors"
+              >
+                {addingTime ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                <span>הוסף 15 דק׳</span>
+              </button>
+              <button
+                onClick={ringPhase === "failed" ? (e) => { e.stopPropagation(); retryRing(); } : handleRing}
+                disabled={isRingBusy || isRingDone}
+                className="flex-1 max-w-[180px] flex items-center justify-center gap-2 h-10 rounded-lg bg-muted/60 hover:bg-muted text-foreground text-xs font-medium disabled:opacity-50 transition-colors"
+              >
+                {getRingIcon()}
+                <span>{getRingTitle()}</span>
+              </button>
+              {WHATSAPP_MONITORING_ENABLED && child.unacknowledgedAlerts > 0 && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); navigate("/alerts-v2"); }}
+                  title="התראות"
+                  className="relative p-2 rounded-lg bg-muted/60 hover:bg-muted text-muted-foreground transition-colors"
+                >
+                  <Bell className="h-4 w-4" />
+                  <span className="absolute -top-1 -left-1 bg-destructive text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                    {child.unacknowledgedAlerts}
+                  </span>
+                </button>
+              )}
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground text-center">אין מכשיר מחובר</p>
+          )}
+        </div>
+      </AccordionContent>
+    </AccordionItem>
   );
 };
 
@@ -306,32 +319,4 @@ const MetricCell = ({
       {helpText && <HelpTooltip text={helpText} iconSize={10} />}
     </div>
   </div>
-);
-
-const ActionBtn = ({
-  icon,
-  onClick,
-  disabled,
-  badge,
-  title,
-}: {
-  icon: React.ReactNode;
-  onClick: () => void;
-  disabled?: boolean;
-  badge?: number;
-  title: string;
-}) => (
-  <button
-    onClick={onClick}
-    disabled={disabled}
-    title={title}
-    className="relative p-2 rounded-lg bg-card hover:bg-muted text-muted-foreground disabled:opacity-50 transition-colors"
-  >
-    {icon}
-    {badge && badge > 0 && (
-      <span className="absolute -top-1 -left-1 bg-destructive text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
-        {badge}
-      </span>
-    )}
-  </button>
 );
