@@ -9,7 +9,7 @@ import { HomeGreeting } from "@/components/home-v2/HomeGreeting";
 import { FamilyStatusHero } from "@/components/home-v2/FamilyStatusHero";
 import { ChildCardV2 } from "@/components/home-v2/ChildCardV2";
 import { AttentionSection } from "@/components/home-v2/AttentionSection";
-import { QuickActionsBar } from "@/components/home-v2/QuickActionsBar";
+import { FamilyLocationsMap } from "@/components/home-v2/FamilyLocationsMap";
 import { DailyControlSummary } from "@/components/home-v2/DailyControlSummary";
 import { SmartProtectionSummary } from "@/components/home-v2/SmartProtectionSummary";
 import { BottomNavigationV2 } from "@/components/BottomNavigationV2";
@@ -372,7 +372,7 @@ const HomeV2 = () => {
 
         <AttentionSection childrenData={childrenData} />
 
-        <QuickActionsBar childrenData={childrenData} />
+        {childrenData.length > 0 && <FamilyLocationsMap children={childrenData} />}
 
         {childrenData.length === 1 && (
           <DailyControlSummary childrenData={childrenData} />
