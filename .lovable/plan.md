@@ -1,38 +1,30 @@
-## החלפת "פעולות מהירות" במפת מיקומי הילדים בדף הבית
+## תיקון ביצועים — מפת מיקומי הילדים בדף הבית
 
-### רכיב חדש: `src/components/home-v2/FamilyLocationsMap.tsx`
-מפת Leaflet אינטראקטיבית (אותו דפוס כמו `LocationMap.tsx` הקיים — leaflet כבר מותקן):
-- אריחי CartoDB Voyager (זהה לשאר האפליקציה).
-- כותרת "מיקום הילדים" עם אייקון `MapPin`.
-- גובה קבוע 260px, פינות מעוגלות, גבול תואם תמה.
-- `scrollWheelZoom: false` כדי לא לחטוף סקרול בדף.
-- מקרא קטן בתחתית: ירוק = מחובר, אדום = לא מחובר (מיקום אחרון).
+### הבעיה
+ב-`FamilyLocationsMap.tsx` הקיים, בכל refetch של `HomeV2` (שמתרחש בכל פעולה — הוספת בונוס, מתח לבית מ-tab אחר וכו'):
+1. `located = children.filter(...)` יוצר מערך חדש בכל רנדר → ה-`useEffect` רץ.
+2. ה-effect **מסיר ובונה מחדש את כל ה-markers** (`m.remove()` + `L.marker(...).addTo(map)`), שזה יקר ב-Leaflet (DOM thrash, re-paint של אריחים).
+3. `setView` / `fitBounds` נקראים **בכל refetch**, מה שמאפס את הזום של המשתמש — אם המשתמש עשה זום-אין כדי לראות ילד, הוא נזרק לאחור והמסך מקפיא בזמן רינדור.
 
-### לוגיקת סיכות
-לכל ילד שיש לו `device.lat` + `device.lon`:
-- סיכה בצורת טיפה עם האות הראשונה של שם הילד בלבן.
-- צבע סיכה לפי `last_seen` (טווח 24 שעות, זהה ל-`isConnected` ב-ChildCardV2):
-  - מחובר → ירוק (`hsl(142 71% 45%)`).
-  - לא מחובר → אדום (`hsl(0 84% 60%)`) — עדיין מציגים את המיקום האחרון הידוע.
-- ילד ללא `lat`/`lon` כלל → לא מופיע על המפה (לא נחסום את המפה כולה בגללו).
+### התיקון ב-`src/components/home-v2/FamilyLocationsMap.tsx`
 
-### Popup בלחיצה על סיכה
-RTL, פשוט:
-- שם הילד (bold).
-- כתובת (`device.address`) אם קיימת.
-- "לפני X זמן" / "עכשיו" / "לפני X ימים" (פורמט זהה ל-ChildCardV2).
-- ללא ניווט/כפתורים.
+**1. ייצוב הרשימה דרך `useMemo` עם key סטטי**
+```ts
+const located = useMemo(() => children.filter(...).map(...),
+  [children.map(c => `${c.id}|${c.device?.lat}|${c.device?.lon}|${c.device?.last_seen}|${c.name}|${c.device?.address}`).join(",")]);
+```
+ה-effect ירוץ רק כשנתון רלוונטי השתנה בפועל, לא בכל רנדר.
 
-### זום אוטומטי
-- 0 ילדים עם מיקום → הודעה ממורכזת "אין מיקום זמין לאף ילד" מעל מפת ברירת מחדל של ישראל.
-- ילד אחד → `setView` עם זום 15.
-- 2+ ילדים → `fitBounds` עם padding ו-`maxZoom: 15` כך שכולם נכנסים בחלונית.
+**2. עדכון markers in-place במקום remove+add**
+- מחליפים את `markersRef` מ-`L.Marker[]` ל-`Map<childId, L.Marker>`.
+- בכל ריצת effect: לכל ילד — אם marker קיים, קוראים ל-`setLatLng`, `setIcon`, `setPopupContent`. אם לא קיים — יוצרים חדש.
+- מסירים רק markers של ילדים שנעלמו לגמרי (`seen` set).
 
-### שינוי ב-`src/pages/HomeV2.tsx`
-- מוחק את ה-import וה-render של `QuickActionsBar`.
-- מוסיף import של `FamilyLocationsMap` ומציג אותו בדיוק במקום שבו היה `QuickActionsBar` (אחרי `AttentionSection`).
-- מציג רק כאשר `childrenData.length > 0`.
+**3. fit/center רק פעם אחת**
+- `didInitialFitRef = useRef(false)`.
+- `setView`/`fitBounds` רצים רק אם `!didInitialFitRef.current && located.length > 0`, ואז מסמנים `true`.
+- כך הזום והפאן של המשתמש נשמרים בכל refetch.
 
-### לא בתחולה
-- הקובץ `QuickActionsBar.tsx` נשאר בקוד (לא נמחק) — רק לא בשימוש בדף הבית.
-- לא משתנה כלום בלוגיקת השליפה — `lat`/`lon`/`address`/`last_seen` כבר נטענים ל-`ChildWithData`.
+### לא משתנה
+- מבנה הסיכות, ה-popup, הצבעים, האריחים, הגובה, והממשק עם `HomeV2.tsx` — כולם נשארים זהים.
+- אין שינויים ב-DB או בלוגיקת השליפה.
