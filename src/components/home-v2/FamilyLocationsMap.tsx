@@ -173,7 +173,7 @@ export const FamilyLocationsMap = ({ children }: Props) => {
       <div className="relative rounded-2xl overflow-hidden border border-border bg-card">
         <div
           ref={containerRef}
-          className="h-[260px] w-full"
+          className="h-[195px] sm:h-[260px] w-full"
           aria-label="מפת מיקומי הילדים"
         />
         {located.length === 0 && (
