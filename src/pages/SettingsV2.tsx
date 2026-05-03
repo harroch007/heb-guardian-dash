@@ -42,12 +42,14 @@ const SettingsV2 = () => {
   const [editName, setEditName] = useState("");
   const [editPhone, setEditPhone] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [kippyTag, setKippyTag] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user?.id) return;
-    supabase.from("parents").select("full_name, phone").eq("id", user.id).single().then(({ data }) => {
+    supabase.from("parents").select("full_name, phone, kippy_tag").eq("id", user.id).single().then(({ data }) => {
       if (data?.full_name) setParentName(data.full_name);
       if (data?.phone) setParentPhone(data.phone);
+      if ((data as any)?.kippy_tag) setKippyTag((data as any).kippy_tag);
     });
   }, [user?.id]);
 
