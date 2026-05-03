@@ -1,64 +1,87 @@
-## מטרה
-ליישר את מסכי הצ'אט של ההורה (`/chat-v2` ו-`/chat-v2/:friendshipId`) לעיצוב הזהה לצ'אט באפליקציית הילד (Dark WhatsApp-like) על פי המפרט של המעצב, כך שתהיה שפה ויזואלית אחת.
+## Migration: Universal Chat — fix `get_child_friends` + add `view_child_active_chats`
 
-## שינויים
+Single SQL migration. Verified `parents` has columns `id, full_name, phone, email, ...`.
 
-### 1. הוספת scope עיצוב חדש `chat-dark` ב-`src/index.css`
-טוקנים נעולים לפי המפרט (לא תלוי בערכת הצבעים של שאר האפליקציה):
+### 1. Replace `get_child_friends` so parent peers are returned
 
-```text
---chat-bg:        #0B141A   (רקע מסך)
---chat-header:    #202C33   (בר עליון + בועת חבר)
---chat-input-bg:  #2A3942   (שדה הקלדה)
---chat-mine:      #005C4B   (בועה שלי)
---chat-text:      #E9EDEF
---chat-text-muted:#8696A0
---chat-accent:    #39D2FF   (View Once / לחיצים)
---chat-typing:    #35C76F
---chat-fab:       #00A884   (כפתור שליחה/מיקרופון)
+```sql
+DROP FUNCTION IF EXISTS public.get_child_friends(uuid);
+
+CREATE OR REPLACE FUNCTION public.get_child_friends(p_child_id uuid)
+RETURNS TABLE (
+  friendship_id     uuid,
+  friend_id         uuid,
+  friend_child_id   uuid,           -- back-compat: NULL when peer is a parent
+  friend_name       text,
+  friend_kippy_tag  text,
+  participant_type  text,           -- 'child' | 'parent'
+  status            text,
+  created_at        timestamptz
+)
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF NOT public.is_child_of_calling_device(p_child_id) THEN
+    RAISE EXCEPTION 'UNAUTHORIZED' USING ERRCODE = '42501';
+  END IF;
+
+  RETURN QUERY
+  WITH peer AS (
+    SELECT f.id AS fid,
+           CASE WHEN f.requester_id = p_child_id THEN f.receiver_id
+                ELSE f.requester_id END AS peer_id,
+           f.status AS raw_status, f.requester_id, f.created_at
+    FROM public.friendships f
+    WHERE f.requester_id = p_child_id OR f.receiver_id = p_child_id
+  )
+  SELECT
+    p.fid, p.peer_id, c.id,
+    COALESCE(c.name, pa.full_name, 'משתמש'),
+    c.kippy_tag,
+    CASE WHEN c.id IS NOT NULL THEN 'child'
+         WHEN pa.id IS NOT NULL THEN 'parent'
+         ELSE 'unknown' END,
+    CASE WHEN p.raw_status = 'accepted' THEN 'accepted'
+         WHEN p.raw_status = 'declined' THEN 'declined'
+         WHEN p.requester_id = p_child_id THEN 'pending_outgoing'
+         ELSE 'pending_incoming' END,
+    p.created_at
+  FROM peer p
+  LEFT JOIN public.children c  ON c.id  = p.peer_id
+  LEFT JOIN public.parents  pa ON pa.id = p.peer_id
+  ORDER BY p.created_at DESC;
+END $$;
+
+GRANT EXECUTE ON FUNCTION public.get_child_friends(uuid) TO anon, authenticated;
 ```
 
-ה-scope יחליף את `homev2-light` בשני המסכים בלבד — לא משפיע על שאר האפליקציה.
+Backward-compatible field `friend_child_id` is preserved (NULL for parent peers); new `friend_id` and `participant_type` are added.
 
-### 2. `src/pages/ChatV2.tsx` — מסך רשימת שיחות
-- רקע מסך כהה (`#0B141A`).
-- כותרת "צ'אט" ו-subtitle בלבן/אפור — לא בקלף primary tinted כמו עכשיו.
-- במקום `<Card>` בהיר לכל שיחה: שורה ברוחב מלא עם רקע `#202C33`, פינות 12px, מרווחים אנכיים 6dp.
-- אווטאר עגול 48px ברקע ירוק כהה עם אייקון/אות; badge אדום עגול לספירת לא-נקראו.
-- שם בלבן בולד; הודעה אחרונה ב-`#8696A0`; חותמת זמן ב-`#8696A0` קטנה.
-- BottomNavigation נשארת כפי שהיא (לא בתוך ה-scope של chat-dark).
+### 2. Create `view_child_active_chats` (Android-friendly)
 
-### 3. `src/pages/ChatRoomV2.tsx` — חדר השיחה
-**Header (גובה 64px, רקע `#202C33`):**
-- מימין לשמאל (RTL): כפתור חזור (חץ אפור) → אווטאר 40px → שם בולד 18px + סטטוס "מחובר/ת" / "ילד/ה" בגודל 14px ב-`#8696A0` → משמאל אייקון גיימפאד (placeholder, לא פעיל ב-V1) ב-`#00A884`.
+```sql
+DROP VIEW IF EXISTS public.view_child_active_chats;
 
-**Feed:**
-- רקע `#0B141A`, padding 8px לצדדים.
-- בועה שלי (ימין): רקע `#005C4B`, פינות מעוגלות חוץ מהפינה העליונה-ימנית (יוצר "שפיץ").
-- בועת חבר (שמאל): רקע `#202C33`, פינות מעוגלות חוץ מהפינה העליונה-שמאלית.
-- טקסט בלבן `#E9EDEF`; חותמת זמן בתחתית הבועה ב-`#8696A0` 10px.
-- View Once: מוצג כטקסט תכלת ניאון `#39D2FF` לחיץ ("🖼️ תמונה (לחץ לצפייה)"); אחרי צפייה הופך ל-`#8696A0` ולא לחיץ.
-- תמונות רגילות: thumbnail בתוך הבועה.
+CREATE VIEW public.view_child_active_chats
+WITH (security_invoker = on) AS
+SELECT
+  f.id AS friendship_id,
+  f.requester_id, f.receiver_id, f.status, f.created_at,
+  cp.participant_id   AS peer_id,
+  cp.participant_type AS peer_type,
+  cp.display_name     AS peer_name
+FROM public.friendships f
+JOIN public.chat_participants cp
+  ON cp.participant_id IN (f.requester_id, f.receiver_id)
+WHERE f.status = 'accepted';
 
-**Composer (תחתון):**
-- שדה הקלדה Pill (radius מלא), רקע `#2A3942`, placeholder "הודעה..." ב-`#8696A0`.
-- אייקון 📎 בתוך השדה (צד שמאל ב-RTL) לצירוף תמונה. אייקון 👁 (View Once toggle) בצד ימין-פנימי של השדה.
-- כפתור FAB עגול מחוץ לשדה משמאל: רקע `#00A884`. דינמי:
-  - שדה ריק → אייקון מיקרופון (placeholder; לא מקליט ב-V1, מציג toast "בקרוב").
-  - יש טקסט → אייקון מטוס נייר/Send לבן.
+GRANT SELECT ON public.view_child_active_chats TO anon, authenticated;
 
-### 4. הסתרת BottomNavigation בחדר השיחה
-חדר השיחה fullscreen (כמו באפליקציית הילד) — לא מציגים את ה-BottomNavigation שם (כבר ככה היום, נשמר).
+NOTIFY pgrst, 'reload schema';
+```
 
-### 5. ללא שינויי backend
-לא נוגעים ב-DB, hooks, RLS, edge functions. רק שכבת UI.
+`security_invoker = on` ensures underlying RLS on `friendships` / `chat_participants` enforces visibility — each caller sees only their rows. Each friendship will appear twice (once per peer); Android filters `peer_id != self`.
 
-## קבצים שיושפעו
-- `src/index.css` — הוספת scope `.chat-dark` (~25 שורות).
-- `src/pages/ChatV2.tsx` — שכתוב styling, החלפת `homev2-light` ב-`chat-dark`.
-- `src/pages/ChatRoomV2.tsx` — שכתוב styling, header, bubbles, composer.
+### 3. No frontend changes
+Parent web (`useChatList`) does not use `get_child_friends`; unaffected.
 
-## מחוץ לסקופ (V1)
-- הקלטה קולית בפועל (רק אייקון placeholder עם toast).
-- כפתור משחק (אייקון placeholder, ללא פעולה).
-- אינדיקטור "מקליד/ה..." חי (דורש presence channel — שלב הבא).
+After migration runs I will post the response message for the Android team.
