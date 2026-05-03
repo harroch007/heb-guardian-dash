@@ -1,171 +1,64 @@
-# צ'אט אוניברסלי ב-Kippy — תוכנית מלאה
+## מטרה
+ליישר את מסכי הצ'אט של ההורה (`/chat-v2` ו-`/chat-v2/:friendshipId`) לעיצוב הזהה לצ'אט באפליקציית הילד (Dark WhatsApp-like) על פי המפרט של המעצב, כך שתהיה שפה ויזואלית אחת.
 
-## העיקרון המרכזי
+## שינויים
 
-**משתמש אחד = פרופיל אחד בצ'אט**, לא משנה אם הוא הורה או ילד. הורה יכול להתכתב עם:
-
-- הילד שלו
-- ילד של הורה אחר
-- הורה אחר (חבר משפחה / קרוב משפחה)
-- קבוצה של מספר משתתפים (עתידי)
-
-זה אותו הצ'אט בדיוק שיש היום לילדים — אותן טבלאות, אותן הודעות, אותם פיצ'רים (טקסט, תמונות, view-once, TTL 30 יום, real-time). פשוט מרחיבים את ה"מי יכול להיות שולח/מקבל" מ-`child` בלבד ל-`child OR parent`.
-
-## שינוי מודל הנתונים — `chat_participants`
-
-הצ'אט הקיים מניח ששני הצדדים הם `children` (FK בטבלת `friendships` ובעמודה `sender_id` של `chat_messages`). זה לא יחזיק כשגם הורה צריך להיות משתתף.
-
-הפתרון: מוסיפים שכבת אבסטרקציה דקה — `chat_participants` view/table שמאחדת ילדים והורים תחת זהות אחת.
+### 1. הוספת scope עיצוב חדש `chat-dark` ב-`src/index.css`
+טוקנים נעולים לפי המפרט (לא תלוי בערכת הצבעים של שאר האפליקציה):
 
 ```text
-chat_participants (VIEW)
- ├── participant_id (uuid, unique)        ← child.id או parent.id
- ├── participant_type ('child' | 'parent')
- ├── display_name
- ├── owner_parent_id                      ← לילד: parent_id, להורה: עצמו
- └── ...
+--chat-bg:        #0B141A   (רקע מסך)
+--chat-header:    #202C33   (בר עליון + בועת חבר)
+--chat-input-bg:  #2A3942   (שדה הקלדה)
+--chat-mine:      #005C4B   (בועה שלי)
+--chat-text:      #E9EDEF
+--chat-text-muted:#8696A0
+--chat-accent:    #39D2FF   (View Once / לחיצים)
+--chat-typing:    #35C76F
+--chat-fab:       #00A884   (כפתור שליחה/מיקרופון)
 ```
 
-ואז:
+ה-scope יחליף את `homev2-light` בשני המסכים בלבד — לא משפיע על שאר האפליקציה.
 
-- `friendships.requester_id` / `receiver_id` → מצביעים ל-`participant_id` (ללא FK קשיח כי זה union של שתי טבלאות)
-- `chat_messages.sender_id` → אותו דבר
-- מסירים את ה-FKs הקיימים ל-`children`, מחליפים ב-trigger validation שמוודא שה-id קיים או ב-`children` או ב-`parents`.
+### 2. `src/pages/ChatV2.tsx` — מסך רשימת שיחות
+- רקע מסך כהה (`#0B141A`).
+- כותרת "צ'אט" ו-subtitle בלבן/אפור — לא בקלף primary tinted כמו עכשיו.
+- במקום `<Card>` בהיר לכל שיחה: שורה ברוחב מלא עם רקע `#202C33`, פינות 12px, מרווחים אנכיים 6dp.
+- אווטאר עגול 48px ברקע ירוק כהה עם אייקון/אות; badge אדום עגול לספירת לא-נקראו.
+- שם בלבן בולד; הודעה אחרונה ב-`#8696A0`; חותמת זמן ב-`#8696A0` קטנה.
+- BottomNavigation נשארת כפי שהיא (לא בתוך ה-scope של chat-dark).
 
-## RLS חדש (קריטי)
+### 3. `src/pages/ChatRoomV2.tsx` — חדר השיחה
+**Header (גובה 64px, רקע `#202C33`):**
+- מימין לשמאל (RTL): כפתור חזור (חץ אפור) → אווטאר 40px → שם בולד 18px + סטטוס "מחובר/ת" / "ילד/ה" בגודל 14px ב-`#8696A0` → משמאל אייקון גיימפאד (placeholder, לא פעיל ב-V1) ב-`#00A884`.
 
-הפוליסות הקיימות מבוססות על `is_child_of_calling_device` — זה עובד רק לאנדרואיד עם device JWT. צריך פוליסות מקבילות להורה:
+**Feed:**
+- רקע `#0B141A`, padding 8px לצדדים.
+- בועה שלי (ימין): רקע `#005C4B`, פינות מעוגלות חוץ מהפינה העליונה-ימנית (יוצר "שפיץ").
+- בועת חבר (שמאל): רקע `#202C33`, פינות מעוגלות חוץ מהפינה העליונה-שמאלית.
+- טקסט בלבן `#E9EDEF`; חותמת זמן בתחתית הבועה ב-`#8696A0` 10px.
+- View Once: מוצג כטקסט תכלת ניאון `#39D2FF` לחיץ ("🖼️ תמונה (לחץ לצפייה)"); אחרי צפייה הופך ל-`#8696A0` ולא לחיץ.
+- תמונות רגילות: thumbnail בתוך הבועה.
 
-- **קריאה**: משתמש רשאי לקרוא הודעות בצ'אט אם הוא משתתף (כילד דרך device_id, או כהורה דרך `auth.uid()` שתואם `parents.id`, או כהורה של ילד שמשתתף — לצורך פיקוח, אופציונלי).
-- **כתיבה**: רק אם הוא עצמו ה-sender ומשתתף בצ'אט.
+**Composer (תחתון):**
+- שדה הקלדה Pill (radius מלא), רקע `#2A3942`, placeholder "הודעה..." ב-`#8696A0`.
+- אייקון 📎 בתוך השדה (צד שמאל ב-RTL) לצירוף תמונה. אייקון 👁 (View Once toggle) בצד ימין-פנימי של השדה.
+- כפתור FAB עגול מחוץ לשדה משמאל: רקע `#00A884`. דינמי:
+  - שדה ריק → אייקון מיקרופון (placeholder; לא מקליט ב-V1, מציג toast "בקרוב").
+  - יש טקסט → אייקון מטוס נייר/Send לבן.
 
-נוסיף helper functions:
+### 4. הסתרת BottomNavigation בחדר השיחה
+חדר השיחה fullscreen (כמו באפליקציית הילד) — לא מציגים את ה-BottomNavigation שם (כבר ככה היום, נשמר).
 
-- `is_participant_in_friendship(participant_id, friendship_id)` 
-- `can_act_as_participant(participant_id)` — בודק או device_id JWT (לילד) או auth.uid (להורה)
+### 5. ללא שינויי backend
+לא נוגעים ב-DB, hooks, RLS, edge functions. רק שכבת UI.
 
-## אוטו-חברות הורה↔ילד
+## קבצים שיושפעו
+- `src/index.css` — הוספת scope `.chat-dark` (~25 שורות).
+- `src/pages/ChatV2.tsx` — שכתוב styling, החלפת `homev2-light` ב-`chat-dark`.
+- `src/pages/ChatRoomV2.tsx` — שכתוב styling, header, bubbles, composer.
 
-טריגר `AFTER INSERT ON children`:
-
-- יוצר אוטומטית `friendship` עם `status='accepted'` בין `parent_id` ל-`child.id`.
-- ככה ברגע שהורה מוסיף ילד — הילד מופיע מיד ברשימת הצ'אטים שלו, ולהפך באפליקציית האנדרואיד.
-- אידמפוטנטי: `ON CONFLICT DO NOTHING` (נוסיף unique index על זוג).
-
-migration נוסף: backfill לכל הילדים הקיימים — יצירת friendship עם ההורה שלהם.
-
-## צד הורה (Web) — טאב חדש "צ'אט"
-
-### ניווט
-
-מוסיפים פריט חדש ב-`BottomNavigationV2`:
-
-```
-{ title: "צ'אט", url: "/chat-v2", icon: MessageCircle }
-```
-
-סדר: בית · משפחה · **צ'אט** · משימות · התראות · הגדרות (6 פריטים — נצמצם פדינג כדי שיכנס במובייל, או נכניס את "התראות" לאייקון בלבד).
-
-### דפים חדשים
-
-`**/chat-v2**` — רשימת צ'אטים
-
-- שולפת את כל ה-friendships שבהם ההורה משתתף (כ-`participant`).
-- כל שורה: שם המשתתף השני, ההודעה האחרונה, חותמת זמן, badge של "לא נקרא".
-- כפתור "+" לפתיחת חיפוש משתמש להוספה (V2 — V1 רק רואים חברויות אוטומטיות).
-
-`**/chat-v2/:friendshipId**` — חלון צ'אט
-
-- בועות הודעות RTL, הודעות שלי משמאל/מימין לפי כיוון.
-- input עם: טקסט, צירוף תמונה, כפתור view-once.
-- Realtime subscription על `chat_messages` לפי `friendship_id`.
-- מתחת — אותה התנהגות בדיוק כמו האפליקציה: view-once נמחק אחרי צפייה, TTL 30 יום ע"י `purge_expired_chat_messages`.
-
-### Hooks
-
-- `useChatList()` — שולף friendships + last_message + unread_count (RPC).
-- `useChat(friendshipId)` — הודעות + realtime + send.
-- `useUploadChatMedia()` — מעלה ל-bucket קיים.
-
-## צד הילד (אנדרואיד)
-
-**אפס שינויי קוד באנדרואיד.** הקוד הקיים שלהם:
-
-- שולף `friendships WHERE requester_id = me OR receiver_id = me` — אוטומטית יחזיר גם את החברות עם ההורה (כי ההורה הוא `participant_id` תקני).
-- שולח/מקבל `chat_messages` — אותו פרוטוקול.
-
-הילד פשוט יראה צ'אט חדש בשם "אבא" / "אמא" (לפי `display_name` של ההורה) — בדיוק כמו עוד חבר.
-
-זה תואם לאילוץ הקריטי **No Android Access**.
-
-## פיצ'רים ב-V1
-
-מתוך התשובה שלך — "בדיוק מה שעשינו בצאט של הילד". כלומר:
-
-- ✅ טקסט
-- ✅ תמונות
-- ✅ view-once
-- ✅ TTL 30 יום
-- ✅ Realtime
-- ✅ אינדיקציית "נקרא" (אם קיים בילדים — לבדוק)
-
-## סיכון וטיפול
-
-
-| סיכון                                           | מיטיגציה                                                                                |
-| ----------------------------------------------- | --------------------------------------------------------------------------------------- |
-| RLS recursion בין `children` ל-`participants`   | משתמשים ב-SECURITY DEFINER helpers (תואם memory rule)                                   |
-| FK שבירה ב-`chat_messages.sender_id → children` | drop FK, מחליפים ב-trigger validation                                                   |
-| הילד באנדרואיד יראה את ההורה ויתבלבל            | `display_name` יהיה "אבא"/"אמא" עם אייקון/קידומת ברורה                                  |
-| הורה מציץ בכל הצ'אטים של הילד                   | RLS יאפשר להורה לקרוא רק צ'אטים שהוא בעצמו משתתף בהם. צ'אט ילד↔חבר נשאר חסום (כמו היום) |
-| צפיפות ב-BottomNav של מובייל                    | שינוי ל-icon-only בפריטים פחות מרכזיים, או צמצום padding                                |
-
-
-## פירוט טכני (לקוראים טכניים)
-
-### Migration A — Schema
-
-1. `CREATE VIEW chat_participants` (UNION של children + parents).
-2. `ALTER TABLE chat_messages DROP CONSTRAINT chat_messages_sender_id_fkey`.
-3. `ALTER TABLE friendships DROP CONSTRAINT friendships_*_id_fkey` (שניהם).
-4. טריגר `validate_chat_participant_exists` על INSERT/UPDATE לשתי הטבלאות.
-5. Helpers: `is_participant_in_friendship`, `can_act_as_participant`.
-
-### Migration B — RLS
-
-- DROP פוליסות `Child device can ...` הקיימות.
-- CREATE פוליסות חדשות `Participant can read/insert chat messages` שמכסות גם device JWT וגם auth user.
-
-### Migration C — Auto-friendship trigger
-
-- `AFTER INSERT ON children` → upsert friendship(parent_id, child.id, 'accepted').
-- Backfill לכל ה-children הקיימים.
-
-### Migration D — Realtime
-
-- `ALTER PUBLICATION supabase_realtime ADD TABLE chat_messages, friendships` (אם לא כבר).
-- `REPLICA IDENTITY FULL` לשתיהן.
-
-### קוד Web
-
-- `src/pages/ChatV2.tsx` (רשימה)
-- `src/pages/ChatRoomV2.tsx` (חלון)
-- `src/components/chat/ChatBubble.tsx`, `ChatInput.tsx`, `MediaViewer.tsx`
-- `src/hooks/useChat.ts`, `useChatList.ts`
-- routing ב-`App.tsx`
-- עדכון `BottomNavigationV2.tsx`
-
-## מה לא בתוכנית הזו (נשמור ל-V2)
-
-- חיפוש משתמשים והוספת חברים ידנית (V1 רק חברויות אוטומטיות הורה↔ילד שלו).
-- צ'אטים קבוצתיים.
-- שיחות קוליות/וידאו.
-- העברת הודעות.
-
----
-
-**שאלה אחרונה לפני יציאה לדרך:** האם להמשיך לתחזק את ה-edge function `seed-mock-peer` (המשתמש "דני") שכבר נפרס, או למחוק אותו כי הוא מיותר עם הגישה הזו?  
-  
-הוא מיותר אפשר לעזוב את זה 
-
-&nbsp;
+## מחוץ לסקופ (V1)
+- הקלטה קולית בפועל (רק אייקון placeholder עם toast).
+- כפתור משחק (אייקון placeholder, ללא פעולה).
+- אינדיקטור "מקליד/ה..." חי (דורש presence channel — שלב הבא).
