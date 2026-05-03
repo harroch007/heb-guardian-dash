@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { User, Crown, BellRing, Send, Loader2, Users, Shield, FileText, MessageCircle, Bug, Lightbulb, LogOut, HelpCircle, ChevronLeft, Pencil, Check, X, ShieldCheck } from "lucide-react";
+import { User, Crown, BellRing, Send, Loader2, Users, Shield, FileText, MessageCircle, Bug, Lightbulb, LogOut, HelpCircle, ChevronLeft, Pencil, Check, X, ShieldCheck, Copy } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { InstallAppCard } from "@/components/InstallAppCard";
 import { BottomNavigationV2 } from "@/components/BottomNavigationV2";
@@ -42,12 +42,14 @@ const SettingsV2 = () => {
   const [editName, setEditName] = useState("");
   const [editPhone, setEditPhone] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [kippyTag, setKippyTag] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user?.id) return;
-    supabase.from("parents").select("full_name, phone").eq("id", user.id).single().then(({ data }) => {
+    supabase.from("parents").select("full_name, phone, kippy_tag").eq("id", user.id).single().then(({ data }) => {
       if (data?.full_name) setParentName(data.full_name);
       if (data?.phone) setParentPhone(data.phone);
+      if ((data as any)?.kippy_tag) setKippyTag((data as any).kippy_tag);
     });
   }, [user?.id]);
 
@@ -308,11 +310,31 @@ const SettingsV2 = () => {
                 </div>
               )}
               {parentPhone && (
-                <div className="flex justify-between items-center py-2">
+                <div className="flex justify-between items-center py-2 border-b border-border/30">
                   <span className="text-muted-foreground">טלפון</span>
                   <span className="font-medium text-foreground" dir="ltr">{parentPhone}</span>
                 </div>
               )}
+              <div className="flex justify-between items-center py-2">
+                <span className="text-muted-foreground">Kippy Tag</span>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono font-semibold text-primary" dir="ltr">
+                    {kippyTag ? `@${kippyTag}` : "—"}
+                  </span>
+                  {kippyTag && (
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(`@${kippyTag}`);
+                        toast.success("הועתק");
+                      }}
+                      className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                      title="העתק"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
           )}
         </section>
