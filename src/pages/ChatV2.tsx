@@ -1,7 +1,10 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { BottomNavigationV2 } from "@/components/BottomNavigationV2";
 import { useChatList } from "@/hooks/useChatList";
-import { MessageCircle, Loader2, ArrowRight } from "lucide-react";
+import { MessageCircle, Loader2, ArrowRight, UserPlus } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 function formatRelativeTime(iso: string | null): string {
   if (!iso) return "";
