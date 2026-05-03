@@ -3205,6 +3205,13 @@ export type Database = {
       generate_pairing_code: { Args: { p_child_id: string }; Returns: string }
       get_active_ai_config: { Args: never; Returns: Json }
       get_alert_recipients: { Args: { p_child_id: string }; Returns: string[] }
+      get_chat_peer_info: {
+        Args: { p_participant_id: string }
+        Returns: {
+          peer_name: string
+          peer_type: string
+        }[]
+      }
       get_chat_thread: {
         Args: {
           p_before?: string
