@@ -53,3 +53,12 @@ verify_jwt = false
 
 [functions.seed-mock-peer]
 verify_jwt = false
+
+[functions.recover-device-credentials]
+verify_jwt = false
+
+[functions.create-chat-invite]
+verify_jwt = false
+
+[functions.accept-chat-invite]
+verify_jwt = false
