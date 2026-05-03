@@ -33,7 +33,7 @@ export function BottomNavigationV2() {
               key={item.url}
               to={item.url}
               className={cn(
-                "flex flex-col items-center justify-center gap-1 px-4 py-2 transition-all duration-200",
+                "flex flex-1 flex-col items-center justify-center gap-1 px-1 py-2 transition-all duration-200",
                 active ? "text-primary" : "text-muted-foreground"
               )}
             >
