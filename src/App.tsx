@@ -43,6 +43,7 @@ import FamilyV2 from "./pages/FamilyV2";
 import ChatV2 from "./pages/ChatV2";
 import ChatRoomV2 from "./pages/ChatRoomV2";
 import AcceptInvite from "./pages/AcceptInvite";
+import InviteLanding from "./pages/InviteLanding";
 import JoinFamily from "./pages/JoinFamily";
 import LandingV1 from "./pages/LandingV1";
 
@@ -80,6 +81,7 @@ const AppRoutes = () => {
       <Route path="/chat-v2" element={<ProtectedRoute><ChatV2 /></ProtectedRoute>} />
       <Route path="/chat-v2/:friendshipId" element={<ProtectedRoute><ChatRoomV2 /></ProtectedRoute>} />
       <Route path="/accept-invite/:inviteId" element={<AcceptInvite />} />
+      <Route path="/invite/:token" element={<InviteLanding />} />
       <Route path="/join-family" element={<JoinFamily />} />
       <Route path="/auth" element={<Auth />} />
       <Route path="/install" element={<Install />} />

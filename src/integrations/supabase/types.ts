@@ -3234,6 +3234,7 @@ export type Database = {
       create_family_invite_with_code:
         | { Args: { p_email: string }; Returns: Json }
         | { Args: { p_email: string; p_name?: string }; Returns: Json }
+      current_chat_participant_id: { Args: never; Returns: string }
       delete_all_my_data: { Args: never; Returns: Json }
       delete_child_data: { Args: { p_child_id: string }; Returns: Json }
       delete_friendship_chat: {
@@ -3377,6 +3378,10 @@ export type Database = {
         Returns: Json
       }
       is_admin: { Args: never; Returns: boolean }
+      is_caller_in_friendship: {
+        Args: { p_friendship_id: string }
+        Returns: boolean
+      }
       is_calling_device_in_friendship: {
         Args: { p_friendship_id: string }
         Returns: boolean
