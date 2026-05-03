@@ -238,6 +238,23 @@
   font-family: 'Heebo', sans-serif;
 }
 
+/* Chat Dark Scope — WhatsApp-like, matches kid app chat */
+.chat-dark {
+  --chat-bg: #0B141A;
+  --chat-header: #202C33;
+  --chat-input-bg: #2A3942;
+  --chat-mine: #005C4B;
+  --chat-text: #E9EDEF;
+  --chat-text-muted: #8696A0;
+  --chat-accent: #39D2FF;
+  --chat-typing: #35C76F;
+  --chat-fab: #00A884;
+  background-color: var(--chat-bg);
+  color: var(--chat-text);
+  font-family: 'Heebo', sans-serif;
+}
+.chat-dark ::placeholder { color: var(--chat-text-muted); }
+
 /* Accessibility - Text Size Levels */
 .accessibility-text-0 {
   font-size: 100%;
