@@ -1126,6 +1126,13 @@ export type Database = {
             referencedRelation: "friendships"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "chat_messages_friendship_id_fkey"
+            columns: ["friendship_id"]
+            isOneToOne: false
+            referencedRelation: "view_child_active_chats"
+            referencedColumns: ["friendship_id"]
+          },
         ]
       }
       chat_read_receipts: {
@@ -3075,6 +3082,19 @@ export type Database = {
         }
         Relationships: []
       }
+      view_child_active_chats: {
+        Row: {
+          created_at: string | null
+          friendship_id: string | null
+          peer_id: string | null
+          peer_name: string | null
+          peer_type: string | null
+          receiver_id: string | null
+          requester_id: string | null
+          status: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       _generate_family_pairing_code: { Args: never; Returns: string }
@@ -3218,9 +3238,11 @@ export type Database = {
         Returns: {
           created_at: string
           friend_child_id: string
+          friend_id: string
           friend_kippy_tag: string
           friend_name: string
           friendship_id: string
+          participant_type: string
           status: string
         }[]
       }
