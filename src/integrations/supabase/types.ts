@@ -1090,6 +1090,45 @@ export type Database = {
           },
         ]
       }
+      chat_invites: {
+        Row: {
+          accepted_at: string | null
+          accepted_by_id: string | null
+          created_at: string
+          expires_at: string
+          friendship_id: string | null
+          id: string
+          inviter_display_name: string | null
+          inviter_id: string
+          inviter_kippy_tag: string | null
+          token: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by_id?: string | null
+          created_at?: string
+          expires_at?: string
+          friendship_id?: string | null
+          id?: string
+          inviter_display_name?: string | null
+          inviter_id: string
+          inviter_kippy_tag?: string | null
+          token: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by_id?: string | null
+          created_at?: string
+          expires_at?: string
+          friendship_id?: string | null
+          id?: string
+          inviter_display_name?: string | null
+          inviter_id?: string
+          inviter_kippy_tag?: string | null
+          token?: string
+        }
+        Relationships: []
+      }
       chat_messages: {
         Row: {
           content: string
@@ -2329,6 +2368,7 @@ export type Database = {
           group_id: string | null
           id: string
           is_locked: boolean
+          kippy_tag: string | null
           phone: string | null
         }
         Insert: {
@@ -2338,6 +2378,7 @@ export type Database = {
           group_id?: string | null
           id: string
           is_locked?: boolean
+          kippy_tag?: string | null
           phone?: string | null
         }
         Update: {
@@ -2347,6 +2388,7 @@ export type Database = {
           group_id?: string | null
           id?: string
           is_locked?: boolean
+          kippy_tag?: string | null
           phone?: string | null
         }
         Relationships: [
@@ -3200,7 +3242,9 @@ export type Database = {
       }
       disconnect_device: { Args: { p_device_id: string }; Returns: Json }
       export_my_data: { Args: never; Returns: Json }
-      generate_kippy_tag: { Args: never; Returns: string }
+      generate_kippy_tag:
+        | { Args: never; Returns: string }
+        | { Args: { p_base: string }; Returns: string }
       generate_new_pairing_code: { Args: { p_child_id: string }; Returns: Json }
       generate_pairing_code: { Args: { p_child_id: string }; Returns: string }
       get_active_ai_config: { Args: never; Returns: Json }
