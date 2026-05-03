@@ -96,16 +96,16 @@ Deno.serve(async (req) => {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
-    const { data: claimsData, error: claimsErr } = await supabase.auth.getClaims(
-      authHeader.replace("Bearer ", "")
-    );
-    if (claimsErr || !claimsData?.claims?.sub) {
+    const jwt = authHeader.replace("Bearer ", "");
+    const { data: userData, error: userErr } = await supabase.auth.getUser(jwt);
+    if (userErr || !userData?.user?.id) {
+      console.error("auth.getUser failed:", userErr);
       return new Response(
-        JSON.stringify({ error: "UNAUTHORIZED" }),
+        JSON.stringify({ error: "UNAUTHORIZED", detail: userErr?.message }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-    const callerAuthId = claimsData.claims.sub as string;
+    const callerAuthId = userData.user.id;
 
     // Load invite
     const { data: invite, error: invErr } = await supabase
