@@ -81,6 +81,7 @@ const AppRoutes = () => {
       <Route path="/chat-v2" element={<ProtectedRoute><ChatV2 /></ProtectedRoute>} />
       <Route path="/chat-v2/:friendshipId" element={<ProtectedRoute><ChatRoomV2 /></ProtectedRoute>} />
       <Route path="/accept-invite/:inviteId" element={<AcceptInvite />} />
+      <Route path="/invite/:token" element={<InviteLanding />} />
       <Route path="/join-family" element={<JoinFamily />} />
       <Route path="/auth" element={<Auth />} />
       <Route path="/install" element={<Install />} />
