@@ -3414,6 +3414,19 @@ export type Database = {
         Args: { p_friendship_id: string; p_participant_id: string }
         Returns: boolean
       }
+      list_my_chats: {
+        Args: never
+        Returns: {
+          friendship_id: string
+          last_message: string
+          last_message_at: string
+          last_message_type: string
+          peer_id: string
+          peer_name: string
+          peer_type: string
+          unread_count: number
+        }[]
+      }
       mark_media_viewed: {
         Args: { p_message_id: string; p_viewer_id: string }
         Returns: Json
@@ -3537,16 +3550,26 @@ export type Database = {
       }
       retry_failed_queue_items: { Args: never; Returns: Json }
       revoke_co_parent: { Args: { p_membership_id: string }; Returns: Json }
-      send_chat_message: {
-        Args: {
-          p_content: string
-          p_friendship_id: string
-          p_is_view_once?: boolean
-          p_message_type: string
-          p_sender_id: string
-        }
-        Returns: Json
-      }
+      send_chat_message:
+        | {
+            Args: {
+              p_content: string
+              p_friendship_id: string
+              p_is_view_once?: boolean
+              p_message_type?: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_content: string
+              p_friendship_id: string
+              p_is_view_once?: boolean
+              p_message_type: string
+              p_sender_id: string
+            }
+            Returns: Json
+          }
       send_friend_request: {
         Args: { p_requester_child_id: string; p_target_kippy_tag: string }
         Returns: Json

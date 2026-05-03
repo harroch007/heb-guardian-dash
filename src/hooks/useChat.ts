@@ -133,12 +133,11 @@ export function useChat(friendshipId: string | undefined) {
       if (!friendshipId || !parentId || !text.trim()) return;
       setSending(true);
       try {
-        const { error } = await supabase.from("chat_messages").insert({
-          friendship_id: friendshipId,
-          sender_id: parentId,
-          content: text.trim(),
-          message_type: "text",
-          is_view_once: isViewOnce,
+        const { error } = await supabase.rpc("send_chat_message" as any, {
+          p_friendship_id: friendshipId,
+          p_content: text.trim(),
+          p_message_type: "text",
+          p_is_view_once: isViewOnce,
         });
         if (error) throw error;
       } catch (err: any) {
@@ -162,12 +161,11 @@ export function useChat(friendshipId: string | undefined) {
           .upload(path, file, { contentType: file.type });
         if (upErr) throw upErr;
 
-        const { error } = await supabase.from("chat_messages").insert({
-          friendship_id: friendshipId,
-          sender_id: parentId,
-          content: path,
-          message_type: "image",
-          is_view_once: isViewOnce,
+        const { error } = await supabase.rpc("send_chat_message" as any, {
+          p_friendship_id: friendshipId,
+          p_content: path,
+          p_message_type: "image",
+          p_is_view_once: isViewOnce,
         });
         if (error) throw error;
       } catch (err: any) {
