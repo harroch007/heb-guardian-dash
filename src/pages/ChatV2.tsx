@@ -1,7 +1,10 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { BottomNavigationV2 } from "@/components/BottomNavigationV2";
 import { useChatList } from "@/hooks/useChatList";
-import { MessageCircle, Loader2, ArrowRight } from "lucide-react";
+import { MessageCircle, Loader2, ArrowRight, UserPlus } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 function formatRelativeTime(iso: string | null): string {
   if (!iso) return "";
@@ -40,6 +43,24 @@ function Avatar({ name }: { name: string }) {
 export default function ChatV2() {
   const navigate = useNavigate();
   const { data: chats, isLoading } = useChatList();
+  const [inviting, setInviting] = useState(false);
+
+  const handleInvite = async () => {
+    setInviting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-chat-invite");
+      if (error || !data?.success) {
+        toast.error("שגיאה ביצירת הזמנה. ודא חיבור תקין");
+        return;
+      }
+      const shareUrl = `https://wa.me/?text=${encodeURIComponent(data.share_text)}`;
+      window.open(shareUrl, "_blank");
+    } catch {
+      toast.error("שגיאה ביצירת הזמנה");
+    } finally {
+      setInviting(false);
+    }
+  };
 
   return (
     <div
@@ -63,7 +84,20 @@ export default function ChatV2() {
         <h1 className="flex-1 text-xl font-bold" style={{ color: "#E9EDEF" }}>
           צ'אטים
         </h1>
-        <MessageCircle className="h-5 w-5" style={{ color: "#8696A0" }} />
+        <button
+          onClick={handleInvite}
+          disabled={inviting}
+          className="flex h-9 items-center gap-1.5 rounded-full px-3 text-sm font-medium disabled:opacity-50"
+          style={{ backgroundColor: "#00A884", color: "#fff" }}
+          aria-label="הזמן חבר"
+        >
+          {inviting ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <UserPlus className="h-4 w-4" />
+          )}
+          הזמן חבר
+        </button>
       </header>
 
       <main className="px-2 pt-2">
