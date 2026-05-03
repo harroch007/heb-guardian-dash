@@ -115,10 +115,11 @@ export default function ChatRoomV2() {
 
   return (
     <div
-      className="chat-dark flex h-[100dvh] flex-col"
+      className="chat-dark flex h-[100dvh] justify-center"
       dir="rtl"
       style={{ backgroundColor: COLORS.bg }}
     >
+      <div className="flex h-full w-full max-w-[560px] flex-col md:border-x md:border-[#202C33]">
       {/* Header */}
       <header
         className="flex items-center gap-3 px-3"
@@ -297,6 +298,7 @@ export default function ChatRoomV2() {
             <Mic className="h-5 w-5" />
           )}
         </button>
+      </div>
       </div>
     </div>
   );

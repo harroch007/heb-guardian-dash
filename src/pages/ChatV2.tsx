@@ -68,109 +68,111 @@ export default function ChatV2() {
       dir="rtl"
       style={{ backgroundColor: "#0B141A" }}
     >
-      {/* Header */}
-      <header
-        className="sticky top-0 z-30 flex items-center gap-3 px-4 py-4"
-        style={{ backgroundColor: "#202C33" }}
-      >
-        <button
-          onClick={() => navigate("/home-v2")}
-          className="flex h-9 w-9 items-center justify-center rounded-full"
-          style={{ color: "#8696A0" }}
-          aria-label="חזור"
+      <div className="mx-auto w-full max-w-[560px] md:min-h-screen md:border-x md:border-[#202C33]">
+        {/* Header */}
+        <header
+          className="sticky top-0 z-30 flex items-center gap-3 px-4 py-4"
+          style={{ backgroundColor: "#202C33" }}
         >
-          <ArrowRight className="h-5 w-5" />
-        </button>
-        <h1 className="flex-1 text-xl font-bold" style={{ color: "#E9EDEF" }}>
-          צ'אטים
-        </h1>
-        <button
-          onClick={handleInvite}
-          disabled={inviting}
-          className="flex h-9 items-center gap-1.5 rounded-full px-3 text-sm font-medium disabled:opacity-50"
-          style={{ backgroundColor: "#00A884", color: "#fff" }}
-          aria-label="הזמן חבר"
-        >
-          {inviting ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <UserPlus className="h-4 w-4" />
-          )}
-          הזמן חבר
-        </button>
-      </header>
+          <button
+            onClick={() => navigate("/home-v2")}
+            className="flex h-9 w-9 items-center justify-center rounded-full"
+            style={{ color: "#8696A0" }}
+            aria-label="חזור"
+          >
+            <ArrowRight className="h-5 w-5" />
+          </button>
+          <h1 className="flex-1 text-xl font-bold" style={{ color: "#E9EDEF" }}>
+            צ'אטים
+          </h1>
+          <button
+            onClick={handleInvite}
+            disabled={inviting}
+            className="flex h-9 items-center gap-1.5 rounded-full px-3 text-sm font-medium disabled:opacity-50"
+            style={{ backgroundColor: "#00A884", color: "#fff" }}
+            aria-label="הזמן חבר"
+          >
+            {inviting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <UserPlus className="h-4 w-4" />
+            )}
+            הזמן חבר
+          </button>
+        </header>
 
-      <main className="px-2 pt-2">
-        {isLoading ? (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 className="h-6 w-6 animate-spin" style={{ color: "#00A884" }} />
-          </div>
-        ) : !chats || chats.length === 0 ? (
-          <div className="mt-16 px-6 text-center">
-            <MessageCircle
-              className="mx-auto mb-3 h-10 w-10"
-              style={{ color: "#8696A0" }}
-            />
-            <p className="font-medium" style={{ color: "#E9EDEF" }}>
-              אין צ'אטים פעילים
-            </p>
-            <p className="mt-1 text-sm" style={{ color: "#8696A0" }}>
-              הוסף ילד כדי שיופיע כאן אוטומטית
-            </p>
-          </div>
-        ) : (
-          <ul className="divide-y" style={{ borderColor: "#202C33" }}>
-            {chats.map((chat) => (
-              <li
-                key={chat.friendshipId}
-                onClick={() => navigate(`/chat-v2/${chat.friendshipId}`)}
-                className="flex cursor-pointer items-center gap-3 px-3 py-3 active:opacity-70"
-              >
-                <div className="relative">
-                  <Avatar name={chat.peerName} />
-                  {chat.unreadCount > 0 && (
-                    <span
-                      className="absolute -top-0.5 -left-0.5 flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold text-white"
-                      style={{ backgroundColor: "#00A884" }}
-                    >
-                      {chat.unreadCount > 9 ? "9+" : chat.unreadCount}
-                    </span>
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-baseline justify-between gap-2">
-                    <span
-                      className="truncate text-base font-semibold"
-                      style={{ color: "#E9EDEF" }}
-                    >
-                      {chat.peerName}
-                    </span>
-                    <span
-                      className="shrink-0 text-xs"
+        <main className="px-2 pt-2">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="h-6 w-6 animate-spin" style={{ color: "#00A884" }} />
+            </div>
+          ) : !chats || chats.length === 0 ? (
+            <div className="mt-16 px-6 text-center">
+              <MessageCircle
+                className="mx-auto mb-3 h-10 w-10"
+                style={{ color: "#8696A0" }}
+              />
+              <p className="font-medium" style={{ color: "#E9EDEF" }}>
+                אין צ'אטים פעילים
+              </p>
+              <p className="mt-1 text-sm" style={{ color: "#8696A0" }}>
+                הוסף ילד כדי שיופיע כאן אוטומטית
+              </p>
+            </div>
+          ) : (
+            <ul className="divide-y" style={{ borderColor: "#202C33" }}>
+              {chats.map((chat) => (
+                <li
+                  key={chat.friendshipId}
+                  onClick={() => navigate(`/chat-v2/${chat.friendshipId}`)}
+                  className="flex cursor-pointer items-center gap-3 px-3 py-3 active:opacity-70 hover:bg-[#202C33]/40"
+                >
+                  <div className="relative">
+                    <Avatar name={chat.peerName} />
+                    {chat.unreadCount > 0 && (
+                      <span
+                        className="absolute -top-0.5 -left-0.5 flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold text-white"
+                        style={{ backgroundColor: "#00A884" }}
+                      >
+                        {chat.unreadCount > 9 ? "9+" : chat.unreadCount}
+                      </span>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span
+                        className="truncate text-base font-semibold"
+                        style={{ color: "#E9EDEF" }}
+                      >
+                        {chat.peerName}
+                      </span>
+                      <span
+                        className="shrink-0 text-xs"
+                        style={{
+                          color: chat.unreadCount > 0 ? "#00A884" : "#8696A0",
+                        }}
+                      >
+                        {formatRelativeTime(chat.lastMessageAt)}
+                      </span>
+                    </div>
+                    <p
+                      className="truncate text-sm"
                       style={{
-                        color: chat.unreadCount > 0 ? "#00A884" : "#8696A0",
+                        color: chat.unreadCount > 0 ? "#E9EDEF" : "#8696A0",
+                        fontWeight: chat.unreadCount > 0 ? 500 : 400,
                       }}
                     >
-                      {formatRelativeTime(chat.lastMessageAt)}
-                    </span>
+                      {chat.lastMessage
+                        ? previewText(chat.lastMessage, chat.lastMessageType)
+                        : "אין עדיין הודעות — שלח/י את הראשונה"}
+                    </p>
                   </div>
-                  <p
-                    className="truncate text-sm"
-                    style={{
-                      color: chat.unreadCount > 0 ? "#E9EDEF" : "#8696A0",
-                      fontWeight: chat.unreadCount > 0 ? 500 : 400,
-                    }}
-                  >
-                    {chat.lastMessage
-                      ? previewText(chat.lastMessage, chat.lastMessageType)
-                      : "אין עדיין הודעות — שלח/י את הראשונה"}
-                  </p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </main>
+                </li>
+              ))}
+            </ul>
+          )}
+        </main>
+      </div>
 
       <BottomNavigationV2 />
     </div>
