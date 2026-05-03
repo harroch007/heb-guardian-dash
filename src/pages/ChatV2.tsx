@@ -43,6 +43,24 @@ function Avatar({ name }: { name: string }) {
 export default function ChatV2() {
   const navigate = useNavigate();
   const { data: chats, isLoading } = useChatList();
+  const [inviting, setInviting] = useState(false);
+
+  const handleInvite = async () => {
+    setInviting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-chat-invite");
+      if (error || !data?.success) {
+        toast.error("שגיאה ביצירת הזמנה. ודא חיבור תקין");
+        return;
+      }
+      const shareUrl = `https://wa.me/?text=${encodeURIComponent(data.share_text)}`;
+      window.open(shareUrl, "_blank");
+    } catch {
+      toast.error("שגיאה ביצירת הזמנה");
+    } finally {
+      setInviting(false);
+    }
+  };
 
   return (
     <div
