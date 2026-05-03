@@ -1126,14 +1126,28 @@ export type Database = {
             referencedRelation: "friendships"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "chat_messages_sender_id_fkey"
-            columns: ["sender_id"]
-            isOneToOne: false
-            referencedRelation: "children"
-            referencedColumns: ["id"]
-          },
         ]
+      }
+      chat_read_receipts: {
+        Row: {
+          friendship_id: string
+          id: string
+          last_read_at: string
+          participant_id: string
+        }
+        Insert: {
+          friendship_id: string
+          id?: string
+          last_read_at?: string
+          participant_id: string
+        }
+        Update: {
+          friendship_id?: string
+          id?: string
+          last_read_at?: string
+          participant_id?: string
+        }
+        Relationships: []
       }
       child_daily_insights: {
         Row: {
@@ -2062,22 +2076,7 @@ export type Database = {
           responded_at?: string | null
           status?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "friendships_receiver_id_fkey"
-            columns: ["receiver_id"]
-            isOneToOne: false
-            referencedRelation: "children"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "friendships_requester_id_fkey"
-            columns: ["requester_id"]
-            isOneToOne: false
-            referencedRelation: "children"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       insight_logs: {
         Row: {
@@ -2896,6 +2895,15 @@ export type Database = {
       }
     }
     Views: {
+      chat_participants: {
+        Row: {
+          display_name: string | null
+          owner_parent_id: string | null
+          participant_id: string | null
+          participant_type: string | null
+        }
+        Relationships: []
+      }
       parent_alerts_effective: {
         Row: {
           acknowledged_at: string | null
@@ -3300,6 +3308,14 @@ export type Database = {
         Args: { p_friendship_id: string }
         Returns: boolean
       }
+      is_calling_user_in_friendship: {
+        Args: { p_friendship_id: string }
+        Returns: boolean
+      }
+      is_calling_user_participant: {
+        Args: { p_participant_id: string }
+        Returns: boolean
+      }
       is_child_in_friendship: {
         Args: { p_child_id: string; p_friendship_id: string }
         Returns: boolean
@@ -3316,6 +3332,10 @@ export type Database = {
         Returns: boolean
       }
       is_paired_device: { Args: { p_device_id: string }; Returns: boolean }
+      is_participant_in_friendship: {
+        Args: { p_friendship_id: string; p_participant_id: string }
+        Returns: boolean
+      }
       mark_media_viewed: {
         Args: { p_message_id: string; p_viewer_id: string }
         Returns: Json
