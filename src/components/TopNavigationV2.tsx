@@ -1,4 +1,4 @@
-import { Home, Users, ClipboardList, Bell, Settings } from "lucide-react";
+import { Home, Users, ClipboardList, Bell, Settings, MessageCircle } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { WHATSAPP_MONITORING_ENABLED } from "@/config/featureFlags";
@@ -6,6 +6,7 @@ import { WHATSAPP_MONITORING_ENABLED } from "@/config/featureFlags";
 const allNavItems = [
   { title: "בית", url: "/home-v2", icon: Home },
   { title: "משפחה", url: "/family-v2", icon: Users },
+  { title: "צ'אט", url: "/chat-v2", icon: MessageCircle },
   { title: "משימות", url: "/chores-v2", icon: ClipboardList },
   { title: "התראות", url: "/alerts-v2", icon: Bell, requiresWhatsApp: true },
   { title: "הגדרות", url: "/settings-v2", icon: Settings },
