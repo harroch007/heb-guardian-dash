@@ -1,56 +1,171 @@
-# Plan: Seed Mock User "Dani" for Chat Testing
+# צ'אט אוניברסלי ב-Kippy — תוכנית מלאה
 
-## Goal
-Create a fully functional mock peer ("דני") that Yariv (`c30061e9-ed82-48fc-9a5f-2bd94d8bbdd5`) can chat with via the internal child-to-child chat system. The mock must satisfy real RLS, FK, and JWT constraints so the Android client behaves identically to a real friendship.
+## העיקרון המרכזי
 
-## Confirmed Targets
-- **Yariv's child_id** (testing child): `c30061e9-ed82-48fc-9a5f-2bd94d8bbdd5`
-- **Yariv's parent_id**: `fd0a1cc1-e838-4f15-951c-873423a81f47`
-- **Friendship UUID** (fixed, easy to remember): `00000000-0000-0000-0000-000000001234`
-- **Dani's device_id** (fixed): `dani-mock-device-0001`
+**משתמש אחד = פרופיל אחד בצ'אט**, לא משנה אם הוא הורה או ילד. הורה יכול להתכתב עם:
 
-## Why an Edge Function (not raw SQL)
-`parents.id` references `auth.users(id)`. We cannot insert into `auth.users` from SQL safely — it requires `supabase.auth.admin.createUser()`. So the seed must run inside an edge function with the service role key.
+- הילד שלו
+- ילד של הורה אחר
+- הורה אחר (חבר משפחה / קרוב משפחה)
+- קבוצה של מספר משתתפים (עתידי)
 
-## Implementation
+זה אותו הצ'אט בדיוק שיש היום לילדים — אותן טבלאות, אותן הודעות, אותם פיצ'רים (טקסט, תמונות, view-once, TTL 30 יום, real-time). פשוט מרחיבים את ה"מי יכול להיות שולח/מקבל" מ-`child` בלבד ל-`child OR parent`.
 
-### 1. New edge function: `seed-mock-peer`
-Path: `supabase/functions/seed-mock-peer/index.ts`
+## שינוי מודל הנתונים — `chat_participants`
 
-Behavior (idempotent — safe to re-run):
-1. **Auth gate**: require caller JWT, verify caller is admin via `is_admin()` RPC. Reject otherwise.
-2. **Create / fetch auth user** for `dani.parent@kippy.mock`:
-   - `auth.admin.listUsers` filter by email; if missing, `auth.admin.createUser({ email, password: random, email_confirm: true })`.
-3. **Upsert `parents` row** with `id = <dani auth user id>`, `full_name = 'אמא של דני'`, `email = 'dani.parent@kippy.mock'`.
-4. **Upsert `children` row** for Dani:
-   - `parent_id` = Dani's parent id
-   - `name = 'דני'`, `phone_number = '+972500000001'`, `gender = 'male'`, `date_of_birth = '2012-06-01'`, `kippy_tag = 'dani#1234'`
-   - Look up by `(parent_id, name)` first to avoid duplicates; capture `dani_child_id`.
-5. **Upsert `devices` row**:
-   - `device_id = 'dani-mock-device-0001'`, `child_id = dani_child_id`, `device_model = 'MockDevice'`, `device_manufacturer = 'Kippy'`, `last_seen = now()`, `first_seen_at = now()`.
-6. **Upsert `friendships` row** with fixed UUID `00000000-0000-0000-0000-000000001234`:
-   - `requester_id = c30061e9-... (Yariv)`, `receiver_id = dani_child_id`, `status = 'accepted'`, `responded_at = now()`.
-   - On conflict on `id` → update status to accepted.
-7. Return JSON `{ dani_parent_id, dani_child_id, dani_device_id, friendship_id }`.
+הצ'אט הקיים מניח ששני הצדדים הם `children` (FK בטבלת `friendships` ובעמודה `sender_id` של `chat_messages`). זה לא יחזיק כשגם הורה צריך להיות משתתף.
 
-Config: standard `verify_jwt = false` (we validate in code via `getClaims`). Uses `SUPABASE_SERVICE_ROLE_KEY` for admin operations.
+הפתרון: מוסיפים שכבת אבסטרקציה דקה — `chat_participants` view/table שמאחדת ילדים והורים תחת זהות אחת.
 
-### 2. Invocation
-After deploy, I'll call it once via `supabase--curl_edge_functions` (your browser session JWT will be attached automatically since you're logged in as admin) and return the IDs to you.
+```text
+chat_participants (VIEW)
+ ├── participant_id (uuid, unique)        ← child.id או parent.id
+ ├── participant_type ('child' | 'parent')
+ ├── display_name
+ ├── owner_parent_id                      ← לילד: parent_id, להורה: עצמו
+ └── ...
+```
 
-### 3. Verification queries
-- `SELECT * FROM friendships WHERE id = '00000000-0000-0000-0000-000000001234';`
-- `SELECT id, name FROM children WHERE id = <dani_child_id>;`
-- Confirm Yariv's chat list now shows Dani.
+ואז:
 
-## Notes / Caveats
-- **Chat from Dani's side won't work** without a real device JWT for `dani-mock-device-0001`. That's fine for testing Yariv's send/receive UI; if you later want bidirectional, we can add a second function that mints a device JWT for the mock device.
-- The fixed friendship UUID `00000000-0000-0000-0000-000000001234` lets the Android app hardcode it if needed.
-- Function is idempotent — re-running won't duplicate rows.
-- No data deleted; only inserts/updates.
+- `friendships.requester_id` / `receiver_id` → מצביעים ל-`participant_id` (ללא FK קשיח כי זה union של שתי טבלאות)
+- `chat_messages.sender_id` → אותו דבר
+- מסירים את ה-FKs הקיימים ל-`children`, מחליפים ב-trigger validation שמוודא שה-id קיים או ב-`children` או ב-`parents`.
 
-## Deliverables
-After execution you'll receive:
-1. `dani_child_id` (UUID)
-2. `friendship_id` = `00000000-0000-0000-0000-000000001234`
-3. `dani_device_id` = `dani-mock-device-0001`
+## RLS חדש (קריטי)
+
+הפוליסות הקיימות מבוססות על `is_child_of_calling_device` — זה עובד רק לאנדרואיד עם device JWT. צריך פוליסות מקבילות להורה:
+
+- **קריאה**: משתמש רשאי לקרוא הודעות בצ'אט אם הוא משתתף (כילד דרך device_id, או כהורה דרך `auth.uid()` שתואם `parents.id`, או כהורה של ילד שמשתתף — לצורך פיקוח, אופציונלי).
+- **כתיבה**: רק אם הוא עצמו ה-sender ומשתתף בצ'אט.
+
+נוסיף helper functions:
+
+- `is_participant_in_friendship(participant_id, friendship_id)` 
+- `can_act_as_participant(participant_id)` — בודק או device_id JWT (לילד) או auth.uid (להורה)
+
+## אוטו-חברות הורה↔ילד
+
+טריגר `AFTER INSERT ON children`:
+
+- יוצר אוטומטית `friendship` עם `status='accepted'` בין `parent_id` ל-`child.id`.
+- ככה ברגע שהורה מוסיף ילד — הילד מופיע מיד ברשימת הצ'אטים שלו, ולהפך באפליקציית האנדרואיד.
+- אידמפוטנטי: `ON CONFLICT DO NOTHING` (נוסיף unique index על זוג).
+
+migration נוסף: backfill לכל הילדים הקיימים — יצירת friendship עם ההורה שלהם.
+
+## צד הורה (Web) — טאב חדש "צ'אט"
+
+### ניווט
+
+מוסיפים פריט חדש ב-`BottomNavigationV2`:
+
+```
+{ title: "צ'אט", url: "/chat-v2", icon: MessageCircle }
+```
+
+סדר: בית · משפחה · **צ'אט** · משימות · התראות · הגדרות (6 פריטים — נצמצם פדינג כדי שיכנס במובייל, או נכניס את "התראות" לאייקון בלבד).
+
+### דפים חדשים
+
+`**/chat-v2**` — רשימת צ'אטים
+
+- שולפת את כל ה-friendships שבהם ההורה משתתף (כ-`participant`).
+- כל שורה: שם המשתתף השני, ההודעה האחרונה, חותמת זמן, badge של "לא נקרא".
+- כפתור "+" לפתיחת חיפוש משתמש להוספה (V2 — V1 רק רואים חברויות אוטומטיות).
+
+`**/chat-v2/:friendshipId**` — חלון צ'אט
+
+- בועות הודעות RTL, הודעות שלי משמאל/מימין לפי כיוון.
+- input עם: טקסט, צירוף תמונה, כפתור view-once.
+- Realtime subscription על `chat_messages` לפי `friendship_id`.
+- מתחת — אותה התנהגות בדיוק כמו האפליקציה: view-once נמחק אחרי צפייה, TTL 30 יום ע"י `purge_expired_chat_messages`.
+
+### Hooks
+
+- `useChatList()` — שולף friendships + last_message + unread_count (RPC).
+- `useChat(friendshipId)` — הודעות + realtime + send.
+- `useUploadChatMedia()` — מעלה ל-bucket קיים.
+
+## צד הילד (אנדרואיד)
+
+**אפס שינויי קוד באנדרואיד.** הקוד הקיים שלהם:
+
+- שולף `friendships WHERE requester_id = me OR receiver_id = me` — אוטומטית יחזיר גם את החברות עם ההורה (כי ההורה הוא `participant_id` תקני).
+- שולח/מקבל `chat_messages` — אותו פרוטוקול.
+
+הילד פשוט יראה צ'אט חדש בשם "אבא" / "אמא" (לפי `display_name` של ההורה) — בדיוק כמו עוד חבר.
+
+זה תואם לאילוץ הקריטי **No Android Access**.
+
+## פיצ'רים ב-V1
+
+מתוך התשובה שלך — "בדיוק מה שעשינו בצאט של הילד". כלומר:
+
+- ✅ טקסט
+- ✅ תמונות
+- ✅ view-once
+- ✅ TTL 30 יום
+- ✅ Realtime
+- ✅ אינדיקציית "נקרא" (אם קיים בילדים — לבדוק)
+
+## סיכון וטיפול
+
+
+| סיכון                                           | מיטיגציה                                                                                |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------- |
+| RLS recursion בין `children` ל-`participants`   | משתמשים ב-SECURITY DEFINER helpers (תואם memory rule)                                   |
+| FK שבירה ב-`chat_messages.sender_id → children` | drop FK, מחליפים ב-trigger validation                                                   |
+| הילד באנדרואיד יראה את ההורה ויתבלבל            | `display_name` יהיה "אבא"/"אמא" עם אייקון/קידומת ברורה                                  |
+| הורה מציץ בכל הצ'אטים של הילד                   | RLS יאפשר להורה לקרוא רק צ'אטים שהוא בעצמו משתתף בהם. צ'אט ילד↔חבר נשאר חסום (כמו היום) |
+| צפיפות ב-BottomNav של מובייל                    | שינוי ל-icon-only בפריטים פחות מרכזיים, או צמצום padding                                |
+
+
+## פירוט טכני (לקוראים טכניים)
+
+### Migration A — Schema
+
+1. `CREATE VIEW chat_participants` (UNION של children + parents).
+2. `ALTER TABLE chat_messages DROP CONSTRAINT chat_messages_sender_id_fkey`.
+3. `ALTER TABLE friendships DROP CONSTRAINT friendships_*_id_fkey` (שניהם).
+4. טריגר `validate_chat_participant_exists` על INSERT/UPDATE לשתי הטבלאות.
+5. Helpers: `is_participant_in_friendship`, `can_act_as_participant`.
+
+### Migration B — RLS
+
+- DROP פוליסות `Child device can ...` הקיימות.
+- CREATE פוליסות חדשות `Participant can read/insert chat messages` שמכסות גם device JWT וגם auth user.
+
+### Migration C — Auto-friendship trigger
+
+- `AFTER INSERT ON children` → upsert friendship(parent_id, child.id, 'accepted').
+- Backfill לכל ה-children הקיימים.
+
+### Migration D — Realtime
+
+- `ALTER PUBLICATION supabase_realtime ADD TABLE chat_messages, friendships` (אם לא כבר).
+- `REPLICA IDENTITY FULL` לשתיהן.
+
+### קוד Web
+
+- `src/pages/ChatV2.tsx` (רשימה)
+- `src/pages/ChatRoomV2.tsx` (חלון)
+- `src/components/chat/ChatBubble.tsx`, `ChatInput.tsx`, `MediaViewer.tsx`
+- `src/hooks/useChat.ts`, `useChatList.ts`
+- routing ב-`App.tsx`
+- עדכון `BottomNavigationV2.tsx`
+
+## מה לא בתוכנית הזו (נשמור ל-V2)
+
+- חיפוש משתמשים והוספת חברים ידנית (V1 רק חברויות אוטומטיות הורה↔ילד שלו).
+- צ'אטים קבוצתיים.
+- שיחות קוליות/וידאו.
+- העברת הודעות.
+
+---
+
+**שאלה אחרונה לפני יציאה לדרך:** האם להמשיך לתחזק את ה-edge function `seed-mock-peer` (המשתמש "דני") שכבר נפרס, או למחוק אותו כי הוא מיותר עם הגישה הזו?  
+  
+הוא מיותר אפשר לעזוב את זה 
+
+&nbsp;
