@@ -84,7 +84,20 @@ export default function ChatV2() {
         <h1 className="flex-1 text-xl font-bold" style={{ color: "#E9EDEF" }}>
           צ'אטים
         </h1>
-        <MessageCircle className="h-5 w-5" style={{ color: "#8696A0" }} />
+        <button
+          onClick={handleInvite}
+          disabled={inviting}
+          className="flex h-9 items-center gap-1.5 rounded-full px-3 text-sm font-medium disabled:opacity-50"
+          style={{ backgroundColor: "#00A884", color: "#fff" }}
+          aria-label="הזמן חבר"
+        >
+          {inviting ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <UserPlus className="h-4 w-4" />
+          )}
+          הזמן חבר
+        </button>
       </header>
 
       <main className="px-2 pt-2">
