@@ -43,6 +43,7 @@ import FamilyV2 from "./pages/FamilyV2";
 import ChatV2 from "./pages/ChatV2";
 import ChatRoomV2 from "./pages/ChatRoomV2";
 import AcceptInvite from "./pages/AcceptInvite";
+import InviteLanding from "./pages/InviteLanding";
 import JoinFamily from "./pages/JoinFamily";
 import LandingV1 from "./pages/LandingV1";
 
