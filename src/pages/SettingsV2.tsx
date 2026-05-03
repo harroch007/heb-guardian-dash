@@ -310,11 +310,31 @@ const SettingsV2 = () => {
                 </div>
               )}
               {parentPhone && (
-                <div className="flex justify-between items-center py-2">
+                <div className="flex justify-between items-center py-2 border-b border-border/30">
                   <span className="text-muted-foreground">טלפון</span>
                   <span className="font-medium text-foreground" dir="ltr">{parentPhone}</span>
                 </div>
               )}
+              <div className="flex justify-between items-center py-2">
+                <span className="text-muted-foreground">Kippy Tag</span>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono font-semibold text-primary" dir="ltr">
+                    {kippyTag ? `@${kippyTag}` : "—"}
+                  </span>
+                  {kippyTag && (
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(`@${kippyTag}`);
+                        toast.success("הועתק");
+                      }}
+                      className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                      title="העתק"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
           )}
         </section>
