@@ -245,12 +245,17 @@ export default function ChatV2() {
     }
   };
 
-  const handleDelete = async (friendshipId: string) => {
+  const confirmDelete = async () => {
+    if (!pendingDelete) return;
+    setDeleting(true);
     try {
-      await deleteChat(friendshipId);
+      await deleteChat(pendingDelete.friendshipId);
       toast.success("הצ'אט נמחק");
+      setPendingDelete(null);
     } catch (err: any) {
       toast.error("מחיקה נכשלה", { description: err.message });
+    } finally {
+      setDeleting(false);
     }
   };
 
