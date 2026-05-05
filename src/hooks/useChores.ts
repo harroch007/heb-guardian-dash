@@ -47,14 +47,16 @@ export function useChores(childId: string | null) {
       .select("device_id")
       .eq("child_id", childId);
 
-    if (devices) {
-      for (const dev of devices) {
-        await supabase.from("device_commands").insert({
-          device_id: dev.device_id,
-          command_type: "REFRESH_SETTINGS",
-          status: "PENDING",
-        });
-      }
+    if (devices && devices.length > 0) {
+      await Promise.all(
+        devices.map((dev) =>
+          supabase.from("device_commands").insert({
+            device_id: dev.device_id,
+            command_type: "REFRESH_SETTINGS",
+            status: "PENDING",
+          })
+        )
+      );
     }
   }, [childId]);
 
@@ -140,7 +142,7 @@ export function useChores(childId: string | null) {
       toast({ title: "שגיאה", description: "לא ניתן להוסיף משימה", variant: "destructive" });
     } else {
       toast({ title: "נוסף", description: `המשימה "${title}" נוספה בהצלחה` });
-      await sendRefreshToAllDevices();
+      void sendRefreshToAllDevices();
     }
   };
 
@@ -150,7 +152,7 @@ export function useChores(childId: string | null) {
       toast({ title: "שגיאה", description: "לא ניתן לאשר את המשימה", variant: "destructive" });
     } else {
       toast({ title: "אושר! ✅", description: `${(data as any).reward_minutes} דקות נוספו לבנק` });
-      await sendRefreshToAllDevices();
+      void sendRefreshToAllDevices();
     }
   };
 
@@ -160,17 +162,23 @@ export function useChores(childId: string | null) {
       toast({ title: "שגיאה", description: "לא ניתן לדחות את המשימה", variant: "destructive" });
     } else {
       toast({ title: "נדחה", description: "המשימה הוחזרה" });
-      await sendRefreshToAllDevices();
+      void sendRefreshToAllDevices();
     }
   };
 
   const deleteChore = async (choreId: string) => {
+    // Optimistic UI — remove immediately so the parent gets instant feedback
+    const prev = chores;
+    setChores((cur) => cur.filter((c) => c.id !== choreId));
+
     const { error } = await supabase.from("chores").delete().eq("id", choreId);
     if (error) {
+      setChores(prev); // roll back
       toast({ title: "שגיאה", description: "לא ניתן למחוק את המשימה", variant: "destructive" });
-    } else {
-      await sendRefreshToAllDevices();
+      return;
     }
+    // Fire-and-forget device refresh — don't block UI on REFRESH_SETTINGS inserts
+    void sendRefreshToAllDevices();
   };
 
   return { chores, rewardBank, transactions, loading, addChore, approveChore, rejectChore, deleteChore };

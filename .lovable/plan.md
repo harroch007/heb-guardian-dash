@@ -1,30 +1,20 @@
-## Plan: Split "All Tasks" into nested accordions (Open / Completed)
+## Fix: 8–10s delay when deleting a chore
 
-### Goal
-On `/chores-v2`, replace the single "כל המשימות (9)" block with two collapsible sub-sections inside the existing accordion item, so the parent can choose what to view and the page is more compact.
+### Root cause
+In `src/hooks/useChores.ts`, `deleteChore` awaits the DB delete and then `await sendRefreshToAllDevices()`, which does:
+1. A `SELECT` on `devices` for this child.
+2. A sequential `INSERT` into `device_commands` for **each** device (loop with `await`).
 
-### Changes
+The UI only updates when the realtime `chores` channel fires, so the parent sees nothing until the whole chain (delete + N command inserts + realtime round-trip) completes — typically 8–10s on slower networks / many devices.
 
-**1. `src/pages/ChoresV2.tsx`**
-- Remove the count `({chores.length})` from the "כל המשימות" trigger label.
-- Replace the flat `<ChoreList chores={chores} ... />` content with a nested `Accordion type="multiple"` containing two items:
-  - **"משימות פתוחות (N)"** — N = active count (`pending` + `completed_by_child`).
-  - **"הושלמו (N)"** — N = `approved` + `rejected`.
-- Each nested item renders a filtered `ChoreList` (passing only its own subset).
-- Default open: "משימות פתוחות" (open by default), "הושלמו" closed.
-- If a sub-list is empty, still show the trigger (count = 0) but content shows the existing empty state.
+The same pattern affects `addChore`, `approveChore`, `rejectChore`.
 
-**2. `src/components/chores/ChoreList.tsx`**
-- Remove the internal "active vs done" split + the "הושלמו" sub-heading (lines 37–57), since splitting now happens at page level. Render a single flat list of the chores it receives.
-- Keep photo dialog, item rendering, and empty state unchanged.
+### Plan
+Edit `src/hooks/useChores.ts`:
 
-### Visual outcome
-```
-▾ כל המשימות
-   ▾ משימות פתוחות (5)
-       [chore items...]
-   ▸ הושלמו (4)
-```
+1. **Optimistic delete** — in `deleteChore`, immediately remove the chore from local state, then call the DB delete. On error, roll back state and show toast.
+2. **Fire-and-forget device refresh** — change `await sendRefreshToAllDevices()` to `void sendRefreshToAllDevices()` in `addChore`, `approveChore`, `rejectChore`, `deleteChore`. The realtime channel + 30s poll already keep things consistent; blocking the UI on it is unnecessary.
+3. **Parallelize device inserts** inside `sendRefreshToAllDevices` — replace the `for…await` loop with `Promise.all(devices.map(...))` so multi-device families don't pay N× latency.
 
 ### Out of scope
-No changes to data fetching, RPCs, styling tokens, or other accordion items (Pending approval, Add task, Bank).
+No DB / RPC / RLS changes. No UI restructuring.
