@@ -16,19 +16,56 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-function formatRelativeTime(iso: string | null): string {
+function formatLastMessageTime(iso: string | null): string {
   if (!iso) return "";
+  const TZ = "Asia/Jerusalem";
   const d = new Date(iso);
-  const now = new Date();
-  const diffMs = now.getTime() - d.getTime();
-  const mins = Math.floor(diffMs / 60000);
-  if (mins < 1) return "עכשיו";
-  if (mins < 60) return `${mins} דק'`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours} שע'`;
-  const days = Math.floor(hours / 60);
-  if (days < 7) return `${days} ימים`;
-  return d.toLocaleDateString("he-IL");
+
+  // Date components in Asia/Jerusalem
+  const ymd = (date: Date) => {
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: TZ,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(date);
+    const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
+    return `${get("year")}-${get("month")}-${get("day")}`;
+  };
+
+  const today = new Date();
+  const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+  const msgYmd = ymd(d);
+
+  if (msgYmd === ymd(today)) {
+    // 24h H:MM
+    return new Intl.DateTimeFormat("he-IL", {
+      timeZone: TZ,
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).format(d);
+  }
+
+  if (msgYmd === ymd(yesterday)) return "אתמול";
+
+  // Within last 6 days → weekday name
+  const diffDays = Math.floor(
+    (today.getTime() - d.getTime()) / (24 * 60 * 60 * 1000)
+  );
+  if (diffDays < 7) {
+    return new Intl.DateTimeFormat("he-IL", {
+      timeZone: TZ,
+      weekday: "long",
+    }).format(d);
+  }
+
+  return new Intl.DateTimeFormat("he-IL", {
+    timeZone: TZ,
+    day: "2-digit",
+    month: "2-digit",
+    year: "2-digit",
+  }).format(d);
 }
 
 function previewText(content: string | null, type: string | null): string {
