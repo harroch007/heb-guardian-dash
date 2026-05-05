@@ -322,7 +322,7 @@ export default function ChatV2() {
                   key={chat.friendshipId}
                   chat={chat}
                   onOpen={() => navigate(`/chat-v2/${chat.friendshipId}`)}
-                  onDelete={() => handleDelete(chat.friendshipId)}
+                  onDelete={() => setPendingDelete(chat)}
                 />
               ))}
             </ul>
