@@ -5,6 +5,16 @@ import { useChatList, type ChatListItem } from "@/hooks/useChatList";
 import { MessageCircle, Loader2, ArrowRight, UserPlus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 function formatRelativeTime(iso: string | null): string {
   if (!iso) return "";
