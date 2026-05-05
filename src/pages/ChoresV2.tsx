@@ -221,12 +221,12 @@ export default function ChoresV2() {
                 </AccordionItem>
               )}
 
-              {/* 2. All tasks */}
+              {/* 2. All tasks — split into open / completed sub-accordions */}
               <AccordionItem value="all-tasks" className="v2-card border-border/50 px-4">
                 <AccordionTrigger className="hover:no-underline py-3">
                   <div className="flex items-center gap-2 text-foreground">
                     <ClipboardList className="w-5 h-5 text-primary" />
-                    <span className="font-semibold">כל המשימות ({chores.length})</span>
+                    <span className="font-semibold">כל המשימות</span>
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="pt-1">
@@ -236,15 +236,59 @@ export default function ChoresV2() {
                         <Skeleton key={i} className="h-16 w-full" />
                       ))}
                     </div>
-                  ) : (
-                    <ChoreList
-                      chores={chores}
-                      onApprove={approveChore}
-                      onReject={rejectChore}
-                      onDelete={deleteChore}
-                      childName={childName}
-                    />
-                  )}
+                  ) : (() => {
+                    const openChores = chores.filter(
+                      (c) => c.status === "pending" || c.status === "completed_by_child"
+                    );
+                    const doneChores = chores.filter(
+                      (c) => c.status === "approved" || c.status === "rejected"
+                    );
+                    return (
+                      <Accordion type="multiple" defaultValue={["open"]} className="space-y-2">
+                        <AccordionItem
+                          value="open"
+                          className="rounded-lg border border-border/50 bg-background/40 px-3"
+                        >
+                          <AccordionTrigger className="hover:no-underline py-2.5">
+                            <div className="flex items-center gap-2 text-sm text-foreground">
+                              <Clock className="w-4 h-4 text-warning" />
+                              <span className="font-medium">משימות פתוחות ({openChores.length})</span>
+                            </div>
+                          </AccordionTrigger>
+                          <AccordionContent className="pt-1">
+                            <ChoreList
+                              chores={openChores}
+                              onApprove={approveChore}
+                              onReject={rejectChore}
+                              onDelete={deleteChore}
+                              childName={childName}
+                            />
+                          </AccordionContent>
+                        </AccordionItem>
+
+                        <AccordionItem
+                          value="done"
+                          className="rounded-lg border border-border/50 bg-background/40 px-3"
+                        >
+                          <AccordionTrigger className="hover:no-underline py-2.5">
+                            <div className="flex items-center gap-2 text-sm text-foreground">
+                              <CheckCircle2 className="w-4 h-4 text-success" />
+                              <span className="font-medium">הושלמו ({doneChores.length})</span>
+                            </div>
+                          </AccordionTrigger>
+                          <AccordionContent className="pt-1">
+                            <ChoreList
+                              chores={doneChores.slice(0, 20)}
+                              onApprove={approveChore}
+                              onReject={rejectChore}
+                              onDelete={deleteChore}
+                              childName={childName}
+                            />
+                          </AccordionContent>
+                        </AccordionItem>
+                      </Accordion>
+                    );
+                  })()}
                 </AccordionContent>
               </AccordionItem>
 

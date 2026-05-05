@@ -34,27 +34,11 @@ export function ChoreList({ chores, onApprove, onReject, onDelete, childName }: 
     );
   }
 
-  const active = chores.filter(c => c.status === "pending" || c.status === "completed_by_child");
-  const done = chores.filter(c => c.status === "approved" || c.status === "rejected");
-
   return (
-    <div className="space-y-3" dir="rtl">
-      {active.length > 0 && (
-        <div className="space-y-2">
-          {active.map(chore => (
-            <ChoreItem key={chore.id} chore={chore} onApprove={onApprove} onReject={onReject} onDelete={onDelete} childName={childName} onPhotoClick={setPhotoChore} />
-          ))}
-        </div>
-      )}
-
-      {done.length > 0 && (
-        <div className="space-y-2 mt-6">
-          <h3 className="text-sm font-medium text-muted-foreground px-1">הושלמו</h3>
-          {done.slice(0, 10).map(chore => (
-            <ChoreItem key={chore.id} chore={chore} onApprove={onApprove} onReject={onReject} onDelete={onDelete} childName={childName} onPhotoClick={setPhotoChore} />
-          ))}
-        </div>
-      )}
+    <div className="space-y-2" dir="rtl">
+      {chores.map(chore => (
+        <ChoreItem key={chore.id} chore={chore} onApprove={onApprove} onReject={onReject} onDelete={onDelete} childName={childName} onPhotoClick={setPhotoChore} />
+      ))}
 
       {/* Photo proof dialog */}
       <Dialog open={!!photoChore} onOpenChange={(open) => !open && setPhotoChore(null)}>
