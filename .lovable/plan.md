@@ -1,31 +1,30 @@
-## הוספת תמיכה בווידאו לצ'אט
+## Plan: Split "All Tasks" into nested accordions (Open / Completed)
 
-### מה משתנה
-1. **CHECK constraint** על `chat_messages.message_type` — מוסיפים `'video'` לצד `'text' | 'image' | 'voice'`.
-2. **`chat-media` bucket** — מעלים את `file_size_limit` מברירת המחדל ל-100MB (104857600 bytes) כדי לאפשר העלאת קליפי וידאו וקול קצרים.
+### Goal
+On `/chores-v2`, replace the single "כל המשימות (9)" block with two collapsible sub-sections inside the existing accordion item, so the parent can choose what to view and the page is more compact.
 
-### SQL
+### Changes
 
-```sql
-ALTER TABLE public.chat_messages
-  DROP CONSTRAINT IF EXISTS chat_messages_message_type_check;
+**1. `src/pages/ChoresV2.tsx`**
+- Remove the count `({chores.length})` from the "כל המשימות" trigger label.
+- Replace the flat `<ChoreList chores={chores} ... />` content with a nested `Accordion type="multiple"` containing two items:
+  - **"משימות פתוחות (N)"** — N = active count (`pending` + `completed_by_child`).
+  - **"הושלמו (N)"** — N = `approved` + `rejected`.
+- Each nested item renders a filtered `ChoreList` (passing only its own subset).
+- Default open: "משימות פתוחות" (open by default), "הושלמו" closed.
+- If a sub-list is empty, still show the trigger (count = 0) but content shows the existing empty state.
 
-ALTER TABLE public.chat_messages
-  ADD CONSTRAINT chat_messages_message_type_check
-  CHECK (message_type = ANY (ARRAY['text','image','voice','video']));
+**2. `src/components/chores/ChoreList.tsx`**
+- Remove the internal "active vs done" split + the "הושלמו" sub-heading (lines 37–57), since splitting now happens at page level. Render a single flat list of the chores it receives.
+- Keep photo dialog, item rendering, and empty state unchanged.
 
-UPDATE storage.buckets
-  SET file_size_limit = 104857600
-  WHERE id = 'chat-media';
-
-NOTIFY pgrst, 'reload schema';
+### Visual outcome
+```
+▾ כל המשימות
+   ▾ משימות פתוחות (5)
+       [chore items...]
+   ▸ הושלמו (4)
 ```
 
-### מה לא משתנה
-- ה-RPC `send_chat_message` כבר מקבל `p_message_type text` חופשי — לא צריך לשנות אותו.
-- ה-RLS על `storage.objects` שכבר נוסף קודם תקף לכל הקבצים ב-`chat-media`, כולל וידאו.
-- אין הגבלה על MIME types ב-bucket — כל פורמט וידאו (mp4/mov/webm) יעבור.
-- ה-UI הקיים (`useChat.ts`, `ChatRoomV2.tsx`) לא מציג וידאו עדיין — זו עבודה נפרדת לעתיד אם נרצה preview בצד ההורה.
-
-### הודעה לסוכן האנדרואיד
-תישלח אוטומטית לאחר ביצוע (כוללת את כל החוזה: Auth, send_chat_message, list_my_chats, Storage paths, ו-video/voice).
+### Out of scope
+No changes to data fetching, RPCs, styling tokens, or other accordion items (Pending approval, Add task, Bank).
