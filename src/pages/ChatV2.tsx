@@ -228,7 +228,7 @@ function SwipeableChatRow({
                 fontWeight: unread ? 700 : 400,
               }}
             >
-              {formatRelativeTime(chat.lastMessageAt)}
+              {formatLastMessageTime(chat.lastMessageAt)}
             </span>
           </div>
           <div className="flex items-center justify-between gap-2 mt-0.5">
