@@ -331,6 +331,46 @@ export default function ChatV2() {
       </div>
 
       <BottomNavigationV2 />
+
+      <AlertDialog
+        open={!!pendingDelete}
+        onOpenChange={(o) => !o && !deleting && setPendingDelete(null)}
+      >
+        <AlertDialogContent
+          dir="rtl"
+          className="border-0 max-w-sm"
+          style={{ backgroundColor: "#202C33", color: "#E9EDEF" }}
+        >
+          <AlertDialogHeader>
+            <AlertDialogTitle style={{ color: "#E9EDEF" }} className="text-right">
+              למחוק את הצ'אט?
+            </AlertDialogTitle>
+            <AlertDialogDescription style={{ color: "#8696A0" }} className="text-right">
+              הצ'אט עם {pendingDelete?.peerName} יוסר מהרשימה שלך. אם תיכנס הודעה
+              חדשה — הוא יחזור אוטומטית.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2">
+            <AlertDialogCancel
+              disabled={deleting}
+              className="border-0"
+              style={{ backgroundColor: "transparent", color: "#E9EDEF" }}
+            >
+              ביטול
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                confirmDelete();
+              }}
+              disabled={deleting}
+              style={{ backgroundColor: "#DC2626", color: "#fff" }}
+            >
+              {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : "מחק"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
