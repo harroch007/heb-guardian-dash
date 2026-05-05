@@ -126,11 +126,8 @@ function SwipeableChatRow({
   };
 
   const handleDelete = () => {
-    if (!confirm(`למחוק את הצ'אט עם ${chat.peerName}?`)) {
-      setOpen(false);
-      setOffset(0);
-      return;
-    }
+    setOpen(false);
+    setOffset(0);
     onDelete();
   };
 
