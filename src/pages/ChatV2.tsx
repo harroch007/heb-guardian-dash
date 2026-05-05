@@ -225,6 +225,8 @@ export default function ChatV2() {
   const navigate = useNavigate();
   const { data: chats, isLoading, deleteChat } = useChatList();
   const [inviting, setInviting] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<ChatListItem | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const handleInvite = async () => {
     setInviting(true);
