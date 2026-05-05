@@ -1195,6 +1195,39 @@ export type Database = {
         }
         Relationships: []
       }
+      chat_thread_hides: {
+        Row: {
+          friendship_id: string
+          hidden_at: string
+          participant_id: string
+        }
+        Insert: {
+          friendship_id: string
+          hidden_at?: string
+          participant_id: string
+        }
+        Update: {
+          friendship_id?: string
+          hidden_at?: string
+          participant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_thread_hides_friendship_id_fkey"
+            columns: ["friendship_id"]
+            isOneToOne: false
+            referencedRelation: "friendships"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_thread_hides_friendship_id_fkey"
+            columns: ["friendship_id"]
+            isOneToOne: false
+            referencedRelation: "view_child_active_chats"
+            referencedColumns: ["friendship_id"]
+          },
+        ]
+      }
       child_daily_insights: {
         Row: {
           child_id: string
@@ -3360,6 +3393,10 @@ export type Database = {
       haversine_km: {
         Args: { lat1: number; lat2: number; lon1: number; lon2: number }
         Returns: number
+      }
+      hide_chat_thread: {
+        Args: { p_friendship_id: string }
+        Returns: undefined
       }
       increment_daily_chat_stat: {
         Args: {

@@ -2,14 +2,15 @@ import { Home, Users, ClipboardList, Bell, Settings, MessageCircle } from "lucid
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { WHATSAPP_MONITORING_ENABLED } from "@/config/featureFlags";
+import { useUnreadChatTotal } from "@/hooks/useUnreadChatTotal";
 
 const allNavItems = [
-  { title: "בית", url: "/home-v2", icon: Home },
-  { title: "משפחה", url: "/family-v2", icon: Users },
-  { title: "צ'אט", url: "/chat-v2", icon: MessageCircle },
-  { title: "משימות", url: "/chores-v2", icon: ClipboardList },
-  { title: "התראות", url: "/alerts-v2", icon: Bell, requiresWhatsApp: true },
-  { title: "הגדרות", url: "/settings-v2", icon: Settings },
+  { title: "בית", url: "/home-v2", icon: Home, key: "home" },
+  { title: "משפחה", url: "/family-v2", icon: Users, key: "family" },
+  { title: "צ'אט", url: "/chat-v2", icon: MessageCircle, key: "chat" },
+  { title: "משימות", url: "/chores-v2", icon: ClipboardList, key: "chores" },
+  { title: "התראות", url: "/alerts-v2", icon: Bell, key: "alerts", requiresWhatsApp: true },
+  { title: "הגדרות", url: "/settings-v2", icon: Settings, key: "settings" },
 ];
 
 const navItems = allNavItems.filter(
@@ -18,6 +19,7 @@ const navItems = allNavItems.filter(
 
 export function BottomNavigationV2() {
   const location = useLocation();
+  const unreadChat = useUnreadChatTotal();
 
   const isActive = (url: string) => {
     return location.pathname === url || location.pathname.startsWith(url + "/");
@@ -28,6 +30,7 @@ export function BottomNavigationV2() {
       <div className="flex items-center justify-around h-16">
         {navItems.map((item) => {
           const active = isActive(item.url);
+          const showBadge = item.key === "chat" && unreadChat > 0;
           return (
             <NavLink
               key={item.url}
@@ -37,7 +40,17 @@ export function BottomNavigationV2() {
                 active ? "text-primary" : "text-muted-foreground"
               )}
             >
-              <item.icon className={cn("w-5 h-5", active && "stroke-[2.5]")} />
+              <span className="relative">
+                <item.icon className={cn("w-5 h-5", active && "stroke-[2.5]")} />
+                {showBadge && (
+                  <span
+                    className="absolute -top-1.5 -right-2 flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-bold leading-none text-white bg-red-500 ring-2 ring-card"
+                    aria-label={`${unreadChat} הודעות חדשות`}
+                  >
+                    {unreadChat > 99 ? "99+" : unreadChat}
+                  </span>
+                )}
+              </span>
               <span className={cn("text-xs", active ? "font-bold" : "font-medium")}>
                 {item.title}
               </span>
