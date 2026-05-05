@@ -47,14 +47,16 @@ export function useChores(childId: string | null) {
       .select("device_id")
       .eq("child_id", childId);
 
-    if (devices) {
-      for (const dev of devices) {
-        await supabase.from("device_commands").insert({
-          device_id: dev.device_id,
-          command_type: "REFRESH_SETTINGS",
-          status: "PENDING",
-        });
-      }
+    if (devices && devices.length > 0) {
+      await Promise.all(
+        devices.map((dev) =>
+          supabase.from("device_commands").insert({
+            device_id: dev.device_id,
+            command_type: "REFRESH_SETTINGS",
+            status: "PENDING",
+          })
+        )
+      );
     }
   }, [childId]);
 
