@@ -5,6 +5,16 @@ import { useChatList, type ChatListItem } from "@/hooks/useChatList";
 import { MessageCircle, Loader2, ArrowRight, UserPlus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 function formatRelativeTime(iso: string | null): string {
   if (!iso) return "";
@@ -116,11 +126,8 @@ function SwipeableChatRow({
   };
 
   const handleDelete = () => {
-    if (!confirm(`למחוק את הצ'אט עם ${chat.peerName}?`)) {
-      setOpen(false);
-      setOffset(0);
-      return;
-    }
+    setOpen(false);
+    setOffset(0);
     onDelete();
   };
 
@@ -218,6 +225,8 @@ export default function ChatV2() {
   const navigate = useNavigate();
   const { data: chats, isLoading, deleteChat } = useChatList();
   const [inviting, setInviting] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<ChatListItem | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const handleInvite = async () => {
     setInviting(true);
@@ -236,12 +245,17 @@ export default function ChatV2() {
     }
   };
 
-  const handleDelete = async (friendshipId: string) => {
+  const confirmDelete = async () => {
+    if (!pendingDelete) return;
+    setDeleting(true);
     try {
-      await deleteChat(friendshipId);
+      await deleteChat(pendingDelete.friendshipId);
       toast.success("הצ'אט נמחק");
+      setPendingDelete(null);
     } catch (err: any) {
       toast.error("מחיקה נכשלה", { description: err.message });
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -308,7 +322,7 @@ export default function ChatV2() {
                   key={chat.friendshipId}
                   chat={chat}
                   onOpen={() => navigate(`/chat-v2/${chat.friendshipId}`)}
-                  onDelete={() => handleDelete(chat.friendshipId)}
+                  onDelete={() => setPendingDelete(chat)}
                 />
               ))}
             </ul>
@@ -317,6 +331,46 @@ export default function ChatV2() {
       </div>
 
       <BottomNavigationV2 />
+
+      <AlertDialog
+        open={!!pendingDelete}
+        onOpenChange={(o) => !o && !deleting && setPendingDelete(null)}
+      >
+        <AlertDialogContent
+          dir="rtl"
+          className="border-0 max-w-sm"
+          style={{ backgroundColor: "#202C33", color: "#E9EDEF" }}
+        >
+          <AlertDialogHeader>
+            <AlertDialogTitle style={{ color: "#E9EDEF" }} className="text-right">
+              למחוק את הצ'אט?
+            </AlertDialogTitle>
+            <AlertDialogDescription style={{ color: "#8696A0" }} className="text-right">
+              הצ'אט עם {pendingDelete?.peerName} יוסר מהרשימה שלך. אם תיכנס הודעה
+              חדשה — הוא יחזור אוטומטית.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2">
+            <AlertDialogCancel
+              disabled={deleting}
+              className="border-0"
+              style={{ backgroundColor: "transparent", color: "#E9EDEF" }}
+            >
+              ביטול
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                confirmDelete();
+              }}
+              disabled={deleting}
+              style={{ backgroundColor: "#DC2626", color: "#fff" }}
+            >
+              {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : "מחק"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
