@@ -1,7 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useEffect } from "react";
+import { useEffect, useCallback } from "react";
 
 export interface ChatListItem {
   friendshipId: string;
@@ -17,6 +17,7 @@ export interface ChatListItem {
 export function useChatList() {
   const { user } = useAuth();
   const parentId = user?.id;
+  const qc = useQueryClient();
 
   const query = useQuery<ChatListItem[]>({
     queryKey: ["chat-list", parentId],
@@ -24,7 +25,6 @@ export function useChatList() {
     queryFn: async () => {
       if (!parentId) return [];
 
-      // 1. Get all friendships involving this parent
       const { data: friendships, error: fErr } = await supabase
         .from("friendships")
         .select("id, requester_id, receiver_id, status, created_at")
@@ -39,7 +39,6 @@ export function useChatList() {
       );
       const friendshipIds = friendships.map((f) => f.id);
 
-      // 2. Resolve peer display names from chat_participants view
       const { data: participants } = await supabase
         .from("chat_participants" as any)
         .select("participant_id, participant_type, display_name")
@@ -53,7 +52,6 @@ export function useChatList() {
         });
       });
 
-      // 3. Last message per friendship
       const { data: messages } = await supabase
         .from("chat_messages")
         .select("friendship_id, content, message_type, created_at, sender_id")
@@ -65,7 +63,6 @@ export function useChatList() {
         if (!lastMsgMap.has(m.friendship_id)) lastMsgMap.set(m.friendship_id, m);
       });
 
-      // 4. Read receipts
       const { data: receipts } = await supabase
         .from("chat_read_receipts" as any)
         .select("friendship_id, last_read_at")
@@ -77,22 +74,42 @@ export function useChatList() {
         receiptMap.set(r.friendship_id, r.last_read_at);
       });
 
-      // 5. Build list
-      const items: ChatListItem[] = friendships.map((f) => {
+      // Hidden (per-user soft-deleted) threads
+      const { data: hides } = await supabase
+        .from("chat_thread_hides" as any)
+        .select("friendship_id, hidden_at")
+        .eq("participant_id", parentId)
+        .in("friendship_id", friendshipIds);
+      const hideMap = new Map<string, string>();
+      (hides ?? []).forEach((h: any) =>
+        hideMap.set(h.friendship_id, h.hidden_at)
+      );
+
+      const items: ChatListItem[] = [];
+      for (const f of friendships) {
         const peerId = f.requester_id === parentId ? f.receiver_id : f.requester_id;
         const peer = peerMap.get(peerId);
         const lastMsg = lastMsgMap.get(f.id);
         const lastReadAt = receiptMap.get(f.id);
+        const hiddenAt = hideMap.get(f.id);
 
-        // Count unread messages (sent by peer, after lastReadAt)
-        const unread = (messages ?? []).filter(
-          (m) =>
-            m.friendship_id === f.id &&
-            m.sender_id !== parentId &&
-            (!lastReadAt || new Date(m.created_at) > new Date(lastReadAt))
-        ).length;
+        // Skip if hidden and no newer message
+        if (hiddenAt) {
+          if (!lastMsg || new Date(lastMsg.created_at) <= new Date(hiddenAt)) {
+            continue;
+          }
+        }
 
-        return {
+        const unread = (messages ?? []).filter((m) => {
+          if (m.friendship_id !== f.id) return false;
+          if (m.sender_id === parentId) return false;
+          const created = new Date(m.created_at).getTime();
+          if (lastReadAt && created <= new Date(lastReadAt).getTime()) return false;
+          if (hiddenAt && created <= new Date(hiddenAt).getTime()) return false;
+          return true;
+        }).length;
+
+        items.push({
           friendshipId: f.id,
           peerId,
           peerName: peer?.name ?? "משתמש",
@@ -101,10 +118,9 @@ export function useChatList() {
           lastMessageAt: lastMsg?.created_at ?? null,
           lastMessageType: lastMsg?.message_type ?? null,
           unreadCount: unread,
-        };
-      });
+        });
+      }
 
-      // Sort by last message time desc
       items.sort((a, b) => {
         const ta = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
         const tb = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
@@ -115,7 +131,6 @@ export function useChatList() {
     },
   });
 
-  // Realtime: refetch on any new message in our friendships
   useEffect(() => {
     if (!parentId) return;
     const channel = supabase
@@ -136,5 +151,25 @@ export function useChatList() {
     };
   }, [parentId]);
 
-  return query;
+  const deleteChat = useCallback(
+    async (friendshipId: string) => {
+      // Optimistic remove
+      const prev = qc.getQueryData<ChatListItem[]>(["chat-list", parentId]);
+      qc.setQueryData<ChatListItem[]>(["chat-list", parentId], (old) =>
+        (old ?? []).filter((c) => c.friendshipId !== friendshipId)
+      );
+      const { error } = await supabase.rpc("hide_chat_thread" as any, {
+        p_friendship_id: friendshipId,
+      });
+      if (error) {
+        // rollback
+        qc.setQueryData(["chat-list", parentId], prev);
+        throw error;
+      }
+      qc.invalidateQueries({ queryKey: ["unread-chat-total", parentId] });
+    },
+    [parentId, qc]
+  );
+
+  return { ...query, deleteChat };
 }
