@@ -55,6 +55,7 @@ export interface ChildWithData {
     is_active: boolean;
   }[];
   todayChoresCompleted: number;
+  pendingChoreApprovals: number;
   permissionIssues: string[];
   activeRestriction: ActiveRestriction | null;
 }
