@@ -52,15 +52,6 @@ export const AttentionSection = ({ childrenData }: Props) => {
       });
     }
 
-    if (child.pendingTimeRequests > 0) {
-      items.push({
-        id: `time-${child.id}`,
-        icon: <Clock className="h-4 w-4 text-blue-500" />,
-        text: `${child.name}: ${child.pendingTimeRequests} בקשות זמן`,
-        path: `/child-v2/${child.id}`,
-        color: "bg-primary/10 border-blue-200",
-      });
-    }
   }
 
   if (items.length === 0) return null;
