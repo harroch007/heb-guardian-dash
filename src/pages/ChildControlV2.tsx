@@ -668,8 +668,6 @@ export default function ChildControlV2() {
         {/* ===== 4-9. EXISTING SECTIONS (reused) ===== */}
         {device ? (
           <div className="space-y-4">
-            <TimeRequestsCard childId={childId!} />
-
             <ProblemBanner deviceHealth={deviceHealth} status={status} lastSeen={device.last_seen} />
             
 
