@@ -261,6 +261,9 @@ const HomeV2 = () => {
             c.completed_at &&
             new Date(c.completed_at) >= todayStart
         ).length;
+        const pendingChoreApprovals = (choresRes.data || []).filter(
+          (c) => c.child_id === child.id && c.status === "completed_by_child"
+        ).length;
 
         return {
           id: child.id,
