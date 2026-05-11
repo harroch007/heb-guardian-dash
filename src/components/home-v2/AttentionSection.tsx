@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { AlertTriangle, WifiOff, ShieldAlert, Clock } from "lucide-react";
+import { AlertTriangle, WifiOff, ShieldAlert } from "lucide-react";
 import type { ChildWithData } from "@/pages/HomeV2";
 import { WHATSAPP_MONITORING_ENABLED } from "@/config/featureFlags";
 
@@ -52,15 +52,6 @@ export const AttentionSection = ({ childrenData }: Props) => {
       });
     }
 
-    if (child.pendingTimeRequests > 0) {
-      items.push({
-        id: `time-${child.id}`,
-        icon: <Clock className="h-4 w-4 text-blue-500" />,
-        text: `${child.name}: ${child.pendingTimeRequests} בקשות זמן`,
-        path: `/child-v2/${child.id}`,
-        color: "bg-primary/10 border-blue-200",
-      });
-    }
   }
 
   if (items.length === 0) return null;
