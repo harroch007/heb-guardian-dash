@@ -294,6 +294,7 @@ const HomeV2 = () => {
           pendingTimeRequests: timeReqCount,
           scheduleWindows: schedules,
           todayChoresCompleted: todayChores,
+          pendingChoreApprovals,
           permissionIssues: healthMap[child.id] || [],
           activeRestriction: getActiveRestriction(child.id),
         };
