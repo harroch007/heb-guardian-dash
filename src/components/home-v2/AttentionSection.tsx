@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { AlertTriangle, WifiOff, ShieldAlert, Clock } from "lucide-react";
+import { AlertTriangle, WifiOff, ShieldAlert } from "lucide-react";
 import type { ChildWithData } from "@/pages/HomeV2";
 import { WHATSAPP_MONITORING_ENABLED } from "@/config/featureFlags";
 
