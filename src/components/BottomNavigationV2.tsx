@@ -21,7 +21,7 @@ const navItems = allNavItems.filter(
 
 export function BottomNavigationV2() {
   const location = useLocation();
-  const unreadChat = useUnreadChatTotal();
+  const unreadChat = CHAT_ENABLED ? useUnreadChatTotal() : 0;
 
   const isActive = (url: string) => {
     return location.pathname === url || location.pathname.startsWith(url + "/");
