@@ -11,6 +11,7 @@ import { ChildCardV2 } from "@/components/home-v2/ChildCardV2";
 import { AttentionSection } from "@/components/home-v2/AttentionSection";
 import { FamilyLocationsMap } from "@/components/home-v2/FamilyLocationsMap";
 import { DailyControlSummary } from "@/components/home-v2/DailyControlSummary";
+import { HomePendingTimeRequests } from "@/components/home-v2/HomePendingTimeRequests";
 import { SmartProtectionSummary } from "@/components/home-v2/SmartProtectionSummary";
 import { BottomNavigationV2 } from "@/components/BottomNavigationV2";
 import { TopNavigationV2 } from "@/components/TopNavigationV2";
