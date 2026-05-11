@@ -1,20 +1,22 @@
 import { Home, Users, ClipboardList, Bell, Settings, MessageCircle } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { WHATSAPP_MONITORING_ENABLED } from "@/config/featureFlags";
+import { WHATSAPP_MONITORING_ENABLED, CHAT_ENABLED } from "@/config/featureFlags";
 import { useUnreadChatTotal } from "@/hooks/useUnreadChatTotal";
 
 const allNavItems = [
   { title: "בית", url: "/home-v2", icon: Home, key: "home" },
   { title: "משפחה", url: "/family-v2", icon: Users, key: "family" },
-  { title: "צ'אט", url: "/chat-v2", icon: MessageCircle, key: "chat" },
+  { title: "צ'אט", url: "/chat-v2", icon: MessageCircle, key: "chat", requiresChat: true },
   { title: "משימות", url: "/chores-v2", icon: ClipboardList, key: "chores" },
   { title: "התראות", url: "/alerts-v2", icon: Bell, key: "alerts", requiresWhatsApp: true },
   { title: "הגדרות", url: "/settings-v2", icon: Settings, key: "settings" },
 ];
 
 const navItems = allNavItems.filter(
-  (item) => WHATSAPP_MONITORING_ENABLED || !item.requiresWhatsApp
+  (item) =>
+    (WHATSAPP_MONITORING_ENABLED || !item.requiresWhatsApp) &&
+    (CHAT_ENABLED || !item.requiresChat)
 );
 
 export function BottomNavigationV2() {
