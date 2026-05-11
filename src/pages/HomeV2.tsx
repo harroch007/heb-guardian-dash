@@ -55,6 +55,7 @@ export interface ChildWithData {
     is_active: boolean;
   }[];
   todayChoresCompleted: number;
+  pendingChoreApprovals: number;
   permissionIssues: string[];
   activeRestriction: ActiveRestriction | null;
 }
@@ -260,6 +261,9 @@ const HomeV2 = () => {
             c.completed_at &&
             new Date(c.completed_at) >= todayStart
         ).length;
+        const pendingChoreApprovals = (choresRes.data || []).filter(
+          (c) => c.child_id === child.id && c.status === "completed_by_child"
+        ).length;
 
         return {
           id: child.id,
@@ -290,6 +294,7 @@ const HomeV2 = () => {
           pendingTimeRequests: timeReqCount,
           scheduleWindows: schedules,
           todayChoresCompleted: todayChores,
+          pendingChoreApprovals,
           permissionIssues: healthMap[child.id] || [],
           activeRestriction: getActiveRestriction(child.id),
         };
