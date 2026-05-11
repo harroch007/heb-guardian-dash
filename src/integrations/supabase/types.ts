@@ -3569,6 +3569,15 @@ export type Database = {
         }
         Returns: string
       }
+      report_pending_app: {
+        Args: {
+          p_app_name?: string
+          p_device_id: string
+          p_package_name: string
+          p_was_blocked_attempt?: boolean
+        }
+        Returns: Json
+      }
       request_extra_time: {
         Args: { p_child_id: string; p_device_id?: string; p_reason: string }
         Returns: Json
