@@ -1,55 +1,51 @@
-## הבעיה
+## מטרה
+ניקוי רשימת האפליקציות באופן גורף (לא לפי יצרן), כך שההורה יראה רק אפליקציות "אמיתיות" שהילד באמת יכול להפעיל — ללא תלות בסמסונג/שיאומי/וכו'.
 
-הטריגר `on_app_alert_insert` (שרץ בעקבות `create_app_alert`) קורא ל-`net.http_post` עם URL שנבנה מ-`current_setting('app.settings.supabase_url', true)`. ה-GUC הזה לא מוגדר במסד → מחזיר `NULL` → `pg_net` נכשל עם `null value in column "url"` → כל הטרנזקציה של `report_pending_app` עושה Rollback, ולכן גם ה-Upsert ל-`installed_apps` ו-`blocked_app_attempts` לא נשמר.
+## עיקרון מנחה
+**"Launchable Apps Only"** — אם לאפליקציה אין אייקון במסך הבית של אנדרואיד (אין launcher intent), היא לא רלוונטית להורה. זה תקן אנדרואיד אוניברסלי שעובד על כל יצרן.
 
-## התיקון (מיגרציה אחת)
+## שלב 0 — מיידי (ללא תלות באנדרואיד)
 
-### 1. תיקון `on_app_alert_insert` — URL קשיח + הגנה
+### 0.1 שינוי `src/lib/appUtils.ts`
+- מחיקת רוב הרשימה הקשיחה. נשארים רק רכיבי מערכת אמיתיים שאף פעם לא יהיו אפליקציה לילד:
+  - `com.android.systemui`, `com.android.settings`, `com.google.android.gms`, `com.google.android.gsf`
+  - `com.android.providers.*`, `com.android.packageinstaller`, `com.google.android.packageinstaller`
+  - `com.android.bluetooth`, `com.android.nfc`, `com.android.stk`
+  - launcher-ים: `com.sec.android.app.launcher`, `com.miui.home`, `com.android.launcher`
+  - `com.kippy.*` (האפליקציה שלנו)
+- מחיקה: AR Zone, "הקבצים שלי", Galaxy Store, Bixby, Samsung Pass, OneDrive, PowerPoint, Photos, Maps, Calendar, Meet, Clock, וכו' — אם הילד לא משתמש בהן הן ייעלמו ממילא דרך הסינון בשלב 0.2; אם הוא כן — נכון שההורה יראה.
+- צמצום `SYSTEM_KEYWORDS` ל: `systemui`, `packageinstaller`, `providers`, `kippy` בלבד.
 
-- להחליף את שורות ה-`current_setting(...)` ב-URL מלא קשיח של פרויקט Supabase:
-  - `https://fsedenvbdpctzoznppwo.supabase.co/functions/v1/send-push-notification`
-- להעביר את ה-Service Role Key מ-Vault: `vault.read_secret('service_role_key')` עם fallback ל-anon key אם לא קיים. אם Vault לא זמין/ריק — לנסות `current_setting('app.settings.service_role_key', true)`, ואם גם זה NULL — לדלג על שליחת הפוש (בלי לקרוס).
-- לעטוף את כל לולאת ה-`net.http_post` ב-`BEGIN ... EXCEPTION WHEN OTHERS THEN RAISE WARNING ...; END;` כך שכשל בפוש לא יפיל את ה-INSERT ל-`app_alerts`.
+### 0.2 הוספת סינון "interaction-based" ב-`AppsSection.tsx` ו-`AppControlsList.tsx`
+ברירת מחדל: אפליקציה תיכלל ברשימה רק אם מתקיים **לפחות אחד**:
+- יש לה `app_policies` (ההורה כבר נגע בה), או
+- יש לה `blocked_app_attempts` (הילד ניסה לפתוח), או
+- יש לה `app_usage` עם דקות שימוש > 0 ביום כלשהו, או
+- היא לא ב-`isSystemApp()` המצומצם (אפליקציית צד-שלישי "רגילה").
 
-### 2. הגנת קריסות ב-`report_pending_app`
+זה מבטיח שאפליקציות מערכת שהילד **כן** משתמש בהן (גלריה, מצלמה, AR Zone אם ניסה) יופיעו אוטומטית, ואפליקציות מערכת שהוא לא נוגע בהן לא יציפו את הרשימה.
 
-- לעטוף את הקריאה `PERFORM public.create_app_alert(...)` בבלוק `EXCEPTION WHEN OTHERS THEN` שרושם `RAISE WARNING` ולא מפיל את הפעולה. כך גם אם הטריגר ייכשל בעתיד מסיבה אחרת — `installed_apps` ו-`blocked_app_attempts` יישמרו.
-- `push_sent` יוחזר כ-`false` במקרה כשל.
+### 0.3 כפתור "הצג הכל" בראש הרשימה
+Toggle קטן (Switch + label "הצג אפליקציות מערכת") שמכבה את סינון 0.2 — להורה שרוצה לראות את כל 150 האפליקציות. כברירת מחדל כבוי.
 
-### 3. NOTIFY לסכמה
+### 0.4 קיבוץ ויזואלי לפי קטגוריה (אופציונלי בשלב הזה)
+שימוש בעמודה `category` הקיימת ב-`installed_apps` (GAME, SOCIAL, COMMUNICATION, PRODUCTIVITY, OTHER) להצגת badges קטנים. ללא שינוי במבנה, רק תווית.
 
-- בסוף המיגרציה: `NOTIFY pgrst, 'reload schema';`
+## שלב 1 — לעתיד (כשתהיה גישה לאנדרואיד)
+**לא חלק מהיישום עכשיו**, רק תיעוד הכיוון:
+- הוספת עמודה `is_launchable BOOLEAN` ל-`installed_apps`.
+- האנדרואיד יחשב פעם אחת בעת איסוף הרשימה: `pm.getLaunchIntentForPackage(pkg) != null`.
+- הסינון יעבור להיות חד-משמעי: `WHERE is_launchable = true`. נוכל למחוק את `isSystemApp()` כמעט לגמרי.
 
-## קוד טכני (תקציר)
+## תוצאה צפויה במכשיר של הילד שלך
+- AR Zone → יופיע אוטומטית (יש לו blocked_attempts) ✅
+- "עצות" → יישאר (יש לו policy) ✅
+- 120 אפליקציות מערכת לא בשימוש (Bixby, OneDrive, Samsung Pass, PowerPoint וכו') → ייעלמו ✅
+- אפליקציות שהילד יוריד בעתיד → יופיעו ב"ממתינות לאישור" כמו תמיד ✅
 
-```sql
--- on_app_alert_insert
-v_supabase_url TEXT := 'https://fsedenvbdpctzoznppwo.supabase.co';
--- service role key: try vault → GUC → skip if both null
-BEGIN
-  FOR v_recipient_id IN ... LOOP
-    BEGIN
-      PERFORM net.http_post(url := v_supabase_url || '/functions/v1/send-push-notification', ...);
-    EXCEPTION WHEN OTHERS THEN
-      RAISE WARNING 'push enqueue failed: %', SQLERRM;
-    END;
-  END LOOP;
-END;
+## קבצים שישתנו
+- `src/lib/appUtils.ts` — צמצום הרשימה + ייצוא פונקציה חדשה `shouldShowApp(pkg, hasInteraction)`.
+- `src/components/child-dashboard/AppsSection.tsx` — סינון interaction-based + toggle "הצג הכל".
+- `src/components/controls/AppControlsList.tsx` — שימוש בלוגיקת הסינון החדשה.
 
--- report_pending_app
-BEGIN
-  PERFORM public.create_app_alert(p_device_id, p_package_name, p_app_name);
-  v_push_sent := true;
-EXCEPTION WHEN OTHERS THEN
-  RAISE WARNING 'create_app_alert failed: %', SQLERRM;
-  v_push_sent := false;
-END;
-```
-
-## הערה לגבי Service Role Key
-
-ה-Service Role Key לא נחשף בקוד הצד-לקוח — הוא נשלף ב-runtime מתוך הסביבה של ה-DB. אם הוא לא מוגדר ב-Vault או כ-GUC, הקריאה ל-Edge Function תיכשל באימות. אצטרך לבדוק בעת הריצה אם `vault.secrets` מכיל את המפתח. אם לא — אעדכן אותך שצריך להוסיף אותו (אבל בכל מקרה הטרנזקציה כבר לא תקרוס בזכות ה-EXCEPTION).
-
-## תוצאה
-
-לאחר המיגרציה: קריאה מהאנדרואיד ל-`report_pending_app` תצליח תמיד לשמור את האפליקציה תחת "ממתינות לאישור", גם אם מנגנון הפוש נופל. הפוש עצמו יעבוד אם ה-Service Role Key זמין.
+ללא שינויי DB, ללא שינויי אנדרואיד, ללא שינויי edge functions.

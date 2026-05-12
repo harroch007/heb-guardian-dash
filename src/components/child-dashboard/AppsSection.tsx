@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Shield, ChevronDown, ChevronUp } from "lucide-react";
-import { isSystemApp } from "@/lib/appUtils";
+import { isSystemApp, shouldShowApp } from "@/lib/appUtils";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { HelpTooltip } from "@/components/help/HelpTooltip";
 import { AppControlsList } from "@/components/controls";
 import type { AppPolicy, BlockedAttemptSummary, InstalledApp } from "@/hooks/useChildControls";
@@ -40,17 +42,35 @@ export function AppsSection({
 }: AppsSectionProps) {
   const [filter, setFilter] = useState<Filter>("all");
   const [expanded, setExpanded] = useState(false);
+  const [showAll, setShowAll] = useState(false);
 
-  // Filter out always_allowed apps — they should never appear in the parent UI
+  // Always filter out always_allowed apps from parent UI
   const visiblePolicies = appPolicies.filter((p) => !p.always_allowed);
   const alwaysAllowedPackages = new Set(appPolicies.filter((p) => p.always_allowed).map((p) => p.package_name));
 
   const policyPackages = new Set(appPolicies.map((p) => p.package_name));
-  const visibleInstalledApps = installedApps.filter((app) => !alwaysAllowedPackages.has(app.package_name));
-  const pendingApps = visibleInstalledApps.filter((app) => !policyPackages.has(app.package_name) && !isSystemApp(app.package_name));
+  const attemptedPackages = new Set(blockedAttempts.map((a) => a.package_name));
+  const usagePackages = new Set(appUsage.filter((u) => u.usage_minutes > 0).map((u) => u.package_name));
 
-  const usagePackages = new Set(
-    appUsage.filter((u) => u.usage_minutes > 0).map((u) => u.package_name)
+  // Apply the new "Launchable / interaction-based" filter to the inventory
+  const interactionFilteredApps = useMemo(
+    () =>
+      installedApps.filter((app) => {
+        if (alwaysAllowedPackages.has(app.package_name)) return false;
+        return shouldShowApp({
+          pkg: app.package_name,
+          isSystem: app.is_system,
+          hasPolicy: policyPackages.has(app.package_name),
+          hasBlockedAttempt: attemptedPackages.has(app.package_name),
+          hasUsage: usagePackages.has(app.package_name),
+          showAll,
+        });
+      }),
+    [installedApps, alwaysAllowedPackages, policyPackages, attemptedPackages, usagePackages, showAll]
+  );
+
+  const pendingApps = interactionFilteredApps.filter(
+    (app) => !policyPackages.has(app.package_name) && !isSystemApp(app.package_name)
   );
 
   const filteredUsage = appUsage.filter((app) => {
@@ -68,8 +88,7 @@ export function AppsSection({
     return true;
   });
 
-  const filteredInstalled = visibleInstalledApps.filter((app) => {
-    if (isSystemApp(app.package_name)) return false;
+  const filteredInstalled = interactionFilteredApps.filter((app) => {
     if (filter === "blocked") {
       return visiblePolicies.some((p) => p.package_name === app.package_name && p.is_blocked);
     }
@@ -143,6 +162,19 @@ export function AppsSection({
                   {f.label}
                 </Badge>
               ))}
+            </div>
+
+            <div className="flex items-center justify-between bg-muted/30 rounded-lg px-3 py-2">
+              <Label htmlFor="show-all-apps" className="text-xs text-muted-foreground cursor-pointer">
+                הצג גם אפליקציות מערכת לא בשימוש
+              </Label>
+              <div dir="ltr">
+                <Switch
+                  id="show-all-apps"
+                  checked={showAll}
+                  onCheckedChange={setShowAll}
+                />
+              </div>
             </div>
 
             <AppControlsList
