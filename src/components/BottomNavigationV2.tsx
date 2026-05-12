@@ -3,6 +3,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { WHATSAPP_MONITORING_ENABLED, CHAT_ENABLED } from "@/config/featureFlags";
 import { useUnreadChatTotal } from "@/hooks/useUnreadChatTotal";
+import { useNavBadgeCounts } from "@/hooks/useNavBadgeCounts";
 
 const allNavItems = [
   { title: "בית", url: "/home-v2", icon: Home, key: "home" },
@@ -22,9 +23,18 @@ const navItems = allNavItems.filter(
 export function BottomNavigationV2() {
   const location = useLocation();
   const unreadChat = useUnreadChatTotal();
+  const navCounts = useNavBadgeCounts();
 
   const isActive = (url: string) => {
     return location.pathname === url || location.pathname.startsWith(url + "/");
+  };
+
+  const badgeFor = (key: string): number => {
+    if (key === "chat") return unreadChat;
+    if (key === "home") return navCounts.home;
+    if (key === "alerts") return navCounts.alerts;
+    if (key === "chores") return navCounts.chores;
+    return 0;
   };
 
   return (
@@ -32,7 +42,8 @@ export function BottomNavigationV2() {
       <div className="flex items-center justify-around h-16">
         {navItems.map((item) => {
           const active = isActive(item.url);
-          const showBadge = item.key === "chat" && unreadChat > 0;
+          const badgeCount = badgeFor(item.key);
+          const showBadge = badgeCount > 0;
           return (
             <NavLink
               key={item.url}
@@ -47,9 +58,9 @@ export function BottomNavigationV2() {
                 {showBadge && (
                   <span
                     className="absolute -top-1.5 -right-2 flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-bold leading-none text-white bg-red-500 ring-2 ring-card"
-                    aria-label={`${unreadChat} הודעות חדשות`}
+                    aria-label={`${badgeCount} ממתינים לטיפול`}
                   >
-                    {unreadChat > 99 ? "99+" : unreadChat}
+                    {badgeCount > 99 ? "99+" : badgeCount}
                   </span>
                 )}
               </span>
