@@ -1,51 +1,50 @@
 ## מטרה
-ניקוי רשימת האפליקציות באופן גורף (לא לפי יצרן), כך שההורה יראה רק אפליקציות "אמיתיות" שהילד באמת יכול להפעיל — ללא תלות בסמסונג/שיאומי/וכו'.
+לתת להורה נראות ופעולה מיידית על אפליקציה חדשה שממתינה לאישור — כמו שיש היום לבקשות זמן נוסף — וגם חיווי על טאבים בתחתית המסך כמו עיגול ספירה בנוטיפיקציות.
 
-## עיקרון מנחה
-**"Launchable Apps Only"** — אם לאפליקציה אין אייקון במסך הבית של אנדרואיד (אין launcher intent), היא לא רלוונטית להורה. זה תקן אנדרואיד אוניברסלי שעובד על כל יצרן.
+## מה קיים היום
+- טריגר `on_app_alert_insert` כבר שולח Web Push להורה ברגע שנכנסת שורה ל-`app_alerts` (זה קורה דרך RPC `report_pending_app` → `create_app_alert`).
+- קיים קומפוננט ישן `NewAppsCard` ב-Dashboard V1 שמציג אפליקציות שהותקנו היום, אבל הוא לא מחובר ל-HomeV2.
+- ב-HomeV2 קיים `HomePendingTimeRequests` עם תבנית מצוינת לכרטיסיות פעולה מהירה (אישור/דחייה).
+- `BottomNavigationV2` כבר תומך ב-Badge (משתמש בו לצ'אט בלבד היום).
 
-## שלב 0 — מיידי (ללא תלות באנדרואיד)
+## מה נבנה
 
-### 0.1 שינוי `src/lib/appUtils.ts`
-- מחיקת רוב הרשימה הקשיחה. נשארים רק רכיבי מערכת אמיתיים שאף פעם לא יהיו אפליקציה לילד:
-  - `com.android.systemui`, `com.android.settings`, `com.google.android.gms`, `com.google.android.gsf`
-  - `com.android.providers.*`, `com.android.packageinstaller`, `com.google.android.packageinstaller`
-  - `com.android.bluetooth`, `com.android.nfc`, `com.android.stk`
-  - launcher-ים: `com.sec.android.app.launcher`, `com.miui.home`, `com.android.launcher`
-  - `com.kippy.*` (האפליקציה שלנו)
-- מחיקה: AR Zone, "הקבצים שלי", Galaxy Store, Bixby, Samsung Pass, OneDrive, PowerPoint, Photos, Maps, Calendar, Meet, Clock, וכו' — אם הילד לא משתמש בהן הן ייעלמו ממילא דרך הסינון בשלב 0.2; אם הוא כן — נכון שההורה יראה.
-- צמצום `SYSTEM_KEYWORDS` ל: `systemui`, `packageinstaller`, `providers`, `kippy` בלבד.
+### 1. כרטיס "אפליקציות חדשות ממתינות לאישור" ב-HomeV2
+קובץ חדש: `src/components/home-v2/HomePendingApps.tsx` — באותו סגנון של `HomePendingTimeRequests`:
+- שואב מ-`installed_apps` את האפליקציות של ילדי המשפחה שאין להן רשומה תואמת ב-`app_policies` (אלה ה-"ממתינות").
+- מציג עד 5 אפליקציות, עם שם הילד, שם האפליקציה ומתי זוהתה (`last_seen_at`).
+- שני כפתורים מהירים לכל שורה:
+  - ✓ אישור → INSERT ל-`app_policies` עם `is_blocked = false`.
+  - ✗ חסימה → INSERT ל-`app_policies` עם `is_blocked = true`.
+- Realtime subscription על `installed_apps` ו-`app_policies` כדי לרענן אוטומטית.
+- נקרא ב-`HomeV2.tsx` מתחת ל-`HomePendingTimeRequests`.
 
-### 0.2 הוספת סינון "interaction-based" ב-`AppsSection.tsx` ו-`AppControlsList.tsx`
-ברירת מחדל: אפליקציה תיכלל ברשימה רק אם מתקיים **לפחות אחד**:
-- יש לה `app_policies` (ההורה כבר נגע בה), או
-- יש לה `blocked_app_attempts` (הילד ניסה לפתוח), או
-- יש לה `app_usage` עם דקות שימוש > 0 ביום כלשהו, או
-- היא לא ב-`isSystemApp()` המצומצם (אפליקציית צד-שלישי "רגילה").
+### 2. חיווי (Badge) בטאבים של BottomNavigationV2
+- מוסיפים hook חדש `useHomeAttentionCounts` שמאחד ספירות מתוך נתוני המשפחה:
+  - **בית**: סך־הכל פעולות ממתינות (אפליקציות חדשות + בקשות זמן + בעיות הרשאה + מנותקים).
+  - **התראות**: `unacknowledgedAlerts` (כשמופעל WhatsApp).
+  - **משימות**: `pendingChoreApprovals` של כל הילדים.
+  - **צ'אט**: כבר קיים (לא נוגעים).
+- ה-hook יעטף שאילתה קצרה (אותם מקורות שכבר ב-`HomeV2`) + Realtime על הטבלאות הרלוונטיות, וישמור cache קטן ב-React state ברמת ה-Layout/Nav.
+- `BottomNavigationV2.tsx`: משתמש בערך לכל כפתור ומציג Badge קיים (אדום, מספר, "+99" אם גבוה) כאשר > 0.
 
-זה מבטיח שאפליקציות מערכת שהילד **כן** משתמש בהן (גלריה, מצלמה, AR Zone אם ניסה) יופיעו אוטומטית, ואפליקציות מערכת שהוא לא נוגע בהן לא יציפו את הרשימה.
+### 3. בדיקת Push notifications
+ה-flow קיים אבל המשתמש לא מקבל התראות. נוסיף שלבי אבחון בלי לשבור פונקציונליות:
+- לבדוק שב-`push_subscriptions` יש רשומה פעילה להורה הזה (קריאה אבחנתית).
+- לבדוק לוגים של edge function `send-push-notification` סביב הזמן של התקנת האפליקציה.
+- לוודא ש-GUC `app.settings.service_role_key` מוגדר במסד — בלעדיו הטריגר רושם WARNING ומדלג על השליחה.
+- אם חסר: נריץ migration קצרה שמגדירה את ה-GUC, או נחליף לקריאה דרך Edge Function נפרדת שלא תלויה ב-GUC.
 
-### 0.3 כפתור "הצג הכל" בראש הרשימה
-Toggle קטן (Switch + label "הצג אפליקציות מערכת") שמכבה את סינון 0.2 — להורה שרוצה לראות את כל 150 האפליקציות. כברירת מחדל כבוי.
+הצעדים האלה הם אבחון/תיקון נקודתי שיוחלט עליו אחרי הבדיקה — לא כל המהלכים בהכרח דרושים.
 
-### 0.4 קיבוץ ויזואלי לפי קטגוריה (אופציונלי בשלב הזה)
-שימוש בעמודה `category` הקיימת ב-`installed_apps` (GAME, SOCIAL, COMMUNICATION, PRODUCTIVITY, OTHER) להצגת badges קטנים. ללא שינוי במבנה, רק תווית.
+## קבצים שייווצרו / יישונו
+- חדש: `src/components/home-v2/HomePendingApps.tsx`
+- חדש: `src/hooks/useNavBadgeCounts.ts`
+- שינוי: `src/pages/HomeV2.tsx` (הוספת הכרטיס)
+- שינוי: `src/components/BottomNavigationV2.tsx` (Badges לכל הטאבים הרלוונטיים)
+- אופציונלי: migration קצרה לתיקון GUC של service_role_key אם יתברר שחסר
 
-## שלב 1 — לעתיד (כשתהיה גישה לאנדרואיד)
-**לא חלק מהיישום עכשיו**, רק תיעוד הכיוון:
-- הוספת עמודה `is_launchable BOOLEAN` ל-`installed_apps`.
-- האנדרואיד יחשב פעם אחת בעת איסוף הרשימה: `pm.getLaunchIntentForPackage(pkg) != null`.
-- הסינון יעבור להיות חד-משמעי: `WHERE is_launchable = true`. נוכל למחוק את `isSystemApp()` כמעט לגמרי.
-
-## תוצאה צפויה במכשיר של הילד שלך
-- AR Zone → יופיע אוטומטית (יש לו blocked_attempts) ✅
-- "עצות" → יישאר (יש לו policy) ✅
-- 120 אפליקציות מערכת לא בשימוש (Bixby, OneDrive, Samsung Pass, PowerPoint וכו') → ייעלמו ✅
-- אפליקציות שהילד יוריד בעתיד → יופיעו ב"ממתינות לאישור" כמו תמיד ✅
-
-## קבצים שישתנו
-- `src/lib/appUtils.ts` — צמצום הרשימה + ייצוא פונקציה חדשה `shouldShowApp(pkg, hasInteraction)`.
-- `src/components/child-dashboard/AppsSection.tsx` — סינון interaction-based + toggle "הצג הכל".
-- `src/components/controls/AppControlsList.tsx` — שימוש בלוגיקת הסינון החדשה.
-
-ללא שינויי DB, ללא שינויי אנדרואיד, ללא שינויי edge functions.
+## מה לא נוגע
+- אין שינוי ב-Android client.
+- אין שינוי בלוגיקת ה-pending עצמה (כבר עובדת מקצה לקצה).
+- אין שינוי ב-V1 / Dashboard הישן.
