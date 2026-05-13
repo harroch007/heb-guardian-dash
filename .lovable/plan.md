@@ -1,29 +1,100 @@
-## למה זה לא הופיע
+## Goal
 
-הוספנו את הספירה של "ילד סימן כבוצע, ממתין לאישורך" לטאב **משימות** בלבד (`useNavBadgeCounts.chores`). בטאב **בית** לא כללנו את זה (רק אפליקציות חדשות, בקשות תוספת זמן, ומכשירים מנותקים), וגם אין במסך הבית כרטיס ייעודי שמראה את המשימות שמחכות לאישור — הן מוצגות רק במטריקה "ממתינות לאישור" שב-`DailyControlSummary`, וזה רץ רק כשיש ילד יחיד. ולכן בריבוי-ילדים זה גם לא נראה בכלל ב-Home.
+Create `get_child_chores(p_child_id uuid)` RPC so the Android device JWT can fetch chores reliably (bypassing RLS via SECURITY DEFINER), using the same 2-tier auth gate already used by `complete_chore` / `report_pending_app`.
 
-## מה נשנה
+## Migration (SQL)
 
-### 1. כרטיס חדש במסך הבית: "משימות שממתינות לאישורך"
-קובץ חדש: `src/components/home-v2/HomePendingChoreApprovals.tsx`
+```sql
+CREATE OR REPLACE FUNCTION public.get_child_chores(
+  p_child_id uuid,
+  p_device_id text DEFAULT NULL
+)
+RETURNS SETOF public.chores
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_caller_uid uuid;
+  v_jwt_device_child uuid;
+  v_legacy_child uuid;
+  v_authorized boolean := false;
+BEGIN
+  -- Tier 1: JWT-based auth
+  v_caller_uid := auth.uid();
+  IF v_caller_uid IS NOT NULL
+     AND v_caller_uid <> '00000000-0000-0000-0000-000000000000'::uuid THEN
 
-- מציג את כל המשימות עם `status = 'completed_by_child'` עבור הילדים של ההורה.
-- כל שורה: שם הילד · כותרת המשימה · דקות תגמול · אינדיקציה אם יש תמונת הוכחה.
-- כפתורי "אשר" / "דחה" שמפעילים את אותם RPCs קיימים (`approve_chore`, `reject_chore`) — אותה לוגיקה כמו ב-`ChoreList`.
-- רענון בזמן-אמת דרך Realtime על `chores` (כמו `HomePendingApps`).
-- מוסתר כשאין משימות ממתינות.
-- ממוקם ב-`HomeV2.tsx` מעל `HomePendingApps`.
+    -- Device JWT: app_metadata.child_id must match
+    BEGIN
+      v_jwt_device_child := NULLIF(
+        (auth.jwt() -> 'app_metadata' ->> 'child_id'), ''
+      )::uuid;
+    EXCEPTION WHEN others THEN
+      v_jwt_device_child := NULL;
+    END;
 
-### 2. עדכון ספירת התג בטאב הבית
-`src/hooks/useNavBadgeCounts.ts`:
-- מוסיפים את `choreApprovals` גם ל-`home` (בנוסף לטאב המשימות שכבר מקבל את זה).
-- כך הספירה: `home = pendingApps + timeReqs + disconnected + choreApprovals`.
-- ל-`chores` משאירים כפי שהוא — בלי שינוי בלוגיקה.
+    IF v_jwt_device_child IS NOT NULL THEN
+      IF v_jwt_device_child = p_child_id THEN
+        v_authorized := true;
+      END IF;
+    ELSE
+      -- Parent / co-parent JWT: must own/co-parent the child
+      IF EXISTS (
+        SELECT 1 FROM public.children c
+        WHERE c.id = p_child_id
+          AND (c.parent_id = v_caller_uid
+               OR EXISTS (SELECT 1 FROM public.co_parents cp
+                          WHERE cp.child_id = c.id
+                            AND cp.co_parent_id = v_caller_uid))
+      ) THEN
+        v_authorized := true;
+      END IF;
+    END IF;
+  END IF;
 
-### 3. בלי שינויי DB / RLS / Edge Functions
-משתמשים בלוגיקה הקיימת של `useChores` (ה-RPCs כבר עובדים בכל מסכי המשימות).
+  -- Tier 2: Legacy device_id fallback
+  IF NOT v_authorized AND p_device_id IS NOT NULL THEN
+    v_legacy_child := public.authorize_device_call(p_device_id);
+    IF v_legacy_child = p_child_id THEN
+      v_authorized := true;
+    END IF;
+  END IF;
 
-## קבצים מושפעים
-- חדש: `src/components/home-v2/HomePendingChoreApprovals.tsx`
-- ערוך: `src/pages/HomeV2.tsx` (לרנדר את הכרטיס)
-- ערוך: `src/hooks/useNavBadgeCounts.ts` (להוסיף את `choreApprovals` ל-home)
+  IF NOT v_authorized THEN
+    RAISE EXCEPTION 'UNAUTHORIZED' USING ERRCODE = '42501';
+  END IF;
+
+  RETURN QUERY
+    SELECT *
+    FROM public.chores
+    WHERE child_id = p_child_id
+      AND status IN ('pending', 'completed_by_child', 'approved')
+    ORDER BY created_at DESC;
+END;
+$$;
+
+REVOKE EXECUTE ON FUNCTION public.get_child_chores(uuid, text) FROM PUBLIC;
+GRANT  EXECUTE ON FUNCTION public.get_child_chores(uuid, text) TO anon, authenticated;
+
+NOTIFY pgrst, 'reload schema';
+```
+
+Adjust the co-parent check to whatever existing helper we use if `co_parents` table name differs — I'll verify before applying.
+
+## Why this design
+
+- Mirrors `complete_chore` 2-tier auth (JWT child_id match → legacy `authorize_device_call`).
+- Also lets parents call it from web (useful for unified data fetching).
+- `SETOF chores` returns the full row shape, so Android can deserialize using the existing `Chore` model.
+- Filters to `pending / completed_by_child / approved` per spec (keeps approved for streak math).
+- Sorted `created_at DESC`.
+
+## After migration
+
+- No client code changes in this step. The Android agent will switch its `select` to `rpc("get_child_chores", { p_child_id, p_device_id })`.
+
+Confirm to apply.  
+  
+התכנון מושלם. לוגיקת האבטחה הדו-שכבתית (JWT + Legacy Device ID) היא בדיוק מה שצריך כדי להבטיח תאימות לאחור, והשליפה בעזרת SETOF תאפשר לאנדרואיד לקבל את המערך בדיוק באותו מבנה שהוא מכיר. מאושר לביצוע. אנא החל (Apply) את המיגרציה על מסד הנתונים הראשי והודע לי ברגע שה-RPC באוויר.
