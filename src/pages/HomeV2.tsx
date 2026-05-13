@@ -13,6 +13,8 @@ import { FamilyLocationsMap } from "@/components/home-v2/FamilyLocationsMap";
 import { DailyControlSummary } from "@/components/home-v2/DailyControlSummary";
 import { HomePendingTimeRequests } from "@/components/home-v2/HomePendingTimeRequests";
 import { HomePendingApps } from "@/components/home-v2/HomePendingApps";
+import { StreakNudgeBanner } from "@/components/home-v2/StreakNudgeBanner";
+import { calcStreak } from "@/lib/streak";
 import { SmartProtectionSummary } from "@/components/home-v2/SmartProtectionSummary";
 import { BottomNavigationV2 } from "@/components/BottomNavigationV2";
 import { TopNavigationV2 } from "@/components/TopNavigationV2";
@@ -60,6 +62,8 @@ export interface ChildWithData {
   pendingChoreApprovals: number;
   permissionIssues: string[];
   activeRestriction: ActiveRestriction | null;
+  streak: number;
+  hasOpenTaskTodayOrTomorrow: boolean;
 }
 
 const HomeV2 = () => {
@@ -152,9 +156,8 @@ const HomeV2 = () => {
           .in("child_id", childIds),
         supabase
           .from("chores")
-          .select("child_id, status, completed_at")
-          .in("child_id", childIds)
-          .in("status", ["completed_by_child", "approved"]),
+          .select("child_id, status, completed_at, is_recurring, recurrence_days")
+          .in("child_id", childIds),
         supabase
           .from("issur_melacha_windows")
           .select("child_id, event_name, start_epoch_ms, end_epoch_ms, is_active")
@@ -267,6 +270,22 @@ const HomeV2 = () => {
           (c) => c.child_id === child.id && c.status === "completed_by_child"
         ).length;
 
+        // Streak: counts approved + completed_by_child days (Israel TZ)
+        const streak = calcStreak(
+          (choresRes.data || []).filter((c) => c.child_id === child.id) as any
+        );
+
+        // Open tasks for today/tomorrow (status=pending). Recurring tasks count
+        // only when their recurrence_days include today or tomorrow (1=Sun..7=Sat).
+        const tomorrowDow = (dayOfWeek1 % 7) + 1;
+        const hasOpenTaskTodayOrTomorrow = (choresRes.data || []).some((c) => {
+          if (c.child_id !== child.id) return false;
+          if (c.status !== "pending") return false;
+          if (!c.is_recurring) return true;
+          const days = c.recurrence_days || [];
+          return days.includes(dayOfWeek1) || days.includes(tomorrowDow);
+        });
+
         return {
           id: child.id,
           name: child.name,
@@ -299,6 +318,8 @@ const HomeV2 = () => {
           pendingChoreApprovals,
           permissionIssues: healthMap[child.id] || [],
           activeRestriction: getActiveRestriction(child.id),
+          streak,
+          hasOpenTaskTodayOrTomorrow,
         };
       });
 
@@ -356,6 +377,16 @@ const HomeV2 = () => {
       <TopNavigationV2 />
       <div className="max-w-lg mx-auto px-4 py-6 space-y-5">
         <HomeGreeting />
+
+        <StreakNudgeBanner
+          children={childrenData.map((c) => ({
+            id: c.id,
+            name: c.name,
+            streak: c.streak,
+            needsNudge: c.streak >= 2 && !c.hasOpenTaskTodayOrTomorrow,
+          }))}
+          onAdded={fetchAllData}
+        />
 
         <FamilyStatusHero
           childrenCount={childrenData.length}

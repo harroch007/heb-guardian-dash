@@ -168,7 +168,17 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
               </span>
             </div>
             <div className="text-right min-w-0">
-              <h3 className="font-semibold text-foreground text-sm truncate">{child.name}</h3>
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold text-foreground text-sm truncate">{child.name}</h3>
+                {child.streak >= 1 && (
+                  <span
+                    className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-orange-500/15 border border-orange-400/40 text-orange-500 text-[10px] font-bold leading-none shrink-0"
+                    title={`רצף של ${child.streak} ימים`}
+                  >
+                    🔥 {child.streak}
+                  </span>
+                )}
+              </div>
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <span
                   className={`w-2 h-2 rounded-full ${connected ? "bg-success" : "bg-destructive"}`}
