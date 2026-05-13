@@ -6,6 +6,7 @@ import { useChores } from "@/hooks/useChores";
 import { getIsraelDate } from "@/lib/utils";
 import { getFamilyParentIds } from "@/lib/familyScope";
 import { ChoreForm } from "@/components/chores/ChoreForm";
+import { QuickChoreTemplates } from "@/components/chores/QuickChoreTemplates";
 import { ChoreList } from "@/components/chores/ChoreList";
 import { RewardBankCard } from "@/components/chores/RewardBankCard";
 import { Card, CardContent } from "@/components/ui/card";
@@ -300,7 +301,10 @@ export default function ChoresV2() {
                     <span className="font-semibold">הוסף משימה חדשה</span>
                   </div>
                 </AccordionTrigger>
-                <AccordionContent className="pt-1" ref={formRef as any}>
+                <AccordionContent className="pt-1 space-y-3" ref={formRef as any}>
+                  <QuickChoreTemplates
+                    onPick={(title, minutes) => addChore(title, minutes, false, null)}
+                  />
                   <ChoreForm onSubmit={addChore} />
                 </AccordionContent>
               </AccordionItem>
