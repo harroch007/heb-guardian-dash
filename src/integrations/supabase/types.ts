@@ -2011,6 +2011,51 @@ export type Database = {
         }
         Relationships: []
       }
+      device_lock_state: {
+        Row: {
+          child_id: string
+          contact_name: string | null
+          contact_phone: string | null
+          created_at: string
+          id: string
+          is_locked: boolean
+          locked_at: string | null
+          locked_by: string | null
+          message: string | null
+          unlocked_at: string | null
+          unlocked_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          child_id: string
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          is_locked?: boolean
+          locked_at?: string | null
+          locked_by?: string | null
+          message?: string | null
+          unlocked_at?: string | null
+          unlocked_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          child_id?: string
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          is_locked?: boolean
+          locked_at?: string | null
+          locked_by?: string | null
+          message?: string | null
+          unlocked_at?: string | null
+          unlocked_by?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       devices: {
         Row: {
           address: string | null
@@ -3487,6 +3532,15 @@ export type Database = {
           unread_count: number
         }[]
       }
+      lock_child_device: {
+        Args: {
+          p_child_id: string
+          p_contact_name: string
+          p_contact_phone: string
+          p_message?: string
+        }
+        Returns: Json
+      }
       mark_media_viewed: {
         Args: { p_message_id: string; p_viewer_id: string }
         Returns: Json
@@ -3644,6 +3698,7 @@ export type Database = {
         Returns: Json
       }
       send_locate_to_all_devices: { Args: never; Returns: undefined }
+      unlock_child_device: { Args: { p_child_id: string }; Returns: Json }
       update_device_location: {
         Args: {
           p_address?: string
