@@ -46,6 +46,7 @@ import {
 } from "@/components/child-dashboard";
 import { LocationSectionV2 } from "@/components/child-dashboard/LocationSectionV2";
 import { GeofenceSection } from "@/components/child-dashboard/GeofenceSection";
+import { LostModeSection } from "@/components/child-dashboard/LostModeSection";
 import {
   ArrowRight,
   Loader2,
