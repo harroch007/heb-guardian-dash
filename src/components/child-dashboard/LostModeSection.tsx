@@ -44,7 +44,7 @@ interface LockState {
 interface ParentOption {
   id: string;
   full_name: string | null;
-  phone_number: string | null;
+  phone: string | null;
 }
 
 export function LostModeSection({ childId, childName }: LostModeSectionProps) {
@@ -76,7 +76,7 @@ export function LostModeSection({ childId, childName }: LostModeSectionProps) {
     if (ids.length === 0) return;
     const { data } = await supabase
       .from("parents")
-      .select("id, full_name, phone_number")
+      .select("id, full_name, phone")
       .in("id", ids);
     if (data) setParents(data as ParentOption[]);
   };
@@ -91,7 +91,7 @@ export function LostModeSection({ childId, childName }: LostModeSectionProps) {
     // Default to current logged-in parent's details
     const me = parents.find((p) => p.id === user?.id);
     setContactName(me?.full_name || "");
-    setContactPhone(me?.phone_number || "");
+    setContactPhone(me?.phone || "");
     setMessage("הטלפון שלי אבד. אנא חייגו אליי בכפתור למטה.");
     setOpenLockDialog(true);
   };
@@ -246,10 +246,10 @@ export function LostModeSection({ childId, childName }: LostModeSectionProps) {
                       type="button"
                       variant="outline"
                       size="sm"
-                      disabled={!p.phone_number}
+                      disabled={!p.phone}
                       onClick={() => {
                         setContactName(p.full_name || "");
-                        setContactPhone(p.phone_number || "");
+                        setContactPhone(p.phone || "");
                       }}
                     >
                       {p.full_name || "הורה"}
