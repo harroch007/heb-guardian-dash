@@ -188,6 +188,15 @@ export default function ChoresV2() {
           </div>
         </div>
 
+        {/* Quick templates — one click to create a chore */}
+        {selectedChildId && (
+          <div className="v2-card p-3">
+            <QuickChoreTemplates
+              onPick={(title, minutes) => addChore(title, minutes, false, null)}
+            />
+          </div>
+        )}
+
         {/* Accordion sections */}
         {(() => {
           const pendingApprovalChores = chores.filter((c) => c.status === "completed_by_child");
