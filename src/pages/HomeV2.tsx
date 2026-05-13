@@ -13,6 +13,8 @@ import { FamilyLocationsMap } from "@/components/home-v2/FamilyLocationsMap";
 import { DailyControlSummary } from "@/components/home-v2/DailyControlSummary";
 import { HomePendingTimeRequests } from "@/components/home-v2/HomePendingTimeRequests";
 import { HomePendingApps } from "@/components/home-v2/HomePendingApps";
+import { StreakNudgeBanner } from "@/components/home-v2/StreakNudgeBanner";
+import { calcStreak } from "@/lib/streak";
 import { SmartProtectionSummary } from "@/components/home-v2/SmartProtectionSummary";
 import { BottomNavigationV2 } from "@/components/BottomNavigationV2";
 import { TopNavigationV2 } from "@/components/TopNavigationV2";
@@ -60,6 +62,8 @@ export interface ChildWithData {
   pendingChoreApprovals: number;
   permissionIssues: string[];
   activeRestriction: ActiveRestriction | null;
+  streak: number;
+  hasOpenTaskTodayOrTomorrow: boolean;
 }
 
 const HomeV2 = () => {
@@ -152,9 +156,8 @@ const HomeV2 = () => {
           .in("child_id", childIds),
         supabase
           .from("chores")
-          .select("child_id, status, completed_at")
-          .in("child_id", childIds)
-          .in("status", ["completed_by_child", "approved"]),
+          .select("child_id, status, completed_at, is_recurring, recurrence_days")
+          .in("child_id", childIds),
         supabase
           .from("issur_melacha_windows")
           .select("child_id, event_name, start_epoch_ms, end_epoch_ms, is_active")
