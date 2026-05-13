@@ -81,7 +81,15 @@ export default function ChoresV2() {
   const childName = selectedChild?.name || "";
 
   const activeCount = chores.filter((c) => c.status === "pending" || c.status === "completed_by_child").length;
-  const completedCount = chores.filter((c) => c.status === "approved").length;
+  // Summary "completed" counter — last 7 days only, so the number stays meaningful
+  // instead of inflating to thousands of historical rows over time.
+  const weekCutoffMs = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const completedCount = chores.filter((c) => {
+    if (c.status !== "approved") return false;
+    const ts = c.approved_at || c.completed_at;
+    if (!ts) return false;
+    return new Date(ts).getTime() >= weekCutoffMs;
+  }).length;
   const bankBalance = rewardBank?.balance_minutes ?? 0;
 
   if (loadingChildren) {
@@ -250,9 +258,15 @@ export default function ChoresV2() {
                     const openChores = chores.filter(
                       (c) => c.status === "pending" || c.status === "completed_by_child"
                     );
-                    const doneChores = chores.filter(
-                      (c) => c.status === "approved" || c.status === "rejected"
-                    );
+                    // UX Clean Slate: show only approvals/rejections from the last 48h.
+                    // Older history stays in the DB for streak math but is hidden from the parent.
+                    const recentCutoffMs = Date.now() - 48 * 60 * 60 * 1000;
+                    const doneChores = chores.filter((c) => {
+                      if (c.status !== "approved" && c.status !== "rejected") return false;
+                      const ts = c.approved_at || c.completed_at;
+                      if (!ts) return false;
+                      return new Date(ts).getTime() >= recentCutoffMs;
+                    });
                     return (
                       <Accordion type="multiple" defaultValue={["open"]} className="space-y-2">
                         <AccordionItem
@@ -288,7 +302,7 @@ export default function ChoresV2() {
                           </AccordionTrigger>
                           <AccordionContent className="pt-1">
                             <ChoreList
-                              chores={doneChores.slice(0, 20)}
+                              chores={doneChores}
                               onApprove={approveChore}
                               onReject={rejectChore}
                               onDelete={deleteChore}
