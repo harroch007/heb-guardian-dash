@@ -378,6 +378,16 @@ const HomeV2 = () => {
       <div className="max-w-lg mx-auto px-4 py-6 space-y-5">
         <HomeGreeting />
 
+        <StreakNudgeBanner
+          children={childrenData.map((c) => ({
+            id: c.id,
+            name: c.name,
+            streak: c.streak,
+            needsNudge: c.streak >= 2 && !c.hasOpenTaskTodayOrTomorrow,
+          }))}
+          onAdded={fetchAllData}
+        />
+
         <FamilyStatusHero
           childrenCount={childrenData.length}
           connectedCount={connectedCount}
