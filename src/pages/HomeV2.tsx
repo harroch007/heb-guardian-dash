@@ -13,6 +13,7 @@ import { FamilyLocationsMap } from "@/components/home-v2/FamilyLocationsMap";
 import { DailyControlSummary } from "@/components/home-v2/DailyControlSummary";
 import { HomePendingTimeRequests } from "@/components/home-v2/HomePendingTimeRequests";
 import { HomePendingApps } from "@/components/home-v2/HomePendingApps";
+import { HomePendingChoreApprovals } from "@/components/home-v2/HomePendingChoreApprovals";
 import { StreakNudgeBanner } from "@/components/home-v2/StreakNudgeBanner";
 import { calcStreak } from "@/lib/streak";
 import { SmartProtectionSummary } from "@/components/home-v2/SmartProtectionSummary";
@@ -407,6 +408,8 @@ const HomeV2 = () => {
             ))}
           </Accordion>
         )}
+
+        <HomePendingChoreApprovals childrenData={childrenData} />
 
         <HomePendingApps childrenData={childrenData} />
 
