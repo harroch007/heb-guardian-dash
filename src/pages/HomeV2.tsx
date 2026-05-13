@@ -270,6 +270,22 @@ const HomeV2 = () => {
           (c) => c.child_id === child.id && c.status === "completed_by_child"
         ).length;
 
+        // Streak: counts approved + completed_by_child days (Israel TZ)
+        const streak = calcStreak(
+          (choresRes.data || []).filter((c) => c.child_id === child.id) as any
+        );
+
+        // Open tasks for today/tomorrow (status=pending). Recurring tasks count
+        // only when their recurrence_days include today or tomorrow (1=Sun..7=Sat).
+        const tomorrowDow = (dayOfWeek1 % 7) + 1;
+        const hasOpenTaskTodayOrTomorrow = (choresRes.data || []).some((c) => {
+          if (c.child_id !== child.id) return false;
+          if (c.status !== "pending") return false;
+          if (!c.is_recurring) return true;
+          const days = c.recurrence_days || [];
+          return days.includes(dayOfWeek1) || days.includes(tomorrowDow);
+        });
+
         return {
           id: child.id,
           name: child.name,
@@ -302,6 +318,8 @@ const HomeV2 = () => {
           pendingChoreApprovals,
           permissionIssues: healthMap[child.id] || [],
           activeRestriction: getActiveRestriction(child.id),
+          streak,
+          hasOpenTaskTodayOrTomorrow,
         };
       });
 
