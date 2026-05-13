@@ -720,6 +720,9 @@ export default function ChildControlV2() {
               deviceAddress={device?.address}
             />
 
+            {/* ===== Lost Mode — emergency device lock ===== */}
+            <LostModeSection childId={childId!} childName={child?.name || ""} />
+
             {/* ===== 11. SMART PROTECTION — only for free users as upgrade prompt ===== */}
             {WHATSAPP_MONITORING_ENABLED && !isPremium && (
               <Card className="border-amber-200 shadow-sm bg-gradient-to-l from-amber-50 to-orange-50">
