@@ -133,7 +133,7 @@ export function useNavBadgeCounts(): NavBadgeCounts {
       });
 
       setCounts({
-        home: pendingApps + timeReqs + disconnected,
+        home: pendingApps + timeReqs + disconnected + choreApprovals,
         alerts: alertsCount,
         chores: choreApprovals,
       });

@@ -408,6 +408,8 @@ const HomeV2 = () => {
           </Accordion>
         )}
 
+        <HomePendingChoreApprovals childrenData={childrenData} />
+
         <HomePendingApps childrenData={childrenData} />
 
         <HomePendingTimeRequests childrenData={childrenData} />
