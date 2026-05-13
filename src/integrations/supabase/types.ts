@@ -3308,6 +3308,29 @@ export type Database = {
           signed_url: string
         }[]
       }
+      get_child_chores: {
+        Args: { p_child_id: string; p_device_id?: string }
+        Returns: {
+          approved_at: string | null
+          child_id: string
+          completed_at: string | null
+          created_at: string
+          id: string
+          is_recurring: boolean
+          parent_id: string
+          proof_photo_base64: string | null
+          recurrence_days: number[] | null
+          reward_minutes: number
+          status: string
+          title: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "chores"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       get_child_daily_metrics: {
         Args: { p_child_id: string; p_date: string }
         Returns: {
