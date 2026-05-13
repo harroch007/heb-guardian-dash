@@ -1,24 +1,29 @@
-## הסרת מקטע "משימות ובונוס" מ-ChildControlV2
+# Lost Mode — נעילת מכשיר חירום (MVP, שכבות 1+2)
 
-יש כבר טאב ייעודי ל"משימות" (ChoresV2), והכרטיס הזה רק משכפל מידע. הוא תופס מקום מסך יקר במרכז הבקרה של הילד.
+פיצ'ר "מכשיר אבוד" שמאפשר להורה לסמן את מכשיר הילד כנעול ולהציג עליו הודעת חיוג חזרה. מימוש בצד ה-Parent + Backend בלבד. שכבת ה-Overlay בפועל באנדרואיד תיבנה ע"י צוות האנדרואיד בעזרת החוזה שמוגדר כאן.
 
-### שינוי בקובץ אחד בלבד
+## Scope (MVP)
 
-**`src/pages/ChildControlV2.tsx`**
+- Lost Mode בלבד — לא Anti-Theft. ההורה מודע שילד טכני יכול לעקוף.
+- בחירת מספר חיוג ידנית בכל הפעלה (ברירת מחדל: ההורה הראשון).
+- ללא Device Owner / Device Admin.
 
-1. למחוק את הבלוק של מקטע 10 (שורות 722–755) — כל ה-Card עם ה-Accordion של "משימות ובונוס".
-2. לנקות משתנים/imports שכבר לא בשימוש לאחר ההסרה (אם הם משמשים רק במקטע הזה):
-   - `activeChoresCount`, `completedTodayChoresCount`, `rewardBankBalance` (החישובים שלהם וה-state/queries שמזינים אותם).
-   - האייקון `ListChecks` (אם לא משמש במקום אחר בקובץ).
-   - `Accordion`/`AccordionItem`/`AccordionTrigger`/`AccordionContent` — להשאיר רק אם משמשים במקטעים אחרים בקובץ.
-   - בדיקה אם יש `useChores`/שאילתות ל-`reward_bank` שאפשר להסיר מהקובץ.
+---
 
-### מה נשאר ללא שינוי
+## 1. Database (migration)
 
-- דף `/chores-v2` והטאב התחתון אליו — ממשיכים לתפקד כרגיל.
-- שאר המקטעים ב-ChildControlV2 (מיקום, geofence, הגנה חכמה, device health וכו').
-- שום שינוי ב-DB, RPCs, או היגיינת תצוגה אחרת.
+### טבלה חדשה: `device_lock_state`
 
-### בדיקה
+עמודות תוכן (לא כולל id/timestamps סטנדרטיים):
+- `child_id` (uuid) — מי ננעל
+- `is_locked` (boolean, default false)
+- `locked_at` (timestamptz)
+- `locked_by` (uuid → parents)
+- `unlocked_at` (timestamptz, nullable)
+- `contact_name` (text) — שם שמוצג בהודעת הנעילה
+- `contact_phone` (text) — מספר לחיוג
+- `message` (text) — הודעה אופציונלית להורה ("הטלפון שלי אבד, אנא חייגו")
+- אילוץ ייחודיות על `child_id` (רשומה אחת פעילה לכל ילד)
 
-לאחר ההסרה — לוודא שהקובץ עולה ללא TS errors (imports יתומים) ושהדף נטען נקי במכשיר נבחר.
+### RLS
+- `SELECT` — `is_family_parent(child_id)` להורים, וגם `is_paired_device` / JWT-scoped לקריאה ע"י המכשיר עצמו (כדי שה-Android Service
