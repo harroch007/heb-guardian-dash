@@ -302,7 +302,7 @@ export default function ChoresV2() {
                           </AccordionTrigger>
                           <AccordionContent className="pt-1">
                             <ChoreList
-                              chores={doneChores.slice(0, 20)}
+                              chores={doneChores}
                               onApprove={approveChore}
                               onReject={rejectChore}
                               onDelete={deleteChore}
