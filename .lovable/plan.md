@@ -1,51 +1,54 @@
-## הקשר
-ב-`ChildCardV2.tsx` יש שני סוגי דקות בונוס:
-- `todayBonusMinutes` — בונוס שההורה כבר הוסיף היום, מתווסף ל-`effectiveLimit`.
-- `rewardBankBalance` ("בנק בונוס") — דקות שהילד צבר ממשימות, **לא** מתווסף ללימיט עד שהילד פודה אותן.
 
-לכן כשהילד חרג מהמכסה אבל יש לו יתרה בבנק (145 דק׳ בצילום), הבאנר נשאר אדום "המכשיר נעול" — ויוצר רושם שגוי שההורה צריך להתערב, בעוד שהילד פשוט יכול לפדות מהבנק.
+## הבעיה
 
-## המטרה
-שינוי **ויזואלי בלבד** בכרטיס הילד ב-Home V2 — בלי לגעת בלוגיקת אכיפה, RPC, או תנאי החסימה.
+החיפוש בגבולות הגזרה משתמש ב‑Nominatim (OpenStreetMap הציבורי). עבור ישראל הכיסוי שלו חלקי — חלק מהכתובות פשוט לא מוחזרות (כמו "סוקולוב 75 הרצליה"), וכשאין תוצאה ההורה נתקע ויוצא מהזרימה.
 
-## שינויים (קובץ יחיד: `src/components/home-v2/ChildCardV2.tsx`)
+## עקרונות
 
-### 1. משתנה חדש למצב "חרג אך יש בבנק"
-```
-const hasBankReserve = (child.rewardBankBalance ?? 0) > 0;
-const exceededWithReserve = screenTimeExceeded && hasBankReserve;
-const exceededHardLock   = screenTimeExceeded && !hasBankReserve;
-```
+- בלי שירות בתשלום בשלב הבטא.
+- ההורה לעולם לא יישאר בלי מסלול הצלחה — גם אם המנוע לא מצא, יש כפתור "סמן על המפה" + שמירה ידנית.
+- שיפור איכות החיפוש עצמו, לא רק הצגת fallback.
 
-### 2. באנר במקום האדום הקיים (שורות 142–150)
-- אם `exceededHardLock` → להשאיר את הבאנר האדום הקיים ("המכשיר נעול — חרג ממגבלה").
-- אם `exceededWithReserve` → להחליף לבאנר **ענבר** עם אייקון 🎁 (Gift):
-  > "חרג מהמכסה היומית — יש {N} דק׳ בבנק זמינות לפדיון"
-- צבעים: `bg-amber-500/10 border-b border-amber-300 text-amber-700` (תואם לבאנר ההגבלה הקיים).
+## הפתרון — שלוש שכבות
 
-### 3. עדכון `borderClass` (שורות 120–126)
-- `exceededHardLock` → אדום (כמו היום).
-- `exceededWithReserve` → ענבר (`border-amber-300`) במקום אדום.
+### 1. החלפת המנוע הראשי ל‑Photon (קומוט)
 
-### 4. תא "נותר" (שורות 223–231)
-- אם `exceededWithReserve` → להציג במקום `0 דק׳`:
-  - value: `"מהבנק"` או `formatMinutes(child.rewardBankBalance)`
-  - icon: `Gift` ענבר
-  - label: "זמין מהבנק"
-  - `danger=false`, `warn=false`
-  - helpText: "הילד חרג מהמכסה הבסיסית אך יכול לפדות דקות מהבנק כדי להמשיך."
-- אחרת — ללא שינוי.
+`https://photon.komoot.io/api/?q=…&lang=he&limit=8&lat=32.08&lon=34.78&location_bias_scale=0.5`
 
-### 5. הדגשה קלה בתא "בנק בונוס" כשהוא בשימוש
-כש-`exceededWithReserve` להוסיף `ring-1 ring-amber-300` לתא בנק בונוס (שורות 240–245) כדי לקשר ויזואלית בין הבאנר לתא.
+- חינמי, ללא API key, ללא הרשמה.
+- מבוסס OSM אבל עם מנוע חיפוש Elasticsearch — מתמודד טוב יותר עם שגיאות הקלדה, סדר מילים, וכתובות חלקיות.
+- תומך bias גיאוגרפי (מרכז ישראל) שמקפיץ תוצאות רלוונטיות.
+- עברית נתמכת ישירות דרך `lang=he`.
 
-## מה לא משתנה
-- שום שינוי ב-`isConnected`, ב-`screenTimeExceeded`, או בחישוב `effectiveLimit`.
-- שום שינוי בלוגיקת אכיפה / Edge Functions / DB.
-- אם אין יתרה בבנק — חוויית "נעול אדום" נשמרת כפי שהיא.
+### 2. נפילה ל‑Nominatim עם חיפוש מובנה (Structured)
 
-## QA
-1. ילד עם `usedMinutes ≥ effectiveLimit` ו-`rewardBankBalance = 0` → באנר אדום (כמו היום).
-2. ילד עם `usedMinutes ≥ effectiveLimit` ו-`rewardBankBalance > 0` → באנר ענבר 🎁 + תא "נותר" מציג את יתרת הבנק.
-3. ילד עם הגבלה פעילה (`activeRestriction`) → באנר ענבר של ההגבלה גובר (כמו היום).
-4. ילד מנותק → באנר ניתוק אדום גובר על הכל (כמו היום).
+אם Photon מחזיר 0 תוצאות, נריץ אוטומטית Nominatim במצב מובנה במקום free‑text:
+
+`…/search?street=75 סוקולוב&city=הרצליה&country=Israel&format=json&addressdetails=1`
+
+- ניתוח קל של מה שההורה הקליד (פיצול לפי פסיק / מילה אחרונה כעיר / מספר כ‑housenumber).
+- מצב מובנה מחזיר תוצאות במקרים שחיפוש חופשי מחמיץ.
+
+### 3. רשת ביטחון — ההורה לא נתקע אף פעם
+
+- כפתור **"סמן על המפה"** יוצג **תמיד** מתחת לשדה (לא רק אחרי "לא נמצאו תוצאות"), כולל בזמן הקלדה.
+- כשאין תוצאות יוצג גם **"השתמש בטקסט שכתבתי + סמן מיקום על המפה"** — פותח את MapPinPicker, ולאחר אישור שומר את המיקום עם הטקסט החופשי שההורה הקליד כ‑label.
+- MapPinPicker יקבל מרכז התחלתי משופר: אם אין מיקום מכשיר, ייפתח על הכתובת ששודרה אם יש לה bbox מ‑Photon, אחרת על מרכז ישראל.
+
+## קבצים שיתעדכנו
+
+- `src/components/child-dashboard/AddressAutocomplete.tsx` — שינוי המנוע, נורמליזציה של תוצאות Photon ו‑Nominatim ל‑shape משותף, fallback מדורג, כפתורי escape תמידיים.
+- `src/components/child-dashboard/MapPinPicker.tsx` — קבלת `initialQuery` להצגה כתווית כאשר ההורה הגיע דרך "סמן על המפה". reverse‑geocode נשאר Nominatim (תקין דיו לכיוון ההפוך).
+- `src/components/child-dashboard/GeofenceSection.tsx` ו‑`ManualPlaceForm.tsx` — להעביר את הטקסט שההורה הקליד אל ה‑pin picker כדי שיישמר כ‑label אם reverse geocoding נכשל.
+
+## לא בתחום השינוי
+
+- אין שינוי ב‑schema של `child_places` או בלוגיקת ה‑geofence ב‑Android.
+- אין שינוי ב‑UI הוויזואלי של הסקציה — רק זרימת החיפוש והפולבק.
+- לא מוסיפים מפתחות סודיים, לא מוסיפים תלות חדשה ב‑package.json (Photon ו‑Nominatim הם fetch רגיל).
+
+## מדדי הצלחה
+
+- "סוקולוב 75 הרצליה" מחזיר תוצאה מ‑Photon או מ‑Nominatim מובנה.
+- אם בכל זאת לא נמצא — ההורה רואה מיד שני כפתורים (סימון על המפה / שמירה עם הטקסט שלי) ולא מסך ריק.
+- אין רגרסיה במקרים שעבדו קודם (כתובות בעברית סטנדרטיות).
