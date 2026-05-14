@@ -56,6 +56,9 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
   const remaining = hasLimit ? Math.max(0, effectiveLimit! - usedMinutes) : null;
   const screenTimeExceeded =
     hasLimit && remaining === 0 && !child.activeRestriction;
+  const hasBankReserve = (child.rewardBankBalance ?? 0) > 0;
+  const exceededWithReserve = screenTimeExceeded && hasBankReserve;
+  const exceededHardLock = screenTimeExceeded && !hasBankReserve;
 
   const handleRing = async (e?: React.MouseEvent) => {
     e?.stopPropagation();
