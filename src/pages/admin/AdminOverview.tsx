@@ -1,37 +1,28 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Users, MessageSquare, Bell, Star, TrendingUp, AlertTriangle } from "lucide-react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { Users, ListChecks, Clock, MapPin, Smartphone, Coins, TrendingUp, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
-interface OverviewStats {
+export interface OverviewStats {
   totalParents: number;
   totalWaitlist: number;
   totalDevices: number;
-  totalAlertsToday: number;
-  criticalAlertsToday: number;
   activeUsersToday: number;
-  conversionRate: number;
-  alertsByVerdict: { name: string; value: number; color: string }[];
-  alertsTrend: { date: string; safe: number; review: number; notify: number; notified: number }[];
-  funnel: { stage: string; count: number }[];
   activeChildrenToday: number;
   activeParentsThisWeek: number;
-  messagesScannedToday: number;
-  alertsSentToday: number;
-  feedbackTrend: { date: string; total: number; important: number; not_relevant: number }[];
-  totalAlertsLast7Days: number;
-  alertsWithFeedbackLast7Days: number;
-  feedbackEngagementRate: number;
-  alertsCreatedToday: number;
-  alertsAnalyzedToday: number;
-  alertsNotifiedToday: number;
-  systemAlertsToday: number;
-  queuePending: number;
-  queueFailed: number;
-  oldestPendingMinutes: number;
-  pendingAlerts: { id: string; alert_id: number; status: string; attempt: number; created_at: string; last_error: string | null; is_processed: boolean }[];
-  freeChildren: number;
-  premiumChildren: number;
+  funnel: { stage: string; count: number }[];
+  // parental controls
+  choresActive: number;
+  choresCompletedToday: number;
+  choresPendingApproval: number;
+  rewardBankTotalMinutes: number;
+  rewardRedemptionsToday: number;
+  bonusGrantsToday: number;
+  timeRequestsPending: number;
+  familiesWithPlaces: number;
+  devicesOnline: number;
+  devicesToday: number;
+  devicesOffline: number;
+  childrenNoDevice: number;
 }
 
 interface AdminOverviewProps {
@@ -41,13 +32,7 @@ interface AdminOverviewProps {
   onRefresh?: () => void;
 }
 
-const VERDICT_COLORS: Record<string, string> = {
-  safe: "#22c55e",
-  review: "#f59e0b",
-  notify: "#ef4444",
-};
-
-export function AdminOverview({ stats, loading, onNavigate }: AdminOverviewProps) {
+export function AdminOverview({ stats, loading, onNavigate, onRefresh }: AdminOverviewProps) {
   if (loading || !stats) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -56,106 +41,132 @@ export function AdminOverview({ stats, loading, onNavigate }: AdminOverviewProps
     );
   }
 
-  const hasQueueIssues = stats.queuePending > 0 || stats.queueFailed > 0;
-
   return (
     <div className="space-y-6">
-      {/* Queue indicator - small alert if issues */}
-      {hasQueueIssues && (
-        <div 
-          className="flex items-center gap-2 p-3 rounded-lg border border-orange-500/30 bg-orange-500/5 cursor-pointer hover:bg-orange-500/10 transition-colors"
-          onClick={() => onNavigate("queue")}
-        >
-          <AlertTriangle className="w-4 h-4 text-orange-500" />
-          <span className="text-sm">
-            תור עיבוד: <strong className="text-orange-500">{stats.queuePending} ממתינות</strong>
-            {stats.queueFailed > 0 && <>, <strong className="text-red-500">{stats.queueFailed} נכשלו</strong></>}
-          </span>
-          <Badge variant="outline" className="ms-auto text-xs">לחץ לצפייה</Badge>
-        </div>
-      )}
+      <div className="flex justify-end">
+        {onRefresh && (
+          <Button variant="outline" size="sm" onClick={onRefresh} className="gap-2">
+            <RefreshCw className="w-3.5 h-3.5" />
+            רענן
+          </Button>
+        )}
+      </div>
 
-      {/* 4 CEO KPIs */}
+      {/* Top KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="border-cyan-500/20 cursor-pointer hover:shadow-md transition-all" onClick={() => onNavigate("users")}>
           <CardHeader className="pb-2">
             <CardDescription className="flex items-center gap-2 text-xs">
               <Users className="w-3 h-3" />
-              משפחות פעילות
+              משפחות פעילות היום
             </CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold text-cyan-500">{stats.activeUsersToday}</p>
-            <p className="text-xs text-muted-foreground mt-1">מכשירים פעילים היום</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-blue-500/20">
-          <CardHeader className="pb-2">
-            <CardDescription className="flex items-center gap-2 text-xs">
-              <MessageSquare className="w-3 h-3" />
-              הודעות שנסרקו היום
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold text-blue-500">{stats.messagesScannedToday?.toLocaleString()}</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-orange-500/20 cursor-pointer hover:shadow-md transition-all" onClick={() => onNavigate("alerts")}>
-          <CardHeader className="pb-2">
-            <CardDescription className="flex items-center gap-2 text-xs">
-              <Bell className="w-3 h-3" />
-              התראות שנשלחו להורים
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold text-orange-500">{stats.alertsNotifiedToday}</p>
+            <p className="text-xs text-muted-foreground mt-1">מכשירים פעילים ב-24ש</p>
           </CardContent>
         </Card>
 
         <Card className="border-emerald-500/20">
           <CardHeader className="pb-2">
             <CardDescription className="flex items-center gap-2 text-xs">
-              <Star className="w-3 h-3" />
-              חינם / Premium
+              <Users className="w-3 h-3" />
+              ילדים פעילים היום
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-bold text-emerald-500">{stats.premiumChildren}</span>
-              <span className="text-sm text-muted-foreground">/</span>
-              <span className="text-xl font-semibold">{stats.freeChildren}</span>
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">Premium / חינם</p>
+            <p className="text-3xl font-bold text-emerald-500">{stats.activeChildrenToday}</p>
+            <p className="text-xs text-muted-foreground mt-1">דיווחו metrics היום</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-blue-500/20">
+          <CardHeader className="pb-2">
+            <CardDescription className="flex items-center gap-2 text-xs">
+              <Users className="w-3 h-3" />
+              סה"כ הורים
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold text-blue-500">{stats.totalParents}</p>
+            <p className="text-xs text-muted-foreground mt-1">{stats.totalWaitlist} ב-Waitlist</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-purple-500/20" onClick={() => onNavigate("ops")}>
+          <CardHeader className="pb-2">
+            <CardDescription className="flex items-center gap-2 text-xs">
+              <Smartphone className="w-3 h-3" />
+              מכשירים מחוברים
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold text-purple-500">{stats.totalDevices}</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {stats.devicesOnline} online · {stats.devicesOffline} offline
+            </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Alert Trend Chart - 14 days */}
-      <Card className="border-primary/20">
-        <CardHeader>
-          <CardTitle className="text-lg">מגמת התראות — 14 ימים</CardTitle>
-          <CardDescription>safe / review / notify / נשלחו להורים</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={stats.alertsTrend || []}>
-                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                <XAxis dataKey="date" fontSize={12} />
-                <YAxis fontSize={12} />
-                <Tooltip />
-                <Legend />
-                <Line type="monotone" dataKey="safe" stroke={VERDICT_COLORS.safe} strokeWidth={2} name="Safe" />
-                <Line type="monotone" dataKey="review" stroke={VERDICT_COLORS.review} strokeWidth={2} name="Review" />
-                <Line type="monotone" dataKey="notify" stroke={VERDICT_COLORS.notify} strokeWidth={2} name="Notify" />
-                <Line type="monotone" dataKey="notified" stroke="#f97316" strokeWidth={2} strokeDasharray="5 5" name="נשלחו להורים" />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Parental Control KPIs */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="border-amber-500/20 cursor-pointer hover:shadow-md transition-all" onClick={() => onNavigate("ops")}>
+          <CardHeader className="pb-2">
+            <CardDescription className="flex items-center gap-2 text-xs">
+              <ListChecks className="w-3 h-3" />
+              משימות פעילות
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold text-amber-500">{stats.choresActive}</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {stats.choresCompletedToday} הושלמו · {stats.choresPendingApproval} לאישור
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-yellow-500/20">
+          <CardHeader className="pb-2">
+            <CardDescription className="flex items-center gap-2 text-xs">
+              <Coins className="w-3 h-3" />
+              בנק תגמולים
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold text-yellow-500">{stats.rewardBankTotalMinutes}</p>
+            <p className="text-xs text-muted-foreground mt-1">דקות זמינות במערכת</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-orange-500/20">
+          <CardHeader className="pb-2">
+            <CardDescription className="flex items-center gap-2 text-xs">
+              <Clock className="w-3 h-3" />
+              בקשות זמן ממתינות
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold text-orange-500">{stats.timeRequestsPending}</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {stats.bonusGrantsToday} בונוסים היום
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-rose-500/20">
+          <CardHeader className="pb-2">
+            <CardDescription className="flex items-center gap-2 text-xs">
+              <MapPin className="w-3 h-3" />
+              משפחות עם גבולות גזרה
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold text-rose-500">{stats.familiesWithPlaces}</p>
+            <p className="text-xs text-muted-foreground mt-1">הגדירו ≥1 מקום</p>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Conversion Funnel */}
       {stats.funnel && stats.funnel.length > 0 && (
@@ -172,12 +183,12 @@ export function AdminOverview({ stats, loading, onNavigate }: AdminOverviewProps
               {stats.funnel.map((stage, index) => (
                 <div key={stage.stage} className="flex items-center">
                   <div className="flex flex-col items-center min-w-[100px]">
-                    <div 
+                    <div
                       className="w-16 h-16 rounded-full flex items-center justify-center text-lg font-bold"
                       style={{
-                        backgroundColor: `hsl(var(--primary) / ${0.2 + (index * 0.2)})`,
+                        backgroundColor: `hsl(var(--primary) / ${0.2 + index * 0.15})`,
                         borderColor: `hsl(var(--primary))`,
-                        borderWidth: '2px'
+                        borderWidth: "2px",
                       }}
                     >
                       {stage.count}
@@ -195,9 +206,10 @@ export function AdminOverview({ stats, loading, onNavigate }: AdminOverviewProps
                 <p className="text-sm text-muted-foreground">
                   שיעור המרה מ-Waitlist להרשמה:{" "}
                   <span className="font-bold text-primary">
-                    {stats.funnel[0].count > 0 
+                    {stats.funnel[0].count > 0
                       ? ((stats.funnel[1].count / stats.funnel[0].count) * 100).toFixed(1)
-                      : 0}%
+                      : 0}
+                    %
                   </span>
                 </p>
               </div>

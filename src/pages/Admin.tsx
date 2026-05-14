@@ -3,78 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { adminSupabase } from "@/integrations/supabase/admin-client";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, LogOut, Shield, LayoutDashboard, Users, Bell, Database, Brain, Microscope, HelpCircle } from "lucide-react";
+import { Loader2, LogOut, Shield, LayoutDashboard, Users, SlidersHorizontal, HelpCircle } from "lucide-react";
 import kippyLogo from "@/assets/kippy-logo.svg";
-import { AdminOverview } from "./admin/AdminOverview";
+import { AdminOverview, type OverviewStats } from "./admin/AdminOverview";
 import { AdminUsersHub } from "./admin/AdminUsersHub";
-import { AdminAlertsAndAI } from "./admin/AdminAlertsAndAI";
-import { AdminQueue } from "./admin/AdminQueue";
-import { AdminAIAnalyst } from "./admin/AdminAIAnalyst";
-import { AdminAlertQA } from "./admin/AdminAlertQA";
+import { AdminParentalOps } from "./admin/AdminParentalOps";
 import { AdminHelpCenter } from "./admin/AdminHelpCenter";
-import { format, subDays } from "date-fns";
-
-interface TrainingRecord {
-  id: string;
-  alert_id: number | null;
-  raw_text: string;
-  age_at_incident: number | null;
-  gender: string | null;
-  ai_verdict: {
-    verdict?: string;
-    risk_score?: number;
-    classification?: {
-      bullying?: number;
-      violence?: number;
-      sexual?: number;
-      drugs?: number;
-      self_harm?: number;
-      hate?: number;
-    };
-  } | null;
-  created_at: string;
-}
-
-interface TrainingStats {
-  total: number;
-  systemAlertCount: number;
-  byGender: { name: string; value: number }[];
-  byAge: { age: string; count: number }[];
-  byVerdict: { name: string; value: number; color: string }[];
-  byRiskLevel: { level: string; count: number }[];
-  classificationCounts: { name: string; count: number }[];
-}
-
-interface OverviewStats {
-  totalParents: number;
-  totalWaitlist: number;
-  totalDevices: number;
-  totalAlertsToday: number;
-  criticalAlertsToday: number;
-  activeUsersToday: number;
-  conversionRate: number;
-  alertsByVerdict: { name: string; value: number; color: string }[];
-  alertsTrend: { date: string; safe: number; review: number; notify: number; notified: number }[];
-  funnel: { stage: string; count: number }[];
-  activeChildrenToday: number;
-  activeParentsThisWeek: number;
-  messagesScannedToday: number;
-  alertsSentToday: number;
-  feedbackTrend: { date: string; total: number; important: number; not_relevant: number }[];
-  totalAlertsLast7Days: number;
-  alertsWithFeedbackLast7Days: number;
-  feedbackEngagementRate: number;
-  alertsCreatedToday: number;
-  alertsAnalyzedToday: number;
-  alertsNotifiedToday: number;
-  systemAlertsToday: number;
-  queuePending: number;
-  queueFailed: number;
-  oldestPendingMinutes: number;
-  pendingAlerts: { id: string; alert_id: number; status: string; attempt: number; created_at: string; last_error: string | null; is_processed: boolean }[];
-  freeChildren: number;
-  premiumChildren: number;
-}
+import { format } from "date-fns";
 
 interface UserData {
   id: string;
@@ -101,332 +36,126 @@ interface WaitlistEntry {
   created_at: string;
 }
 
-const VERDICT_COLORS: Record<string, string> = {
-  safe: "#22c55e",
-  review: "#f59e0b",
-  notify: "#ef4444",
-  monitor: "#8b5cf6",
-};
-
-const GENDER_LABELS: Record<string, string> = {
-  male: "זכר",
-  female: "נקבה",
-  unknown: "לא ידוע",
-};
-
 export default function Admin() {
   const [loading, setLoading] = useState(true);
   const [overviewStats, setOverviewStats] = useState<OverviewStats | null>(null);
   const [users, setUsers] = useState<UserData[]>([]);
   const [waitlist, setWaitlist] = useState<WaitlistEntry[]>([]);
-  const [trainingStats, setTrainingStats] = useState<TrainingStats | null>(null);
-  const [trainingRecords, setTrainingRecords] = useState<TrainingRecord[]>([]);
   const [activeTab, setActiveTab] = useState("overview");
   const [usersStatusFilter, setUsersStatusFilter] = useState<string | undefined>(undefined);
-  const [usersSubTab, setUsersSubTab] = useState<string | undefined>(undefined);
   const navigate = useNavigate();
 
   const handleOverviewNavigate = (tab: string, filter?: string) => {
     setActiveTab(tab);
-    if (tab === "users" && filter) {
-      setUsersStatusFilter(filter);
-    } else {
-      setUsersStatusFilter(undefined);
-    }
+    if (tab === "users" && filter) setUsersStatusFilter(filter);
+    else setUsersStatusFilter(undefined);
   };
 
   useEffect(() => {
     fetchAllData();
   }, []);
 
-  // Redirect to login if admin session expires
   useEffect(() => {
     const { data: { subscription } } = adminSupabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_OUT') {
-        navigate('/admin-login', { replace: true });
-      }
+      if (event === 'SIGNED_OUT') navigate('/admin-login', { replace: true });
     });
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  // Auto-refresh queue health every 30 seconds
-  useEffect(() => {
-    const interval = setInterval(async () => {
-      try {
-        const { data: queueData } = await adminSupabase
-          .from("alert_events_queue")
-          .select("id, alert_id, status, attempt, created_at, last_error")
-          .in("status", ["pending", "failed", "processing"])
-          .order("created_at", { ascending: true });
-
-        const queuePending = queueData?.filter(q => q.status === 'pending').length || 0;
-        const queueFailed = queueData?.filter(q => q.status === 'failed').length || 0;
-        const oldestPending = queueData
-          ?.filter(q => q.status === 'pending')
-          .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())[0];
-        const oldestPendingMinutes = oldestPending
-          ? Math.round((Date.now() - new Date(oldestPending.created_at).getTime()) / 60000)
-          : 0;
-
-        const queueAlertIds = [...new Set(queueData?.map(q => q.alert_id) || [])];
-        let processedAlertIds = new Set<number>();
-        if (queueAlertIds.length > 0) {
-          const { data: processedAlerts } = await adminSupabase
-            .from("alerts")
-            .select("id")
-            .in("id", queueAlertIds)
-            .eq("is_processed", true);
-          processedAlertIds = new Set(processedAlerts?.map(a => a.id) || []);
-        }
-
-        const pendingAlerts = (queueData || []).map(q => ({
-          ...q,
-          is_processed: processedAlertIds.has(q.alert_id),
-        }));
-
-        setOverviewStats(prev => prev ? {
-          ...prev,
-          queuePending,
-          queueFailed,
-          oldestPendingMinutes,
-          pendingAlerts,
-        } : prev);
-      } catch (error) {
-        console.error("Error refreshing queue health:", error);
-      }
-    }, 30000);
-
-    return () => clearInterval(interval);
-  }, []);
-
   const fetchAllData = async () => {
     setLoading(true);
-    await Promise.all([
-      fetchOverviewStats(),
-      fetchUsers(),
-      fetchWaitlist(),
-      fetchTrainingStats(),
-    ]);
+    await Promise.all([fetchOverviewStats(), fetchUsers(), fetchWaitlist()]);
     setLoading(false);
   };
 
   const fetchOverviewStats = async () => {
     try {
-      const { count: parentsCount } = await adminSupabase
-        .from("parents")
-        .select("*", { count: "exact", head: true });
-
-      const { count: waitlistCount } = await adminSupabase
-        .from("waitlist_signups")
-        .select("*", { count: "exact", head: true });
-
-      const { count: devicesCount } = await adminSupabase
-        .from("devices")
-        .select("*", { count: "exact", head: true })
-        .not("child_id", "is", null);
-
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      
-      const { data: alertsToday } = await adminSupabase
-        .from("alerts")
-        .select("ai_verdict, ai_risk_score, is_processed, processing_status, analyzed_at")
-        .gte("created_at", today.toISOString());
-
-      const totalAlertsToday = alertsToday?.length || 0;
-      const criticalAlertsToday = alertsToday?.filter(a => a.ai_verdict === 'notify').length || 0;
-      const systemAlertsToday = alertsToday?.filter(a => a.is_processed === true && a.analyzed_at === null).length || 0;
-      const alertsCreatedToday = totalAlertsToday - systemAlertsToday;
-      const alertsAnalyzedToday = alertsToday?.filter(a => a.is_processed === true && a.analyzed_at !== null).length || 0;
-      const alertsNotifiedToday = alertsToday?.filter(a => a.processing_status === 'notified').length || 0;
-
-      const { data: queueData } = await adminSupabase
-        .from("alert_events_queue")
-        .select("id, alert_id, status, attempt, created_at, last_error")
-        .in("status", ["pending", "failed", "processing"])
-        .order("created_at", { ascending: true });
-
-      const queuePending = queueData?.filter(q => q.status === 'pending').length || 0;
-      const queueFailed = queueData?.filter(q => q.status === 'failed').length || 0;
-      const oldestPending = queueData
-        ?.filter(q => q.status === 'pending')
-        .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())[0];
-      const oldestPendingMinutes = oldestPending
-        ? Math.round((Date.now() - new Date(oldestPending.created_at).getTime()) / 60000)
-        : 0;
-
-      const queueAlertIds = [...new Set(queueData?.map(q => q.alert_id) || [])];
-      let processedAlertIds = new Set<number>();
-      if (queueAlertIds.length > 0) {
-        const { data: processedAlerts } = await adminSupabase
-          .from("alerts")
-          .select("id")
-          .in("id", queueAlertIds)
-          .eq("is_processed", true);
-        processedAlertIds = new Set(processedAlerts?.map(a => a.id) || []);
-      }
-
-      const pendingAlerts = (queueData || []).map(q => ({
-        ...q,
-        is_processed: processedAlertIds.has(q.alert_id),
-      }));
-
-      const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
-      const { count: activeCount } = await adminSupabase
-        .from("devices")
-        .select("*", { count: "exact", head: true })
-        .gte("last_seen", yesterday.toISOString());
-
-      const verdictCounts: Record<string, number> = { safe: 0, review: 0, notify: 0 };
-      alertsToday?.forEach(alert => {
-        if (alert.ai_verdict && verdictCounts[alert.ai_verdict] !== undefined) {
-          verdictCounts[alert.ai_verdict]++;
-        }
-      });
-
       const todayStr = format(new Date(), "yyyy-MM-dd");
-      const { data: metricsToday } = await adminSupabase
-        .from("device_daily_metrics")
-        .select("device_id")
-        .eq("metric_date", todayStr);
-      
+      const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const fifteenMinAgo = new Date(Date.now() - 15 * 60 * 1000);
+
+      const [
+        { count: parentsCount },
+        { count: waitlistCount },
+        { data: allDevices },
+        { count: activeCount },
+        { data: metricsToday },
+        { data: childrenAll },
+        { data: choresAll },
+        { data: bankAll },
+        { data: txToday },
+        { data: bonusToday },
+        { data: requestsAll },
+        { data: placesAll },
+      ] = await Promise.all([
+        adminSupabase.from("parents").select("*", { count: "exact", head: true }),
+        adminSupabase.from("waitlist_signups").select("*", { count: "exact", head: true }),
+        adminSupabase.from("devices").select("device_id, child_id, last_seen").not("child_id", "is", null),
+        adminSupabase.from("devices").select("*", { count: "exact", head: true }).gte("last_seen", yesterday.toISOString()),
+        adminSupabase.from("device_daily_metrics").select("device_id").eq("metric_date", todayStr),
+        adminSupabase.from("children").select("id, parent_id"),
+        adminSupabase.from("chores").select("status, completed_at, approved_at"),
+        adminSupabase.from("reward_bank").select("balance_minutes, child_id"),
+        adminSupabase.from("reward_transactions").select("amount_minutes").gte("created_at", today.toISOString()),
+        adminSupabase.from("bonus_time_grants").select("id").gte("created_at", today.toISOString()),
+        adminSupabase.from("time_extension_requests").select("status"),
+        adminSupabase.from("child_places").select("child_id"),
+      ]);
+
+      const totalDevices = allDevices?.length || 0;
+      const now = Date.now();
+      const devicesOnline = allDevices?.filter(d => d.last_seen && now - new Date(d.last_seen).getTime() < 15 * 60 * 1000).length || 0;
+      const devicesToday = allDevices?.filter(d => d.last_seen && now - new Date(d.last_seen).getTime() < 24 * 60 * 60 * 1000 && now - new Date(d.last_seen).getTime() >= 15 * 60 * 1000).length || 0;
+      const devicesOffline = totalDevices - devicesOnline - devicesToday;
+
       const metricDeviceIds = [...new Set(metricsToday?.map(m => m.device_id) || [])];
       let activeChildrenToday = 0;
       if (metricDeviceIds.length > 0) {
-        const { data: devicesWithChildren } = await adminSupabase
-          .from("devices")
-          .select("child_id")
-          .in("device_id", metricDeviceIds)
-          .not("child_id", "is", null);
-        activeChildrenToday = new Set(devicesWithChildren?.map(d => d.child_id)).size;
+        const { data: dwc } = await adminSupabase.from("devices").select("child_id").in("device_id", metricDeviceIds).not("child_id", "is", null);
+        activeChildrenToday = new Set(dwc?.map(d => d.child_id)).size;
       }
 
-      const weekAgo = subDays(new Date(), 7);
-      const { data: weekAlerts } = await adminSupabase
-        .from("alerts")
-        .select("child_id")
-        .gte("created_at", weekAgo.toISOString())
-        .not("child_id", "is", null);
-      
-      const weekChildIds = [...new Set(weekAlerts?.map(a => a.child_id).filter(Boolean) || [])];
-      let activeParentsThisWeek = 0;
-      if (weekChildIds.length > 0) {
-        const { data: childrenOfWeek } = await adminSupabase
-          .from("children")
-          .select("parent_id")
-          .in("id", weekChildIds);
-        activeParentsThisWeek = new Set(childrenOfWeek?.map(c => c.parent_id)).size;
-      }
+      const childrenWithDeviceIds = new Set(allDevices?.map(d => d.child_id).filter(Boolean));
+      const childrenNoDevice = (childrenAll?.length || 0) - childrenWithDeviceIds.size;
 
-      const { data: metricsSum } = await adminSupabase
-        .from("device_daily_metrics")
-        .select("messages_scanned")
-        .eq("metric_date", todayStr);
-      const messagesScannedToday = metricsSum?.reduce((sum, m) => sum + (m.messages_scanned || 0), 0) || 0;
+      const choresActive = choresAll?.filter(c => c.status === "pending").length || 0;
+      const choresCompletedToday = choresAll?.filter(c => c.completed_at && new Date(c.completed_at) >= today).length || 0;
+      const choresPendingApproval = choresAll?.filter(c => c.status === "completed_by_child").length || 0;
 
-      const alertsTrend: { date: string; safe: number; review: number; notify: number; notified: number }[] = [];
-      const feedbackTrend: { date: string; total: number; important: number; not_relevant: number }[] = [];
-      
-      const fourteenDaysAgo = subDays(new Date(), 13);
-      fourteenDaysAgo.setHours(0, 0, 0, 0);
-      
-      const { data: allTrendAlerts } = await adminSupabase
-        .from("alerts")
-        .select("id, ai_verdict, created_at, processing_status")
-        .gte("created_at", fourteenDaysAgo.toISOString())
-        .order("created_at", { ascending: true });
-
-      const trendAlertIds = allTrendAlerts?.map(a => a.id) || [];
-      let feedbackMap: Record<number, string> = {};
-      if (trendAlertIds.length > 0) {
-        const { data: feedbackData } = await adminSupabase
-          .from("alert_feedback")
-          .select("alert_id, feedback_type")
-          .in("alert_id", trendAlertIds);
-        feedbackData?.forEach(f => {
-          feedbackMap[f.alert_id] = f.feedback_type;
-        });
-      }
-
-      for (let i = 13; i >= 0; i--) {
-        const date = subDays(new Date(), i);
-        const dayStr = format(date, "yyyy-MM-dd");
-        const dayAlerts = allTrendAlerts?.filter(a => a.created_at.startsWith(dayStr)) || [];
-
-        alertsTrend.push({
-          date: format(date, "dd/MM"),
-          safe: dayAlerts.filter(a => a.ai_verdict === 'safe').length,
-          review: dayAlerts.filter(a => a.ai_verdict === 'review').length,
-          notify: dayAlerts.filter(a => a.ai_verdict === 'notify').length,
-          notified: dayAlerts.filter(a => a.processing_status === 'notified').length,
-        });
-
-        const dayAlertIds = dayAlerts.map(a => a.id);
-        feedbackTrend.push({
-          date: format(date, "dd/MM"),
-          total: dayAlerts.length,
-          important: dayAlertIds.filter(id => feedbackMap[id] === 'important').length,
-          not_relevant: dayAlertIds.filter(id => feedbackMap[id] === 'not_relevant').length,
-        });
-      }
-
-      const sevenDaysAgo = subDays(new Date(), 7);
-      const alertsLast7 = allTrendAlerts?.filter(a => new Date(a.created_at) >= sevenDaysAgo) || [];
-      const totalAlertsLast7Days = alertsLast7.length;
-      const alertIdsLast7 = new Set(alertsLast7.map(a => a.id));
-      const alertsWithFeedbackLast7Days = new Set(
-        Object.keys(feedbackMap).map(Number).filter(id => alertIdsLast7.has(id))
-      ).size;
-      const feedbackEngagementRate = totalAlertsLast7Days > 0
-        ? (alertsWithFeedbackLast7Days / totalAlertsLast7Days) * 100
-        : 0;
-
-      const { data: allChildren } = await adminSupabase
-        .from("children")
-        .select("subscription_tier");
-      const freeChildren = allChildren?.filter(c => !c.subscription_tier || c.subscription_tier === 'free').length || 0;
-      const premiumChildren = allChildren?.filter(c => c.subscription_tier === 'premium').length || 0;
-      const childrenCount = allChildren?.length || 0;
+      const rewardBankTotalMinutes = bankAll?.reduce((s, b) => s + (b.balance_minutes || 0), 0) || 0;
+      const rewardRedemptionsToday = txToday?.filter(t => (t.amount_minutes ?? 0) < 0).length || 0;
+      const bonusGrantsToday = bonusToday?.length || 0;
+      const timeRequestsPending = requestsAll?.filter(r => r.status === "pending").length || 0;
+      const familiesWithPlaces = new Set(placesAll?.map(p => p.child_id)).size;
 
       setOverviewStats({
         totalParents: parentsCount || 0,
         totalWaitlist: waitlistCount || 0,
-        totalDevices: devicesCount || 0,
-        totalAlertsToday,
-        criticalAlertsToday,
+        totalDevices,
         activeUsersToday: activeCount || 0,
-        conversionRate: waitlistCount && parentsCount ? (parentsCount / waitlistCount) * 100 : 0,
-        alertsByVerdict: Object.entries(verdictCounts).map(([name, value]) => ({
-          name,
-          value,
-          color: VERDICT_COLORS[name] || "#6b7280",
-        })),
-        alertsTrend,
+        activeChildrenToday,
+        activeParentsThisWeek: 0,
         funnel: [
           { stage: "Waitlist", count: waitlistCount || 0 },
           { stage: "נרשמו", count: parentsCount || 0 },
-          { stage: "הוסיפו ילד", count: childrenCount || 0 },
-          { stage: "חיברו מכשיר", count: devicesCount || 0 },
+          { stage: "הוסיפו ילד", count: childrenAll?.length || 0 },
+          { stage: "חיברו מכשיר", count: totalDevices },
           { stage: "פעילים היום", count: activeCount || 0 },
         ],
-        activeChildrenToday,
-        activeParentsThisWeek,
-        messagesScannedToday,
-        alertsSentToday: totalAlertsToday,
-        feedbackTrend,
-        totalAlertsLast7Days,
-        alertsWithFeedbackLast7Days,
-        feedbackEngagementRate,
-        alertsCreatedToday,
-        alertsAnalyzedToday,
-        alertsNotifiedToday,
-        systemAlertsToday,
-        queuePending,
-        queueFailed,
-        oldestPendingMinutes,
-        pendingAlerts,
-        freeChildren,
-        premiumChildren,
+        choresActive,
+        choresCompletedToday,
+        choresPendingApproval,
+        rewardBankTotalMinutes,
+        rewardRedemptionsToday,
+        bonusGrantsToday,
+        timeRequestsPending,
+        familiesWithPlaces,
+        devicesOnline,
+        devicesToday,
+        devicesOffline,
+        childrenNoDevice,
       });
     } catch (error) {
       console.error("Error fetching overview stats:", error);
@@ -436,25 +165,12 @@ export default function Admin() {
   const fetchUsers = async () => {
     try {
       const { data: parents, error: parentsError } = await adminSupabase
-        .from("parents")
-        .select("*")
-        .order("created_at", { ascending: false });
-
+        .from("parents").select("*").order("created_at", { ascending: false });
       if (parentsError) throw parentsError;
 
-      const { data: children } = await adminSupabase
-        .from("children")
-        .select("id, name, gender, parent_id");
-
-      const { data: devices } = await adminSupabase
-        .from("devices")
-        .select("device_id, child_id, last_seen, battery_level");
-
-      // Fetch admin user IDs to filter them out
-      const { data: adminRoles } = await adminSupabase
-        .from("user_roles")
-        .select("user_id")
-        .eq("role", "admin");
+      const { data: children } = await adminSupabase.from("children").select("id, name, gender, parent_id");
+      const { data: devices } = await adminSupabase.from("devices").select("device_id, child_id, last_seen, battery_level");
+      const { data: adminRoles } = await adminSupabase.from("user_roles").select("user_id").eq("role", "admin");
       const adminIds = new Set((adminRoles || []).map(r => r.user_id));
 
       const now = new Date();
@@ -462,34 +178,23 @@ export default function Admin() {
       const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
       const usersData: UserData[] = (parents || []).filter(p => !adminIds.has(p.id)).map(parent => {
-        const parentChildren = children?.filter(c => c.parent_id === parent.id) || [];
+        const parentChildren = (children || []).filter(c => c.parent_id === parent.id);
         const childIds = parentChildren.map(c => c.id);
-        const parentDevices = devices?.filter(d => d.child_id && childIds.includes(d.child_id)) || [];
-        
-        let deviceStatus: 'online' | 'today' | 'offline' | 'no_device' = 'no_device';
-        let lastActivity: string | null = null;
-
+        const parentDevices = (devices || []).filter(d => d.child_id && childIds.includes(d.child_id));
+        let device_status: UserData['device_status'] = 'no_device';
+        let last_activity: string | null = null;
         if (parentDevices.length > 0) {
-          const latestDevice = parentDevices.reduce((latest, device) => {
-            if (!device.last_seen) return latest;
-            if (!latest.last_seen) return device;
-            return new Date(device.last_seen) > new Date(latest.last_seen) ? device : latest;
-          }, parentDevices[0]);
-
-          lastActivity = latestDevice.last_seen;
-
-          if (lastActivity) {
-            const lastSeenDate = new Date(lastActivity);
-            if (lastSeenDate >= fifteenMinsAgo) {
-              deviceStatus = 'online';
-            } else if (lastSeenDate >= twentyFourHoursAgo) {
-              deviceStatus = 'today';
-            } else {
-              deviceStatus = 'offline';
-            }
-          }
+          const mostRecent = parentDevices.reduce((latest, d) =>
+            !latest || (d.last_seen && new Date(d.last_seen) > new Date(latest.last_seen!)) ? d : latest
+          , null as typeof parentDevices[0] | null);
+          last_activity = mostRecent?.last_seen || null;
+          if (last_activity) {
+            const lastDate = new Date(last_activity);
+            if (lastDate >= fifteenMinsAgo) device_status = 'online';
+            else if (lastDate >= twentyFourHoursAgo) device_status = 'today';
+            else device_status = 'offline';
+          } else device_status = 'offline';
         }
-
         return {
           id: parent.id,
           full_name: parent.full_name,
@@ -497,17 +202,11 @@ export default function Admin() {
           phone: parent.phone,
           created_at: parent.created_at,
           children: parentChildren.map(c => ({ id: c.id, name: c.name, gender: c.gender })),
-          devices: parentDevices.map(d => ({
-            device_id: d.device_id,
-            last_seen: d.last_seen,
-            battery_level: d.battery_level,
-          })),
-          device_status: deviceStatus,
-          last_activity: lastActivity,
-          group_id: (parent as any).group_id || null,
+          devices: parentDevices.map(d => ({ device_id: d.device_id, last_seen: d.last_seen, battery_level: d.battery_level })),
+          device_status,
+          last_activity,
         };
       });
-
       setUsers(usersData);
     } catch (error) {
       console.error("Error fetching users:", error);
@@ -517,127 +216,12 @@ export default function Admin() {
   const fetchWaitlist = async () => {
     try {
       const { data, error } = await adminSupabase
-        .from("waitlist_signups")
-        .select("*")
-        .order("created_at", { ascending: false });
-
+        .from("waitlist_signups").select("*").order("created_at", { ascending: false });
       if (error) throw error;
       setWaitlist(data || []);
     } catch (error) {
       console.error("Error fetching waitlist:", error);
     }
-  };
-
-  const SYSTEM_ALERT_TEXT = 'המכשיר לא מגיב לבדיקות';
-
-  const fetchTrainingStats = async () => {
-    try {
-      const { data: allData, error: allError } = await adminSupabase
-        .from("training_dataset")
-        .select("*");
-
-      const { data: tableData, error: tableError } = await adminSupabase
-        .from("training_dataset")
-        .select("*")
-        .neq("raw_text", SYSTEM_ALERT_TEXT)
-        .order("created_at", { ascending: false })
-        .limit(100);
-
-      if (allError || tableError) {
-        console.error("Error fetching training data:", allError || tableError);
-        return;
-      }
-
-      const allRecords = allData as TrainingRecord[];
-      const systemAlertCount = allRecords.filter(r => r.raw_text === SYSTEM_ALERT_TEXT).length;
-      const records = allRecords.filter(r => r.raw_text !== SYSTEM_ALERT_TEXT);
-      setTrainingRecords(tableData as TrainingRecord[]);
-      
-      const genderCounts: Record<string, number> = {};
-      const ageCounts: Record<string, number> = {};
-      const verdictCounts: Record<string, number> = {};
-      const riskLevelCounts: Record<string, number> = { low: 0, medium: 0, high: 0, critical: 0 };
-      const classificationCounts: Record<string, number> = {
-        bullying: 0, violence: 0, sexual: 0, drugs: 0, self_harm: 0, hate: 0,
-      };
-
-      records.forEach((record) => {
-        const gender = record.gender || "unknown";
-        genderCounts[gender] = (genderCounts[gender] || 0) + 1;
-
-        if (record.age_at_incident) {
-          const ageGroup = getAgeGroup(record.age_at_incident);
-          ageCounts[ageGroup] = (ageCounts[ageGroup] || 0) + 1;
-        }
-
-        if (record.ai_verdict?.verdict) {
-          const verdict = record.ai_verdict.verdict;
-          verdictCounts[verdict] = (verdictCounts[verdict] || 0) + 1;
-        }
-
-        if (record.ai_verdict?.risk_score !== undefined) {
-          const level = getRiskLevel(record.ai_verdict.risk_score);
-          riskLevelCounts[level]++;
-        }
-
-        if (record.ai_verdict?.classification) {
-          const cls = record.ai_verdict.classification;
-          Object.entries(cls).forEach(([key, value]) => {
-            if (value && value > 50) {
-              classificationCounts[key] = (classificationCounts[key] || 0) + 1;
-            }
-          });
-        }
-      });
-
-      setTrainingStats({
-        total: records.length,
-        systemAlertCount,
-        byGender: Object.entries(genderCounts).map(([name, value]) => ({
-          name: GENDER_LABELS[name] || name,
-          value,
-        })),
-        byAge: Object.entries(ageCounts)
-          .sort((a, b) => parseInt(a[0]) - parseInt(b[0]))
-          .map(([age, count]) => ({ age, count })),
-        byVerdict: Object.entries(verdictCounts).map(([name, value]) => ({
-          name,
-          value,
-          color: VERDICT_COLORS[name] || "#6b7280",
-        })),
-        byRiskLevel: Object.entries(riskLevelCounts).map(([level, count]) => ({ level, count })),
-        classificationCounts: Object.entries(classificationCounts)
-          .filter(([_, count]) => count > 0)
-          .sort((a, b) => b[1] - a[1])
-          .map(([name, count]) => ({ name: getClassificationLabel(name), count })),
-      });
-    } catch (err) {
-      console.error("Error processing training stats:", err);
-    }
-  };
-
-  const getAgeGroup = (age: number): string => {
-    if (age <= 8) return "6-8";
-    if (age <= 10) return "9-10";
-    if (age <= 12) return "11-12";
-    if (age <= 14) return "13-14";
-    if (age <= 16) return "15-16";
-    return "17+";
-  };
-
-  const getRiskLevel = (score: number): string => {
-    if (score < 30) return "low";
-    if (score < 60) return "medium";
-    if (score < 80) return "high";
-    return "critical";
-  };
-
-  const getClassificationLabel = (key: string): string => {
-    const labels: Record<string, string> = {
-      bullying: "בריונות", violence: "אלימות", sexual: "תוכן מיני",
-      drugs: "סמים", self_harm: "פגיעה עצמית", hate: "שנאה",
-    };
-    return labels[key] || key;
   };
 
   const handleLogout = async () => {
@@ -655,7 +239,6 @@ export default function Admin() {
 
   return (
     <div dir="rtl" className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 p-4 md:p-8">
-      {/* Header */}
       <header className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
@@ -666,7 +249,7 @@ export default function Admin() {
               <Shield className="w-6 h-6 text-primary" />
               דשבורד ניהול
             </h1>
-            <p className="text-sm text-muted-foreground">מרכז שליטה למנכ"ל</p>
+            <p className="text-sm text-muted-foreground">בקרת הורים — מרכז שליטה</p>
           </div>
         </div>
         <Button variant="outline" onClick={handleLogout} className="gap-2">
@@ -675,9 +258,8 @@ export default function Admin() {
         </Button>
       </header>
 
-      {/* Tabs - 5 instead of 7 */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-7 lg:w-auto lg:inline-flex">
+        <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-flex">
           <TabsTrigger value="overview" className="gap-2">
             <LayoutDashboard className="w-4 h-4" />
             <span className="hidden sm:inline">סקירה כללית</span>
@@ -686,24 +268,9 @@ export default function Admin() {
             <Users className="w-4 h-4" />
             <span className="hidden sm:inline">משתמשים</span>
           </TabsTrigger>
-          <TabsTrigger value="alerts" className="gap-2">
-            <Bell className="w-4 h-4" />
-            <span className="hidden sm:inline">התראות ו-AI</span>
-          </TabsTrigger>
-          <TabsTrigger value="queue" className="gap-2 relative">
-            <Database className="w-4 h-4" />
-            <span className="hidden sm:inline">תור עיבוד</span>
-            {(overviewStats?.queuePending ?? 0) > 0 && (
-              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full" />
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="analyst" className="gap-2">
-            <Brain className="w-4 h-4" />
-            <span className="hidden sm:inline">אנליסט AI</span>
-          </TabsTrigger>
-          <TabsTrigger value="qa" className="gap-2">
-            <Microscope className="w-4 h-4" />
-            <span className="hidden sm:inline">QA</span>
+          <TabsTrigger value="ops" className="gap-2">
+            <SlidersHorizontal className="w-4 h-4" />
+            <span className="hidden sm:inline">תפעול בקרת הורים</span>
           </TabsTrigger>
           <TabsTrigger value="help" className="gap-2">
             <HelpCircle className="w-4 h-4" />
@@ -716,60 +283,24 @@ export default function Admin() {
         </TabsContent>
 
         <TabsContent value="users">
-          <div>
-            <AdminUsersHub 
-              users={users} 
-              waitlist={waitlist}
-              loading={loading} 
-              onRefreshWaitlist={fetchWaitlist}
-              onRefreshUsers={fetchUsers}
-              funnel={overviewStats?.funnel || []}
-              initialStatusFilter={usersStatusFilter}
-              onFilterApplied={() => setUsersStatusFilter(undefined)}
-              initialSubTab={usersSubTab}
-            />
-          </div>
+          <AdminUsersHub
+            users={users}
+            waitlist={waitlist}
+            loading={loading}
+            onRefreshWaitlist={fetchWaitlist}
+            onRefreshUsers={fetchUsers}
+            funnel={overviewStats?.funnel || []}
+            initialStatusFilter={usersStatusFilter}
+            onFilterApplied={() => setUsersStatusFilter(undefined)}
+          />
         </TabsContent>
 
-        <TabsContent value="alerts">
-          <div>
-            <AdminAlertsAndAI 
-              overviewStats={overviewStats}
-              trainingStats={trainingStats}
-              trainingRecords={trainingRecords}
-              loading={loading}
-            />
-          </div>
-        </TabsContent>
-
-        <TabsContent value="queue">
-          <div>
-            <AdminQueue
-              queuePending={overviewStats?.queuePending || 0}
-              queueFailed={overviewStats?.queueFailed || 0}
-              oldestPendingMinutes={overviewStats?.oldestPendingMinutes || 0}
-              pendingAlerts={overviewStats?.pendingAlerts || []}
-              onRefresh={fetchOverviewStats}
-            />
-          </div>
-        </TabsContent>
-
-        <TabsContent value="analyst">
-          <div>
-            <AdminAIAnalyst overviewStats={overviewStats} users={users} waitlist={waitlist} />
-          </div>
-        </TabsContent>
-
-        <TabsContent value="qa">
-          <div>
-            <AdminAlertQA />
-          </div>
+        <TabsContent value="ops">
+          <AdminParentalOps />
         </TabsContent>
 
         <TabsContent value="help">
-          <div>
-            <AdminHelpCenter />
-          </div>
+          <AdminHelpCenter />
         </TabsContent>
       </Tabs>
     </div>
