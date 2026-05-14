@@ -1,42 +1,52 @@
-## חשיפת `child_gender` בזרימת ה-Pairing
+## RPC: `get_child_siblings_status`
 
-המטרה: שהאנדרואיד יקבל את מין הילד (`male`/`female`/`other`) ברגע ההתחברות, כדי להתאים את שפת הממשק.
+מטרה: לאפשר לאפליקציית הילד למשוך את שמות, מגדרים ורצפים (streaks) של האחים שלו במשפחה — כדי להציג באנר תחרות חיובית סמויה.
 
-### מצב קיים
-- טבלת `children.gender` כבר קיימת (`text`, ערכים בפועל: `male`, `female`, `other`).
-- שתי דרכי pairing באנדרואיד:
-  1. `bootstrap-device-auth` (Edge) → מפעיל `pair_device` RPC.
-  2. `connect_child_device` RPC ישיר (legacy: email + code).
-- שתיהן מחזירות כיום `child_id` ו-`child_name` בלבד.
+### חתימה
 
-### שינויים מתוכננים
+```sql
+get_child_siblings_status(p_child_id uuid, p_device_id text DEFAULT NULL)
+RETURNS TABLE (
+  sibling_id uuid,
+  name text,
+  gender text,
+  streak integer
+)
+```
 
-**1. RPC `pair_device` — מיגרציה**
-- `RETURNS TABLE(success, child_id, child_name, child_gender text, error_message)` — מוסיף עמודה.
-- שולף `gender` מטבלת `children` יחד עם `id, name`.
-- במקרה כישלון: `child_gender` = `null`.
+### אבטחה — 2-Tier Auth Gate (זהה ל-`get_child_chores`)
 
-**2. RPC `connect_child_device` — מיגרציה**
-- מוסיף `'child_gender', v_child_gender` ל-`json_build_object` של ה-success branch.
+- `SECURITY DEFINER`, `STABLE`, `SET search_path = public`.
+- שכבה 1 (JWT): `auth.jwt() -> 'app_metadata' ->> 'child_id'` חייב להיות שווה ל-`p_child_id`.
+- שכבה 1b (הורה מחובר): אם אין `child_id` ב-JWT אבל יש `auth.uid()` — הולך ל-`children` ובודק `parent_id = auth.uid()` (כדי שהורה יוכל לבדוק/לדבג).
+- שכבה 2 (Legacy device): אם לא אוטוריזציה דרך JWT — `authorize_device_call(p_device_id)` חייב להחזיר את `p_child_id`.
+- אחרת: `RAISE EXCEPTION 'UNAUTHORIZED' USING ERRCODE = '42501'`.
 
-**3. Edge Function `bootstrap-device-auth/index.ts`**
-- קורא `child_gender` מתוצאת `pair_device`.
-- מוסיף ל-JSON response: `child_gender`.
-- מוסיף ל-`app_metadata` ול-`user_metadata` של ה-auth user החדש.
+### לוגיקת השליפה
 
-**4. Edge Function `recover-device-credentials/index.ts`**
-- ה-`select` מ-`children` כבר טוען רק `name` — להרחיב ל-`name, gender`.
-- מוסיף `child_gender` ל-`user_metadata` ול-JSON response.
+1. שליפת `parent_id` של `p_child_id` מ-`children`.
+2. הרחבת רשימת ההורים הרלוונטיים גם דרך `family_members` (שותפים co-parent עם `status = 'accepted'`) — כך שאחים חורגים בבית מורחב יופיעו גם הם, בעקביות עם איך ש-`HomeV2` רואה את המשפחה.
+3. שליפת כל ה-`children` עם `parent_id IN (אותם הורים)` ו-`id <> p_child_id`.
+4. `LEFT JOIN reward_bank rb ON rb.child_id = c.id` כדי להביא `current_streak` (ברירת מחדל `0` אם אין רשומה).
+5. החזרה של `id, name, gender, streak` בלבד — ללא טלפון, תאריך לידה, kippy_tag, מנוי וכד'.
 
-**5. החלת מיגרציה**
-- מריץ `NOTIFY pgrst, 'reload schema'` אחרי שינוי החתימות (חתימת `pair_device` משתנה — שינוי breaking לקליינטים שמסתמכים על מבנה ה-TABLE; האנדרואיד הוא הצרכן היחיד).
+### החלת המיגרציה
 
-### ערכים נתמכים
-`'male' | 'female' | 'other'` (ללא ברירת מחדל בצד השרת — אם `gender` ריק, יוחזר `null` והאנדרואיד יבחר fallback).
+- `GRANT EXECUTE ... TO anon, authenticated`.
+- `NOTIFY pgrst, 'reload schema'`.
 
-### סיכום נקודות שהאנדרואיד יוכל לקרוא מהן `child_gender`
-- `bootstrap-device-auth` JSON response (`child_gender`)
-- `recover-device-credentials` JSON response (`child_gender`)
-- `pair_device` RPC row (`child_gender`)
-- `connect_child_device` RPC json (`child_gender`)
-- ב-JWT של המכשיר: `app_metadata.child_gender` (זמין מ-`auth.jwt()` בכל קריאה)
+### קריאה מצד האנדרואיד
+
+```kotlin
+supabase.rpc("get_child_siblings_status", mapOf(
+  "p_child_id" to childId,
+  "p_device_id" to deviceId  // אופציונלי, עבור legacy
+))
+```
+
+### קבצים שישתנו
+
+- `supabase/migrations/<timestamp>_create_get_child_siblings_status.sql` — מיגרציה חדשה (קובץ יחיד).
+- `src/integrations/supabase/types.ts` — מתעדכן אוטומטית עם חתימת ה-RPC.
+
+ללא שינויי frontend — זה backend-only עבור הצרכן באנדרואיד.
