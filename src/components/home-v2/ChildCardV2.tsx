@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Battery, MapPin, Clock, Smartphone, Bell, Plus, Volume2, Lock, Loader2, CheckCircle2, AlertTriangle, WifiOff } from "lucide-react";
+import { Battery, MapPin, Clock, Smartphone, Bell, Plus, Volume2, Lock, Loader2, CheckCircle2, AlertTriangle, WifiOff, Gift } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { getIsraelDate } from "@/lib/utils";
@@ -56,6 +56,9 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
   const remaining = hasLimit ? Math.max(0, effectiveLimit! - usedMinutes) : null;
   const screenTimeExceeded =
     hasLimit && remaining === 0 && !child.activeRestriction;
+  const hasBankReserve = (child.rewardBankBalance ?? 0) > 0;
+  const exceededWithReserve = screenTimeExceeded && hasBankReserve;
+  const exceededHardLock = screenTimeExceeded && !hasBankReserve;
 
   const handleRing = async (e?: React.MouseEvent) => {
     e?.stopPropagation();
@@ -119,11 +122,13 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
 
   const borderClass = !connected
     ? "border-red-300 ring-1 ring-red-200"
-    : screenTimeExceeded
+    : exceededHardLock
       ? "border-red-300 ring-1 ring-red-200"
-      : child.activeRestriction
+      : exceededWithReserve
         ? "border-amber-300"
-        : "border-border";
+        : child.activeRestriction
+          ? "border-amber-300"
+          : "border-border";
 
   return (
     <AccordionItem
@@ -139,12 +144,21 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
           </span>
         </div>
       )}
-      {/* Screen-time exceeded banner */}
-      {connected && screenTimeExceeded && (
+      {/* Screen-time exceeded — hard lock (no bank reserve) */}
+      {connected && exceededHardLock && (
         <div className="flex items-center gap-2 px-4 py-2 bg-destructive/10 border-b border-red-200">
           <Lock className="h-4 w-4 text-destructive shrink-0" />
           <span className="text-xs font-semibold text-destructive">
             המכשיר נעול — הילד חרג ממגבלת זמן המסך היומית
+          </span>
+        </div>
+      )}
+      {/* Screen-time exceeded — bank reserve available */}
+      {connected && exceededWithReserve && (
+        <div className="flex items-center gap-2 px-4 py-2 bg-amber-500/10 border-b border-amber-300">
+          <Gift className="h-4 w-4 text-amber-600 shrink-0" />
+          <span className="text-xs font-semibold text-amber-700">
+            חרג מהמכסה היומית — יש {child.rewardBankBalance} דק׳ בבנק זמינות לפדיון
           </span>
         </div>
       )}
@@ -221,14 +235,23 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
               helpText="כרגע פעיל לוח זמנים שמגביל את השימוש במכשיר."
             />
           ) : remaining !== null ? (
-            <MetricCell
-              icon={<Clock className={`h-3.5 w-3.5 ${screenTimeExceeded ? "text-red-500" : "text-emerald-500"}`} />}
-              label="נותר"
-              value={formatMinutes(remaining)}
-              warn={!screenTimeExceeded && remaining <= 15}
-              danger={screenTimeExceeded}
-              helpText="כמה זמן מסך נותר לילד היום עד סיום המגבלה היומית."
-            />
+            exceededWithReserve ? (
+              <MetricCell
+                icon={<Gift className="h-3.5 w-3.5 text-amber-500" />}
+                label="זמין מהבנק"
+                value={formatMinutes(child.rewardBankBalance)}
+                helpText="הילד חרג מהמכסה הבסיסית אך יכול לפדות דקות מהבנק כדי להמשיך."
+              />
+            ) : (
+              <MetricCell
+                icon={<Clock className={`h-3.5 w-3.5 ${screenTimeExceeded ? "text-red-500" : "text-emerald-500"}`} />}
+                label="נותר"
+                value={formatMinutes(remaining)}
+                warn={!screenTimeExceeded && remaining <= 15}
+                danger={screenTimeExceeded}
+                helpText="כמה זמן מסך נותר לילד היום עד סיום המגבלה היומית."
+              />
+            )
           ) : (
             <MetricCell
               icon={<Clock className="h-3.5 w-3.5 text-muted-foreground" />}
@@ -237,12 +260,14 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
               helpText="לא הוגדרה מגבלת זמן יומית. ניתן להגדיר במסך ניהול הילד."
             />
           )}
-          <MetricCell
-            icon={<Smartphone className="h-3.5 w-3.5 text-purple-500" />}
-            label="בנק בונוס"
-            value={`${child.rewardBankBalance} דק׳`}
-            helpText="דקות בונוס שהילד צבר ממשימות וזמינות לפדיון."
-          />
+          <div className={exceededWithReserve ? "rounded-lg ring-1 ring-amber-300" : ""}>
+            <MetricCell
+              icon={<Smartphone className="h-3.5 w-3.5 text-purple-500" />}
+              label="בנק בונוס"
+              value={`${child.rewardBankBalance} דק׳`}
+              helpText="דקות בונוס שהילד צבר ממשימות וזמינות לפדיון."
+            />
+          </div>
         </div>
 
         {/* Location */}
