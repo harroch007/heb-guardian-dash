@@ -64,9 +64,10 @@ Deno.serve(async (req) => {
     // Look up child for metadata
     const { data: child } = await supabase
       .from("children")
-      .select("name")
+      .select("name, gender")
       .eq("id", child_id)
       .maybeSingle();
+    const childGender = (child?.gender as string | null) ?? null;
 
     const deviceEmail = `device-${device_id}@devices.kippy.internal`;
     const newPassword = crypto.randomUUID();
@@ -80,8 +81,8 @@ Deno.serve(async (req) => {
           email: deviceEmail,
           password: newPassword,
           email_confirm: true,
-          app_metadata: { device_id, child_id, role: "device" },
-          user_metadata: { device_id, child_name: child?.name ?? null },
+          app_metadata: { device_id, child_id, child_gender: childGender, role: "device" },
+          user_metadata: { device_id, child_name: child?.name ?? null, child_gender: childGender },
         });
 
       if (createErr) {
@@ -126,7 +127,7 @@ Deno.serve(async (req) => {
       authUserId!,
       {
         password: newPassword,
-        app_metadata: { device_id, child_id, role: "device" },
+        app_metadata: { device_id, child_id, child_gender: childGender, role: "device" },
       }
     );
 
@@ -142,6 +143,7 @@ Deno.serve(async (req) => {
       JSON.stringify({
         success: true,
         child_id,
+        child_gender: childGender,
         device_email: deviceEmail,
         device_password: newPassword,
         auth_user_id: authUserId,

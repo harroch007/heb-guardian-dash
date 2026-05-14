@@ -3575,6 +3575,7 @@ export type Database = {
       pair_device: {
         Args: { p_device_id: string; p_pairing_code: string }
         Returns: {
+          child_gender: string
           child_id: string
           child_name: string
           error_message: string

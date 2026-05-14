@@ -62,6 +62,7 @@ Deno.serve(async (req) => {
 
     const childId = row.child_id;
     const childName = row.child_name;
+    const childGender = row.child_gender ?? null;
 
     // Step 2: Check if this device already has an auth identity
     const { data: existingDevice } = await supabaseAdmin
@@ -93,11 +94,13 @@ Deno.serve(async (req) => {
         app_metadata: {
           device_id,
           child_id: childId,
+          child_gender: childGender,
           role: "device",
         },
         user_metadata: {
           device_id,
           child_name: childName,
+          child_gender: childGender,
         },
       });
 
@@ -147,6 +150,7 @@ Deno.serve(async (req) => {
         success: true,
         child_id: childId,
         child_name: childName,
+        child_gender: childGender,
         device_email: deviceEmail,
         device_password: devicePassword,
         auth_user_id: authUser.user.id,
