@@ -1,54 +1,69 @@
 
-## הבעיה
+## מטרה
+להפוך את /admin ממוקד-AI/ווטסאפ לדשבורד ניהול שמשקף את קיפי החדש (בקרת הורים: משימות, תגמולים, זמן מסך, גבולות גזרה, מכשירים).
 
-החיפוש בגבולות הגזרה משתמש ב‑Nominatim (OpenStreetMap הציבורי). עבור ישראל הכיסוי שלו חלקי — חלק מהכתובות פשוט לא מוחזרות (כמו "סוקולוב 75 הרצליה"), וכשאין תוצאה ההורה נתקע ויוצא מהזרימה.
+## מבנה טאבים חדש (4 במקום 7)
 
-## עקרונות
+```
+[סקירה כללית] [משתמשים] [תפעול בקרת הורים] [מרכז עזרה]
+```
 
-- בלי שירות בתשלום בשלב הבטא.
-- ההורה לעולם לא יישאר בלי מסלול הצלחה — גם אם המנוע לא מצא, יש כפתור "סמן על המפה" + שמירה ידנית.
-- שיפור איכות החיפוש עצמו, לא רק הצגת fallback.
+### 1. סקירה כללית (AdminOverview – שכתוב)
+**להסיר:** alertsByVerdict, alertsTrend (safe/review/notify/notified), messagesScannedToday, criticalAlertsToday, alertsAnalyzedToday, systemAlertsToday, feedbackTrend, feedbackEngagementRate, freeChildren/premiumChildren, queue widgets.
 
-## הפתרון — שלוש שכבות
+**להשאיר/לשנות:**
+- `totalParents`, `totalWaitlist`, `totalDevices`, `activeUsersToday`, `activeChildrenToday`, `activeParentsThisWeek`
+- Funnel: Waitlist → נרשמו → הוסיפו ילד → חיברו מכשיר → פעילים היום
 
-### 1. החלפת המנוע הראשי ל‑Photon (קומוט)
+**להוסיף (מטריקות בקרת הורים, לא-AI):**
+- משימות: סה"כ פעילות, הושלמו היום, ממתינות לאישור הורה
+- בנק תגמולים: סה"כ דקות זמינות במערכת, פדיונות היום
+- זמן מסך: ממוצע דקות שימוש היום לכל ילד פעיל, מספר בקשות הארכת זמן ממתינות
+- מכשירים: כמה online (≤15 דק'), today, offline (>24h), בלי מכשיר
+- מיקומים: כמה משפחות הגדירו ≥1 child_place
 
-`https://photon.komoot.io/api/?q=…&lang=he&limit=8&lat=32.08&lon=34.78&location_bias_scale=0.5`
+### 2. משתמשים (AdminUsersHub – לשמר)
+- תתי-טאבים: משתמשים, דורשים טיפול, רשימת המתנה
+- **להסיר:** טאב "פרומו קודים" (AdminPromoCodes)
+- AdminCustomerProfile נשמר; להסיר ממנו כל סקציית AI/ווטסאפ אם קיימת
 
-- חינמי, ללא API key, ללא הרשמה.
-- מבוסס OSM אבל עם מנוע חיפוש Elasticsearch — מתמודד טוב יותר עם שגיאות הקלדה, סדר מילים, וכתובות חלקיות.
-- תומך bias גיאוגרפי (מרכז ישראל) שמקפיץ תוצאות רלוונטיות.
-- עברית נתמכת ישירות דרך `lang=he`.
+### 3. תפעול בקרת הורים (חדש – AdminParentalOps)
+4 תתי-טאבים:
+- **משימות ובנק תגמולים** – טבלאות chores, chore_completions, reward_transactions, reward_bank; פילוח לפי משפחה; ממתינות לאישור
+- **זמן מסך וזמן בונוס** – שימוש יומי ממוצע, time_extension_requests פתוחות, bonus_time_grants פעילים, פדיונות מבנק
+- **גבולות גזרה ומיקומים** – child_places מוגדרים, אירועי enter/exit אחרונים, מפת מיקומים (אופציונלי)
+- **מכשירים וחיבוריות** – טבלת מכשירים: סוללה, last_seen, סטטוס, פקודות תלויות, אפשרות לסנן offline >24h
 
-### 2. נפילה ל‑Nominatim עם חיפוש מובנה (Structured)
+### 4. מרכז עזרה (AdminHelpCenter – לשמר כמות שהוא)
 
-אם Photon מחזיר 0 תוצאות, נריץ אוטומטית Nominatim במצב מובנה במקום free‑text:
+## קבצים להסיר מהראוטינג (לא מהדיסק בשלב זה)
+- `AdminAlertsAndAI.tsx` – מוסר מ-Tabs
+- `AdminAIAnalyst.tsx` – מוסר
+- `AdminAlertQA.tsx` – מוסר
+- `AdminQueue.tsx` – מוסר
+- `AdminPromoCodes.tsx` – מוסר מ-AdminUsersHub
+- `AdminTraining.tsx`, `AdminInsightStats.tsx`, `AdminModelComparison.tsx`, `AdminFeedback.tsx` – אם לא בשימוש מאף מקום אחר
 
-`…/search?street=75 סוקולוב&city=הרצליה&country=Israel&format=json&addressdetails=1`
+הקבצים יישארו על הדיסק לגיבוי; ניתן למחוק בהמשך.
 
-- ניתוח קל של מה שההורה הקליד (פיצול לפי פסיק / מילה אחרונה כעיר / מספר כ‑housenumber).
-- מצב מובנה מחזיר תוצאות במקרים שחיפוש חופשי מחמיץ.
+## קבצים חדשים
+- `src/pages/admin/AdminParentalOps.tsx` – טאב הראשי עם 4 תתי-טאבים
+- `src/pages/admin/parental-ops/ChoresAndRewardsPanel.tsx`
+- `src/pages/admin/parental-ops/ScreenTimePanel.tsx`
+- `src/pages/admin/parental-ops/PlacesPanel.tsx`
+- `src/pages/admin/parental-ops/DevicesPanel.tsx`
 
-### 3. רשת ביטחון — ההורה לא נתקע אף פעם
+## עדכון Admin.tsx
+- צמצום ל-4 TabsTriggers, החלפת אייקונים: LayoutDashboard, Users, SlidersHorizontal, HelpCircle
+- מחיקת state מיותר (trainingStats, trainingRecords, queue auto-refresh)
+- מחיקת fetchTrainingStats, getAgeGroup, getRiskLevel, getClassificationLabel, VERDICT_COLORS
+- ב-fetchOverviewStats: למחוק כל החישובים של verdict/feedback/queue ולהוסיף שאילתות חדשות (chores aggregated, time_extension_requests count, child_places count, devices status breakdown)
 
-- כפתור **"סמן על המפה"** יוצג **תמיד** מתחת לשדה (לא רק אחרי "לא נמצאו תוצאות"), כולל בזמן הקלדה.
-- כשאין תוצאות יוצג גם **"השתמש בטקסט שכתבתי + סמן מיקום על המפה"** — פותח את MapPinPicker, ולאחר אישור שומר את המיקום עם הטקסט החופשי שההורה הקליד כ‑label.
-- MapPinPicker יקבל מרכז התחלתי משופר: אם אין מיקום מכשיר, ייפתח על הכתובת ששודרה אם יש לה bbox מ‑Photon, אחרת על מרכז ישראל.
+## עיצוב/UX
+- שמירה על dir="rtl", הכותרת "דשבורד ניהול | מרכז שליטה למנכ"ל"
+- כל המטריקות בעברית, עיצוב כרטיסים זהה לקיים (bg-card border-border/50)
 
-## קבצים שיתעדכנו
-
-- `src/components/child-dashboard/AddressAutocomplete.tsx` — שינוי המנוע, נורמליזציה של תוצאות Photon ו‑Nominatim ל‑shape משותף, fallback מדורג, כפתורי escape תמידיים.
-- `src/components/child-dashboard/MapPinPicker.tsx` — קבלת `initialQuery` להצגה כתווית כאשר ההורה הגיע דרך "סמן על המפה". reverse‑geocode נשאר Nominatim (תקין דיו לכיוון ההפוך).
-- `src/components/child-dashboard/GeofenceSection.tsx` ו‑`ManualPlaceForm.tsx` — להעביר את הטקסט שההורה הקליד אל ה‑pin picker כדי שיישמר כ‑label אם reverse geocoding נכשל.
-
-## לא בתחום השינוי
-
-- אין שינוי ב‑schema של `child_places` או בלוגיקת ה‑geofence ב‑Android.
-- אין שינוי ב‑UI הוויזואלי של הסקציה — רק זרימת החיפוש והפולבק.
-- לא מוסיפים מפתחות סודיים, לא מוסיפים תלות חדשה ב‑package.json (Photon ו‑Nominatim הם fetch רגיל).
-
-## מדדי הצלחה
-
-- "סוקולוב 75 הרצליה" מחזיר תוצאה מ‑Photon או מ‑Nominatim מובנה.
-- אם בכל זאת לא נמצא — ההורה רואה מיד שני כפתורים (סימון על המפה / שמירה עם הטקסט שלי) ולא מסך ריק.
-- אין רגרסיה במקרים שעבדו קודם (כתובות בעברית סטנדרטיות).
+## הערות חשובות
+- שום שינוי במסד הנתונים לא נדרש – רק שאילתות SELECT חדשות מטבלאות קיימות.
+- AdminCustomerProfile, AdminAttentionReport, AdminWaitlist, AdminUsers נשארים ועובדים.
+- אין שינוי במידע של משתמשים – רק החלפת תצוגה.

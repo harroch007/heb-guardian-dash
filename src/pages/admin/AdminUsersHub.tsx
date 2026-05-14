@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, UserPlus, Tag, AlertTriangle } from "lucide-react";
+import { Users, UserPlus, AlertTriangle } from "lucide-react";
 import { AdminUsers } from "./AdminUsers";
 import { AdminWaitlist } from "./AdminWaitlist";
-import { AdminPromoCodes } from "./AdminPromoCodes";
 import { AdminCustomerProfile } from "./AdminCustomerProfile";
 import { AdminAttentionReport } from "./AdminAttentionReport";
 
@@ -44,7 +43,7 @@ interface AdminUsersHubProps {
   initialSubTab?: string;
 }
 
-export function AdminUsersHub({ 
+export function AdminUsersHub({
   users, waitlist, loading, onRefreshWaitlist, onRefreshUsers, funnel,
   initialStatusFilter, onFilterApplied, initialSubTab
 }: AdminUsersHubProps) {
@@ -58,7 +57,7 @@ export function AdminUsersHub({
   return (
     <div className="space-y-4">
       <Tabs value={subTab} onValueChange={setSubTab}>
-        <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-flex">
+        <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-flex">
           <TabsTrigger value="users" className="gap-2">
             <Users className="w-4 h-4" />
             משתמשים ({users.length})
@@ -71,16 +70,12 @@ export function AdminUsersHub({
             <UserPlus className="w-4 h-4" />
             רשימת המתנה ({waitlist.length})
           </TabsTrigger>
-          <TabsTrigger value="promo" className="gap-2">
-            <Tag className="w-4 h-4" />
-            פרומו קודים
-          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="users">
-          <AdminUsers 
-            users={users} 
-            loading={loading} 
+          <AdminUsers
+            users={users}
+            loading={loading}
             initialStatusFilter={initialStatusFilter}
             onFilterApplied={onFilterApplied}
             onSelectUser={setSelectedUser}
@@ -92,16 +87,12 @@ export function AdminUsersHub({
         </TabsContent>
 
         <TabsContent value="waitlist">
-          <AdminWaitlist 
-            entries={waitlist} 
-            loading={loading} 
+          <AdminWaitlist
+            entries={waitlist}
+            loading={loading}
             onRefresh={onRefreshWaitlist}
             funnel={funnel}
           />
-        </TabsContent>
-
-        <TabsContent value="promo">
-          <AdminPromoCodes />
         </TabsContent>
       </Tabs>
 
