@@ -3416,6 +3416,29 @@ export type Database = {
         }[]
       }
       get_device_id_from_jwt: { Args: never; Returns: string }
+      get_device_lock_state: {
+        Args: { p_child_id: string; p_device_id?: string }
+        Returns: {
+          child_id: string
+          contact_name: string | null
+          contact_phone: string | null
+          created_at: string
+          id: string
+          is_locked: boolean
+          locked_at: string | null
+          locked_by: string | null
+          message: string | null
+          unlocked_at: string | null
+          unlocked_by: string | null
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "device_lock_state"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       get_device_settings: { Args: { p_device_id: string }; Returns: Json }
       get_disconnected_devices: {
         Args: { p_child_id: string }
