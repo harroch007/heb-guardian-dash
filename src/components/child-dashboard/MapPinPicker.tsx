@@ -51,13 +51,14 @@ export function MapPinPicker({ initialLat, initialLng, fallbackLabel, onConfirm,
           return;
         }
       }
-      setAddress(data.display_name?.split(",").slice(0, 3).join(",").trim() || `${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+      const fromDisplay = data.display_name?.split(",").slice(0, 3).join(",").trim();
+      setAddress(fromDisplay || fallbackLabel?.trim() || `${lat.toFixed(5)}, ${lng.toFixed(5)}`);
     } catch {
-      setAddress(`${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+      setAddress(fallbackLabel?.trim() || `${lat.toFixed(5)}, ${lng.toFixed(5)}`);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [fallbackLabel]);
 
   const placeMarker = useCallback((lat: number, lng: number) => {
     const map = mapRef.current;
