@@ -144,12 +144,21 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
           </span>
         </div>
       )}
-      {/* Screen-time exceeded banner */}
-      {connected && screenTimeExceeded && (
+      {/* Screen-time exceeded — hard lock (no bank reserve) */}
+      {connected && exceededHardLock && (
         <div className="flex items-center gap-2 px-4 py-2 bg-destructive/10 border-b border-red-200">
           <Lock className="h-4 w-4 text-destructive shrink-0" />
           <span className="text-xs font-semibold text-destructive">
             המכשיר נעול — הילד חרג ממגבלת זמן המסך היומית
+          </span>
+        </div>
+      )}
+      {/* Screen-time exceeded — bank reserve available */}
+      {connected && exceededWithReserve && (
+        <div className="flex items-center gap-2 px-4 py-2 bg-amber-500/10 border-b border-amber-300">
+          <Gift className="h-4 w-4 text-amber-600 shrink-0" />
+          <span className="text-xs font-semibold text-amber-700">
+            חרג מהמכסה היומית — יש {child.rewardBankBalance} דק׳ בבנק זמינות לפדיון
           </span>
         </div>
       )}
