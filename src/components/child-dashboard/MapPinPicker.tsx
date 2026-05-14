@@ -15,11 +15,13 @@ L.Icon.Default.mergeOptions({
 interface MapPinPickerProps {
   initialLat?: number | null;
   initialLng?: number | null;
+  /** Free-text label the parent typed; used if reverse geocoding fails or returns nothing useful. */
+  fallbackLabel?: string;
   onConfirm: (result: { latitude: number; longitude: number; address: string }) => void;
   onCancel: () => void;
 }
 
-export function MapPinPicker({ initialLat, initialLng, onConfirm, onCancel }: MapPinPickerProps) {
+export function MapPinPicker({ initialLat, initialLng, fallbackLabel, onConfirm, onCancel }: MapPinPickerProps) {
   const mapRef = useRef<L.Map | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -49,13 +51,14 @@ export function MapPinPicker({ initialLat, initialLng, onConfirm, onCancel }: Ma
           return;
         }
       }
-      setAddress(data.display_name?.split(",").slice(0, 3).join(",").trim() || `${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+      const fromDisplay = data.display_name?.split(",").slice(0, 3).join(",").trim();
+      setAddress(fromDisplay || fallbackLabel?.trim() || `${lat.toFixed(5)}, ${lng.toFixed(5)}`);
     } catch {
-      setAddress(`${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+      setAddress(fallbackLabel?.trim() || `${lat.toFixed(5)}, ${lng.toFixed(5)}`);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [fallbackLabel]);
 
   const placeMarker = useCallback((lat: number, lng: number) => {
     const map = mapRef.current;

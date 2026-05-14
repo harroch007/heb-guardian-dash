@@ -44,6 +44,7 @@ function PlaceCard({
 }) {
   const [editing, setEditing] = useState(false);
   const [showMap, setShowMap] = useState(false);
+  const [fallbackQuery, setFallbackQuery] = useState<string>("");
   const [selected, setSelected] = useState<{ latitude: number; longitude: number; address: string } | null>(null);
   const defaultRadius = type === "HOME" ? 150 : 250;
   const icon = type === "HOME" ? <Home className="w-4 h-4" /> : <School className="w-4 h-4" />;
@@ -133,6 +134,7 @@ function PlaceCard({
             <MapPinPicker
               initialLat={deviceLat}
               initialLng={deviceLng}
+              fallbackLabel={fallbackQuery}
               onConfirm={(r) => { setSelected(r); setShowMap(false); }}
               onCancel={() => setShowMap(false)}
             />
@@ -143,7 +145,7 @@ function PlaceCard({
               <button type="button" className="text-[10px] text-muted-foreground underline mr-auto" onClick={() => setSelected(null)}>שנה</button>
             </div>
           ) : (
-            <AddressAutocomplete onSelect={(r) => setSelected(r)} onFallback={() => setShowMap(true)} />
+            <AddressAutocomplete onSelect={(r) => setSelected(r)} onFallback={(q) => { setFallbackQuery(q || ""); setShowMap(true); }} />
           )}
 
           {!showMap && (

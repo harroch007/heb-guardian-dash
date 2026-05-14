@@ -47,6 +47,7 @@ export function ManualPlaceForm({
     existing ? { latitude: existing.latitude, longitude: existing.longitude, address: existing.label || "" } : null
   );
   const [showMap, setShowMap] = useState(false);
+  const [fallbackQuery, setFallbackQuery] = useState<string>("");
   const [radius, setRadius] = useState(String(existing?.radius_meters ?? 200));
   const [alertEnter, setAlertEnter] = useState(existing?.alert_on_enter ?? false);
   const [alertExit, setAlertExit] = useState(existing?.alert_on_exit ?? true);
@@ -109,6 +110,7 @@ export function ManualPlaceForm({
           <MapPinPicker
             initialLat={deviceLat}
             initialLng={deviceLng}
+            fallbackLabel={fallbackQuery || label}
             onConfirm={(r) => { setSelected(r); setShowMap(false); }}
             onCancel={() => setShowMap(false)}
           />
@@ -125,7 +127,7 @@ export function ManualPlaceForm({
                 השתמש במיקום המכשיר {deviceAddress ? `(${deviceAddress})` : ""}
               </button>
             )}
-            <AddressAutocomplete onSelect={(r) => setSelected(r)} onFallback={() => setShowMap(true)} />
+            <AddressAutocomplete onSelect={(r) => setSelected(r)} onFallback={(q) => { setFallbackQuery(q || ""); setShowMap(true); }} />
           </div>
         )}
       </div>
