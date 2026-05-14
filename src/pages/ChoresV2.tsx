@@ -325,9 +325,6 @@ export default function ChoresV2() {
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="pt-1 space-y-3" ref={formRef as any}>
-                  <QuickChoreTemplates
-                    onPick={(title, minutes) => addChore(title, minutes, false, null)}
-                  />
                   <ChoreForm onSubmit={addChore} />
                 </AccordionContent>
               </AccordionItem>
