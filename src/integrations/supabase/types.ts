@@ -3399,6 +3399,15 @@ export type Database = {
           status: string
         }[]
       }
+      get_child_siblings_status: {
+        Args: { p_child_id: string; p_device_id?: string }
+        Returns: {
+          gender: string
+          name: string
+          sibling_id: string
+          streak: number
+        }[]
+      }
       get_child_top_apps: {
         Args: { p_child_id: string; p_date: string; p_limit?: number }
         Returns: {
