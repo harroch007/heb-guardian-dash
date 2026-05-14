@@ -1,92 +1,42 @@
-## RPC חדש: `get_device_lock_state`
+## חשיפת `child_gender` בזרימת ה-Pairing
 
-יצירת פונקציית RPC שתאפשר לאנדרואיד לשלוף את מצב הנעילה של הילד דרך 2-Tier Auth Gate (זהה ל-`get_child_chores`), עוקפת את חסימת ה-RLS על קריאה ישירה מהטבלה.
+המטרה: שהאנדרואיד יקבל את מין הילד (`male`/`female`/`other`) ברגע ההתחברות, כדי להתאים את שפת הממשק.
 
-### הפונקציה
+### מצב קיים
+- טבלת `children.gender` כבר קיימת (`text`, ערכים בפועל: `male`, `female`, `other`).
+- שתי דרכי pairing באנדרואיד:
+  1. `bootstrap-device-auth` (Edge) → מפעיל `pair_device` RPC.
+  2. `connect_child_device` RPC ישיר (legacy: email + code).
+- שתיהן מחזירות כיום `child_id` ו-`child_name` בלבד.
 
-```sql
-CREATE OR REPLACE FUNCTION public.get_device_lock_state(
-  p_child_id uuid,
-  p_device_id text DEFAULT NULL
-)
-RETURNS SETOF public.device_lock_state
-LANGUAGE plpgsql
-STABLE
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE
-  v_caller_uid uuid;
-  v_jwt_device_child uuid;
-  v_legacy_child uuid;
-  v_authorized boolean := false;
-BEGIN
-  v_caller_uid := auth.uid();
+### שינויים מתוכננים
 
-  -- Tier 1: JWT-based auth (modern device or parent)
-  IF v_caller_uid IS NOT NULL
-     AND v_caller_uid <> '00000000-0000-0000-0000-000000000000'::uuid THEN
+**1. RPC `pair_device` — מיגרציה**
+- `RETURNS TABLE(success, child_id, child_name, child_gender text, error_message)` — מוסיף עמודה.
+- שולף `gender` מטבלת `children` יחד עם `id, name`.
+- במקרה כישלון: `child_gender` = `null`.
 
-    BEGIN
-      v_jwt_device_child := NULLIF(
-        (auth.jwt() -> 'app_metadata' ->> 'child_id'), ''
-      )::uuid;
-    EXCEPTION WHEN others THEN
-      v_jwt_device_child := NULL;
-    END;
+**2. RPC `connect_child_device` — מיגרציה**
+- מוסיף `'child_gender', v_child_gender` ל-`json_build_object` של ה-success branch.
 
-    IF v_jwt_device_child IS NOT NULL THEN
-      IF v_jwt_device_child = p_child_id THEN
-        v_authorized := true;
-      END IF;
-    ELSE
-      -- Parent path
-      IF EXISTS (
-        SELECT 1 FROM public.children c
-        WHERE c.id = p_child_id
-          AND c.parent_id = v_caller_uid
-      ) THEN
-        v_authorized := true;
-      END IF;
-    END IF;
-  END IF;
+**3. Edge Function `bootstrap-device-auth/index.ts`**
+- קורא `child_gender` מתוצאת `pair_device`.
+- מוסיף ל-JSON response: `child_gender`.
+- מוסיף ל-`app_metadata` ול-`user_metadata` של ה-auth user החדש.
 
-  -- Tier 2: Legacy device_id fallback
-  IF NOT v_authorized AND p_device_id IS NOT NULL THEN
-    v_legacy_child := public.authorize_device_call(p_device_id);
-    IF v_legacy_child = p_child_id THEN
-      v_authorized := true;
-    END IF;
-  END IF;
+**4. Edge Function `recover-device-credentials/index.ts`**
+- ה-`select` מ-`children` כבר טוען רק `name` — להרחיב ל-`name, gender`.
+- מוסיף `child_gender` ל-`user_metadata` ול-JSON response.
 
-  IF NOT v_authorized THEN
-    RAISE EXCEPTION 'UNAUTHORIZED' USING ERRCODE = '42501';
-  END IF;
+**5. החלת מיגרציה**
+- מריץ `NOTIFY pgrst, 'reload schema'` אחרי שינוי החתימות (חתימת `pair_device` משתנה — שינוי breaking לקליינטים שמסתמכים על מבנה ה-TABLE; האנדרואיד הוא הצרכן היחיד).
 
-  RETURN QUERY
-    SELECT *
-    FROM public.device_lock_state
-    WHERE child_id = p_child_id
-    LIMIT 1;
-END;
-$$;
+### ערכים נתמכים
+`'male' | 'female' | 'other'` (ללא ברירת מחדל בצד השרת — אם `gender` ריק, יוחזר `null` והאנדרואיד יבחר fallback).
 
-GRANT EXECUTE ON FUNCTION public.get_device_lock_state(uuid, text)
-  TO anon, authenticated;
-
-NOTIFY pgrst, 'reload schema';
-```
-
-### למה `RETURNS SETOF` ולא JSON
-
-תואם בדיוק לדפוס של `get_child_chores`, מאפשר לקליינט לפענח את הרשומה ישירות בלי `JSON.parse`, ושומר על טייפים מלאים ב-`types.ts`. במקרה של אין נעילה — חוזר 0 שורות (לא שגיאה).
-
-### אבטחה
-
-- **Tier 1 (JWT)**: מכשיר אנדרואיד מודרני עם `app_metadata.child_id` → חייב להתאים ל-`p_child_id`. הורה מחובר → חייב להיות `parent_id` של הילד.
-- **Tier 2 (Legacy)**: `p_device_id` מועבר ל-`authorize_device_call` שמחזיר את ה-`child_id` המוקצה ל-device_id ההוא — חייב להתאים.
-- בכישלון בשני השכבות → `42501 UNAUTHORIZED`.
-
-### לאחר ההחלה
-
-`NOTIFY pgrst, 'reload schema'` כדי שה-PostgREST יזהה את ה-RPC החדש מיידית. סוכן האנדרואיד יחליף את ה-`select` הישיר מ-`device_lock_state` בקריאה ל-`rpc('get_device_lock_state', { p_child_id, p_device_id })`.
+### סיכום נקודות שהאנדרואיד יוכל לקרוא מהן `child_gender`
+- `bootstrap-device-auth` JSON response (`child_gender`)
+- `recover-device-credentials` JSON response (`child_gender`)
+- `pair_device` RPC row (`child_gender`)
+- `connect_child_device` RPC json (`child_gender`)
+- ב-JWT של המכשיר: `app_metadata.child_gender` (זמין מ-`auth.jwt()` בכל קריאה)
