@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Battery, MapPin, Clock, Smartphone, Bell, Plus, Volume2, Lock, Loader2, CheckCircle2, AlertTriangle, WifiOff } from "lucide-react";
+import { Battery, MapPin, Clock, Smartphone, Bell, Plus, Volume2, Lock, Loader2, CheckCircle2, AlertTriangle, WifiOff, Gift } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { getIsraelDate } from "@/lib/utils";
