@@ -122,11 +122,13 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
 
   const borderClass = !connected
     ? "border-red-300 ring-1 ring-red-200"
-    : screenTimeExceeded
+    : exceededHardLock
       ? "border-red-300 ring-1 ring-red-200"
-      : child.activeRestriction
+      : exceededWithReserve
         ? "border-amber-300"
-        : "border-border";
+        : child.activeRestriction
+          ? "border-amber-300"
+          : "border-border";
 
   return (
     <AccordionItem
