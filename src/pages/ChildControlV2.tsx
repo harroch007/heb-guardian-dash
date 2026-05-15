@@ -74,6 +74,7 @@ import {
 } from "lucide-react";
 import { WHATSAPP_MONITORING_ENABLED } from "@/config/featureFlags";
 import { HelpTooltip } from "@/components/help/HelpTooltip";
+import { gt, child as childWord } from "@/lib/genderText";
 
 // ---------- PERMISSION LABELS ----------
 const PERMISSION_LABELS: Record<string, string> = {
@@ -376,7 +377,7 @@ export default function ChildControlV2() {
   useEffect(() => {
     if (ringPhase === prevRingPhase.current) return;
     prevRingPhase.current = ringPhase;
-    if (ringPhase === "child_stopped") toast({ title: "הילד עצר את הצלצול" });
+    if (ringPhase === "child_stopped") toast({ title: gt(child?.gender, "הילד עצר את הצלצול", "הילדה עצרה את הצלצול") });
     else if (ringPhase === "timeout" || ringPhase === "completed_legacy") toast({ title: "הצלצול הסתיים" });
     else if (ringPhase === "failed") toast({ title: "לא ניתן לצלצל", description: "המכשיר לא הצליח להשמיע צליל", variant: "destructive" });
   }, [ringPhase, toast]);
@@ -411,11 +412,11 @@ export default function ChildControlV2() {
     setDeleting(true);
     const { error } = await supabase.rpc("delete_child_data", { p_child_id: childId });
     if (error) {
-      toast({ title: "שגיאה", description: "לא ניתן למחוק את הילד", variant: "destructive" });
+      toast({ title: "שגיאה", description: `לא ניתן למחוק את ${childWord(child?.gender)}`, variant: "destructive" });
       setDeleting(false);
       return;
     }
-    toast({ title: "הילד הוסר בהצלחה", description: `כל הנתונים של ${child?.name} נמחקו` });
+    toast({ title: gt(child?.gender, "הילד הוסר בהצלחה", "הילדה הוסרה בהצלחה"), description: `כל הנתונים של ${child?.name} נמחקו` });
     navigate("/home-v2");
   };
 
@@ -428,7 +429,7 @@ export default function ChildControlV2() {
       setDisconnecting(false);
       return;
     }
-    toast({ title: "המכשיר נותק", description: "המכשיר נותק בהצלחה מהילד" });
+    toast({ title: "המכשיר נותק", description: `המכשיר נותק בהצלחה מ${childWord(child?.gender)}` });
     setDevice(null);
     setDisconnecting(false);
   };
@@ -538,7 +539,7 @@ export default function ChildControlV2() {
               <AlertDialogHeader>
                 <AlertDialogTitle>האם להסיר את {child?.name}?</AlertDialogTitle>
                 <AlertDialogDescription className="text-right">
-                  פעולה זו תמחק את כל הנתונים הקשורים לילד זה כולל: התראות, מכשירים מחוברים, ונתוני שימוש.
+                  פעולה זו תמחק את כל הנתונים הקשורים ל{childWord(child?.gender)} כולל: התראות, מכשירים מחוברים, ונתוני שימוש.
                   <br /><br />
                   <strong>לא ניתן לבטל פעולה זו.</strong>
                 </AlertDialogDescription>
@@ -601,7 +602,7 @@ export default function ChildControlV2() {
                   <p className="text-lg font-bold text-foreground">{Math.round(totalUsageFromDb)} <span className="text-xs font-normal text-muted-foreground">דק׳</span></p>
                   <div className="flex items-center justify-center gap-1">
                     <p className="text-[11px] text-muted-foreground">זמן מסך היום</p>
-                    <HelpTooltip text="כמה זמן הילד השתמש במכשיר היום (לפי שעון ישראל, מתאפס בחצות)." iconSize={11} />
+                    <HelpTooltip text={`כמה זמן ${childWord(child?.gender)} ${gt(child?.gender, "השתמש", "השתמשה")} במכשיר היום (לפי שעון ישראל, מתאפס בחצות).`} iconSize={11} />
                   </div>
                   {screenTimeLimit && (
                     <p className="text-[10px] text-muted-foreground/70">מתוך {screenTimeLimit} דק׳</p>
@@ -612,7 +613,7 @@ export default function ChildControlV2() {
                   <p className="text-lg font-bold text-foreground">{rewardBankBalance}</p>
                   <div className="flex items-center justify-center gap-1">
                     <p className="text-[11px] text-muted-foreground">דקות בבנק</p>
-                    <HelpTooltip text="דקות בונוס שהילד צבר ממשימות וזמינות לפדיון להארכת זמן מסך." iconSize={11} />
+                    <HelpTooltip text={`דקות בונוס ש${childWord(child?.gender)} ${gt(child?.gender, "צבר", "צברה")} ממשימות וזמינות לפדיון להארכת זמן מסך.`} iconSize={11} />
                   </div>
                   {todayBonusMinutes > 0 && (
                     <p className="text-[10px] text-warning">+{todayBonusMinutes} היום</p>
