@@ -48,8 +48,8 @@ self.addEventListener('push', (event) => {
       dir: data.dir || 'rtl',
       lang: data.lang || 'he',
       tag: data.tag || 'kippy-notification',
-      data: { 
-        url: data.url || '/alerts',
+      data: {
+        url: data.url || '/alerts-v2',
         child_name: data.child_name 
       },
       requireInteraction: true,
@@ -69,7 +69,7 @@ self.addEventListener('notificationclick', (event) => {
   }
   
   // Get the relative URL path from notification data
-  const urlPath = event.notification.data?.url || '/alerts';
+  const urlPath = event.notification.data?.url || '/alerts-v2';
   
   // Build full URL within the PWA scope - this helps open in the installed app
   const scope = self.registration.scope;
