@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import type { Chore } from "@/hooks/useChores";
+import { gt } from "@/lib/genderText";
 
 interface ChoreListProps {
   chores: Chore[];
@@ -12,6 +13,7 @@ interface ChoreListProps {
   onReject: (id: string) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   childName?: string;
+  childGender?: string | null;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
@@ -21,7 +23,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   rejected: { label: "נדחה", color: "bg-destructive/20 text-red-400 border-red-500/30" },
 };
 
-export function ChoreList({ chores, onApprove, onReject, onDelete, childName }: ChoreListProps) {
+export function ChoreList({ chores, onApprove, onReject, onDelete, childName, childGender }: ChoreListProps) {
   const [photoChore, setPhotoChore] = useState<Chore | null>(null);
 
   if (chores.length === 0) {
@@ -37,7 +39,7 @@ export function ChoreList({ chores, onApprove, onReject, onDelete, childName }: 
   return (
     <div className="space-y-2" dir="rtl">
       {chores.map(chore => (
-        <ChoreItem key={chore.id} chore={chore} onApprove={onApprove} onReject={onReject} onDelete={onDelete} childName={childName} onPhotoClick={setPhotoChore} />
+        <ChoreItem key={chore.id} chore={chore} onApprove={onApprove} onReject={onReject} onDelete={onDelete} childName={childName} childGender={childGender} onPhotoClick={setPhotoChore} />
       ))}
 
       {/* Photo proof dialog */}
@@ -47,7 +49,7 @@ export function ChoreList({ chores, onApprove, onReject, onDelete, childName }: 
             תמונת הוכחה — {photoChore?.title}
           </DialogTitle>
           <DialogDescription className="text-center text-sm text-muted-foreground">
-            {childName ? `${childName} צירף/ה תמונה` : "תמונה שצורפה למשימה"}
+            {childName ? `${childName} ${gt(childGender, "צירף", "צירפה")} תמונה` : "תמונה שצורפה למשימה"}
           </DialogDescription>
           {photoChore?.proof_photo_base64 && (
             <img
@@ -88,7 +90,7 @@ export function ChoreList({ chores, onApprove, onReject, onDelete, childName }: 
   );
 }
 
-function ChoreItem({ chore, onApprove, onReject, onDelete, childName, onPhotoClick }: { chore: Chore; childName?: string; onPhotoClick: (chore: Chore) => void } & Pick<ChoreListProps, "onApprove" | "onReject" | "onDelete">) {
+function ChoreItem({ chore, onApprove, onReject, onDelete, childName, childGender, onPhotoClick }: { chore: Chore; childName?: string; childGender?: string | null; onPhotoClick: (chore: Chore) => void } & Pick<ChoreListProps, "onApprove" | "onReject" | "onDelete">) {
   const config = STATUS_CONFIG[chore.status] || STATUS_CONFIG.pending;
   const hasPhoto = !!chore.proof_photo_base64;
 
@@ -120,7 +122,7 @@ function ChoreItem({ chore, onApprove, onReject, onDelete, childName, onPhotoCli
           <div className="flex items-center gap-2 flex-wrap">
             <Badge variant="outline" className={config.color}>
               {chore.status === "completed_by_child" && childName
-                ? `${childName} סימן/ה כבוצע`
+                ? `${childName} ${gt(childGender, "סימן", "סימנה")} כבוצע`
                 : config.label}
             </Badge>
             <span className="text-xs text-primary font-medium">{chore.reward_minutes} דק׳</span>
