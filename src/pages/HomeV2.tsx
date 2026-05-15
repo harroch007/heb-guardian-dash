@@ -410,6 +410,8 @@ const HomeV2 = () => {
           </Accordion>
         )}
 
+        <HomePendingGeofenceAlerts childrenData={childrenData} />
+
         <HomePendingChoreApprovals childrenData={childrenData} />
 
         <HomePendingApps childrenData={childrenData} />
