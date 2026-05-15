@@ -10,6 +10,7 @@ import { WHATSAPP_MONITORING_ENABLED } from "@/config/featureFlags";
 import { HelpTooltip } from "@/components/help/HelpTooltip";
 import { AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import type { ChildWithData } from "@/pages/HomeV2";
+import { gt, child as childWord } from "@/lib/genderText";
 
 interface Props {
   child: ChildWithData;
