@@ -6,6 +6,7 @@ import { LocationMap } from "@/components/LocationMap";
 import { formatLastSeen } from "@/lib/deviceStatus";
 import { toast as sonnerToast } from "sonner";
 import type { RingPhase } from "@/hooks/useRingCommand";
+import { gt } from "@/lib/genderText";
 
 interface LocationSectionV2Props {
   device: {
@@ -15,6 +16,7 @@ interface LocationSectionV2Props {
     last_seen: string | null;
   };
   childName: string;
+  childGender?: string | null;
   locateStatus: "idle" | "locating" | "success" | "failed";
   showMap: boolean;
   setShowMap: (v: boolean) => void;
@@ -28,6 +30,7 @@ interface LocationSectionV2Props {
 export function LocationSectionV2({
   device,
   childName,
+  childGender,
   locateStatus,
   showMap,
   setShowMap,
@@ -52,7 +55,7 @@ export function LocationSectionV2({
       case "ringing":
         return (<><Volume2 className="w-4 h-4 ml-1.5 animate-pulse" />מצלצל...</>);
       case "child_stopped":
-        return (<><CheckCircle2 className="w-4 h-4 ml-1.5 text-success" />הילד עצר ✓</>);
+        return (<><CheckCircle2 className="w-4 h-4 ml-1.5 text-success" />{gt(childGender, "הילד עצר ✓", "הילדה עצרה ✓")}</>);
       case "timeout":
       case "completed_legacy":
         return (<><CheckCircle2 className="w-4 h-4 ml-1.5 text-success" />הצלצול הסתיים ✓</>);
