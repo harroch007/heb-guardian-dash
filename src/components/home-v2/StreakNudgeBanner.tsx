@@ -16,6 +16,7 @@ export interface StreakNudgeChild {
   name: string;
   streak: number;
   needsNudge: boolean;
+  gender?: string | null;
 }
 
 interface Props {
