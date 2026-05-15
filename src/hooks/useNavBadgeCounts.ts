@@ -51,6 +51,7 @@ export function useNavBadgeCounts(): NavBadgeCounts {
         alertsRes,
         thresholdRes,
         devicesRes,
+        geofenceRes,
       ] = await Promise.all([
         supabase
           .from("time_extension_requests")
