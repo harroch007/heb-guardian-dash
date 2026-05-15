@@ -741,7 +741,7 @@ const Index = () => {
               ברוכים הבאים ל-Kippy! 👋
             </h2>
             <p className="text-muted-foreground text-sm mb-8 max-w-sm mx-auto">
-              כדי להתחיל להגן על הילדים שלכם ברשת, הוסיפו ילד וחברו את המכשיר שלו
+              כדי להתחיל להגן על הילדים שלכם ברשת, הוסיפו ילד/ה וחברו את המכשיר שלו
             </p>
 
             <div className="flex justify-center gap-4 mb-8">
