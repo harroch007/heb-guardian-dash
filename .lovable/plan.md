@@ -1,69 +1,75 @@
+## הבעיה
 
-## מטרה
-להפוך את /admin ממוקד-AI/ווטסאפ לדשבורד ניהול שמשקף את קיפי החדש (בקרת הורים: משימות, תגמולים, זמן מסך, גבולות גזרה, מכשירים).
+בדקתי את הזרימה בפועל מול ה‑DB עבור רחלי (ילדה של yarivtm@gmail.com):
 
-## מבנה טאבים חדש (4 במקום 7)
+- מקום SCHOOL מוגדר (גדעון האוזנר 3, רדיוס 250m), `alert_on_exit=true`, `is_active=true`. ✅
+- מיקום נוכחי של המכשיר: `32.1672, 34.8472` (האורנים, כפר שמריהו) — כ‑1.8 ק"מ מבית הספר. ✅ באמת מחוץ לגבול הגזרה.
+- בטבלת `alerts` עם `category='geofence'` יש **0 רשומות בכל המערכת אי פעם**. ❌
 
+**הסיבה:** בארכיטקטורה הנוכחית, השרת רק שומר את המיקום (`update_device_location` מעדכן `devices.latitude/longitude`) ומשגר את רשימת `geofence_places` לאנדרואיד דרך `get_device_settings`. הציפייה היא שהאנדרואיד יזהה לבד יציאה/כניסה ויכתוב alert מסוג `geofence` — ואז הטריגר הקיים `on_geofence_alert_insert` שולח Push.
+
+בפועל הקליינט האנדרואיד לא מבצע את הזיהוי הזה (ואסור לנו לגעת בו לפי האילוץ הקבוע). אין שום לוגיקה בצד השרת שמשווה את המיקום לגבולות הגזרה — לכן אף פעם לא נוצרה התראת `geofence`, אין Push, ואין כרטיס בטאב הבית.
+
+## הפתרון — הזזת זיהוי הגאופנס לצד השרת
+
+כל הלוגיקה תרוץ בתוך RPC קיים שכבר נקרא בכל דיווח מיקום מהאנדרואיד (`update_device_location`), כך שלא נדרש שינוי בקליינט.
+
+### 1. טבלת מצב חדשה: `child_place_state`
+
+מעקב inside/outside per (child, place) כדי לזהות *מעבר* ולא להציף בהתראות:
+- `child_id`, `place_id` (PK יחד)
+- `is_inside boolean`
+- `last_transition_at timestamptz`
+- `last_alert_at timestamptz`
+
+עם RLS שמאפשר רק SECURITY DEFINER לכתוב.
+
+### 2. פונקציה חדשה: `evaluate_geofences(p_child_id, p_lat, p_lon)`
+
+- שולפת את כל `child_places` הפעילים של הילד.
+- מחשבת מרחק (Haversine) לכל מקום.
+- קובעת `inside = distance <= radius_meters`.
+- משווה ל‑`child_place_state.is_inside` הקיים:
+  - **מעבר ל‑outside** ו‑`alert_on_exit=true` → יוצר alert.
+  - **מעבר ל‑inside** ו‑`alert_on_enter=true` → יוצר alert.
+- מכבד `child_geofence_settings.exit_debounce_seconds` (ברירת מחדל 120) ו‑`schedule_mode/days_of_week/start_time/end_time` כך שב‑MANUAL עם תזמון לא נשלח אם זה מחוץ לחלון.
+- מכבד גם `home_exit_alert_enabled` / `school_exit_alert_enabled` הגלובליים.
+- שמירת cooldown של 5 דקות בין התראות זהות (`last_alert_at`).
+
+### 3. INSERT לטבלת `alerts`
+
+`category='geofence'`, `child_id`, `device_id`, `parent_message` בעברית (לדוגמה: "רחלי יצאה מאזור בית הספר — מיקום נוכחי: האורנים, כפר שמריהו"), `should_alert=true`, `is_processed=true` (לא דורש AI), `created_at=now()`. הטריגר הקיים `on_geofence_alert_insert` ידאג ל‑Push דרך `send-push-notification`.
+
+### 4. חיבור ב‑`update_device_location`
+
+בסוף הפונקציה הקיימת, אחרי ה‑UPDATE על `devices`, להוסיף קריאה:
 ```
-[סקירה כללית] [משתמשים] [תפעול בקרת הורים] [מרכז עזרה]
+PERFORM evaluate_geofences(v_child_id, p_lat, p_lon);
 ```
+עטוף ב‑`BEGIN/EXCEPTION WHEN OTHERS` כדי שכשל בגאופנס לא יפיל דיווח מיקום.
 
-### 1. סקירה כללית (AdminOverview – שכתוב)
-**להסיר:** alertsByVerdict, alertsTrend (safe/review/notify/notified), messagesScannedToday, criticalAlertsToday, alertsAnalyzedToday, systemAlertsToday, feedbackTrend, feedbackEngagementRate, freeChildren/premiumChildren, queue widgets.
+### 5. תצוגה בטאב הבית (HomeV2)
 
-**להשאיר/לשנות:**
-- `totalParents`, `totalWaitlist`, `totalDevices`, `activeUsersToday`, `activeChildrenToday`, `activeParentsThisWeek`
-- Funnel: Waitlist → נרשמו → הוסיפו ילד → חיברו מכשיר → פעילים היום
+יצירת `HomePendingGeofenceAlerts.tsx` בסגנון של `HomePendingTimeRequests.tsx` /  `HomePendingApps.tsx`:
+- שואל את 5 ההתראות האחרונות ב‑24 שעות אחרונות עם `category='geofence'` ו‑`acknowledged_at IS NULL` עבור הילדים של ההורה.
+- כרטיס אדום עם אייקון `MapPin`, שם הילד, שם המקום, מתי קרה, וכפתור "ראה מפה" שמוביל ל‑`/alerts` או למסך הילד.
+- הוספה ל‑`HomeV2.tsx` בסדר עדיפות מעל NewApps (גאופנס הוא בטיחותי/דחוף יותר).
+- עדכון `useNavBadgeCounts` כך שגם התראות גאופנס לא מאושרות יספרו ב‑Bottom Nav.
 
-**להוסיף (מטריקות בקרת הורים, לא-AI):**
-- משימות: סה"כ פעילות, הושלמו היום, ממתינות לאישור הורה
-- בנק תגמולים: סה"כ דקות זמינות במערכת, פדיונות היום
-- זמן מסך: ממוצע דקות שימוש היום לכל ילד פעיל, מספר בקשות הארכת זמן ממתינות
-- מכשירים: כמה online (≤15 דק'), today, offline (>24h), בלי מכשיר
-- מיקומים: כמה משפחות הגדירו ≥1 child_place
+### 6. Bootstrap מצב התחלתי
 
-### 2. משתמשים (AdminUsersHub – לשמר)
-- תתי-טאבים: משתמשים, דורשים טיפול, רשימת המתנה
-- **להסיר:** טאב "פרומו קודים" (AdminPromoCodes)
-- AdminCustomerProfile נשמר; להסיר ממנו כל סקציית AI/ווטסאפ אם קיימת
+בהרצה הראשונה אחרי הדפלוי — לפני שיש שורה ב‑`child_place_state`, ה‑RPC יזהה זאת ויאתחל את המצב לפי המיקום הנוכחי **מבלי לשלוח התראה** (כדי לא להציף בהתראה רטרואקטיבית). מההפעלה הבאה והלאה — רק מעברים אמיתיים יוצרים התראה.
 
-### 3. תפעול בקרת הורים (חדש – AdminParentalOps)
-4 תתי-טאבים:
-- **משימות ובנק תגמולים** – טבלאות chores, chore_completions, reward_transactions, reward_bank; פילוח לפי משפחה; ממתינות לאישור
-- **זמן מסך וזמן בונוס** – שימוש יומי ממוצע, time_extension_requests פתוחות, bonus_time_grants פעילים, פדיונות מבנק
-- **גבולות גזרה ומיקומים** – child_places מוגדרים, אירועי enter/exit אחרונים, מפת מיקומים (אופציונלי)
-- **מכשירים וחיבוריות** – טבלת מכשירים: סוללה, last_seen, סטטוס, פקודות תלויות, אפשרות לסנן offline >24h
+עם זאת, במקרה הספציפי של רחלי שכבר מחוץ לגבול הגזרה כשתאתחל — נרצה התראה. לכן בבוטסטרפ הראשון, אם המצב הוא "מחוץ" ו‑`alert_on_exit=true` — נשלח התראה אחת.
 
-### 4. מרכז עזרה (AdminHelpCenter – לשמר כמות שהוא)
+## פרטים טכניים נוספים
 
-## קבצים להסיר מהראוטינג (לא מהדיסק בשלב זה)
-- `AdminAlertsAndAI.tsx` – מוסר מ-Tabs
-- `AdminAIAnalyst.tsx` – מוסר
-- `AdminAlertQA.tsx` – מוסר
-- `AdminQueue.tsx` – מוסר
-- `AdminPromoCodes.tsx` – מוסר מ-AdminUsersHub
-- `AdminTraining.tsx`, `AdminInsightStats.tsx`, `AdminModelComparison.tsx`, `AdminFeedback.tsx` – אם לא בשימוש מאף מקום אחר
+- הגרלת המיגרציה: יצירת `child_place_state`, RLS דוחה (`USING(false)`), `evaluate_geofences` כ‑`SECURITY DEFINER`, ועדכון `update_device_location` לקרוא לה.
+- ה‑Push כבר עובד דרך `on_geofence_alert_insert` הקיים — רק חסר היה מי שיכניס את ה‑alert.
+- אין צורך בעריכת קוד אנדרואיד — האנדרואיד ימשיך לקרוא ל‑`update_device_location(p_device_id, lat, lon, address)` בדיוק כמו היום.
 
-הקבצים יישארו על הדיסק לגיבוי; ניתן למחוק בהמשך.
+## קבצים שיעודכנו / ייווצרו
 
-## קבצים חדשים
-- `src/pages/admin/AdminParentalOps.tsx` – טאב הראשי עם 4 תתי-טאבים
-- `src/pages/admin/parental-ops/ChoresAndRewardsPanel.tsx`
-- `src/pages/admin/parental-ops/ScreenTimePanel.tsx`
-- `src/pages/admin/parental-ops/PlacesPanel.tsx`
-- `src/pages/admin/parental-ops/DevicesPanel.tsx`
-
-## עדכון Admin.tsx
-- צמצום ל-4 TabsTriggers, החלפת אייקונים: LayoutDashboard, Users, SlidersHorizontal, HelpCircle
-- מחיקת state מיותר (trainingStats, trainingRecords, queue auto-refresh)
-- מחיקת fetchTrainingStats, getAgeGroup, getRiskLevel, getClassificationLabel, VERDICT_COLORS
-- ב-fetchOverviewStats: למחוק כל החישובים של verdict/feedback/queue ולהוסיף שאילתות חדשות (chores aggregated, time_extension_requests count, child_places count, devices status breakdown)
-
-## עיצוב/UX
-- שמירה על dir="rtl", הכותרת "דשבורד ניהול | מרכז שליטה למנכ"ל"
-- כל המטריקות בעברית, עיצוב כרטיסים זהה לקיים (bg-card border-border/50)
-
-## הערות חשובות
-- שום שינוי במסד הנתונים לא נדרש – רק שאילתות SELECT חדשות מטבלאות קיימות.
-- AdminCustomerProfile, AdminAttentionReport, AdminWaitlist, AdminUsers נשארים ועובדים.
-- אין שינוי במידע של משתמשים – רק החלפת תצוגה.
+- מיגרציה חדשה (טבלה + 2 פונקציות + עדכון update_device_location).
+- חדש: `src/components/home-v2/HomePendingGeofenceAlerts.tsx`.
+- עדכון: `src/pages/HomeV2.tsx` (הוספת הקומפוננטה), `src/hooks/useNavBadgeCounts.ts` (ספירת geofence).
