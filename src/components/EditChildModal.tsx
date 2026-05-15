@@ -75,7 +75,7 @@ export function EditChildModal({ child, open, onOpenChange, onUpdated }: EditChi
     if (error) {
       toast({
         title: 'שגיאה',
-        description: 'לא ניתן לעדכן את פרטי הילד',
+        description: 'לא ניתן לעדכן את פרטי הילד/ה',
         variant: 'destructive',
       });
       setSaving(false);
@@ -84,7 +84,7 @@ export function EditChildModal({ child, open, onOpenChange, onUpdated }: EditChi
 
     toast({
       title: 'הפרטים עודכנו',
-      description: 'פרטי הילד עודכנו בהצלחה',
+      description: 'פרטי הילד/ה עודכנו בהצלחה',
     });
 
     onUpdated({
@@ -104,7 +104,7 @@ export function EditChildModal({ child, open, onOpenChange, onUpdated }: EditChi
         <DialogHeader>
           <DialogTitle>עריכת פרטי ילד</DialogTitle>
           <DialogDescription>
-            עדכן את הפרטים של {child.name}
+            עדכן/י את הפרטים של {child.name}
           </DialogDescription>
         </DialogHeader>
 
