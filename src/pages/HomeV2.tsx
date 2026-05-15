@@ -14,6 +14,7 @@ import { DailyControlSummary } from "@/components/home-v2/DailyControlSummary";
 import { HomePendingTimeRequests } from "@/components/home-v2/HomePendingTimeRequests";
 import { HomePendingApps } from "@/components/home-v2/HomePendingApps";
 import { HomePendingChoreApprovals } from "@/components/home-v2/HomePendingChoreApprovals";
+import { HomePendingGeofenceAlerts } from "@/components/home-v2/HomePendingGeofenceAlerts";
 import { StreakNudgeBanner } from "@/components/home-v2/StreakNudgeBanner";
 import { calcStreak } from "@/lib/streak";
 import { SmartProtectionSummary } from "@/components/home-v2/SmartProtectionSummary";
@@ -408,6 +409,8 @@ const HomeV2 = () => {
             ))}
           </Accordion>
         )}
+
+        <HomePendingGeofenceAlerts childrenData={childrenData} />
 
         <HomePendingChoreApprovals childrenData={childrenData} />
 

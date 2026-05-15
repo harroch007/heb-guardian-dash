@@ -1401,6 +1401,30 @@ export type Database = {
           },
         ]
       }
+      child_place_state: {
+        Row: {
+          child_id: string
+          is_inside: boolean
+          last_alert_at: string | null
+          last_transition_at: string
+          place_id: string
+        }
+        Insert: {
+          child_id: string
+          is_inside: boolean
+          last_alert_at?: string | null
+          last_transition_at?: string
+          place_id: string
+        }
+        Update: {
+          child_id?: string
+          is_inside?: boolean
+          last_alert_at?: string | null
+          last_transition_at?: string
+          place_id?: string
+        }
+        Relationships: []
+      }
       child_places: {
         Row: {
           alert_on_enter: boolean
@@ -3320,6 +3344,15 @@ export type Database = {
         Returns: Json
       }
       disconnect_device: { Args: { p_device_id: string }; Returns: Json }
+      evaluate_geofences: {
+        Args: {
+          p_child_id: string
+          p_device_id: string
+          p_lat: number
+          p_lon: number
+        }
+        Returns: undefined
+      }
       export_my_data: { Args: never; Returns: Json }
       generate_kippy_tag:
         | { Args: never; Returns: string }
