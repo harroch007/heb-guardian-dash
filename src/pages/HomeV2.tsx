@@ -386,6 +386,7 @@ const HomeV2 = () => {
             name: c.name,
             streak: c.streak,
             needsNudge: c.streak >= 2 && !c.hasOpenTaskTodayOrTomorrow,
+            gender: c.gender,
           }))}
           onAdded={fetchAllData}
         />

@@ -16,6 +16,7 @@ export interface StreakNudgeChild {
   name: string;
   streak: number;
   needsNudge: boolean;
+  gender?: string | null;
 }
 
 interface Props {
@@ -115,7 +116,11 @@ export function StreakNudgeBanner({ children, onAdded }: Props) {
                 <Loader2 className="w-6 h-6 animate-spin text-primary" />
               </div>
             ) : (
-              <QuickChoreTemplates onPick={handlePick} disabled={submitting} />
+              <QuickChoreTemplates
+                gender={targets.find((t) => t.id === activeChildId)?.gender ?? null}
+                onPick={handlePick}
+                disabled={submitting}
+              />
             )}
           </div>
         </DialogContent>

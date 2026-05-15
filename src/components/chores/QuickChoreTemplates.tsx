@@ -1,26 +1,28 @@
 import { Plus } from "lucide-react";
+import { getQuickChoreTemplates } from "@/lib/genderText";
 
+// Backwards-compatible re-export (some callers/tests import this constant).
+// Prefer using <QuickChoreTemplates gender={...} /> which handles gender.
 export interface QuickTemplate {
   title: string;
   minutes: number;
   emoji: string;
 }
 
-export const QUICK_CHORE_TEMPLATES: QuickTemplate[] = [
-  { title: "סדר את החדר", minutes: 15, emoji: "🛏️" },
-  { title: "שיעורי בית", minutes: 20, emoji: "📚" },
-  { title: "כלים למדיח", minutes: 10, emoji: "🍽️" },
-  { title: "התארגנות בוקר", minutes: 5, emoji: "🌅" },
-  { title: "לזרוק את הזבל", minutes: 10, emoji: "🗑️" },
-];
+export const QUICK_CHORE_TEMPLATES: QuickTemplate[] = getQuickChoreTemplates(null).map(
+  ({ title, minutes, emoji }) => ({ title, minutes, emoji })
+);
 
 interface Props {
   onPick: (title: string, minutes: number) => void | Promise<void>;
   disabled?: boolean;
   compact?: boolean;
+  /** Child's gender — adapts the imperative form (e.g. "סדר" → "סדרי"). */
+  gender?: string | null;
 }
 
-export function QuickChoreTemplates({ onPick, disabled, compact }: Props) {
+export function QuickChoreTemplates({ onPick, disabled, compact, gender }: Props) {
+  const templates = getQuickChoreTemplates(gender);
   return (
     <div dir="rtl" className="space-y-2">
       {!compact && (
@@ -29,9 +31,9 @@ export function QuickChoreTemplates({ onPick, disabled, compact }: Props) {
         </p>
       )}
       <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-        {QUICK_CHORE_TEMPLATES.map((t) => (
+        {templates.map((t) => (
           <button
-            key={t.title}
+            key={t.key}
             type="button"
             disabled={disabled}
             onClick={() => onPick(t.title, t.minutes)}

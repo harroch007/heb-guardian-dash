@@ -200,6 +200,7 @@ export default function ChoresV2() {
         {selectedChildId && (
           <div className="v2-card p-3">
             <QuickChoreTemplates
+              gender={selectedChild?.gender}
               onPick={(title, minutes) => addChore(title, minutes, false, null)}
             />
           </div>
