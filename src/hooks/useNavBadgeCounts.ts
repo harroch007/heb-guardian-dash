@@ -93,6 +93,13 @@ export function useNavBadgeCounts(): NavBadgeCounts {
           .from("devices")
           .select("child_id, last_seen")
           .in("child_id", childIds),
+        supabase
+          .from("alerts")
+          .select("id, child_id")
+          .in("child_id", childIds)
+          .eq("category", "geofence")
+          .is("acknowledged_at", null)
+          .gte("created_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()),
       ]);
 
       const policyKey = new Set(
