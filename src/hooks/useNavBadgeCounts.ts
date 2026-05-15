@@ -140,8 +140,10 @@ export function useNavBadgeCounts(): NavBadgeCounts {
         if (!ls || Date.now() - new Date(ls).getTime() > dayMs) disconnected += 1;
       });
 
+      const geofenceCount = (geofenceRes.data || []).length;
+
       setCounts({
-        home: pendingApps + timeReqs + disconnected + choreApprovals,
+        home: pendingApps + timeReqs + disconnected + choreApprovals + geofenceCount,
         alerts: alertsCount,
         chores: choreApprovals,
       });
