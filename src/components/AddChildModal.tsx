@@ -133,7 +133,7 @@ export function AddChildModal({ open, onOpenChange, onChildAdded }: AddChildModa
         console.error("Error adding child:", error);
         if (error.code === '23505') {
           toast({
-            title: "לא ניתן להוסיף את הילד",
+            title: "לא ניתן להוסיף את הילד/ה",
             description: "מספר הטלפון כבר קיים במערכת. אם אתה חושב שמדובר בטעות, פנה לשירות הלקוחות שלנו בכתובת yariv@kippyai.com",
             variant: "destructive",
           });
@@ -146,7 +146,7 @@ export function AddChildModal({ open, onOpenChange, onChildAdded }: AddChildModa
         } else {
           toast({
             title: "שגיאה",
-            description: "לא ניתן להוסיף את הילד. נסה שוב מאוחר יותר.",
+            description: "לא ניתן להוסיף את הילד/ה. נסה שוב מאוחר יותר.",
             variant: "destructive",
           });
         }
@@ -184,7 +184,7 @@ export function AddChildModal({ open, onOpenChange, onChildAdded }: AddChildModa
           console.log("Device paired!", payload);
           toast({
             title: "🎉 המכשיר חובר בהצלחה!",
-            description: "המכשיר של הילד מחובר כעת למערכת",
+            description: "המכשיר של הילד/ה מחובר כעת למערכת",
           });
           handleClose();
         },
@@ -207,13 +207,13 @@ export function AddChildModal({ open, onOpenChange, onChildAdded }: AddChildModa
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Name */}
             <div className="space-y-2">
-              <Label htmlFor="name">שם הילד *</Label>
+              <Label htmlFor="name">שם הילד/ה *</Label>
               <div className="relative">
                 <User className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   id="name"
                   type="text"
-                  placeholder="שם הילד"
+                  placeholder="שם הילד/ה"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="pr-10"

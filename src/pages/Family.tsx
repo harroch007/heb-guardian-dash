@@ -267,7 +267,7 @@ export default function Family() {
                       עוד לא הוספתם ילדים
                     </h3>
                     <p className="text-muted-foreground text-sm mb-6 max-w-xs">
-                      הוסיפו את הילד הראשון כדי להתחיל לנטר את הפעילות הדיגיטלית שלו
+                      הוסיפו את הילד/ה הראשון/ה כדי להתחיל לנטר את הפעילות הדיגיטלית שלהם
                     </p>
                     <Button onClick={() => setIsAddModalOpen(true)}>
                       <Plus className="w-4 h-4 ml-2" />

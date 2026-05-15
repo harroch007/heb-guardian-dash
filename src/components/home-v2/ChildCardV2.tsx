@@ -10,6 +10,7 @@ import { WHATSAPP_MONITORING_ENABLED } from "@/config/featureFlags";
 import { HelpTooltip } from "@/components/help/HelpTooltip";
 import { AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import type { ChildWithData } from "@/pages/HomeV2";
+import { gt, child as childWord } from "@/lib/genderText";
 
 interface Props {
   child: ChildWithData;
@@ -106,7 +107,7 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
   const getRingTitle = () => {
     if (ringPhase === "sending") return "שולח...";
     if (ringPhase === "ringing") return "מצלצל...";
-    if (ringPhase === "child_stopped") return "הילד עצר ✓";
+    if (ringPhase === "child_stopped") return gt(child.gender, "הילד עצר ✓", "הילדה עצרה ✓");
     if (ringPhase === "timeout" || ringPhase === "completed_legacy") return "הסתיים ✓";
     if (ringPhase === "failed") return "נכשל";
     return "צלצל למכשיר";
@@ -149,7 +150,7 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
         <div className="flex items-center gap-2 px-4 py-2 bg-destructive/10 border-b border-red-200">
           <Lock className="h-4 w-4 text-destructive shrink-0" />
           <span className="text-xs font-semibold text-destructive">
-            המכשיר נעול — הילד חרג ממגבלת זמן המסך היומית
+            {gt(child.gender, "המכשיר נעול — הילד חרג ממגבלת זמן המסך היומית", "המכשיר נעול — הילדה חרגה ממגבלת זמן המסך היומית")}
           </span>
         </div>
       )}
@@ -225,7 +226,7 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
             icon={<Clock className="h-3.5 w-3.5 text-blue-500" />}
             label="זמן מסך"
             value={formatMinutes(usedMinutes)}
-            helpText="כמה זמן הילד השתמש במכשיר היום (לפי שעון ישראל, מתאפס בחצות)."
+            helpText={`כמה זמן ${childWord(child.gender)} ${gt(child.gender, "השתמש", "השתמשה")} במכשיר היום (לפי שעון ישראל, מתאפס בחצות).`}
           />
           {child.activeRestriction ? (
             <MetricCell
@@ -240,7 +241,7 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
                 icon={<Gift className="h-3.5 w-3.5 text-amber-500" />}
                 label="זמין מהבנק"
                 value={formatMinutes(child.rewardBankBalance)}
-                helpText="הילד חרג מהמכסה הבסיסית אך יכול לפדות דקות מהבנק כדי להמשיך."
+                helpText={`${childWord(child.gender)} ${gt(child.gender, "חרג", "חרגה")} מהמכסה הבסיסית אך ${gt(child.gender, "יכול", "יכולה")} לפדות דקות מהבנק כדי להמשיך.`}
               />
             ) : (
               <MetricCell
@@ -249,7 +250,7 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
                 value={formatMinutes(remaining)}
                 warn={!screenTimeExceeded && remaining <= 15}
                 danger={screenTimeExceeded}
-                helpText="כמה זמן מסך נותר לילד היום עד סיום המגבלה היומית."
+                helpText={`כמה זמן מסך ${gt(child.gender, "נותר לילד", "נותר לילדה")} היום עד סיום המגבלה היומית.`}
               />
             )
           ) : (
@@ -257,7 +258,7 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
               icon={<Clock className="h-3.5 w-3.5 text-muted-foreground" />}
               label="מגבלה"
               value="לא הוגדר"
-              helpText="לא הוגדרה מגבלת זמן יומית. ניתן להגדיר במסך ניהול הילד."
+              helpText={`לא הוגדרה מגבלת זמן יומית. ניתן להגדיר במסך ניהול ${childWord(child.gender)}.`}
             />
           )}
           <div className={exceededWithReserve ? "rounded-lg ring-1 ring-amber-300" : ""}>
@@ -265,7 +266,7 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
               icon={<Smartphone className="h-3.5 w-3.5 text-purple-500" />}
               label="בנק בונוס"
               value={`${child.rewardBankBalance} דק׳`}
-              helpText="דקות בונוס שהילד צבר ממשימות וזמינות לפדיון."
+              helpText={`דקות בונוס ש${childWord(child.gender)} ${gt(child.gender, "צבר", "צברה")} ממשימות וזמינות לפדיון.`}
             />
           </div>
         </div>

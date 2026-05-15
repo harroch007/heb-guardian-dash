@@ -741,7 +741,7 @@ const Index = () => {
               ברוכים הבאים ל-Kippy! 👋
             </h2>
             <p className="text-muted-foreground text-sm mb-8 max-w-sm mx-auto">
-              כדי להתחיל להגן על הילדים שלכם ברשת, הוסיפו ילד וחברו את המכשיר שלו
+              כדי להתחיל להגן על הילדים שלכם ברשת, הוסיפו ילד/ה וחברו את המכשיר שלו
             </p>
 
             <div className="flex justify-center gap-4 mb-8">
@@ -764,7 +764,7 @@ const Index = () => {
 
             <Button onClick={() => navigate("/family")} size="lg" className="gap-2 mb-3">
               <Plus className="w-4 h-4" />
-              הוסיפו את הילד הראשון
+              הוסיפו את הילד/ה הראשון/ה
             </Button>
             <p className="text-xs text-muted-foreground">זה לוקח פחות מדקה ⏱️</p>
           </motion.div>

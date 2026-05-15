@@ -231,7 +231,7 @@ export function LostModeSection({ childId, childName }: LostModeSectionProps) {
           <DialogHeader>
             <DialogTitle className="text-right">נעילת המכשיר של {childName}</DialogTitle>
             <DialogDescription className="text-right">
-              המסך של הילד יוצג עם הודעה ומספר חיוג למוצא. ניתן לבטל בכל רגע.
+              המסך של הילד/ה יוצג עם הודעה ומספר חיוג למוצא. ניתן לבטל בכל רגע.
             </DialogDescription>
           </DialogHeader>
 

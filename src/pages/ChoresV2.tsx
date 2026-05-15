@@ -234,7 +234,7 @@ export default function ChoresV2() {
                       onApprove={approveChore}
                       onReject={rejectChore}
                       onDelete={deleteChore}
-                      childName={childName}
+                      childName={childName} childGender={selectedChild?.gender}
                     />
                   </AccordionContent>
                 </AccordionItem>
@@ -286,7 +286,7 @@ export default function ChoresV2() {
                               onApprove={approveChore}
                               onReject={rejectChore}
                               onDelete={deleteChore}
-                              childName={childName}
+                              childName={childName} childGender={selectedChild?.gender}
                             />
                           </AccordionContent>
                         </AccordionItem>
@@ -307,7 +307,7 @@ export default function ChoresV2() {
                               onApprove={approveChore}
                               onReject={rejectChore}
                               onDelete={deleteChore}
-                              childName={childName}
+                              childName={childName} childGender={selectedChild?.gender}
                             />
                           </AccordionContent>
                         </AccordionItem>

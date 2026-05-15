@@ -18,6 +18,22 @@ export function isFemale(gender: string | null | undefined): boolean {
   return normalizeGender(gender) === "female";
 }
 
+/** "הילד" / "הילדה" — when gender is unknown returns inclusive "הילד/ה". */
+export function child(gender: string | null | undefined): string {
+  const g = normalizeGender(gender);
+  if (g === "female") return "הילדה";
+  if (g === "male") return "הילד";
+  return "הילד/ה";
+}
+
+/** Possessive "שלו" / "שלה" / "שלו/ה". */
+export function poss(gender: string | null | undefined): string {
+  const g = normalizeGender(gender);
+  if (g === "female") return "שלה";
+  if (g === "male") return "שלו";
+  return "שלו/ה";
+}
+
 export type { ChildGender };
 
 /**
