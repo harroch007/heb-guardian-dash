@@ -114,7 +114,7 @@ export const HomePendingGeofenceAlerts = ({ childrenData }: Props) => {
                   size="sm"
                   variant="ghost"
                   className="h-7 px-2 text-xs"
-                  onClick={() => navigate("/alerts")}
+                  onClick={() => navigate("/alerts-v2")}
                 >
                   פרטים
                 </Button>
