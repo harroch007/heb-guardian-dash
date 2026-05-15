@@ -1146,7 +1146,7 @@ async function processAlert(
                     parent_id: recipientId,
                     title: updateData.ai_title || 'התראה חדשה מ-Kippy',
                     body: updateData.ai_summary || 'נמצא תוכן שדורש את תשומת לבך',
-                    url: '/alerts',
+                    url: '/alerts-v2',
                     alert_id: alertId,
                     child_name: childData.name,
                   }),
