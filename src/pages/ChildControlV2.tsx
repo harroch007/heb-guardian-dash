@@ -704,6 +704,7 @@ export default function ChildControlV2() {
             <LocationSectionV2
               device={device}
               childName={child?.name || ""}
+              childGender={child?.gender}
               locateStatus={locateStatus}
               showMap={showMap}
               setShowMap={setShowMap}
