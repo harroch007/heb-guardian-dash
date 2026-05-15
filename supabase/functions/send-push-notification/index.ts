@@ -100,7 +100,7 @@ serve(async (req) => {
       dir: "rtl",
       lang: "he",
       tag: alert_id ? `alert-${alert_id}` : "kippy-notification",
-      url: url || "/alerts",
+      url: url || "/alerts-v2",
       child_name: child_name,
     });
 
