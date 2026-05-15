@@ -120,7 +120,7 @@ export function SchedulesSection({
             {shabbatRule?.is_active && (
               <div className="mt-1.5 mr-6">
                 <span className="text-[11px] text-muted-foreground">
-                  מחושב אוטומטית לפי מיקום הילד
+                  מחושב אוטומטית לפי מיקום הילד/ה
                 </span>
               </div>
             )}

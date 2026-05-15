@@ -764,7 +764,7 @@ const Index = () => {
 
             <Button onClick={() => navigate("/family")} size="lg" className="gap-2 mb-3">
               <Plus className="w-4 h-4" />
-              הוסיפו את הילד הראשון
+              הוסיפו את הילד/ה הראשון/ה
             </Button>
             <p className="text-xs text-muted-foreground">זה לוקח פחות מדקה ⏱️</p>
           </motion.div>
