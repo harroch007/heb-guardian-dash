@@ -100,6 +100,26 @@ export interface V2ChildInstallSession {
   qr_payload: string;
 }
 
+export type V2ChildInstallSessionStatus =
+  | "created"
+  | "activated"
+  | "consumed"
+  | "cancelled"
+  | "expired";
+
+export interface V2ChildInstallStatus {
+  status: V2ChildInstallSessionStatus;
+  expires_at: string;
+}
+
+const childInstallStatuses = new Set<V2ChildInstallSessionStatus>([
+  "created",
+  "activated",
+  "consumed",
+  "cancelled",
+  "expired",
+]);
+
 export async function createChildInstallSession(
   childId: string,
 ): Promise<V2ChildInstallSession> {
@@ -118,4 +138,25 @@ export async function createChildInstallSession(
     throw new Error("invalid_child_install_session");
   }
   return data as V2ChildInstallSession;
+}
+
+export async function getChildInstallSessionStatus(
+  sessionId: string,
+): Promise<V2ChildInstallStatus | null> {
+  const { data, error } = await v2Supabase.rpc(
+    "v2_get_child_install_session_status",
+    { target_session_id: sessionId },
+  );
+  if (error) throw error;
+
+  const result = data?.[0];
+  if (!result) return null;
+  if (
+    !childInstallStatuses.has(result.status as V2ChildInstallSessionStatus) ||
+    typeof result.expires_at !== "string"
+  ) {
+    throw new Error("invalid_child_install_session_status");
+  }
+
+  return result as V2ChildInstallStatus;
 }

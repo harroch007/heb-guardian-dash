@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { createGuardianChild } from "@/lib/v2/guardianService";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -79,8 +79,12 @@ export function AddChildModal({ open, onOpenChange, onChildAdded }: AddChildModa
   };
 
   const handleClose = () => {
+    const childWasAdded = childId !== null;
     resetForm();
     onOpenChange(false);
+    if (childWasAdded) {
+      onChildAdded();
+    }
   };
 
   const validateForm = () => {
@@ -133,13 +137,6 @@ export function AddChildModal({ open, onOpenChange, onChildAdded }: AddChildModa
       setLoading(false);
     }
   };
-
-  // Call onChildAdded only after step transitions to pairing
-  useEffect(() => {
-    if (step === "pairing" && childId) {
-      onChildAdded();
-    }
-  }, [step, childId]);
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>

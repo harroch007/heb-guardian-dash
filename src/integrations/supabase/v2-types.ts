@@ -2218,6 +2218,13 @@ export type Database = {
           public_key_pem: string
         }[]
       }
+      v2_get_child_install_session_status: {
+        Args: { target_session_id: string }
+        Returns: {
+          expires_at: string
+          status: string
+        }[]
+      }
       v2_get_guardian_push_state: {
         Args: { target_installation_id: string }
         Returns: {

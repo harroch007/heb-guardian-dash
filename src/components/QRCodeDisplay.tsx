@@ -9,9 +9,9 @@ import {
   Smartphone,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { v2Supabase } from "@/integrations/supabase/v2-client";
 import {
   createChildInstallSession,
+  getChildInstallSessionStatus,
   type V2ChildInstallSession,
 } from "@/lib/v2/guardianService";
 
@@ -54,24 +54,46 @@ export function QRCodeDisplay({
   }, [childId]);
 
   useEffect(() => {
-    const timer = window.setInterval(async () => {
-      const { data, error: deviceError } = await v2Supabase
-        .from("v2_protected_devices")
-        .select("id")
-        .eq("child_id", childId)
-        .in("status", ["active", "degraded"])
-        .limit(1)
-        .maybeSingle();
-      if (!deviceError && data) {
-        toast({
-          title: "🎉 המכשיר חובר בהצלחה!",
-          description: "Kippy פעילה כעת במכשיר הילד/ה.",
-        });
-        onFinish();
+    const sessionId = session?.install_session_id;
+    if (!sessionId) return;
+
+    let stopped = false;
+
+    const stopPolling = () => {
+      stopped = true;
+      window.clearInterval(timer);
+    };
+
+    const checkStatus = async () => {
+      try {
+        const current = await getChildInstallSessionStatus(sessionId);
+        if (stopped || !current) return;
+
+        if (current.status === "consumed") {
+          stopPolling();
+          toast({
+            title: "🎉 המכשיר חובר בהצלחה!",
+            description: "Kippy פעילה כעת במכשיר הילד/ה.",
+          });
+          onFinish();
+          return;
+        }
+
+        if (current.status === "expired" || current.status === "cancelled") {
+          stopPolling();
+          setSession(null);
+          setError("קישור ההתקנה כבר אינו פעיל. צרו קישור חדש.");
+        }
+      } catch (statusError) {
+        console.warn("V2 child install status check failed:", statusError);
       }
-    }, 5_000);
-    return () => window.clearInterval(timer);
-  }, [childId, onFinish, toast]);
+    };
+
+    const timer = window.setInterval(() => void checkStatus(), 5_000);
+    void checkStatus();
+
+    return stopPolling;
+  }, [onFinish, session?.install_session_id, toast]);
 
   const copyLink = async () => {
     if (!session) return;
