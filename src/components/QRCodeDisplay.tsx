@@ -1,11 +1,19 @@
-import { useState, useEffect } from 'react';
-import { QRCodeSVG } from 'qrcode.react';
-import { Button } from '@/components/ui/button';
-import { Smartphone, Loader2, Copy, Check, ArrowLeft, Download, Mail, KeyRound } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-
-const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.kippy.safety.core';
+import { useEffect, useState } from "react";
+import { QRCodeSVG } from "qrcode.react";
+import { Button } from "@/components/ui/button";
+import {
+  Check,
+  Copy,
+  Loader2,
+  RefreshCw,
+  Smartphone,
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { v2Supabase } from "@/integrations/supabase/v2-client";
+import {
+  createChildInstallSession,
+  type V2ChildInstallSession,
+} from "@/lib/v2/guardianService";
 
 interface QRCodeDisplayProps {
   childId: string;
@@ -14,184 +22,130 @@ interface QRCodeDisplayProps {
   onFinish: () => void;
 }
 
-export function QRCodeDisplay({ childId, parentId, parentEmail, onFinish }: QRCodeDisplayProps) {
-  const [step, setStep] = useState<1 | 2>(1);
-  const [pairingCode, setPairingCode] = useState<string | null>(null);
-  const [loadingCode, setLoadingCode] = useState(false);
+export function QRCodeDisplay({
+  childId,
+  parentEmail,
+  onFinish,
+}: QRCodeDisplayProps) {
+  const [session, setSession] =
+    useState<V2ChildInstallSession | null>(null);
+  const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  // Generate pairing code when moving to step 2
-  useEffect(() => {
-    if (step !== 2 || pairingCode) return;
-
-    const generateCode = async () => {
-      setLoadingCode(true);
-      try {
-        const { data, error } = await supabase.rpc('generate_pairing_code', {
-          p_child_id: childId
-        });
-        if (error) throw error;
-        setPairingCode(data);
-      } catch (error) {
-        console.error('Error generating pairing code:', error);
-        toast({
-          title: 'שגיאה',
-          description: 'לא ניתן ליצור קוד חיבור',
-          variant: 'destructive',
-        });
-      } finally {
-        setLoadingCode(false);
-      }
-    };
-
-    generateCode();
-  }, [step, childId, pairingCode, toast]);
-
-  // Realtime listener for device pairing (step 2 only)
-  useEffect(() => {
-    if (step !== 2) return;
-
-    const channel = supabase
-      .channel(`device-pair-${childId}`)
-      .on(
-        'postgres_changes' as any,
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'devices',
-          filter: `child_id=eq.${childId}`,
-        },
-        () => {
-          toast({ title: '🎉 המכשיר חובר בהצלחה!' });
-          onFinish();
-        },
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [step, childId, toast, onFinish]);
-
-  // Copy code to clipboard
-  const handleCopy = async () => {
-    if (!pairingCode) return;
-    await navigator.clipboard.writeText(pairingCode);
-    setCopied(true);
-    toast({ title: 'הקוד הועתק!' });
-    setTimeout(() => setCopied(false), 2000);
+  const generate = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      setSession(await createChildInstallSession(childId));
+    } catch (requestError) {
+      console.error("V2 child install session failed:", requestError);
+      setError("לא ניתן ליצור קישור התקנה. נסו שוב.");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // --- Step 1: Download App ---
-  if (step === 1) {
+  useEffect(() => {
+    void generate();
+    // A new session must only be created when the child changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [childId]);
+
+  useEffect(() => {
+    const timer = window.setInterval(async () => {
+      const { data, error: deviceError } = await v2Supabase
+        .from("v2_protected_devices")
+        .select("id")
+        .eq("child_id", childId)
+        .in("status", ["active", "degraded"])
+        .limit(1)
+        .maybeSingle();
+      if (!deviceError && data) {
+        toast({
+          title: "🎉 המכשיר חובר בהצלחה!",
+          description: "Kippy פעילה כעת במכשיר הילד/ה.",
+        });
+        onFinish();
+      }
+    }, 5_000);
+    return () => window.clearInterval(timer);
+  }, [childId, onFinish, toast]);
+
+  const copyLink = async () => {
+    if (!session) return;
+    await navigator.clipboard.writeText(session.activation_url);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 2_000);
+  };
+
+  if (loading) {
     return (
-      <div className="text-center py-4">
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/20 mb-4">
-          <Download className="w-4 h-4 text-primary" />
-          <span className="text-sm font-medium text-primary">שלב 1 — הורדת האפליקציה</span>
-        </div>
-
-        <p className="text-muted-foreground mb-6">
-          סרקו את הקוד עם מכשיר הילד להורדת אפליקציית KippyAI
-        </p>
-
-        {/* QR Code → Play Store */}
-        <div className="bg-background p-6 rounded-2xl border border-primary/30 inline-block mb-6 relative">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent rounded-2xl pointer-events-none" />
-          <QRCodeSVG
-            value={PLAY_STORE_URL}
-            size={200}
-            level="H"
-            includeMargin
-            bgColor="hsl(222, 47%, 6%)"
-            fgColor="hsl(180, 100%, 50%)"
-          />
-        </div>
-
-        <div className="space-y-3 mb-6">
-          <div className="flex items-center justify-center gap-2 text-muted-foreground">
-            <Smartphone className="w-5 h-5" />
-            <p className="text-sm">סרקו עם המצלמה של מכשיר הילד</p>
-          </div>
-        </div>
-
-        <div className="space-y-3">
-          <Button onClick={() => setStep(2)} className="w-full glow-primary" size="lg">
-            שלב הבא
-          </Button>
-          <Button onClick={onFinish} variant="outline" className="w-full" size="lg">
-            סגור וחבר מאוחר יותר
-          </Button>
-        </div>
+      <div className="flex justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
-  // --- Step 2: Connect Device ---
+  if (!session || error) {
+    return (
+      <div className="space-y-4 py-6 text-center">
+        <p className="text-sm text-destructive">{error}</p>
+        <Button onClick={generate} className="w-full">
+          <RefreshCw className="ml-2 h-4 w-4" />
+          צור קישור חדש
+        </Button>
+      </div>
+    );
+  }
+
   return (
-    <div className="text-center py-4">
-      <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/20 mb-4">
-        <Loader2 className="w-4 h-4 animate-spin text-primary" />
-        <span className="text-sm font-medium text-primary">שלב 2 — ממתין לחיבור מכשיר</span>
+    <div className="space-y-5 py-4 text-center" dir="rtl">
+      <div className="inline-flex items-center gap-2 rounded-full bg-primary/15 px-4 py-2">
+        <Smartphone className="h-4 w-4 text-primary" />
+        <span className="text-sm font-medium text-primary">
+          חיבור מכשיר הילד/ה
+        </span>
       </div>
 
-      <p className="text-muted-foreground mb-6">
-        הזינו את האימייל והקוד במסך ההתחברות באפליקציה שבמכשיר הילד
-      </p>
-
-      {/* Parent Email */}
-      <div className="bg-muted/30 rounded-xl p-4 mb-4 border border-border">
-        <div className="flex items-center justify-center gap-2 mb-2">
-          <Mail className="w-4 h-4 text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">אימייל ההורה</p>
-        </div>
-        <p className="text-lg font-medium text-foreground dir-ltr" dir="ltr">
-          {parentEmail}
+      <div>
+        <p className="font-medium">סרקו את הקוד ממכשיר הילד/ה</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          הקישור יפתח את דף ההתקנה, ישלח OTP אל {parentEmail},
+          ויעביר לחנות Google Play.
         </p>
       </div>
 
-      {/* Pairing Code */}
-      <div className="bg-muted/30 rounded-xl p-4 mb-6 border border-border">
-        <div className="flex items-center justify-center gap-2 mb-3">
-          <KeyRound className="w-4 h-4 text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">קוד חיבור</p>
-        </div>
-
-        {loadingCode ? (
-          <Loader2 className="w-6 h-6 animate-spin mx-auto text-primary" />
-        ) : (
-          <div className="flex items-center justify-center gap-3">
-            <span className="text-3xl font-mono font-bold tracking-widest text-primary">
-              {pairingCode}
-            </span>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={handleCopy}
-              className="shrink-0"
-            >
-              {copied ? (
-                <Check className="w-4 h-4 text-green-500" />
-              ) : (
-                <Copy className="w-4 h-4" />
-              )}
-            </Button>
-          </div>
-        )}
+      <div className="inline-block rounded-2xl border border-primary/30 bg-white p-4">
+        <QRCodeSVG
+          value={session.qr_payload}
+          size={220}
+          level="H"
+          includeMargin
+          bgColor="#ffffff"
+          fgColor="#102A43"
+        />
       </div>
 
-      {/* Instructions */}
-      <p className="text-xs text-muted-foreground/70 mb-6">
-        כאשר המכשיר יתחבר, הדף יתעדכן אוטומטית
+      <p className="text-xs text-muted-foreground">
+        הקישור תקף עד{" "}
+        {new Date(session.expires_at).toLocaleTimeString("he-IL", {
+          hour: "2-digit",
+          minute: "2-digit",
+        })}
       </p>
 
-      <div className="space-y-3">
-        <Button onClick={() => setStep(1)} variant="ghost" className="w-full" size="sm">
-          <ArrowLeft className="w-4 h-4 ml-2" />
-          חזרה לשלב הקודם
+      <div className="space-y-2">
+        <Button variant="outline" onClick={copyLink} className="w-full">
+          {copied ? (
+            <Check className="ml-2 h-4 w-4" />
+          ) : (
+            <Copy className="ml-2 h-4 w-4" />
+          )}
+          {copied ? "הקישור הועתק" : "העתק קישור התקנה"}
         </Button>
-        <Button onClick={onFinish} variant="outline" className="w-full" size="lg">
+        <Button variant="ghost" onClick={onFinish} className="w-full">
           סגור וחבר מאוחר יותר
         </Button>
       </div>

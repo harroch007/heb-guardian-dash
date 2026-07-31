@@ -4,6 +4,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { WAITLIST_MODE } from '@/config/featureFlags';
+import { getGuardianContext } from '@/lib/v2/guardianService';
 
 interface AuthContextType {
   user: User | null;
@@ -11,6 +12,9 @@ interface AuthContextType {
   loading: boolean;
   isNewUser: boolean | null;
   parentId: string | null;
+  familyId: string | null;
+  guardianRole: 'owner' | 'guardian' | null;
+  guardianDisplayName: string | null;
   signOut: () => Promise<void>;
   checkParentStatus: () => Promise<void>;
 }
@@ -23,6 +27,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [isNewUser, setIsNewUser] = useState<boolean | null>(null);
   const [parentId, setParentId] = useState<string | null>(null);
+  const [familyId, setFamilyId] = useState<string | null>(null);
+  const [guardianRole, setGuardianRole] =
+    useState<'owner' | 'guardian' | null>(null);
+  const [guardianDisplayName, setGuardianDisplayName] =
+    useState<string | null>(null);
 
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -38,38 +47,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!u) {
       setIsNewUser(null);
       setParentId(null);
+      setFamilyId(null);
+      setGuardianRole(null);
+      setGuardianDisplayName(null);
       return;
     }
 
-    const { data, error } = await supabase
-      .from('parents')
-      .select('id, is_locked')
-      .eq('id', u.id)
-      .maybeSingle();
-
-    if (error) {
-      console.error('Error checking parent status:', error);
-      setIsNewUser(true);
-      return;
-    }
-
-    if (data) {
-      // Check if account is locked
-      if ((data as any).is_locked) {
-        await supabase.auth.signOut();
-        toast({
-          variant: 'destructive',
-          title: 'החשבון נעול',
-          description: 'החשבון שלך נעול. פנה לתמיכה: support@kippyai.com',
-        });
-        navigate('/landing-v1', { replace: true });
+    try {
+      const guardian = await getGuardianContext(u.id);
+      if (guardian) {
+        setIsNewUser(false);
+        setParentId(u.id);
+        setFamilyId(guardian.familyId);
+        setGuardianRole(guardian.role);
+        setGuardianDisplayName(guardian.displayName);
         return;
       }
-      setIsNewUser(false);
-      setParentId(data.id);
-    } else {
       setIsNewUser(true);
       setParentId(null);
+      setFamilyId(null);
+      setGuardianRole(null);
+      setGuardianDisplayName(null);
+    } catch (error) {
+      console.error('Error checking V2 guardian status:', error);
+      setIsNewUser(null);
+      setParentId(null);
+      setFamilyId(null);
+      setGuardianRole(null);
+      setGuardianDisplayName(null);
     }
   };
 
@@ -154,6 +159,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         setIsNewUser(null);
         setParentId(null);
+        setFamilyId(null);
+        setGuardianRole(null);
+        setGuardianDisplayName(null);
         allowlistPromiseRef.current = null;
         allowlistPromiseUserId.current = null;
         deniedToastShownForUserId.current = null;
@@ -183,6 +191,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(null);
     setIsNewUser(null);
     setParentId(null);
+    setFamilyId(null);
+    setGuardianRole(null);
+    setGuardianDisplayName(null);
     allowlistPromiseRef.current = null;
     allowlistPromiseUserId.current = null;
     deniedToastShownForUserId.current = null;
@@ -196,6 +207,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading,
         isNewUser,
         parentId,
+        familyId,
+        guardianRole,
+        guardianDisplayName,
         signOut,
         checkParentStatus,
       }}

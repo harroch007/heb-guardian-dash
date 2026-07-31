@@ -1,9 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { getIsraelDate } from "@/lib/utils";
-import { getFamilyParentIds } from "@/lib/familyScope";
 import { Loader2 } from "lucide-react";
 import { HomeGreeting } from "@/components/home-v2/HomeGreeting";
 import { FamilyStatusHero } from "@/components/home-v2/FamilyStatusHero";
@@ -11,17 +9,17 @@ import { ChildCardV2 } from "@/components/home-v2/ChildCardV2";
 import { AttentionSection } from "@/components/home-v2/AttentionSection";
 import { FamilyLocationsMap } from "@/components/home-v2/FamilyLocationsMap";
 import { DailyControlSummary } from "@/components/home-v2/DailyControlSummary";
-import { HomePendingTimeRequests } from "@/components/home-v2/HomePendingTimeRequests";
 import { HomePendingApps } from "@/components/home-v2/HomePendingApps";
-import { HomePendingChoreApprovals } from "@/components/home-v2/HomePendingChoreApprovals";
 import { HomePendingGeofenceAlerts } from "@/components/home-v2/HomePendingGeofenceAlerts";
-import { StreakNudgeBanner } from "@/components/home-v2/StreakNudgeBanner";
-import { calcStreak } from "@/lib/streak";
 import { SmartProtectionSummary } from "@/components/home-v2/SmartProtectionSummary";
 import { BottomNavigationV2 } from "@/components/BottomNavigationV2";
 import { TopNavigationV2 } from "@/components/TopNavigationV2";
 import { Accordion } from "@/components/ui/accordion";
-import { WHATSAPP_MONITORING_ENABLED } from "@/config/featureFlags";
+import {
+  V2_GUARDIAN_ALERTS_ENABLED,
+  WHATSAPP_MONITORING_ENABLED,
+} from "@/config/featureFlags";
+import { getV2GuardianHome } from "@/lib/v2/guardianHomeService";
 
 export interface ActiveRestriction {
   type: "schedule" | "shabbat";
@@ -47,10 +45,8 @@ export interface ChildWithData {
     alerts_sent: number | null;
   } | null;
   dailyLimit: number | null;
-  rewardBankBalance: number;
   todayBonusMinutes: number;
   unacknowledgedAlerts: number;
-  pendingTimeRequests: number;
   scheduleWindows: {
     id: string;
     schedule_type: string;
@@ -60,20 +56,20 @@ export interface ChildWithData {
     end_time: string | null;
     is_active: boolean;
   }[];
-  todayChoresCompleted: number;
-  pendingChoreApprovals: number;
   permissionIssues: string[];
   activeRestriction: ActiveRestriction | null;
-  streak: number;
-  hasOpenTaskTodayOrTomorrow: boolean;
 }
 
 const HomeV2 = () => {
-  const { user } = useAuth();
+  const { familyId } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [childrenData, setChildrenData] = useState<ChildWithData[]>([]);
 
+  /*
+   * Legacy V1 donor implementation retained verbatim until the explicit
+   * destructive-cleanup phase. It is intentionally not compiled or executed.
+   *
   const fetchAllData = useCallback(async () => {
     if (!user?.id) return;
     setLoading(true);
@@ -103,13 +99,10 @@ const HomeV2 = () => {
         devicesRes,
         snapshotsRes,
         settingsRes,
-        rewardBanksRes,
         bonusRes,
         alertsRes,
         alertThresholdRes,
-        timeReqRes,
         schedulesRes,
-        choresRes,
         shabbatRes,
       ] = await Promise.all([
         supabase
@@ -123,10 +116,6 @@ const HomeV2 = () => {
         supabase
           .from("settings")
           .select("child_id, daily_screen_time_limit_minutes")
-          .in("child_id", childIds),
-        supabase
-          .from("reward_bank")
-          .select("child_id, balance_minutes")
           .in("child_id", childIds),
         supabase
           .from("bonus_time_grants")
@@ -148,17 +137,8 @@ const HomeV2 = () => {
           .select("child_id, alert_threshold")
           .in("child_id", childIds),
         supabase
-          .from("time_extension_requests")
-          .select("child_id")
-          .in("child_id", childIds)
-          .eq("status", "pending"),
-        supabase
           .from("schedule_windows")
           .select("id, child_id, schedule_type, name, days_of_week, start_time, end_time, is_active")
-          .in("child_id", childIds),
-        supabase
-          .from("chores")
-          .select("child_id, status, completed_at, is_recurring, recurrence_days")
           .in("child_id", childIds),
         supabase
           .from("issur_melacha_windows")
@@ -176,7 +156,11 @@ const HomeV2 = () => {
             p_child_id: child.id,
           });
           if (healthData) {
-            const perms = (healthData as any).permissions as Record<string, boolean> | null;
+            const perms = (
+              healthData as unknown as {
+                permissions?: Record<string, boolean> | null;
+              }
+            ).permissions;
             if (perms) {
               const issues = Object.entries(perms)
                 .filter(
@@ -236,7 +220,6 @@ const HomeV2 = () => {
         const device = devicesRes.data?.find((d) => d.child_id === child.id) || null;
         const snap = snapshotsRes.data?.find((s) => s.child_id === child.id) || null;
         const setting = settingsRes.data?.find((s) => s.child_id === child.id);
-        const bank = rewardBanksRes.data?.find((r) => r.child_id === child.id);
         const todayBonus = (bonusRes.data || [])
           .filter((b) => b.child_id === child.id)
           .reduce((sum, b) => sum + (b.bonus_minutes || 0), 0);
@@ -247,7 +230,6 @@ const HomeV2 = () => {
             (a.ai_risk_score ?? 0) >= threshold &&
             (!a.remind_at || new Date(a.remind_at) < now)
         ).length;
-        const timeReqCount = (timeReqRes.data || []).filter((t) => t.child_id === child.id).length;
         const schedules = (schedulesRes.data || [])
           .filter((s) => s.child_id === child.id)
           .map((s) => ({
@@ -259,34 +241,6 @@ const HomeV2 = () => {
             end_time: s.end_time,
             is_active: s.is_active,
           }));
-
-        const todayStart = new Date();
-        todayStart.setHours(0, 0, 0, 0);
-        const todayChores = (choresRes.data || []).filter(
-          (c) =>
-            c.child_id === child.id &&
-            c.completed_at &&
-            new Date(c.completed_at) >= todayStart
-        ).length;
-        const pendingChoreApprovals = (choresRes.data || []).filter(
-          (c) => c.child_id === child.id && c.status === "completed_by_child"
-        ).length;
-
-        // Streak: counts approved + completed_by_child days (Israel TZ)
-        const streak = calcStreak(
-          (choresRes.data || []).filter((c) => c.child_id === child.id) as any
-        );
-
-        // Open tasks for today/tomorrow (status=pending). Recurring tasks count
-        // only when their recurrence_days include today or tomorrow (1=Sun..7=Sat).
-        const tomorrowDow = (dayOfWeek1 % 7) + 1;
-        const hasOpenTaskTodayOrTomorrow = (choresRes.data || []).some((c) => {
-          if (c.child_id !== child.id) return false;
-          if (c.status !== "pending") return false;
-          if (!c.is_recurring) return true;
-          const days = c.recurrence_days || [];
-          return days.includes(dayOfWeek1) || days.includes(tomorrowDow);
-        });
 
         return {
           id: child.id,
@@ -311,17 +265,11 @@ const HomeV2 = () => {
               }
             : null,
           dailyLimit: setting?.daily_screen_time_limit_minutes ?? null,
-          rewardBankBalance: bank?.balance_minutes ?? 0,
           todayBonusMinutes: todayBonus,
           unacknowledgedAlerts: alertCount,
-          pendingTimeRequests: timeReqCount,
           scheduleWindows: schedules,
-          todayChoresCompleted: todayChores,
-          pendingChoreApprovals,
           permissionIssues: healthMap[child.id] || [],
           activeRestriction: getActiveRestriction(child.id),
-          streak,
-          hasOpenTaskTodayOrTomorrow,
         };
       });
 
@@ -332,6 +280,108 @@ const HomeV2 = () => {
       setLoading(false);
     }
   }, [user?.id]);
+  */
+
+  const fetchAllData = useCallback(async () => {
+    if (!familyId) {
+      setChildrenData([]);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const todayIsrael = getIsraelDate();
+      const children = await getV2GuardianHome(familyId, todayIsrael);
+      const now = new Date();
+      const dayOfWeek = now.getDay() + 1;
+      const currentTime = [
+        now.getHours(),
+        now.getMinutes(),
+        now.getSeconds(),
+      ]
+        .map((value) => value.toString().padStart(2, "0"))
+        .join(":");
+
+      const enriched: ChildWithData[] = children.map((child) => {
+        const activeSchedule = child.schedules.find((schedule) => {
+          if (!schedule.is_active || !schedule.start_time || !schedule.end_time) {
+            return false;
+          }
+          if (
+            schedule.days_of_week &&
+            !schedule.days_of_week.includes(dayOfWeek)
+          ) {
+            return false;
+          }
+          const crossesMidnight = schedule.start_time > schedule.end_time;
+          return crossesMidnight
+            ? currentTime >= schedule.start_time ||
+                currentTime <= schedule.end_time
+            : currentTime >= schedule.start_time &&
+                currentTime <= schedule.end_time;
+        });
+
+        const degradedReasons =
+          child.device?.degradedReasons.length
+            ? child.device.degradedReasons
+            : child.device?.productReady === false
+              ? ["product_not_ready"]
+              : [];
+
+        return {
+          id: child.id,
+          name: child.displayName,
+          gender: child.gender,
+          subscription_tier: null,
+          device: child.device
+            ? {
+                device_id: child.device.id,
+                battery_level: child.device.batteryLevel,
+                last_seen: child.device.lastSeenAt,
+                address: child.device.address,
+                lat: child.device.latitude,
+                lon: child.device.longitude,
+              }
+            : null,
+          snapshot: {
+            total_usage_minutes: child.totalUsageMinutes,
+            messages_scanned: null,
+            alerts_sent: child.confirmedIncidentCount,
+          },
+          dailyLimit: child.dailyLimitMinutes,
+          todayBonusMinutes: child.todayBonusMinutes,
+          unacknowledgedAlerts: child.confirmedIncidentCount,
+          scheduleWindows: child.schedules.map((schedule) => ({
+            id: schedule.id,
+            schedule_type: schedule.schedule_type,
+            name: schedule.name,
+            days_of_week: schedule.days_of_week,
+            start_time: schedule.start_time,
+            end_time: schedule.end_time,
+            is_active: schedule.is_active,
+          })),
+          permissionIssues: degradedReasons,
+          activeRestriction: activeSchedule
+            ? {
+                type:
+                  activeSchedule.schedule_type === "shabbat"
+                    ? "shabbat"
+                    : "schedule",
+                name: activeSchedule.name,
+              }
+            : null,
+        };
+      });
+
+      setChildrenData(enriched);
+    } catch (error) {
+      console.error("[HomeV2] Error fetching V2 guardian home:", error);
+      setChildrenData([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [familyId]);
 
   useEffect(() => {
     fetchAllData();
@@ -352,7 +402,6 @@ const HomeV2 = () => {
   }).length;
 
   const totalAlerts = childrenData.reduce((s, c) => s + c.unacknowledgedAlerts, 0);
-  const totalTimeReqs = childrenData.reduce((s, c) => s + c.pendingTimeRequests, 0);
   const totalPermIssues = childrenData.filter((c) => c.permissionIssues.length > 0).length;
   const disconnectedCount = childrenData.filter((c) => {
     if (!c.device?.last_seen) return true;
@@ -361,8 +410,7 @@ const HomeV2 = () => {
 
   // When WhatsApp monitoring is disabled, exclude alerts from "open issues"
   const openIssues =
-    (WHATSAPP_MONITORING_ENABLED ? totalAlerts : 0) +
-    totalTimeReqs +
+    (V2_GUARDIAN_ALERTS_ENABLED ? totalAlerts : 0) +
     totalPermIssues +
     disconnectedCount;
 
@@ -379,17 +427,6 @@ const HomeV2 = () => {
       <TopNavigationV2 />
       <div className="max-w-lg mx-auto px-4 py-6 space-y-5">
         <HomeGreeting />
-
-        <StreakNudgeBanner
-          children={childrenData.map((c) => ({
-            id: c.id,
-            name: c.name,
-            streak: c.streak,
-            needsNudge: c.streak >= 2 && !c.hasOpenTaskTodayOrTomorrow,
-            gender: c.gender,
-          }))}
-          onAdded={fetchAllData}
-        />
 
         <FamilyStatusHero
           childrenCount={childrenData.length}
@@ -413,11 +450,7 @@ const HomeV2 = () => {
 
         <HomePendingGeofenceAlerts childrenData={childrenData} />
 
-        <HomePendingChoreApprovals childrenData={childrenData} />
-
         <HomePendingApps childrenData={childrenData} />
-
-        <HomePendingTimeRequests childrenData={childrenData} />
 
         <AttentionSection childrenData={childrenData} />
 
@@ -428,7 +461,7 @@ const HomeV2 = () => {
         )}
 
         {/* Smart Protection: hidden when WhatsApp monitoring is disabled */}
-        {WHATSAPP_MONITORING_ENABLED && <SmartProtectionSummary childrenData={childrenData} />}
+        {V2_GUARDIAN_ALERTS_ENABLED && <SmartProtectionSummary childrenData={childrenData} />}
       </div>
       <BottomNavigationV2 />
     </div>

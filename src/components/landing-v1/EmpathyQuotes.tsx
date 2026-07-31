@@ -2,9 +2,9 @@ import { motion } from 'framer-motion';
 import { ShieldCheck } from 'lucide-react';
 
 const quotes = [
-  { emoji: '😟', text: '"אבא, רק עוד 5 דקות"' },
-  { emoji: '🤷', text: '"אמא, זה לא אני, רוני הייתה בטלפון שלי!"' },
-  { emoji: '🙏', text: '"אבל שכחתי את הטלפון פתוח"' },
+  { emoji: '📱', text: '"כמה זמן הוא כבר במסך היום?"' },
+  { emoji: '📍', text: '"היא הגיעה לחוג או שהטלפון לא מעדכן?"' },
+  { emoji: '🛡️', text: '"האם כל ההרשאות עדיין פעילות?"' },
 ];
 
 export function EmpathyQuotes() {
@@ -29,7 +29,7 @@ export function EmpathyQuotes() {
         </div>
         <p className="text-center text-muted-foreground mt-8 flex items-center justify-center gap-2">
           <ShieldCheck className="w-4 h-4 text-primary" />
-          הורים לא צריכים לנהל משא ומתן על כל דקה.
+          הורים צריכים תמונה אחת ברורה, לא חמש אפליקציות שונות.
         </p>
       </div>
     </section>

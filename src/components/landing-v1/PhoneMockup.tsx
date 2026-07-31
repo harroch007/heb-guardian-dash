@@ -1,24 +1,31 @@
-import { Home, Clock, Shield, Bell, CheckCircle2, BookOpen, Dog, BedDouble } from 'lucide-react';
+import {
+  Activity,
+  AppWindow,
+  Bell,
+  CalendarClock,
+  Clock,
+  Home,
+  MapPin,
+  Settings,
+  ShieldCheck,
+  Users,
+} from 'lucide-react';
 
 interface PhoneMockupProps {
-  variant: 'overview' | 'tasks';
+  variant: 'overview' | 'controls';
 }
 
 export function PhoneMockup({ variant }: PhoneMockupProps) {
   return (
     <div className="relative mx-auto w-[200px] sm:w-[240px]">
-      {/* Glow */}
       <div className="absolute -inset-6 bg-primary/20 rounded-[3rem] blur-2xl" />
-      {/* Phone frame */}
       <div className="relative rounded-[2.5rem] bg-card border-[10px] border-card shadow-2xl shadow-primary/30 overflow-hidden" dir="rtl">
-        {/* Notch */}
         <div className="relative h-6 bg-card flex items-center justify-center">
           <div className="w-20 h-5 bg-background rounded-b-2xl" />
         </div>
-        {/* Screen */}
         <div className="bg-background px-3 pt-3 pb-2 min-h-[440px] flex flex-col">
-          {variant === 'overview' ? <OverviewScreen /> : <TasksScreen />}
-          <BottomNav active={variant === 'overview' ? 0 : 1} />
+          {variant === 'overview' ? <OverviewScreen /> : <ProtectionScreen />}
+          <BottomNav />
         </div>
       </div>
     </div>
@@ -32,24 +39,24 @@ function OverviewScreen() {
         <span className="text-xs font-bold text-foreground">היי אבא 👋</span>
         <div className="w-7 h-7 rounded-full bg-primary/20 border border-primary/40" />
       </div>
-      <p className="text-[10px] text-muted-foreground">סקירה כללית</p>
+      <p className="text-[10px] text-muted-foreground">מצב המשפחה</p>
 
-      {/* Gauge */}
-      <div className="bg-card border border-border rounded-2xl p-4 flex flex-col items-center">
-        <div className="relative w-28 h-28">
-          <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-            <circle cx="50" cy="50" r="42" fill="none" stroke="hsl(var(--muted))" strokeWidth="6" />
-            <circle
-              cx="50" cy="50" r="42" fill="none"
-              stroke="hsl(var(--primary))" strokeWidth="6" strokeLinecap="round"
-              strokeDasharray={`${2 * Math.PI * 42}`}
-              strokeDashoffset={`${2 * Math.PI * 42 * 0.35}`}
-              style={{ filter: 'drop-shadow(0 0 6px hsl(var(--primary) / 0.7))' }}
-            />
-          </svg>
-          <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-2xl font-bold text-primary">120</span>
-            <span className="text-[9px] text-muted-foreground">דקות מסך</span>
+      <div className="bg-card border border-border rounded-2xl p-4">
+        <div className="mb-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4 text-success" />
+            <span className="text-[11px] font-bold text-foreground">2 מכשירים מוגנים</span>
+          </div>
+          <span className="rounded-full bg-success/15 px-2 py-0.5 text-[9px] text-success">תקין</span>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="rounded-lg bg-background p-2">
+            <p className="text-[9px] text-muted-foreground">זמן מסך היום</p>
+            <p className="text-sm font-bold text-foreground">2:05 שעות</p>
+          </div>
+          <div className="rounded-lg bg-background p-2">
+            <p className="text-[9px] text-muted-foreground">דורש טיפול</p>
+            <p className="text-sm font-bold text-primary">1 בקשה</p>
           </div>
         </div>
       </div>
@@ -57,76 +64,84 @@ function OverviewScreen() {
       <div className="bg-card border border-border rounded-xl p-2.5 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Clock className="w-3.5 h-3.5 text-primary" />
-          <span className="text-[10px] text-foreground">זמן מסך היום</span>
+          <span className="text-[10px] text-foreground">נועם · זמן מסך</span>
         </div>
-        <span className="text-[10px] font-bold text-foreground">2.5 שעות</span>
+        <span className="text-[10px] font-bold text-foreground">95 דק׳</span>
       </div>
 
       <div className="bg-card border border-border rounded-xl p-2.5 flex items-center justify-between">
-        <span className="text-[10px] text-foreground">אפליקציות</span>
-        <div className="flex gap-1">
-          <div className="w-4 h-4 rounded bg-red-500/80" />
-          <div className="w-4 h-4 rounded bg-pink-500/80" />
-          <div className="w-4 h-4 rounded bg-cyan-500/80" />
+        <div className="flex items-center gap-2">
+          <MapPin className="w-3.5 h-3.5 text-success" />
+          <span className="text-[10px] text-foreground">מיקום אחרון</span>
         </div>
+        <span className="text-[9px] text-muted-foreground">בבית</span>
       </div>
 
       <div className="bg-card border border-border rounded-xl p-2.5 flex items-center justify-between">
-        <span className="text-[10px] text-foreground">בקשות זמן</span>
-        <span className="text-[10px] font-bold text-primary bg-primary/15 px-2 py-0.5 rounded-full">2</span>
+        <div className="flex items-center gap-2">
+          <Activity className="w-3.5 h-3.5 text-warning" />
+          <span className="text-[10px] text-foreground">תקינות המכשיר</span>
+        </div>
+        <span className="text-[9px] font-bold text-warning">בדיקה אחת</span>
       </div>
     </div>
   );
 }
 
-function TasksScreen() {
-  const tasks = [
-    { icon: BedDouble, title: 'סידור החדר', mins: 20, done: true },
-    { icon: Dog, title: 'הוצאה לכלב', mins: 15, done: true },
-    { icon: BookOpen, title: 'קריאה 20 דק', mins: 15, done: true },
+function ProtectionScreen() {
+  const areas = [
+    { icon: Clock, title: 'זמן מסך', value: '95 מתוך 180 דק׳' },
+    { icon: AppWindow, title: 'אפליקציות', value: '12 מותקנות' },
+    { icon: CalendarClock, title: 'לוחות זמנים', value: '2 פעילים' },
+    { icon: MapPin, title: 'מיקום וצלצול', value: 'מיקום זמין' },
   ];
+
   return (
     <div className="flex-1 space-y-3">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-bold text-foreground">הצלחת! 🎉</span>
-        <div className="w-7 h-7 rounded-full bg-success/20 border border-success/40" />
-      </div>
-
-      <div className="bg-success/10 border border-success/40 rounded-2xl p-4 text-center">
-        <p className="text-[10px] text-success-foreground/80 mb-1">המשימות שלי</p>
-        <p className="text-2xl font-bold text-success-foreground">120</p>
-        <p className="text-[10px] text-success-foreground/80">דקות בבנק</p>
-      </div>
-
-      <p className="text-[10px] text-muted-foreground">המשימות שלי להיום</p>
-
-      {tasks.map(({ icon: Icon, title, mins, done }) => (
-        <div key={title} className="bg-card border border-border rounded-xl p-2.5 flex items-center gap-2">
-          <Icon className="w-3.5 h-3.5 text-primary shrink-0" />
-          <div className="flex-1 min-w-0">
-            <p className="text-[10px] font-semibold text-foreground truncate">{title}</p>
-            <p className="text-[9px] text-primary">+{mins} דק'</p>
-          </div>
-          {done && <CheckCircle2 className="w-4 h-4 text-success shrink-0" />}
+        <div>
+          <span className="block text-xs font-bold text-foreground">מרכז ההגנה של נועם</span>
+          <span className="text-[9px] text-muted-foreground">מחובר עכשיו · 82% סוללה</span>
         </div>
-      ))}
+        <ShieldCheck className="h-5 w-5 text-success" />
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        {areas.map(({ icon: Icon, title, value }) => (
+          <div key={title} className="rounded-xl border border-border bg-card p-2.5">
+            <Icon className="mb-2 h-4 w-4 text-primary" />
+            <p className="text-[10px] font-bold text-foreground">{title}</p>
+            <p className="mt-0.5 text-[8px] text-muted-foreground">{value}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="rounded-xl border border-success/30 bg-success/10 p-3">
+        <div className="flex items-center gap-2">
+          <Activity className="h-4 w-4 text-success" />
+          <div>
+            <p className="text-[10px] font-bold text-foreground">המכשיר תקין</p>
+            <p className="text-[8px] text-muted-foreground">כל ההרשאות שדווחו פעילות</p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
 
-function BottomNav({ active }: { active: number }) {
+function BottomNav() {
   const items = [
-    { icon: Home, label: 'בית' },
-    { icon: CheckCircle2, label: 'משימות' },
-    { icon: Shield, label: 'בקרה' },
-    { icon: Bell, label: 'התראות' },
+    { icon: Home, label: 'בית', active: true },
+    { icon: Users, label: 'משפחה', active: false },
+    { icon: Bell, label: 'התראות', active: false },
+    { icon: Settings, label: 'הגדרות', active: false },
   ];
   return (
     <div className="mt-3 -mx-3 px-3 pt-2 border-t border-border flex justify-around">
-      {items.map(({ icon: Icon, label }, i) => (
+      {items.map(({ icon: Icon, label, active }) => (
         <div key={label} className="flex flex-col items-center gap-0.5">
-          <Icon className={`w-4 h-4 ${i === active ? 'text-primary' : 'text-muted-foreground'}`} />
-          <span className={`text-[8px] ${i === active ? 'text-primary font-bold' : 'text-muted-foreground'}`}>{label}</span>
+          <Icon className={`w-4 h-4 ${active ? 'text-primary' : 'text-muted-foreground'}`} />
+          <span className={`text-[8px] ${active ? 'text-primary font-bold' : 'text-muted-foreground'}`}>{label}</span>
         </div>
       ))}
     </div>

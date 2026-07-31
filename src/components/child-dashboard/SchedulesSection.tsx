@@ -4,12 +4,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { HelpTooltip } from "@/components/help/HelpTooltip";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { ScheduleEditModal } from "./ScheduleEditModal";
 import type { ScheduleWindow } from "@/hooks/useChildControls";
 
 interface SchedulesSectionProps {
   scheduleWindows: ScheduleWindow[];
   onToggleShabbat: () => Promise<void>;
+  onUpdateShabbatMode: (
+    scheduleId: string,
+    mode: "default" | "manual",
+    manualStartTime?: string,
+    manualEndTime?: string,
+  ) => Promise<void>;
   onCreateSchedule: (params: {
     schedule_type: string;
     name: string;
@@ -35,11 +42,15 @@ const DAY_LABELS: Record<number, string> = { 1: "א׳", 2: "ב׳", 3: "ג׳", 4:
 export function SchedulesSection({
   scheduleWindows,
   onToggleShabbat,
+  onUpdateShabbatMode,
   onCreateSchedule,
   onUpdateSchedule,
   onDeleteSchedule,
 }: SchedulesSectionProps) {
   const [togglingShabbat, setTogglingShabbat] = useState(false);
+  const [editingShabbat, setEditingShabbat] = useState(false);
+  const [shabbatStart, setShabbatStart] = useState("18:00");
+  const [shabbatEnd, setShabbatEnd] = useState("20:00");
   const [editModal, setEditModal] = useState<{ open: boolean; type: "bedtime" | "school"; existing?: ScheduleWindow | null }>({
     open: false,
     type: "bedtime",
@@ -52,9 +63,43 @@ export function SchedulesSection({
   const schoolRule = scheduleWindows.find((s) => s.schedule_type === "school");
 
   const handleShabbatToggle = async () => {
+    if (
+      !shabbatRule ||
+      !shabbatRule.start_time ||
+      !shabbatRule.end_time
+    ) {
+      setShabbatStart(shabbatRule?.start_time || "18:00");
+      setShabbatEnd(shabbatRule?.end_time || "20:00");
+      setEditingShabbat(true);
+      return;
+    }
     setTogglingShabbat(true);
     await onToggleShabbat();
     setTogglingShabbat(false);
+  };
+
+  const saveShabbatWindow = async () => {
+    if (!shabbatStart || !shabbatEnd) return;
+    setTogglingShabbat(true);
+    if (shabbatRule) {
+      await onUpdateShabbatMode(
+        shabbatRule.id,
+        "manual",
+        shabbatStart,
+        shabbatEnd,
+      );
+    } else {
+      await onCreateSchedule({
+        schedule_type: "shabbat",
+        name: "שבתות וחגים",
+        // Friday. Cross-midnight evaluation applies the end time on Saturday.
+        days_of_week: [6],
+        start_time: shabbatStart,
+        end_time: shabbatEnd,
+      });
+    }
+    setTogglingShabbat(false);
+    setEditingShabbat(false);
   };
 
   const handleToggleRule = async (rule: ScheduleWindow) => {
@@ -118,10 +163,70 @@ export function SchedulesSection({
             </div>
 
             {shabbatRule?.is_active && (
-              <div className="mt-1.5 mr-6">
+              <div className="mt-1.5 mr-6 flex items-center gap-2">
                 <span className="text-[11px] text-muted-foreground">
-                  מחושב אוטומטית לפי מיקום הילד/ה
+                  {shabbatRule.start_time && shabbatRule.end_time
+                    ? `מיום שישי ${shabbatRule.start_time} עד שבת ${shabbatRule.end_time}`
+                    : "נדרש להגדיר חלון שעות ידני"}
                 </span>
+                <button
+                  type="button"
+                  className="text-[11px] text-primary underline"
+                  onClick={() => {
+                    setShabbatStart(
+                      shabbatRule.start_time || "18:00",
+                    );
+                    setShabbatEnd(shabbatRule.end_time || "20:00");
+                    setEditingShabbat(true);
+                  }}
+                >
+                  עריכה
+                </button>
+              </div>
+            )}
+
+            {editingShabbat && (
+              <div className="mt-3 mr-6 space-y-2 rounded-lg border border-border bg-muted/20 p-3">
+                <p className="text-xs text-muted-foreground">
+                  הגדירו חלון קבוע מיום שישי עד שבת. חישוב אוטומטי לפי מיקום
+                  יחובר בשלב נפרד.
+                </p>
+                <div className="grid grid-cols-2 gap-2" dir="ltr">
+                  <Input
+                    type="time"
+                    value={shabbatStart}
+                    onChange={(event) =>
+                      setShabbatStart(event.target.value)
+                    }
+                  />
+                  <Input
+                    type="time"
+                    value={shabbatEnd}
+                    onChange={(event) =>
+                      setShabbatEnd(event.target.value)
+                    }
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    onClick={saveShabbatWindow}
+                    disabled={togglingShabbat}
+                  >
+                    {togglingShabbat && (
+                      <Loader2 className="ml-1 h-3.5 w-3.5 animate-spin" />
+                    )}
+                    שמור והפעל
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setEditingShabbat(false)}
+                    disabled={togglingShabbat}
+                  >
+                    ביטול
+                  </Button>
+                </div>
               </div>
             )}
           </div>

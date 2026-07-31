@@ -34,9 +34,9 @@ export function FreeAccessCTA() {
               <Users className="w-10 h-10 text-primary" />
             </div>
             <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold text-foreground mb-4 leading-tight">
-              מוכנים להפוך את זמן המסך
+              מוכנים לנהל את ההגנה
               <br />
-              <span className="text-primary">לכלי חינוכי?</span>
+              <span className="text-primary">ממקום אחד?</span>
             </h2>
             <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
               הצטרפו עכשיו וקבלו ראשונים גישה לגרסה החדשה של KippyAI.

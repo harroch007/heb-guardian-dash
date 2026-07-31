@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { MapPin, Home, School, Loader2, Trash2, Navigation, Plus, Power, Edit2 } from "lucide-react";
-import { useChildPlaces, type ChildPlace, type ManualPlaceInput } from "@/hooks/useChildPlaces";
+import { useV2ChildPlaces, type ChildPlace, type ManualPlaceInput } from "@/hooks/useV2ChildPlaces";
 import { AddressAutocomplete } from "./AddressAutocomplete";
 import { MapPinPicker } from "./MapPinPicker";
 import { ManualPlaceForm } from "./ManualPlaceForm";
@@ -237,7 +237,7 @@ export function GeofenceSection({ childId, deviceLatitude, deviceLongitude, devi
     settings, loading, saving, getPlace,
     upsertPlace, updateRadius, updateSettings, deletePlace,
     manualPlaces, upsertManualPlace, deactivateManualPlace,
-  } = useChildPlaces(childId);
+  } = useV2ChildPlaces(childId);
 
   const [showAddForm, setShowAddForm] = useState(false);
 
@@ -256,13 +256,15 @@ export function GeofenceSection({ childId, deviceLatitude, deviceLongitude, devi
       <CardContent className="p-4">
         <Accordion type="single" collapsible defaultValue={undefined} className="w-full">
           <AccordionItem value="geofence" className="border-0">
-            <AccordionTrigger className="py-0 hover:no-underline">
-              <div className="flex items-center gap-2">
-                <MapPin className="w-5 h-5 text-primary" />
-                <span className="font-semibold text-sm text-foreground">גבולות גזרה</span>
-                <HelpTooltip text="אזורים גאוגרפיים שתוגדר בהם התראה כשהילד/ה נכנס/ת או יוצא/ת — בית, בית ספר ומקומות מותאמים." iconSize={12} />
-              </div>
-            </AccordionTrigger>
+            <div className="flex items-center gap-2">
+              <AccordionTrigger className="flex-1 py-0 hover:no-underline">
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-5 h-5 text-primary" />
+                  <span className="font-semibold text-sm text-foreground">גבולות גזרה</span>
+                </div>
+              </AccordionTrigger>
+              <HelpTooltip text="אזורים גאוגרפיים שתוגדר בהם התראה כשהילד/ה נכנס/ת או יוצא/ת — בית, בית ספר ומקומות מותאמים." iconSize={12} />
+            </div>
             <AccordionContent className="pt-4">
               <div className="space-y-4">
                 <div className="space-y-3">

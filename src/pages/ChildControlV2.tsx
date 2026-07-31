@@ -1,91 +1,52 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { v2Supabase } from "@/integrations/supabase/v2-client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useChildControls } from "@/hooks/useChildControls";
-import { useFamilyRole } from "@/hooks/useFamilyRole";
 import { useRingCommand } from "@/hooks/useRingCommand";
 import type { RingPhase } from "@/hooks/useRingCommand";
-import { getDeviceStatus, getStatusColor, getStatusLabel, formatLastSeen } from "@/lib/deviceStatus";
-import type { DeviceHealthInfo } from "@/hooks/useChildControls";
+import { getDeviceStatus, getStatusLabel, formatLastSeen } from "@/lib/deviceStatus";
 import { DeviceHealthBanner } from "@/components/controls/DeviceHealthBanner";
 import { cn, getIsraelDate } from "@/lib/utils";
-import { getFamilyParentIds } from "@/lib/familyScope";
+import {
+  enqueueParentalControlCommand,
+  getParentalControlCommand,
+} from "@/lib/parental-controls/commandService";
+import {
+  isTerminalCommandStatus,
+  type ParentalControlCommandType,
+} from "@/lib/parental-controls/contracts";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { EditChildModal } from "@/components/EditChildModal";
-import { ReconnectChildModal } from "@/components/ReconnectChildModal";
+import { ReconnectChildV2Modal } from "@/components/ReconnectChildV2Modal";
 import { BottomNavigationV2 } from "@/components/BottomNavigationV2";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import {
   ProblemBanner,
-  
   AppsSection,
+  ProtectionCenterOverview,
   ScreenTimeSection,
   SchedulesSection,
 } from "@/components/child-dashboard";
 import { LocationSectionV2 } from "@/components/child-dashboard/LocationSectionV2";
 import { GeofenceSection } from "@/components/child-dashboard/GeofenceSection";
-import { LostModeSection } from "@/components/child-dashboard/LostModeSection";
+import { LostModeV2Section } from "@/components/child-dashboard/LostModeV2Section";
 import {
   ArrowRight,
   Loader2,
   Battery,
   RefreshCw,
-  Volume2,
-  Clock,
-  MapPin,
-  Shield,
-  Gift,
   CheckCircle2,
   AlertTriangle,
   LocateFixed,
   Bell,
-  ListChecks,
   Smartphone,
-  ShieldCheck,
-  ShieldAlert,
   MessageCircle,
-  MoreVertical,
-  Pencil,
-  Trash2,
-  Unplug,
-  Crown,
 } from "lucide-react";
-import { WHATSAPP_MONITORING_ENABLED } from "@/config/featureFlags";
-import { HelpTooltip } from "@/components/help/HelpTooltip";
-import { gt, child as childWord } from "@/lib/genderText";
-
-// ---------- PERMISSION LABELS ----------
-const PERMISSION_LABELS: Record<string, string> = {
-  accessibilityEnabled: "שירות נגישות",
-  notificationListenerEnabled: "האזנה להתראות",
-  usageStatsGranted: "סטטיסטיקת שימוש",
-  locationPermissionGranted: "מיקום",
-  locationServicesEnabled: "שירותי מיקום",
-  batteryOptimizationIgnored: "אופטימיזציית סוללה",
-  canDrawOverlays: "הצגה מעל אפליקציות",
-};
+import { V2_GUARDIAN_ALERTS_ENABLED } from "@/config/featureFlags";
+import { gt } from "@/lib/genderText";
 
 // ---------- Interfaces ----------
 interface Child {
@@ -115,12 +76,28 @@ interface AppUsage {
 
 type CommandStatus = "idle" | "locating" | "success" | "failed";
 
+const LOCATE_SUCCESS_MESSAGE = {
+  title: "המיקום עודכן",
+  desc: "המיקום התקבל מהמכשיר בהצלחה",
+};
+const LOCATE_FAILURE_MESSAGE = {
+  title: "שגיאה באיתור",
+  desc: "לא ניתן לקבל מיקום מהמכשיר",
+};
+const SYNC_SUCCESS_MESSAGE = {
+  title: "המכשיר עודכן",
+  desc: "התקבל עדכון מהמכשיר בהצלחה",
+};
+const SYNC_FAILURE_MESSAGE = {
+  title: "המכשיר לא מגיב",
+  desc: "לא ניתן לקבל עדכון מהמכשיר",
+};
+
 export default function ChildControlV2() {
   const { childId } = useParams<{ childId: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, familyId } = useAuth();
   const { toast } = useToast();
-  const { isOwner } = useFamilyRole();
 
   const [child, setChild] = useState<Child | null>(null);
   const [device, setDevice] = useState<Device | null>(null);
@@ -128,18 +105,11 @@ export default function ChildControlV2() {
   const [loading, setLoading] = useState(true);
   const [screenTimeLimit, setScreenTimeLimit] = useState<number | null>(null);
   const [totalUsageFromDb, setTotalUsageFromDb] = useState(0);
-  const [rewardBankBalance, setRewardBankBalance] = useState(0);
   const [unacknowledgedAlerts, setUnacknowledgedAlerts] = useState(0);
   const [todayAlerts, setTodayAlerts] = useState(0);
-  const [activeChoresCount, setActiveChoresCount] = useState(0);
-  const [completedTodayChoresCount, setCompletedTodayChoresCount] = useState(0);
-  const [pendingTimeRequests, setPendingTimeRequests] = useState(0);
 
   // Child management state
-  const [showEditModal, setShowEditModal] = useState(false);
   const [showReconnectModal, setShowReconnectModal] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [disconnecting, setDisconnecting] = useState(false);
 
   // Command statuses
   const [locateStatus, setLocateStatus] = useState<CommandStatus>("idle");
@@ -162,7 +132,6 @@ export default function ChildControlV2() {
     appPolicies,
     blockedAttempts,
     deviceHealth,
-    recentCommands,
     installedApps,
     scheduleWindows,
     todayBonusMinutes,
@@ -172,6 +141,7 @@ export default function ChildControlV2() {
     updateDailyLimit,
     grantBonusTime,
     toggleShabbat,
+    updateShabbatMode,
     createSchedule,
     updateSchedule,
     deleteSchedule,
@@ -202,29 +172,27 @@ export default function ChildControlV2() {
   }, [scheduleWindows]);
 
   // ---------- Data fetching ----------
+  /*
+   * Legacy V1 donor read model retained until explicit cleanup.
+   *
   const fetchData = useCallback(async (isPolling = false) => {
     if (!childId || !user) return;
     if (!isPolling) setLoading(true);
     else setIsRefreshing(true);
 
-    const todayIsrael = getIsraelDate();
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
 
     // Explicitly scope by family ownership so admin RLS bypass cannot open another family's child.
     const allowedParentIds = await getFamilyParentIds(user.id);
 
-    const [childRes, deviceRes, snapshotRes, settingsRes, bankRes, alertsRes, alertsTodayRes, timeReqRes, choresActiveRes, choresDoneRes] = await Promise.all([
+    const [childRes, deviceRes, snapshotRes, settingsRes, alertsRes, alertsTodayRes] = await Promise.all([
       supabase.from("children").select("id, name, date_of_birth, gender, subscription_tier, pairing_code, parent_id").eq("id", childId).in("parent_id", allowedParentIds).maybeSingle(),
       supabase.from("devices").select("*").eq("child_id", childId).order("last_seen", { ascending: false }).limit(1).maybeSingle(),
       supabase.from("parent_home_snapshot").select("top_apps, total_usage_minutes").eq("child_id", childId).maybeSingle(),
       supabase.from("settings").select("daily_screen_time_limit_minutes").eq("child_id", childId).maybeSingle(),
-      supabase.from("reward_bank").select("balance_minutes").eq("child_id", childId).maybeSingle(),
       supabase.from("alerts").select("id").eq("child_id", childId).is("acknowledged_at", null).eq("is_processed", true).eq("alert_type", "warning"),
       supabase.from("alerts").select("id").eq("child_id", childId).gte("created_at", todayStart.toISOString()),
-      supabase.from("time_extension_requests").select("id").eq("child_id", childId).eq("status", "pending"),
-      supabase.from("chores").select("id").eq("child_id", childId).eq("status", "pending"),
-      supabase.from("chores").select("id, completed_at").eq("child_id", childId).in("status", ["completed_by_child", "approved"]),
     ]);
 
     if (!childRes.data) {
@@ -241,20 +209,174 @@ export default function ChildControlV2() {
     }
     setTotalUsageFromDb(snapshotRes.data?.total_usage_minutes ?? 0);
     setScreenTimeLimit(settingsRes.data?.daily_screen_time_limit_minutes ?? null);
-    setRewardBankBalance(bankRes.data?.balance_minutes ?? 0);
     setUnacknowledgedAlerts(alertsRes.data?.length ?? 0);
     setTodayAlerts(alertsTodayRes.data?.length ?? 0);
-    setPendingTimeRequests(timeReqRes.data?.length ?? 0);
-    setActiveChoresCount(choresActiveRes.data?.length ?? 0);
-
-    const doneToday = (choresDoneRes.data || []).filter(
-      (c: any) => c.completed_at && new Date(c.completed_at) >= todayStart
-    ).length;
-    setCompletedTodayChoresCount(doneToday);
 
     if (!isPolling) setLoading(false);
     else setIsRefreshing(false);
   }, [childId, user, navigate]);
+  */
+
+  const fetchData = useCallback(async (isPolling = false) => {
+    if (!childId || !user || !familyId) return;
+    if (!isPolling) setLoading(true);
+    else setIsRefreshing(true);
+
+    try {
+      const today = getIsraelDate();
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+
+      const [childResult, devicesResult, settingsResult, incidentsResult] =
+        await Promise.all([
+          v2Supabase
+            .from("v2_children")
+            .select("*")
+            .eq("id", childId)
+            .eq("family_id", familyId)
+            .eq("status", "active")
+            .maybeSingle(),
+          v2Supabase
+            .from("v2_protected_devices")
+            .select("*")
+            .eq("child_id", childId)
+            .neq("status", "revoked")
+            .order("last_seen_at", { ascending: false })
+            .limit(1),
+          v2Supabase
+            .from("v2_parental_settings")
+            .select("daily_screen_time_limit_minutes")
+            .eq("child_id", childId)
+            .maybeSingle(),
+          v2Supabase
+            .from("v2_safety_incidents")
+            .select("id, occurred_at")
+            .eq("child_id", childId)
+            .in("status", ["confirmed", "alerted"]),
+        ]);
+
+      const firstError = [
+        childResult.error,
+        devicesResult.error,
+        settingsResult.error,
+        incidentsResult.error,
+      ].find(Boolean);
+      if (firstError) throw firstError;
+
+      if (!childResult.data) {
+        if (!isPolling) navigate("/home-v2");
+        return;
+      }
+
+      const childRow = childResult.data;
+      setChild({
+        id: childRow.id,
+        name: childRow.display_name,
+        date_of_birth: childRow.birth_year
+          ? `${childRow.birth_year}-01-01`
+          : "",
+        gender: childRow.gender,
+        subscription_tier: null,
+        pairing_code: null,
+      });
+      setScreenTimeLimit(
+        settingsResult.data?.daily_screen_time_limit_minutes ?? null,
+      );
+
+      const incidents = incidentsResult.data || [];
+      const nonNewIncidentIds = new Set<string>();
+      if (incidents.length > 0) {
+        const { data: guardianStates, error: guardianStatesError } =
+          await v2Supabase
+            .from("v2_guardian_incident_states")
+            .select("incident_id")
+            .in(
+              "incident_id",
+              incidents.map((incident) => incident.id),
+            )
+            .in("state", ["saved", "acknowledged"]);
+        if (guardianStatesError) throw guardianStatesError;
+        for (const state of guardianStates ?? []) {
+          nonNewIncidentIds.add(state.incident_id);
+        }
+      }
+      const newIncidents = incidents.filter(
+        (incident) => !nonNewIncidentIds.has(incident.id),
+      );
+      setUnacknowledgedAlerts(newIncidents.length);
+      setTodayAlerts(
+        newIncidents.filter(
+          (incident) =>
+            new Date(incident.occurred_at) >= todayStart,
+        ).length,
+      );
+
+      const deviceRow = devicesResult.data?.[0] ?? null;
+      if (!deviceRow) {
+        setDevice(null);
+        setAppUsage([]);
+        setTotalUsageFromDb(0);
+        return;
+      }
+
+      const [stateResult, healthResult, usageResult] = await Promise.all([
+        v2Supabase
+          .from("v2_parental_device_state")
+          .select("*")
+          .eq("device_id", deviceRow.id)
+          .maybeSingle(),
+        v2Supabase
+          .from("v2_device_health_events")
+          .select("battery_level_percent")
+          .eq("device_id", deviceRow.id)
+          .eq("affects_current_state", true)
+          .order("observed_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        v2Supabase
+          .from("v2_parental_app_usage_daily")
+          .select("app_name, package_name, usage_minutes")
+          .eq("device_id", deviceRow.id)
+          .eq("usage_date", today)
+          .order("usage_minutes", { ascending: false }),
+      ]);
+
+      const deviceError = [
+        stateResult.error,
+        healthResult.error,
+        usageResult.error,
+      ].find(Boolean);
+      if (deviceError) throw deviceError;
+
+      const state = stateResult.data;
+      setDevice({
+        device_id: deviceRow.id,
+        child_id: childId,
+        battery_level: healthResult.data?.battery_level_percent ?? null,
+        latitude: state?.latitude ?? null,
+        longitude: state?.longitude ?? null,
+        last_seen: deviceRow.last_seen_at,
+        address: state?.location_address ?? null,
+      });
+      setAppUsage(
+        (usageResult.data || []).map((app) => ({
+          app_name: app.app_name,
+          package_name: app.package_name,
+          usage_minutes: app.usage_minutes,
+        })),
+      );
+      setTotalUsageFromDb(
+        state?.usage_date === today
+          ? state.total_screen_minutes ?? 0
+          : 0,
+      );
+    } catch (error) {
+      console.error("[ChildControlV2] Failed to load V2 data", error);
+    } finally {
+      if (!isPolling) setLoading(false);
+      else setIsRefreshing(false);
+    }
+  }, [childId, user, familyId, navigate]);
 
   useEffect(() => { fetchData(false); }, [fetchData]);
 
@@ -285,29 +407,53 @@ export default function ChildControlV2() {
   // first device row inserted as well as updates. UPDATE-only filter for efficiency.
   useEffect(() => {
     if (!childId) return;
-    const channel = supabase
-      .channel(`cv2-child-${childId}`)
+    const channel = v2Supabase
+      .channel(`v2-child-control-${childId}`)
       .on(
         "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "devices", filter: `child_id=eq.${childId}` },
-        (payload) => setDevice(payload.new as Device),
-      )
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "devices", filter: `child_id=eq.${childId}` },
-        (payload) => setDevice(payload.new as Device),
+        {
+          event: "*",
+          schema: "public",
+          table: "v2_protected_devices",
+          filter: `child_id=eq.${childId}`,
+        },
+        () => void fetchData(true),
       )
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [childId]);
-
-  // ---------- Cleanup polling ----------
-  useEffect(() => {
     return () => {
-      if (pollingRef.current) clearTimeout(pollingRef.current);
-      if (syncPollingRef.current) clearTimeout(syncPollingRef.current);
+      void v2Supabase.removeChannel(channel);
     };
-  }, []);
+  }, [childId, fetchData]);
+
+  useEffect(() => {
+    if (!device?.device_id) return;
+    const channel = v2Supabase
+      .channel(`v2-device-state-${device.device_id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "v2_parental_device_state",
+          filter: `device_id=eq.${device.device_id}`,
+        },
+        () => void fetchData(true),
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "v2_device_health_events",
+          filter: `device_id=eq.${device.device_id}`,
+        },
+        () => void fetchData(true),
+      )
+      .subscribe();
+    return () => {
+      void v2Supabase.removeChannel(channel);
+    };
+  }, [device?.device_id, fetchData]);
 
   // ---------- Command helpers ----------
   const useCommandPolling = (
@@ -326,20 +472,24 @@ export default function ChildControlV2() {
       const TIMEOUT_MS = 2 * 60 * 1000;
 
       const poll = async () => {
-        const { data } = await supabase.from("device_commands").select("status").eq("id", commandId).single();
-        if (data?.status === "COMPLETED") {
-          setStatus("success");
-          setCommandId(null);
-          onSuccess?.();
-          if (successMessage) toast({ title: successMessage.title, description: successMessage.desc });
-          setTimeout(() => setStatus("idle"), 5000);
-          return;
-        }
-        if (data?.status === "FAILED") {
-          setStatus("failed");
-          setCommandId(null);
-          if (failMessage) toast({ title: failMessage.title, description: failMessage.desc, variant: "destructive" });
-          return;
+        try {
+          const command = await getParentalControlCommand(commandId);
+          if (command?.status === "COMPLETED") {
+            setStatus("success");
+            setCommandId(null);
+            onSuccess?.();
+            if (successMessage) toast({ title: successMessage.title, description: successMessage.desc });
+            setTimeout(() => setStatus("idle"), 5000);
+            return;
+          }
+          if (command && isTerminalCommandStatus(command.status)) {
+            setStatus("failed");
+            setCommandId(null);
+            if (failMessage) toast({ title: failMessage.title, description: failMessage.desc, variant: "destructive" });
+            return;
+          }
+        } catch {
+          // A transient read failure should not create a second command.
         }
         if (Date.now() - startTime > TIMEOUT_MS) {
           setStatus("failed");
@@ -351,25 +501,40 @@ export default function ChildControlV2() {
       };
       poll();
       return () => { if (ref.current) clearTimeout(ref.current); };
-    }, [commandId, commandStatus]);
+    }, [
+      commandId,
+      commandStatus,
+      failMessage,
+      onSuccess,
+      ref,
+      setCommandId,
+      setStatus,
+      successMessage,
+    ]);
   };
+
+  const handleLocateCommandSuccess = useCallback(async () => {
+    if (!device?.device_id) return;
+    await fetchData(true);
+    setShowMap(true);
+  }, [device?.device_id, fetchData]);
+
+  const handleSyncCommandSuccess = useCallback(() => {
+    fetchData(true);
+  }, [fetchData]);
 
   // Locate polling
   useCommandPolling(locateCommandId, locateStatus, setLocateStatus, setLocateCommandId, pollingRef,
-    async () => {
-      if (!device?.device_id) return;
-      const { data: updated } = await supabase.from("devices").select("*").eq("device_id", device.device_id).single();
-      if (updated) { setDevice(updated as Device); setShowMap(true); }
-    },
-    { title: "המיקום עודכן", desc: "המיקום התקבל מהמכשיר בהצלחה" },
-    { title: "שגיאה באיתור", desc: "לא ניתן לקבל מיקום מהמכשיר" },
+    handleLocateCommandSuccess,
+    LOCATE_SUCCESS_MESSAGE,
+    LOCATE_FAILURE_MESSAGE,
   );
 
   // Sync polling
   useCommandPolling(syncCommandId, syncStatus, setSyncStatus, setSyncCommandId, syncPollingRef,
-    () => fetchData(true),
-    { title: "המכשיר עודכן", desc: "התקבל עדכון מהמכשיר בהצלחה" },
-    { title: "המכשיר לא מגיב", desc: "לא ניתן לקבל עדכון מהמכשיר" },
+    handleSyncCommandSuccess,
+    SYNC_SUCCESS_MESSAGE,
+    SYNC_FAILURE_MESSAGE,
   );
 
   // Ring phase toast (only on terminal states)
@@ -380,18 +545,21 @@ export default function ChildControlV2() {
     if (ringPhase === "child_stopped") toast({ title: gt(child?.gender, "הילד עצר את הצלצול", "הילדה עצרה את הצלצול") });
     else if (ringPhase === "timeout" || ringPhase === "completed_legacy") toast({ title: "הצלצול הסתיים" });
     else if (ringPhase === "failed") toast({ title: "לא ניתן לצלצל", description: "המכשיר לא הצליח להשמיע צליל", variant: "destructive" });
-  }, [ringPhase, toast]);
+  }, [ringPhase, toast, child?.gender]);
 
-  const sendCommand = async (type: string, setCmd: (id: string | null) => void, setStat: (s: CommandStatus) => void) => {
+  const sendCommand = async (type: ParentalControlCommandType, setCmd: (id: string | null) => void, setStat: (s: CommandStatus) => void) => {
     if (!device?.device_id) return;
     setStat("locating");
-    const { data, error } = await supabase.from("device_commands").insert({ device_id: device.device_id, command_type: type, status: "PENDING" }).select("id").single();
-    if (error || !data) {
+    try {
+      const command = await enqueueParentalControlCommand({
+        deviceId: device.device_id,
+        commandType: type,
+      });
+      setCmd(command.id);
+    } catch {
       toast({ title: "שגיאה", description: "לא ניתן לשלוח פקודה למכשיר", variant: "destructive" });
       setStat("failed");
-      return;
     }
-    setCmd(data.id);
   };
 
   const handleLocateNow = () => { setShowMap(false); sendCommand("LOCATE_NOW", setLocateCommandId, setLocateStatus); };
@@ -406,42 +574,19 @@ export default function ChildControlV2() {
     }
   };
 
-  // ---------- Child management actions ----------
-  const handleDeleteChild = async () => {
-    if (!childId) return;
-    setDeleting(true);
-    const { error } = await supabase.rpc("delete_child_data", { p_child_id: childId });
-    if (error) {
-      toast({ title: "שגיאה", description: `לא ניתן למחוק את ${childWord(child?.gender)}`, variant: "destructive" });
-      setDeleting(false);
-      return;
-    }
-    toast({ title: gt(child?.gender, "הילד הוסר בהצלחה", "הילדה הוסרה בהצלחה"), description: `כל הנתונים של ${child?.name} נמחקו` });
-    navigate("/home-v2");
-  };
-
-  const handleDisconnectDevice = async () => {
-    if (!device?.device_id) return;
-    setDisconnecting(true);
-    const { error } = await supabase.rpc("disconnect_device", { p_device_id: device.device_id });
-    if (error) {
-      toast({ title: "שגיאה", description: "לא ניתן לנתק את המכשיר", variant: "destructive" });
-      setDisconnecting(false);
-      return;
-    }
-    toast({ title: "המכשיר נותק", description: `המכשיר נותק בהצלחה מ${childWord(child?.gender)}` });
-    setDevice(null);
-    setDisconnecting(false);
-  };
-
   // ---------- Active restriction ----------
   const activeRestrictionName = getActiveScheduleName();
 
-  // ---------- Premium / monitoring ----------
-  // When WhatsApp monitoring is disabled, treat everyone as free-tier in UI
-  // (hides smart-protection card, premium badges, and upgrade CTAs).
-  const isPremium = WHATSAPP_MONITORING_ENABLED && child?.subscription_tier === "premium";
-  const isMonitoringActive = isPremium && device !== null && status === "connected";
+  // ---------- V2 safety monitoring ----------
+  const isMonitoringActive =
+    V2_GUARDIAN_ALERTS_ENABLED && device !== null && status === "connected";
+  const activeSchedulesCount = scheduleWindows.filter((window) => window.is_active).length;
+  const blockedAppsCount = appPolicies.filter((policy) => policy.is_blocked).length;
+  const decidedAppPackages = new Set(appPolicies.map((policy) => policy.package_name));
+  const pendingAppsCount = installedApps.filter(
+    (app) => !decidedAppPackages.has(app.package_name),
+  ).length;
+  const hasLocation = device?.latitude != null && device?.longitude != null;
 
   if (loading) {
     return (
@@ -499,65 +644,34 @@ export default function ChildControlV2() {
             </div>
           </div>
 
-          {/* Management menu */}
-          <AlertDialog>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="shrink-0 h-9 w-9 text-muted-foreground hover:text-foreground">
-                  <MoreVertical className="w-5 h-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start">
-                <DropdownMenuItem onClick={() => setShowEditModal(true)} className="gap-2">
-                  <Pencil className="w-4 h-4" />
-                  ערוך פרטים
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setShowReconnectModal(true)} className="gap-2">
-                  <RefreshCw className="w-4 h-4" />
-                  חבר מחדש
-                </DropdownMenuItem>
-                {device && isOwner && (
-                  <DropdownMenuItem onClick={handleDisconnectDevice} disabled={disconnecting} className="gap-2">
-                    <Unplug className="w-4 h-4" />
-                    נתק מכשיר
-                  </DropdownMenuItem>
-                )}
-                {isOwner && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <AlertDialogTrigger asChild>
-                      <DropdownMenuItem className="gap-2 text-destructive focus:text-destructive focus:bg-destructive/10">
-                        <Trash2 className="w-4 h-4" />
-                        מחק ילד
-                      </DropdownMenuItem>
-                    </AlertDialogTrigger>
-                  </>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>האם להסיר את {child?.name}?</AlertDialogTitle>
-                <AlertDialogDescription className="text-right">
-                  פעולה זו תמחק את כל הנתונים הקשורים ל{childWord(child?.gender)} כולל: התראות, מכשירים מחוברים, ונתוני שימוש.
-                  <br /><br />
-                  <strong>לא ניתן לבטל פעולה זו.</strong>
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter className="flex-row-reverse gap-2">
-                <AlertDialogCancel>ביטול</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDeleteChild} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                  {deleting ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : null}
-                  כן, הסר
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="shrink-0 h-9 w-9 text-muted-foreground hover:text-foreground"
+            onClick={() => setShowReconnectModal(true)}
+            title="צור קישור חיבור חדש"
+          >
+            <RefreshCw className="w-4 h-4" />
+          </Button>
         </div>
 
-        {/* ===== 2. TOP CARD — Premium vs Free ===== */}
-        {isPremium ? (
-          /* PREMIUM: Smart Protection as top card */
+        <ProtectionCenterOverview
+          childName={child?.name || ""}
+          status={status}
+          currentUsageMinutes={totalUsageFromDb}
+          dailyLimitMinutes={screenTimeLimit}
+          todayBonusMinutes={todayBonusMinutes}
+          installedAppsCount={installedApps.length}
+          blockedAppsCount={blockedAppsCount}
+          pendingAppsCount={pendingAppsCount}
+          activeSchedulesCount={activeSchedulesCount}
+          activeRestrictionName={activeRestrictionName}
+          hasLocation={hasLocation}
+          deviceHealth={deviceHealth}
+        />
+
+        {/* Smart Protection remains separate from parental-control navigation. */}
+        {V2_GUARDIAN_ALERTS_ENABLED && (
           <Card className="border-border shadow-sm bg-card">
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-3">
@@ -566,8 +680,7 @@ export default function ChildControlV2() {
                   <span className="font-semibold text-sm text-foreground">הגנה חכמה</span>
                 </div>
                 <Badge variant="secondary" className="text-[10px] bg-primary/15 text-primary">
-                  <Crown className="w-3 h-3 ml-1" />
-                  פרימיום
+                  WhatsApp
                 </Badge>
               </div>
               <div className="grid grid-cols-3 gap-3 text-center">
@@ -592,168 +705,88 @@ export default function ChildControlV2() {
               )}
             </CardContent>
           </Card>
-        ) : (
-          /* FREE: Status hero (screen time + bonus + restriction) */
-          <Card className="border-border shadow-sm bg-card">
-            <CardContent className="p-4">
-              <div className="grid grid-cols-3 gap-3 text-center">
-                <div>
-                  <Clock className="w-5 h-5 mx-auto mb-1 text-primary" />
-                  <p className="text-lg font-bold text-foreground">{Math.round(totalUsageFromDb)} <span className="text-xs font-normal text-muted-foreground">דק׳</span></p>
-                  <div className="flex items-center justify-center gap-1">
-                    <p className="text-[11px] text-muted-foreground">זמן מסך היום</p>
-                    <HelpTooltip text={`כמה זמן ${childWord(child?.gender)} ${gt(child?.gender, "השתמש", "השתמשה")} במכשיר היום (לפי שעון ישראל, מתאפס בחצות).`} iconSize={11} />
-                  </div>
-                  {screenTimeLimit && (
-                    <p className="text-[10px] text-muted-foreground/70">מתוך {screenTimeLimit} דק׳</p>
-                  )}
-                </div>
-                <div>
-                  <Gift className="w-5 h-5 mx-auto mb-1 text-warning" />
-                  <p className="text-lg font-bold text-foreground">{rewardBankBalance}</p>
-                  <div className="flex items-center justify-center gap-1">
-                    <p className="text-[11px] text-muted-foreground">דקות בבנק</p>
-                    <HelpTooltip text={`דקות בונוס ש${childWord(child?.gender)} ${gt(child?.gender, "צבר", "צברה")} ממשימות וזמינות לפדיון להארכת זמן מסך.`} iconSize={11} />
-                  </div>
-                  {todayBonusMinutes > 0 && (
-                    <p className="text-[10px] text-warning">+{todayBonusMinutes} היום</p>
-                  )}
-                </div>
-                <div>
-                  <Shield className="w-5 h-5 mx-auto mb-1 text-success" />
-                  {activeRestrictionName ? (
-                    <>
-                      <p className="text-sm font-semibold text-success">{activeRestrictionName}</p>
-                      <div className="flex items-center justify-center gap-1">
-                        <p className="text-[11px] text-muted-foreground">הגבלה פעילה</p>
-                        <HelpTooltip text="כרגע פעיל לוח זמנים שמגביל את השימוש במכשיר." iconSize={11} />
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <p className="text-sm font-semibold text-foreground">רגיל</p>
-                      <div className="flex items-center justify-center gap-1">
-                        <p className="text-[11px] text-muted-foreground">ללא הגבלה</p>
-                        <HelpTooltip text="לא פעילה כרגע אף הגבלת זמן או לוח זמנים." iconSize={11} />
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         )}
-
-        {/* For premium, show a compact status row below the smart protection card */}
-        {isPremium && (
-          <div className="flex gap-2">
-            <div className="flex-1 rounded-xl bg-card border border-border p-3 text-center">
-              <Clock className="w-4 h-4 mx-auto mb-0.5 text-primary" />
-              <p className="text-sm font-bold text-foreground">{Math.round(totalUsageFromDb)} <span className="text-[10px] font-normal text-muted-foreground">דק׳</span></p>
-              <p className="text-[10px] text-muted-foreground">מסך היום</p>
-            </div>
-            <div className="flex-1 rounded-xl bg-card border border-border p-3 text-center">
-              <Gift className="w-4 h-4 mx-auto mb-0.5 text-warning" />
-              <p className="text-sm font-bold text-foreground">{rewardBankBalance}</p>
-              <p className="text-[10px] text-muted-foreground">בנק בונוס</p>
-            </div>
-            <div className="flex-1 rounded-xl bg-card border border-border p-3 text-center">
-              <Shield className="w-4 h-4 mx-auto mb-0.5 text-success" />
-              <p className="text-[11px] font-semibold text-foreground">{activeRestrictionName || "רגיל"}</p>
-              <p className="text-[10px] text-muted-foreground">{activeRestrictionName ? "הגבלה" : "ללא הגבלה"}</p>
-            </div>
-          </div>
-        )}
-
-
         {/* ===== 4-9. EXISTING SECTIONS (reused) ===== */}
         {device ? (
           <div className="space-y-4">
             <ProblemBanner deviceHealth={deviceHealth} status={status} lastSeen={device.last_seen} />
-            
 
-            <ScreenTimeSection
-              appUsage={appUsage}
-              screenTimeLimit={screenTimeLimit}
-              currentUsageMinutes={totalUsageFromDb}
-              todayBonusMinutes={todayBonusMinutes}
-              onUpdateLimit={async (minutes) => { await updateDailyLimit(minutes); setScreenTimeLimit(minutes); }}
-              onGrantBonus={grantBonusTime}
-            />
+            <section id="screen-time" className="scroll-mt-20 space-y-4">
+              <ScreenTimeSection
+                appUsage={appUsage}
+                screenTimeLimit={screenTimeLimit}
+                currentUsageMinutes={totalUsageFromDb}
+                todayBonusMinutes={todayBonusMinutes}
+                onUpdateLimit={async (minutes) => { await updateDailyLimit(minutes); setScreenTimeLimit(minutes); }}
+                onGrantBonus={grantBonusTime}
+              />
+            </section>
 
-            <SchedulesSection
-              scheduleWindows={scheduleWindows}
-              onToggleShabbat={toggleShabbat}
-              onCreateSchedule={createSchedule}
-              onUpdateSchedule={updateSchedule}
-              onDeleteSchedule={deleteSchedule}
-            />
+            <section id="schedules" className="scroll-mt-20">
+              <SchedulesSection
+                scheduleWindows={scheduleWindows}
+                onToggleShabbat={toggleShabbat}
+                onUpdateShabbatMode={updateShabbatMode}
+                onCreateSchedule={createSchedule}
+                onUpdateSchedule={updateSchedule}
+                onDeleteSchedule={deleteSchedule}
+              />
+            </section>
 
-            <AppsSection
-              childId={childId!}
-              childName={child?.name || ""}
-              appPolicies={appPolicies}
-              appUsage={appUsage}
-              blockedAttempts={blockedAttempts}
-              installedApps={installedApps}
-              onToggleBlock={toggleAppBlock}
-              onApproveApp={approveApp}
-              onBlockApp={blockApp}
-            />
+            <section id="apps" className="scroll-mt-20">
+              <AppsSection
+                childId={childId!}
+                childName={child?.name || ""}
+                appPolicies={appPolicies}
+                appUsage={appUsage}
+                blockedAttempts={blockedAttempts}
+                installedApps={installedApps}
+                onToggleBlock={toggleAppBlock}
+                onApproveApp={approveApp}
+                onBlockApp={blockApp}
+              />
+            </section>
 
-            <LocationSectionV2
-              device={device}
-              childName={child?.name || ""}
-              childGender={child?.gender}
-              locateStatus={locateStatus}
-              showMap={showMap}
-              setShowMap={setShowMap}
-              handleLocateNow={handleLocateNow}
-              getLocateButtonContent={getLocateButtonContent}
-              ringPhase={ringPhase}
-              handleRingDevice={handleRingDevice}
-              handleRetryRing={retryRing}
-            />
+            <section id="location" className="scroll-mt-20 space-y-4">
+              <LocationSectionV2
+                device={device}
+                childName={child?.name || ""}
+                childGender={child?.gender}
+                locateStatus={locateStatus}
+                showMap={showMap}
+                setShowMap={setShowMap}
+                handleLocateNow={handleLocateNow}
+                getLocateButtonContent={getLocateButtonContent}
+                ringPhase={ringPhase}
+                handleRingDevice={handleRingDevice}
+                handleRetryRing={retryRing}
+              />
 
-            <GeofenceSection
-              childId={childId!}
-              deviceLatitude={device?.latitude}
-              deviceLongitude={device?.longitude}
-              deviceAddress={device?.address}
-            />
+              <GeofenceSection
+                childId={childId!}
+                deviceLatitude={device?.latitude}
+                deviceLongitude={device?.longitude}
+                deviceAddress={device?.address}
+              />
+            </section>
 
             {/* ===== Lost Mode — emergency device lock ===== */}
-            <LostModeSection childId={childId!} childName={child?.name || ""} />
+            <section id="lost-mode" className="scroll-mt-20">
+              <LostModeV2Section childId={childId!} childName={child?.name || ""} />
+            </section>
 
-            {/* ===== 11. SMART PROTECTION — only for free users as upgrade prompt ===== */}
-            {WHATSAPP_MONITORING_ENABLED && !isPremium && (
-              <Card className="border-amber-200 shadow-sm bg-gradient-to-l from-amber-50 to-orange-50">
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-warning/15 flex items-center justify-center shrink-0">
-                      <Crown className="w-5 h-5 text-warning" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-foreground">הגנה חכמה</p>
-                      <p className="text-xs text-muted-foreground">שדרגו לפרימיום כדי לקבל ניטור AI של WhatsApp</p>
-                    </div>
-                    <Button size="sm" onClick={() => navigate("/checkout")} className="shrink-0 bg-amber-500 hover:bg-amber-600 text-white text-xs">
-                      שדרוג
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
 
             {/* ===== 12. DEVICE HEALTH ===== */}
-            {deviceHealth && <DeviceHealthBanner health={deviceHealth} />}
-            {!deviceHealth && (
-              <Card className="border-border shadow-sm bg-card">
-                <CardContent className="p-4">
-                  <p className="text-sm text-muted-foreground text-center py-2">אין נתוני בריאות זמינים</p>
-                </CardContent>
-              </Card>
-            )}
+            <section id="device-health" className="scroll-mt-20">
+              {deviceHealth && <DeviceHealthBanner health={deviceHealth} />}
+              {!deviceHealth && (
+                <Card className="border-border shadow-sm bg-card">
+                  <CardContent className="p-4">
+                    <p className="text-sm text-muted-foreground text-center py-2">אין נתוני בריאות זמינים</p>
+                  </CardContent>
+                </Card>
+              )}
+            </section>
           </div>
         ) : (
           <Card className="border-border shadow-sm bg-card">
@@ -772,21 +805,10 @@ export default function ChildControlV2() {
         )}
       </div>
 
-      {/* ===== MODALS ===== */}
       {child && (
-        <EditChildModal
-          child={child}
-          open={showEditModal}
-          onOpenChange={setShowEditModal}
-          onUpdated={(updatedChild) => setChild(updatedChild as Child)}
-        />
-      )}
-
-      {child && user?.email && (
-        <ReconnectChildModal
+        <ReconnectChildV2Modal
           childId={showReconnectModal ? child.id : null}
           childName={child.name}
-          parentEmail={user.email}
           onClose={() => setShowReconnectModal(false)}
         />
       )}

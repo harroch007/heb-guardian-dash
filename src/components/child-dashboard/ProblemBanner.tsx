@@ -2,7 +2,7 @@ import { AlertTriangle, ShieldAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { DeviceHealthInfo } from "@/hooks/useChildControls";
 import type { DeviceStatus } from "@/lib/deviceStatus";
-import { WHATSAPP_MONITORING_ENABLED } from "@/config/featureFlags";
+import { V2_GUARDIAN_ALERTS_ENABLED } from "@/config/featureFlags";
 
 const WHATSAPP_PERMISSION_KEYS = ["accessibilityEnabled", "notificationListenerEnabled"];
 
@@ -39,7 +39,7 @@ export function ProblemBanner({ deviceHealth, status, lastSeen }: ProblemBannerP
     const missingPerms = Object.entries(deviceHealth.permissions).filter(
       ([key, val]) =>
         val === false &&
-        (WHATSAPP_MONITORING_ENABLED || !WHATSAPP_PERMISSION_KEYS.includes(key))
+        (V2_GUARDIAN_ALERTS_ENABLED || !WHATSAPP_PERMISSION_KEYS.includes(key))
     );
     if (missingPerms.length > 0) {
       const missingNames = missingPerms
@@ -53,7 +53,7 @@ export function ProblemBanner({ deviceHealth, status, lastSeen }: ProblemBannerP
     }
 
     // WhatsApp monitoring broken (only when feature enabled)
-    if (WHATSAPP_MONITORING_ENABLED) {
+    if (V2_GUARDIAN_ALERTS_ENABLED) {
       const whatsappBroken =
         deviceHealth.permissions.accessibilityEnabled === false ||
         deviceHealth.permissions.notificationListenerEnabled === false;

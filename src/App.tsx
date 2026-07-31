@@ -6,54 +6,26 @@ import { BrowserRouter, Routes, Route, useParams } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { AccessibilityProvider } from "@/contexts/AccessibilityContext";
 import { WaitlistProvider } from "@/contexts/WaitlistContext";
-import { DemoProvider, useDemo } from "@/contexts/DemoContext";
+import { DemoProvider } from "@/contexts/DemoContext";
 import { AccessibilityWrapper } from "@/components/accessibility/AccessibilityWrapper";
 import { WaitlistRouteGuard } from "@/components/WaitlistRouteGuard";
 import { WaitlistModal } from "@/components/WaitlistModal";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { AdminRoute } from "@/components/AdminRoute";
 import { ServiceWorkerUpdatePrompt } from "@/components/ServiceWorkerUpdatePrompt";
 import { Navigate } from "react-router-dom";
 import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
-import Family from "./pages/Family";
-import Dashboard from "./pages/Dashboard";
-import ChildDashboard from "./pages/ChildDashboard";
-import AlertsPage from "./pages/Alerts";
-import SettingsPage from "./pages/Settings";
-import DailyReport from "./pages/DailyReport";
-import PeriodicSummary from "./pages/PeriodicSummary";
-import NotificationSettings from "./pages/NotificationSettings";
 import Install from "./pages/Install";
+import ChildInstallLanding from "./pages/ChildInstallLanding";
 import NotFound from "./pages/NotFound";
-import AdminLogin from "./pages/AdminLogin";
-import Admin from "./pages/Admin";
-import Checkout from "./pages/Checkout";
-import ImpersonateSession from "./pages/ImpersonateSession";
-import Chores from "./pages/Chores";
-import NextPage from "./pages/Next";
 import HomeV2 from "./pages/HomeV2";
 import ChildControlV2 from "./pages/ChildControlV2";
-import ChoresV2 from "./pages/ChoresV2";
-import AlertsV2 from "./pages/AlertsV2";
-import SettingsV2 from "./pages/SettingsV2";
-import FamilyV2 from "./pages/FamilyV2";
-import ChatV2 from "./pages/ChatV2";
-import ChatRoomV2 from "./pages/ChatRoomV2";
-import AcceptInvite from "./pages/AcceptInvite";
-import InviteLanding from "./pages/InviteLanding";
-import JoinFamily from "./pages/JoinFamily";
+import AlertsV2 from "./pages/AlertsV2Canonical";
+import SettingsV2 from "./pages/SettingsV2Canonical";
+import FamilyV2 from "./pages/FamilyV2Canonical";
 import LandingV1 from "./pages/LandingV1";
-
-// Demo pages
-import DemoDashboard from "./pages/demo/DemoDashboard";
-import DemoChildDashboard from "./pages/demo/DemoChildDashboard";
-import DemoAlerts from "./pages/demo/DemoAlerts";
-import DemoDailyReport from "./pages/demo/DemoDailyReport";
-import DemoFamily from "./pages/demo/DemoFamily";
-import DemoSettings from "./pages/demo/DemoSettings";
 
 const queryClient = new QueryClient();
 
@@ -63,28 +35,29 @@ const RedirectChildToV2 = () => {
   return <Navigate to={`/child-v2/${childId}`} replace />;
 };
 
-// Smart routing component that checks demo mode
 const AppRoutes = () => {
-  const { isDemoMode } = useDemo();
-
   return (
     <Routes>
       <Route path="/" element={<LandingV1 />} />
       <Route path="/landing-v1" element={<LandingV1 />} />
-      <Route path="/next" element={<NextPage />} />
+      <Route path="/next" element={<Navigate to="/landing-v1" replace />} />
       <Route path="/home-v2" element={<ProtectedRoute><HomeV2 /></ProtectedRoute>} />
       <Route path="/child-v2/:childId" element={<ProtectedRoute><ChildControlV2 /></ProtectedRoute>} />
-      <Route path="/chores-v2" element={<ProtectedRoute><ChoresV2 /></ProtectedRoute>} />
+      <Route path="/chores-v2" element={<Navigate to="/home-v2" replace />} />
       <Route path="/alerts-v2" element={<ProtectedRoute><AlertsV2 /></ProtectedRoute>} />
       <Route path="/settings-v2" element={<ProtectedRoute><SettingsV2 /></ProtectedRoute>} />
       <Route path="/family-v2" element={<ProtectedRoute><FamilyV2 /></ProtectedRoute>} />
-      <Route path="/chat-v2" element={<ProtectedRoute><ChatV2 /></ProtectedRoute>} />
-      <Route path="/chat-v2/:friendshipId" element={<ProtectedRoute><ChatRoomV2 /></ProtectedRoute>} />
-      <Route path="/accept-invite/:inviteId" element={<AcceptInvite />} />
-      <Route path="/invite/:token" element={<InviteLanding />} />
-      <Route path="/join-family" element={<JoinFamily />} />
+      <Route path="/chat-v2" element={<Navigate to="/home-v2" replace />} />
+      <Route path="/chat-v2/:friendshipId" element={<Navigate to="/home-v2" replace />} />
+      <Route path="/accept-invite/:inviteId" element={<Navigate to="/family-v2" replace />} />
+      <Route path="/invite/:token" element={<Navigate to="/home-v2" replace />} />
+      <Route path="/join-family" element={<Navigate to="/family-v2" replace />} />
       <Route path="/auth" element={<Auth />} />
       <Route path="/install" element={<Install />} />
+      <Route
+        path="/install/:activationToken"
+        element={<ChildInstallLanding />}
+      />
       <Route path="/privacy" element={<PrivacyPolicy />} />
       <Route path="/terms" element={<TermsOfService />} />
       
@@ -93,32 +66,13 @@ const AppRoutes = () => {
       <Route path="/family" element={<Navigate to="/family-v2" replace />} />
       <Route path="/child/:childId" element={<RedirectChildToV2 />} />
       <Route path="/alerts" element={<Navigate to="/alerts-v2" replace />} />
-      <Route path="/chores" element={<Navigate to="/chores-v2" replace />} />
+      <Route path="/chores" element={<Navigate to="/home-v2" replace />} />
       <Route path="/settings" element={<Navigate to="/settings-v2" replace />} />
 
-      {/* Daily Report - protected */}
-      <Route
-        path="/daily-report/:childId"
-        element={<ProtectedRoute><DailyReport /></ProtectedRoute>}
-      />
-      
-      {/* Periodic Summary - protected only */}
-      <Route
-        path="/summary/:childId/:type"
-        element={<ProtectedRoute><PeriodicSummary /></ProtectedRoute>}
-      />
-      
-      {/* Notification Settings - protected only */}
-      <Route
-        path="/notification-settings"
-        element={<ProtectedRoute><NotificationSettings /></ProtectedRoute>}
-      />
-      
-      {/* Checkout - protected */}
-      <Route
-        path="/checkout"
-        element={<ProtectedRoute><Checkout /></ProtectedRoute>}
-      />
+      <Route path="/daily-report/:childId" element={<Navigate to="/home-v2" replace />} />
+      <Route path="/summary/:childId/:type" element={<Navigate to="/home-v2" replace />} />
+      <Route path="/notification-settings" element={<Navigate to="/settings-v2" replace />} />
+      <Route path="/checkout" element={<Navigate to="/home-v2" replace />} />
       
       {/* Onboarding - protected only (no demo version) */}
       <Route
@@ -144,10 +98,10 @@ const App = () => (
             <BrowserRouter>
               <AccessibilityWrapper />
               <Routes>
-                {/* Admin routes - completely separate from main app */}
-                <Route path="/admin-login" element={<AdminLogin />} />
-                <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
-                <Route path="/impersonate-session" element={<ImpersonateSession />} />
+                {/* Legacy V1 admin surfaces stay in source, but are not active in V2. */}
+                <Route path="/admin-login" element={<Navigate to="/auth" replace />} />
+                <Route path="/admin" element={<Navigate to="/home-v2" replace />} />
+                <Route path="/impersonate-session" element={<Navigate to="/home-v2" replace />} />
                 
                 {/* Main app routes */}
                 <Route path="/*" element={

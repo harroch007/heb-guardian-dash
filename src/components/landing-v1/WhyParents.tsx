@@ -1,10 +1,10 @@
 import { motion } from 'framer-motion';
-import { Home, Handshake, Clock, Brain, CheckCircle2 } from 'lucide-react';
+import { Activity, Brain, Home, ShieldCheck, CheckCircle2 } from 'lucide-react';
 
 const items = [
   { icon: Home, title: 'מערכת אחת', sub: 'מסודרת וברורה' },
-  { icon: Handshake, title: 'יותר אחריות', sub: 'ועצמאות לילד' },
-  { icon: Clock, title: 'פחות מאבק', sub: 'על זמן ועל דקה' },
+  { icon: ShieldCheck, title: 'שליטה מדויקת', sub: 'לכל ילד בנפרד' },
+  { icon: Activity, title: 'מצב בזמן אמת', sub: 'חיבור והרשאות' },
   { icon: Brain, title: 'פחות כאב ראש', sub: 'יומיומי' },
 ];
 

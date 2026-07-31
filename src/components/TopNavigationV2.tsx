@@ -1,21 +1,17 @@
-import { Home, Users, ClipboardList, Bell, Settings, MessageCircle } from "lucide-react";
+import { Home, Users, Bell, Settings } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { WHATSAPP_MONITORING_ENABLED, CHAT_ENABLED } from "@/config/featureFlags";
+import { V2_GUARDIAN_ALERTS_ENABLED } from "@/config/featureFlags";
 
 const allNavItems = [
   { title: "בית", url: "/home-v2", icon: Home },
   { title: "משפחה", url: "/family-v2", icon: Users },
-  { title: "צ'אט", url: "/chat-v2", icon: MessageCircle, requiresChat: true },
-  { title: "משימות", url: "/chores-v2", icon: ClipboardList },
   { title: "התראות", url: "/alerts-v2", icon: Bell, requiresWhatsApp: true },
   { title: "הגדרות", url: "/settings-v2", icon: Settings },
 ];
 
 const navItems = allNavItems.filter(
-  (item) =>
-    (WHATSAPP_MONITORING_ENABLED || !item.requiresWhatsApp) &&
-    (CHAT_ENABLED || !item.requiresChat)
+  (item) => V2_GUARDIAN_ALERTS_ENABLED || !item.requiresWhatsApp
 );
 
 /**

@@ -1,17 +1,16 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { v2Supabase } from "@/integrations/supabase/v2-client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MapPin, Check } from "lucide-react";
+import { MapPin } from "lucide-react";
 import type { ChildWithData } from "@/pages/HomeV2";
 
 interface GeofenceAlert {
-  id: number;
-  child_id: string | null;
-  parent_message: string | null;
-  created_at: string;
-  alert_type: string | null;
+  id: string;
+  child_id: string;
+  message: string;
+  occurred_at: string;
 }
 
 interface Props {
@@ -32,7 +31,6 @@ export const HomePendingGeofenceAlerts = ({ childrenData }: Props) => {
   const navigate = useNavigate();
   const [alerts, setAlerts] = useState<GeofenceAlert[]>([]);
   const [loading, setLoading] = useState(true);
-  const [acking, setAcking] = useState<number | null>(null);
 
   const childIds = childrenData.map((c) => c.id);
   const childIdsKey = childIds.join(",");
@@ -45,45 +43,92 @@ export const HomePendingGeofenceAlerts = ({ childrenData }: Props) => {
       return;
     }
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const { data } = await supabase
-      .from("alerts")
-      .select("id, child_id, parent_message, created_at, alert_type")
-      .in("child_id", childIds)
-      .eq("category", "geofence")
-      .is("acknowledged_at", null)
-      .gte("created_at", since)
-      .order("created_at", { ascending: false })
+    const [devicesResult, geofencesResult] = await Promise.all([
+      v2Supabase
+        .from("v2_protected_devices")
+        .select("id, child_id")
+        .in("child_id", childIds)
+        .neq("status", "revoked"),
+      v2Supabase
+        .from("v2_parental_geofences")
+        .select("id, child_id, label, place_type")
+        .in("child_id", childIds),
+    ]);
+
+    if (devicesResult.error || geofencesResult.error) {
+      setAlerts([]);
+      setLoading(false);
+      return;
+    }
+
+    const childByDevice = new Map(
+      (devicesResult.data || []).map((device) => [device.id, device.child_id]),
+    );
+    const deviceIds = [...childByDevice.keys()];
+    if (deviceIds.length === 0) {
+      setAlerts([]);
+      setLoading(false);
+      return;
+    }
+
+    const geofenceById = new Map(
+      (geofencesResult.data || []).map((geofence) => [
+        geofence.id,
+        geofence.label || geofence.place_type,
+      ]),
+    );
+
+    const { data, error } = await v2Supabase
+      .from("v2_parental_geofence_events")
+      .select("id, device_id, geofence_id, transition, occurred_at")
+      .in("device_id", deviceIds)
+      .gte("occurred_at", since)
+      .order("occurred_at", { ascending: false })
       .limit(5);
-    setAlerts((data as GeofenceAlert[]) || []);
+
+    if (error) {
+      setAlerts([]);
+      setLoading(false);
+      return;
+    }
+
+    setAlerts(
+      (data || [])
+        .map((event) => {
+          const childId = childByDevice.get(event.device_id);
+          if (!childId) return null;
+          const childName = nameById.get(childId) || "הילד/ה";
+          const place = geofenceById.get(event.geofence_id) || "אזור מוגדר";
+          const action =
+            event.transition === "enter" ? "נכנס/ה אל" : "יצא/ה מתוך";
+          return {
+            id: event.id,
+            child_id: childId,
+            message: `${childName} ${action} ${place}`,
+            occurred_at: event.occurred_at,
+          };
+        })
+        .filter((event): event is GeofenceAlert => event !== null),
+    );
     setLoading(false);
   };
 
   useEffect(() => {
     fetchAlerts();
     if (childIds.length === 0) return;
-    const channel = supabase
+    const channel = v2Supabase
       .channel(`home-geofence-alerts`)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "alerts" },
+        { event: "*", schema: "public", table: "v2_parental_geofence_events" },
         () => fetchAlerts(),
       )
       .subscribe();
     return () => {
-      supabase.removeChannel(channel);
+      v2Supabase.removeChannel(channel);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [childIdsKey]);
-
-  const handleAck = async (id: number) => {
-    setAcking(id);
-    await supabase
-      .from("alerts")
-      .update({ acknowledged_at: new Date().toISOString() })
-      .eq("id", id);
-    setAcking(null);
-    fetchAlerts();
-  };
 
   if (loading || alerts.length === 0) return null;
 
@@ -95,7 +140,6 @@ export const HomePendingGeofenceAlerts = ({ childrenData }: Props) => {
           <span>התראות מיקום</span>
         </div>
         {alerts.map((a) => {
-          const childName = a.child_id ? nameById.get(a.child_id) : null;
           return (
             <div
               key={a.id}
@@ -103,10 +147,10 @@ export const HomePendingGeofenceAlerts = ({ childrenData }: Props) => {
             >
               <div className="flex-1 min-w-0">
                 <p className="text-sm text-foreground truncate">
-                  {a.parent_message || `${childName ?? "הילד/ה"} — חריגה מאזור מוגדר`}
+                  {a.message}
                 </p>
                 <p className="text-[11px] text-muted-foreground">
-                  {timeAgo(a.created_at)}
+                  {timeAgo(a.occurred_at)}
                 </p>
               </div>
               <div className="flex gap-1.5 shrink-0">
@@ -114,19 +158,9 @@ export const HomePendingGeofenceAlerts = ({ childrenData }: Props) => {
                   size="sm"
                   variant="ghost"
                   className="h-7 px-2 text-xs"
-                  onClick={() => navigate("/alerts-v2")}
+                  onClick={() => navigate(`/child-v2/${a.child_id}`)}
                 >
                   פרטים
-                </Button>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-7 w-7 text-success hover:bg-success/10"
-                  onClick={() => handleAck(a.id)}
-                  disabled={acking === a.id}
-                  aria-label="סמן כנקרא"
-                >
-                  <Check className="w-3.5 h-3.5" />
                 </Button>
               </div>
             </div>

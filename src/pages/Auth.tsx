@@ -17,6 +17,10 @@ import { WAITLIST_MODE } from '@/config/featureFlags';
 const DEMO_EMAIL = 'demo@kippyai.com';
 const DEMO_PASSWORD = 'demo123!';
 
+// Keep the legacy V1 admin redirect code available for reference, but never
+// execute it from the canonical V2 guardian portal.
+const LEGACY_V1_ADMIN_ROUTING_ENABLED = false;
+
 // Validation schemas
 const emailSchema = z.string().email('כתובת אימייל לא תקינה');
 const passwordSchema = z.string().min(6, 'הסיסמה חייבת להכיל לפחות 6 תווים');
@@ -24,6 +28,9 @@ const nameSchema = z.string().min(2, 'השם חייב להכיל לפחות 2 ת
 const resetEmailSchema = z.object({
   email: z.string().email('כתובת אימייל לא תקינה'),
 });
+
+const getErrorMessage = (error: unknown) =>
+  error instanceof Error ? error.message : 'Unexpected error';
 
 export default function Auth() {
   const [searchParams] = useSearchParams();
@@ -87,24 +94,26 @@ export default function Auth() {
           }
         }
         
-        // Check if user is admin and redirect accordingly
-        const { data: isAdmin } = await supabase.rpc('is_admin');
-        if (isAdmin && !isImpersonating) {
-          navigate('/admin');
-        } else {
-          // Honor redirect param (used by accept-invite flow)
-          const redirectTo = searchParams.get('redirect');
-          if (redirectTo && redirectTo.startsWith('/')) {
-            navigate(redirectTo, { replace: true });
-          } else {
-            navigate('/home-v2');
+        if (LEGACY_V1_ADMIN_ROUTING_ENABLED) {
+          const { data: isAdmin } = await supabase.rpc('is_admin');
+          if (isAdmin && !isImpersonating) {
+            navigate('/admin');
+            return;
           }
+        }
+
+        // Honor internal redirect params, then continue into the V2 portal.
+        const redirectTo = searchParams.get('redirect');
+        if (redirectTo && redirectTo.startsWith('/')) {
+          navigate(redirectTo, { replace: true });
+        } else {
+          navigate('/home-v2');
         }
       }
     };
     
     checkUserAccess();
-  }, [user, authLoading, navigate, toast]);
+  }, [user, authLoading, navigate, searchParams, toast]);
 
   const validateForm = () => {
     const newErrors: { email?: string; password?: string; name?: string } = {};
@@ -198,15 +207,16 @@ export default function Auth() {
         });
         navigate('/home-v2');
       }
-    } catch (error: any) {
-      let errorMessage = error.message;
+    } catch (error: unknown) {
+      const sourceMessage = getErrorMessage(error);
+      let errorMessage = sourceMessage;
       
       // Translate common error messages to Hebrew
-      if (error.message.includes('Invalid login credentials')) {
+      if (sourceMessage.includes('Invalid login credentials')) {
         errorMessage = 'אימייל או סיסמה שגויים';
-      } else if (error.message.includes('Email not confirmed')) {
+      } else if (sourceMessage.includes('Email not confirmed')) {
         errorMessage = 'האימייל לא אושר. בדוק את תיבת הדואר שלך';
-      } else if (error.message.includes('User already registered')) {
+      } else if (sourceMessage.includes('User already registered')) {
         errorMessage = 'משתמש עם אימייל זה כבר קיים';
       }
       
@@ -250,10 +260,11 @@ export default function Auth() {
         title: "נשלח בהצלחה!",
         description: "קישור לאיפוס סיסמה נשלח לאימייל שלך",
       });
-    } catch (error: any) {
-      let errorMessage = error.message;
+    } catch (error: unknown) {
+      const sourceMessage = getErrorMessage(error);
+      let errorMessage = sourceMessage;
       
-      if (error.message.includes('Email rate limit exceeded')) {
+      if (sourceMessage.includes('Email rate limit exceeded')) {
         errorMessage = 'יותר מדי בקשות. נסה שוב מאוחר יותר';
       }
       
@@ -276,11 +287,11 @@ export default function Auth() {
         },
       });
       if (error) throw error;
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         variant: "destructive",
         title: "שגיאה",
-        description: error.message,
+        description: getErrorMessage(error),
       });
     }
   };

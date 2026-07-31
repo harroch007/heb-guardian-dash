@@ -42,7 +42,7 @@ export function HeroV1() {
               <PhoneMockup variant="overview" />
             </div>
             <div className="hidden sm:block -translate-y-6">
-              <PhoneMockup variant="tasks" />
+              <PhoneMockup variant="controls" />
             </div>
           </motion.div>
 
@@ -54,14 +54,14 @@ export function HeroV1() {
             className="order-1 lg:order-2 text-center lg:text-right"
           >
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6 text-foreground">
-              הילדים מפסיקים לבקש זמן מסך
+              כל ההגנה על הטלפון של הילד
               <br />
-              ומתחילים להרוויח אותו.
+              במקום אחד, ברור ופשוט.
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-xl mx-auto lg:mx-0 leading-relaxed">
-              קיפי מלמדת ילדים לקחת אחריות על זמן המסך 
+              זמן מסך, אפליקציות, לוחות זמנים, מיקום ותקינות המכשיר
               <br />
-              בלי ויכוחים, בלי תזכורות, בלי כאב ראש.
+              במרכז הגנה אחד שנבנה במיוחד להורים.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start mb-4">
               {WAITLIST_MODE ? PrimaryCTA : <Link to="/auth?signup=true">{PrimaryCTA}</Link>}
@@ -72,7 +72,7 @@ export function HeroV1() {
             </div>
             <p className="text-sm text-muted-foreground flex items-center gap-1.5 justify-center lg:justify-start">
               <Star className="w-4 h-4 text-primary fill-primary" />
-              עובד כבר מהיום הראשון.
+              שליטה שקטה וברורה, גם מהטלפון.
             </p>
           </motion.div>
         </div>

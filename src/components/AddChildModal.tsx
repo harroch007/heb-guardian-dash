@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { createGuardianChild } from "@/lib/v2/guardianService";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { QRCodeDisplay } from "@/components/QRCodeDisplay";
 import { Loader2, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { format } from "date-fns";
 import { z } from "zod";
 
 interface AddChildModalProps {
@@ -51,7 +50,7 @@ export function AddChildModal({ open, onOpenChange, onChildAdded }: AddChildModa
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [childId, setChildId] = useState<string | null>(null);
-  const { user } = useAuth();
+  const { user, familyId } = useAuth();
   const { toast } = useToast();
 
   const currentYear = new Date().getFullYear();
@@ -110,51 +109,26 @@ export function AddChildModal({ open, onOpenChange, onChildAdded }: AddChildModa
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!validateForm() || !user) return;
-
-    const dateOfBirth = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    if (!validateForm() || !user || !familyId) return;
 
     setLoading(true);
 
     try {
-      const { data, error } = await supabase
-        .from("children")
-        .insert({
-          parent_id: user.id,
-          name: name.trim(),
-          phone_number: "",
-          date_of_birth: format(dateOfBirth, "yyyy-MM-dd"),
-          gender,
-        })
-        .select("id")
-        .single();
-
-      if (error) {
-        console.error("Error adding child:", error);
-        if (error.code === '23505') {
-          toast({
-            title: "לא ניתן להוסיף את הילד/ה",
-            description: "מספר הטלפון כבר קיים במערכת. אם אתה חושב שמדובר בטעות, פנה לשירות הלקוחות שלנו בכתובת yariv@kippyai.com",
-            variant: "destructive",
-          });
-        } else if (error.code === '42501' || error.message?.includes('row-level security')) {
-          toast({
-            title: "אין הרשאה",
-            description: "אין לך הרשאה להוסיף ילד. נסה להתנתק ולהתחבר מחדש. אם הבעיה נמשכת, פנה ל-support@kippyai.com",
-            variant: "destructive",
-          });
-        } else {
-          toast({
-            title: "שגיאה",
-            description: "לא ניתן להוסיף את הילד/ה. נסה שוב מאוחר יותר.",
-            variant: "destructive",
-          });
-        }
-        return;
-      }
-
-      setChildId(data.id);
+      const result = await createGuardianChild({
+        familyId,
+        displayName: name,
+        birthYear: parseInt(year),
+        gender: gender as "male" | "female" | "other",
+      });
+      setChildId(result.childId);
       setStep("pairing");
+    } catch (error) {
+      console.error("Error adding V2 child:", error);
+      toast({
+        title: "שגיאה",
+        description: "לא ניתן להוסיף את הילד/ה. נסו שוב.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -166,35 +140,6 @@ export function AddChildModal({ open, onOpenChange, onChildAdded }: AddChildModa
       onChildAdded();
     }
   }, [step, childId]);
-
-  useEffect(() => {
-    if (!childId || step !== "pairing") return;
-
-    const channel = supabase
-      .channel(`device-pairing-${childId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "devices",
-          filter: `child_id=eq.${childId}`,
-        },
-        (payload) => {
-          console.log("Device paired!", payload);
-          toast({
-            title: "🎉 המכשיר חובר בהצלחה!",
-            description: "המכשיר של הילד/ה מחובר כעת למערכת",
-          });
-          handleClose();
-        },
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [childId, step]);
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>

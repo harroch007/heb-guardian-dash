@@ -1,8 +1,20 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { v2Supabase } from "@/integrations/supabase/v2-client";
+import type { Json } from "@/integrations/supabase/v2-types";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { getIsraelDate } from "@/lib/utils";
+import { listRecentParentalControlCommands } from "@/lib/parental-controls/commandService";
+import {
+  createProtectionSchedule,
+  deleteProtectionSchedule,
+  grantParentBonusTime,
+  saveAppPolicy,
+  saveDailyScreenTimeLimit,
+  saveShabbatMode,
+  toggleShabbatSchedule,
+  updateProtectionSchedule,
+} from "@/lib/parental-controls/settingsService";
 
 export interface AppPolicy {
   id: string;
@@ -70,6 +82,48 @@ export interface NextShabbat {
   havdalah: string;
 }
 
+const capabilitySatisfied = (
+  capabilities: Json,
+  key: string,
+): boolean | undefined => {
+  if (
+    !capabilities ||
+    Array.isArray(capabilities) ||
+    typeof capabilities !== "object"
+  ) {
+    return undefined;
+  }
+  const capability = capabilities[key];
+  if (
+    !capability ||
+    Array.isArray(capability) ||
+    typeof capability !== "object"
+  ) {
+    return undefined;
+  }
+  return capability.state === "satisfied";
+};
+
+const scheduleDisplayType = (name: string, scheduleType: string) => {
+  if (scheduleType === "shabbat") return "shabbat";
+  const normalized = name.toLocaleLowerCase("he");
+  if (
+    normalized.includes("שינה") ||
+    normalized.includes("לילה") ||
+    normalized.includes("bed")
+  ) {
+    return "bedtime";
+  }
+  if (
+    normalized.includes("בית ספר") ||
+    normalized.includes("לימוד") ||
+    normalized.includes("school")
+  ) {
+    return "school";
+  }
+  return scheduleType;
+};
+
 export function useChildControls(childId: string | undefined) {
   const { user } = useAuth();
   const [appPolicies, setAppPolicies] = useState<AppPolicy[]>([]);
@@ -82,6 +136,9 @@ export function useChildControls(childId: string | undefined) {
   const [todayBonusMinutes, setTodayBonusMinutes] = useState(0);
   const [loading, setLoading] = useState(true);
 
+  /*
+   * Legacy V1 donor read model retained until the explicit cleanup phase.
+   *
   const fetchData = useCallback(async () => {
     if (!childId || !user) return;
 
@@ -161,9 +218,9 @@ export function useChildControls(childId: string | undefined) {
 
     // Device health
     if (healthRes.data) {
-      const hb = healthRes.data as Record<string, any>;
-      const device = hb.device as Record<string, any> | null;
-      const permissions = hb.permissions as Record<string, boolean> | null;
+      const hb = healthRes.data as unknown as DeviceHealthRpcResult;
+      const device = hb.device;
+      const permissions = hb.permissions;
       setDeviceHealth({
         permissions: permissions || {},
         deviceVersion: device?.appVersionName || null,
@@ -189,7 +246,10 @@ export function useChildControls(childId: string | undefined) {
 
     // Today's bonus
     if (bonusRes.data) {
-      const total = bonusRes.data.reduce((sum: number, r: any) => sum + (r.bonus_minutes || 0), 0);
+      const total = bonusRes.data.reduce(
+        (sum, row) => sum + (row.bonus_minutes || 0),
+        0,
+      );
       setTodayBonusMinutes(total);
     } else {
       setTodayBonusMinutes(0);
@@ -199,71 +259,283 @@ export function useChildControls(childId: string | undefined) {
     const childDeviceIds = devicesRes.data?.map((d) => d.device_id) || [];
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
     if (childDeviceIds.length > 0) {
-      const { data: commandsData } = await supabase
-        .from("device_commands")
-        .select("id, status, device_id, result, created_at")
-        .eq("command_type", "REFRESH_SETTINGS")
-        .in("device_id", childDeviceIds)
-        .in("status", ["PENDING", "ACKNOWLEDGED", "FAILED", "TIMED_OUT"])
-        .gte("created_at", fiveMinutesAgo)
-        .order("created_at", { ascending: false })
-        .limit(10);
-
-      setRecentCommands((commandsData as DeviceCommand[]) || []);
+      try {
+        const commandsData = await listRecentParentalControlCommands({
+          deviceIds: childDeviceIds,
+          commandType: "REFRESH_SETTINGS",
+          statuses: ["PENDING", "ACKNOWLEDGED", "FAILED", "TIMED_OUT"],
+          since: fiveMinutesAgo,
+          limit: 10,
+        });
+        setRecentCommands(commandsData as DeviceCommand[]);
+      } catch {
+        setRecentCommands([]);
+      }
     } else {
       setRecentCommands([]);
     }
 
     setLoading(false);
   }, [childId, user]);
+  */
+
+  const fetchData = useCallback(async () => {
+    if (!childId || !user) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const todayIsrael = getIsraelDate();
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+
+      const [devicesResult, policiesResult, schedulesResult, bonusResult] =
+        await Promise.all([
+          v2Supabase
+            .from("v2_protected_devices")
+            .select("*")
+            .eq("child_id", childId)
+            .neq("status", "revoked")
+            .order("last_seen_at", { ascending: false }),
+          v2Supabase
+            .from("v2_parental_app_policies")
+            .select("*")
+            .eq("child_id", childId)
+            .order("app_name"),
+          v2Supabase
+            .from("v2_parental_schedules")
+            .select("*")
+            .eq("child_id", childId)
+            .order("created_at"),
+          v2Supabase
+            .from("v2_parental_bonus_grants")
+            .select("bonus_minutes")
+            .eq("child_id", childId)
+            .eq("grant_date", todayIsrael),
+        ]);
+
+      const baseError = [
+        devicesResult.error,
+        policiesResult.error,
+        schedulesResult.error,
+        bonusResult.error,
+      ].find(Boolean);
+      if (baseError) throw baseError;
+
+      const policies: AppPolicy[] = (policiesResult.data || []).map(
+        (policy) => ({
+          id: policy.id,
+          child_id: policy.child_id,
+          package_name: policy.package_name,
+          app_name: policy.app_name,
+          is_blocked: policy.policy_status === "blocked",
+          blocked_at:
+            policy.policy_status === "blocked" ? policy.updated_at : null,
+          blocked_by:
+            policy.policy_status === "blocked" ? policy.updated_by : null,
+          policy_status:
+            policy.policy_status === "blocked" ? "blocked" : "approved",
+          always_allowed: policy.always_allowed,
+        }),
+      );
+      setAppPolicies(policies);
+
+      setScheduleWindows(
+        (schedulesResult.data || []).map((schedule) => ({
+          id: schedule.id,
+          child_id: schedule.child_id,
+          name: schedule.name,
+          schedule_type: scheduleDisplayType(
+            schedule.name,
+            schedule.schedule_type,
+          ),
+          days_of_week: schedule.days_of_week,
+          start_time: schedule.start_time,
+          end_time: schedule.end_time,
+          is_active: schedule.is_active,
+          created_at: schedule.created_at,
+          updated_at: schedule.updated_at,
+          mode: schedule.mode,
+          manual_start_time:
+            schedule.mode === "manual" ? schedule.start_time : null,
+          manual_end_time:
+            schedule.mode === "manual" ? schedule.end_time : null,
+        })),
+      );
+
+      setTodayBonusMinutes(
+        (bonusResult.data || []).reduce(
+          (total, grant) => total + grant.bonus_minutes,
+          0,
+        ),
+      );
+      setNextShabbat(null);
+
+      const devices = devicesResult.data || [];
+      const deviceIds = devices.map((device) => device.id);
+      const primaryDevice = devices[0] ?? null;
+
+      if (deviceIds.length === 0) {
+        setBlockedAttempts([]);
+        setInstalledApps([]);
+        setDeviceHealth(null);
+        setRecentCommands([]);
+        return;
+      }
+
+      const [attemptsResult, installedResult, healthResult] =
+        await Promise.all([
+          v2Supabase
+            .from("v2_parental_blocked_attempts")
+            .select("package_name, attempted_at")
+            .in("device_id", deviceIds)
+            .gte("attempted_at", todayStart.toISOString()),
+          v2Supabase
+            .from("v2_parental_installed_apps")
+            .select("*")
+            .in("device_id", deviceIds)
+            .eq("is_installed", true)
+            .eq("is_system", false)
+            .order("app_name"),
+          v2Supabase
+            .from("v2_device_health_events")
+            .select("*")
+            .in("device_id", deviceIds)
+            .eq("affects_current_state", true)
+            .order("observed_at", { ascending: false })
+            .limit(1),
+        ]);
+
+      const deviceError = [
+        attemptsResult.error,
+        installedResult.error,
+        healthResult.error,
+      ].find(Boolean);
+      if (deviceError) throw deviceError;
+
+      const attemptsMap = new Map<
+        string,
+        { count: number; last: string }
+      >();
+      for (const attempt of attemptsResult.data || []) {
+        const existing = attemptsMap.get(attempt.package_name);
+        if (existing) {
+          existing.count += 1;
+          if (attempt.attempted_at > existing.last) {
+            existing.last = attempt.attempted_at;
+          }
+        } else {
+          attemptsMap.set(attempt.package_name, {
+            count: 1,
+            last: attempt.attempted_at,
+          });
+        }
+      }
+      setBlockedAttempts(
+        [...attemptsMap.entries()].map(([packageName, summary]) => ({
+          package_name: packageName,
+          attempts_today: summary.count,
+          last_attempt: summary.last,
+        })),
+      );
+
+      setInstalledApps(
+        (installedResult.data || []).map((app) => ({
+          id: `${app.device_id}:${app.package_name}`,
+          child_id: childId,
+          package_name: app.package_name,
+          app_name: app.app_name,
+          is_system: app.is_system,
+          category: null,
+          first_seen_at: app.first_seen_at,
+          last_seen_at: app.last_seen_at,
+        })),
+      );
+
+      const health = healthResult.data?.[0] ?? null;
+      if (health) {
+        const permissions: Record<string, boolean> = {
+          accessibilityEnabled: health.accessibility_enabled,
+          notificationListenerEnabled:
+            health.notification_listener_enabled,
+          batteryOptimizationIgnored:
+            health.battery_optimization_exempt,
+        };
+        const capabilities: Array<[string, string]> = [
+          ["usageStatsGranted", "usage_access"],
+          ["locationPermissionGranted", "background_location"],
+          ["locationServicesEnabled", "location_services"],
+        ];
+        for (const [permissionKey, capabilityKey] of capabilities) {
+          const satisfied = capabilitySatisfied(
+            health.capabilities,
+            capabilityKey,
+          );
+          if (satisfied !== undefined) {
+            permissions[permissionKey] = satisfied;
+          }
+        }
+        setDeviceHealth({
+          permissions,
+          deviceVersion:
+            health.app_version || primaryDevice?.app_version || null,
+          deviceModel: primaryDevice
+            ? [primaryDevice.manufacturer, primaryDevice.model]
+                .filter(Boolean)
+                .join(" ") || null
+            : null,
+          reportedAt: health.observed_at,
+        });
+      } else {
+        setDeviceHealth(null);
+      }
+
+      const fiveMinutesAgo = new Date(
+        Date.now() - 5 * 60 * 1000,
+      ).toISOString();
+      try {
+        const commands = await listRecentParentalControlCommands({
+          deviceIds,
+          commandType: "REFRESH_SETTINGS",
+          statuses: ["PENDING", "CLAIMED", "FAILED"],
+          since: fiveMinutesAgo,
+          limit: 10,
+        });
+        setRecentCommands(commands as DeviceCommand[]);
+      } catch {
+        setRecentCommands([]);
+      }
+    } catch (error) {
+      console.error("[child-controls] Failed to load V2 controls", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [childId, user]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
-
-  const sendRefreshToAllDevices = async () => {
-    const { data: devices } = await supabase
-      .from("devices")
-      .select("device_id")
-      .eq("child_id", childId!);
-
-    if (devices) {
-      for (const dev of devices) {
-        await supabase.from("device_commands").insert({
-          device_id: dev.device_id,
-          command_type: "REFRESH_SETTINGS",
-          status: "PENDING",
-        });
-      }
-    }
-  };
 
   const toggleAppBlock = async (packageName: string, appName: string | null, currentlyBlocked: boolean) => {
     if (!childId || !user) return;
 
     const newBlocked = !currentlyBlocked;
 
-    const { error } = await supabase
-      .from("app_policies")
-      .upsert(
-        {
-          child_id: childId,
-          package_name: packageName,
-          app_name: appName,
-          is_blocked: newBlocked,
-          policy_status: newBlocked ? "blocked" : "approved",
-          blocked_at: newBlocked ? new Date().toISOString() : null,
-          blocked_by: newBlocked ? user.id : null,
-        },
-        { onConflict: "child_id,package_name" }
-      );
-
-    if (error) {
+    try {
+      await saveAppPolicy({
+        childId,
+        parentId: user.id,
+        packageName,
+        appName,
+        blocked: newBlocked,
+      });
+    } catch {
       toast.error("שגיאה בעדכון מדיניות האפליקציה");
       return;
     }
 
-    await sendRefreshToAllDevices();
     toast.success(newBlocked ? "האפליקציה נחסמה" : "האפליקציה שוחררה");
     fetchData();
   };
@@ -272,27 +544,19 @@ export function useChildControls(childId: string | undefined) {
   const approveApp = async (packageName: string, appName: string | null) => {
     if (!childId || !user) return;
 
-    const { error } = await supabase
-      .from("app_policies")
-      .upsert(
-        {
-          child_id: childId,
-          package_name: packageName,
-          app_name: appName,
-          is_blocked: false,
-          policy_status: "approved",
-          blocked_at: null,
-          blocked_by: null,
-        },
-        { onConflict: "child_id,package_name" }
-      );
-
-    if (error) {
+    try {
+      await saveAppPolicy({
+        childId,
+        parentId: user.id,
+        packageName,
+        appName,
+        blocked: false,
+      });
+    } catch {
       toast.error("שגיאה באישור האפליקציה");
       return;
     }
 
-    await sendRefreshToAllDevices();
     toast.success("האפליקציה אושרה");
     fetchData();
   };
@@ -301,27 +565,19 @@ export function useChildControls(childId: string | undefined) {
   const blockApp = async (packageName: string, appName: string | null) => {
     if (!childId || !user) return;
 
-    const { error } = await supabase
-      .from("app_policies")
-      .upsert(
-        {
-          child_id: childId,
-          package_name: packageName,
-          app_name: appName,
-          is_blocked: true,
-          policy_status: "blocked",
-          blocked_at: new Date().toISOString(),
-          blocked_by: user.id,
-        },
-        { onConflict: "child_id,package_name" }
-      );
-
-    if (error) {
+    try {
+      await saveAppPolicy({
+        childId,
+        parentId: user.id,
+        packageName,
+        appName,
+        blocked: true,
+      });
+    } catch {
       toast.error("שגיאה בחסימת האפליקציה");
       return;
     }
 
-    await sendRefreshToAllDevices();
     toast.success("האפליקציה נחסמה");
     fetchData();
   };
@@ -329,26 +585,17 @@ export function useChildControls(childId: string | undefined) {
   const updateDailyLimit = async (minutes: number | null) => {
     if (!childId || !user) return;
 
-    const { data: existing } = await supabase
-      .from("settings")
-      .select("id")
-      .eq("child_id", childId)
-      .maybeSingle();
-
-    if (existing) {
-      await supabase
-        .from("settings")
-        .update({ daily_screen_time_limit_minutes: minutes })
-        .eq("id", existing.id);
-    } else {
-      await supabase.from("settings").insert({
-        child_id: childId,
-        parent_id: user.id,
-        daily_screen_time_limit_minutes: minutes,
+    try {
+      await saveDailyScreenTimeLimit({
+        childId,
+        parentId: user.id,
+        minutes,
       });
+    } catch {
+      toast.error("שגיאה בעדכון מגבלת זמן המסך");
+      return;
     }
 
-    await sendRefreshToAllDevices();
     toast.success(minutes ? "מגבלת זמן מסך עודכנה" : "מגבלת זמן מסך הוסרה");
   };
 
@@ -356,23 +603,18 @@ export function useChildControls(childId: string | undefined) {
   const grantBonusTime = async (minutes: number) => {
     if (!childId || !user) return;
 
-    const todayIsrael = getIsraelDate();
-
-    const { error } = await supabase
-      .from("bonus_time_grants")
-      .insert({
-        child_id: childId,
-        grant_date: todayIsrael,
-        bonus_minutes: minutes,
-        granted_by: user.id,
+    try {
+      await grantParentBonusTime({
+        childId,
+        parentId: user.id,
+        grantDate: getIsraelDate(),
+        minutes,
       });
-
-    if (error) {
+    } catch {
       toast.error("שגיאה בהוספת זמן בונוס");
       return;
     }
 
-    await sendRefreshToAllDevices();
     toast.success(`נוסף זמן בונוס של ${minutes} דקות להיום`);
     fetchData();
   };
@@ -382,38 +624,15 @@ export function useChildControls(childId: string | undefined) {
   const toggleShabbat = async () => {
     if (!childId || !user) return;
 
-    const existing = scheduleWindows.find((s) => s.schedule_type === "shabbat");
-
-    if (existing) {
-      const { error } = await supabase
-        .from("schedule_windows")
-        .update({ is_active: !existing.is_active })
-        .eq("id", existing.id);
-
-      if (error) {
-        toast.error("שגיאה בעדכון מצב שבת");
-        return;
-      }
-    } else {
-      const { error } = await supabase.from("schedule_windows").insert({
-        child_id: childId,
-        name: "שבת",
-        schedule_type: "shabbat",
-        is_active: true,
-        days_of_week: null,
-        start_time: null,
-        end_time: null,
-        mode: "default",
-      });
-
-      if (error) {
-        toast.error("שגיאה ביצירת חוק שבת");
-        return;
-      }
+    let nextActive: boolean;
+    try {
+      nextActive = await toggleShabbatSchedule(childId);
+    } catch {
+      toast.error("שגיאה בעדכון מצב שבת");
+      return;
     }
 
-    await sendRefreshToAllDevices();
-    toast.success(existing?.is_active ? "מצב שבת כובה" : "מצב שבת הופעל");
+    toast.success(nextActive ? "מצב שבת הופעל" : "מצב שבת כובה");
     fetchData();
   };
 
@@ -426,26 +645,19 @@ export function useChildControls(childId: string | undefined) {
   ) => {
     if (!childId) return;
 
-    const updateData: Record<string, any> = { mode };
-    if (mode === "manual") {
-      updateData.manual_start_time = manualStartTime || null;
-      updateData.manual_end_time = manualEndTime || null;
-    } else {
-      updateData.manual_start_time = null;
-      updateData.manual_end_time = null;
-    }
-
-    const { error } = await supabase
-      .from("schedule_windows")
-      .update(updateData)
-      .eq("id", scheduleId);
-
-    if (error) {
+    try {
+      await saveShabbatMode({
+        childId,
+        scheduleId,
+        mode,
+        manualStartTime,
+        manualEndTime,
+      });
+    } catch {
       toast.error("שגיאה בעדכון מצב שבת");
       return;
     }
 
-    await sendRefreshToAllDevices();
     toast.success(mode === "manual" ? "זמני שבת ידניים נשמרו" : "חזרה לזמני שבת אוטומטיים");
     fetchData();
   };
@@ -459,22 +671,13 @@ export function useChildControls(childId: string | undefined) {
   }) => {
     if (!childId || !user) return;
 
-    const { error } = await supabase.from("schedule_windows").insert({
-      child_id: childId,
-      name: params.name,
-      schedule_type: params.schedule_type,
-      days_of_week: params.days_of_week,
-      start_time: params.start_time,
-      end_time: params.end_time,
-      is_active: true,
-    });
-
-    if (error) {
+    try {
+      await createProtectionSchedule(childId, params);
+    } catch {
       toast.error("שגיאה ביצירת לוח זמנים");
       return;
     }
 
-    await sendRefreshToAllDevices();
     toast.success("לוח זמנים נוצר בהצלחה");
     fetchData();
   };
@@ -491,17 +694,17 @@ export function useChildControls(childId: string | undefined) {
   ) => {
     if (!childId) return;
 
-    const { error } = await supabase
-      .from("schedule_windows")
-      .update(params)
-      .eq("id", scheduleId);
-
-    if (error) {
+    try {
+      await updateProtectionSchedule({
+        childId,
+        scheduleId,
+        patch: params,
+      });
+    } catch {
       toast.error("שגיאה בעדכון לוח זמנים");
       return;
     }
 
-    await sendRefreshToAllDevices();
     toast.success("לוח זמנים עודכן בהצלחה");
     fetchData();
   };
@@ -509,17 +712,13 @@ export function useChildControls(childId: string | undefined) {
   const deleteSchedule = async (scheduleId: string) => {
     if (!childId) return;
 
-    const { error } = await supabase
-      .from("schedule_windows")
-      .delete()
-      .eq("id", scheduleId);
-
-    if (error) {
+    try {
+      await deleteProtectionSchedule({ childId, scheduleId });
+    } catch {
       toast.error("שגיאה במחיקת לוח זמנים");
       return;
     }
 
-    await sendRefreshToAllDevices();
     toast.success("לוח זמנים נמחק");
     fetchData();
   };

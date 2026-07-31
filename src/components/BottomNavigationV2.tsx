@@ -1,39 +1,31 @@
-import { Home, Users, ClipboardList, Bell, Settings, MessageCircle } from "lucide-react";
+import { Home, Users, Bell, Settings } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { WHATSAPP_MONITORING_ENABLED, CHAT_ENABLED } from "@/config/featureFlags";
-import { useUnreadChatTotal } from "@/hooks/useUnreadChatTotal";
-import { useNavBadgeCounts } from "@/hooks/useNavBadgeCounts";
+import { V2_GUARDIAN_ALERTS_ENABLED } from "@/config/featureFlags";
+import { useV2NavBadgeCounts } from "@/hooks/useV2NavBadgeCounts";
 
 const allNavItems = [
   { title: "בית", url: "/home-v2", icon: Home, key: "home" },
   { title: "משפחה", url: "/family-v2", icon: Users, key: "family" },
-  { title: "צ'אט", url: "/chat-v2", icon: MessageCircle, key: "chat", requiresChat: true },
-  { title: "משימות", url: "/chores-v2", icon: ClipboardList, key: "chores" },
   { title: "התראות", url: "/alerts-v2", icon: Bell, key: "alerts", requiresWhatsApp: true },
   { title: "הגדרות", url: "/settings-v2", icon: Settings, key: "settings" },
 ];
 
 const navItems = allNavItems.filter(
-  (item) =>
-    (WHATSAPP_MONITORING_ENABLED || !item.requiresWhatsApp) &&
-    (CHAT_ENABLED || !item.requiresChat)
+  (item) => V2_GUARDIAN_ALERTS_ENABLED || !item.requiresWhatsApp
 );
 
 export function BottomNavigationV2() {
   const location = useLocation();
-  const unreadChat = useUnreadChatTotal();
-  const navCounts = useNavBadgeCounts();
+  const navCounts = useV2NavBadgeCounts();
 
   const isActive = (url: string) => {
     return location.pathname === url || location.pathname.startsWith(url + "/");
   };
 
   const badgeFor = (key: string): number => {
-    if (key === "chat") return unreadChat;
     if (key === "home") return navCounts.home;
     if (key === "alerts") return navCounts.alerts;
-    if (key === "chores") return navCounts.chores;
     return 0;
   };
 
@@ -49,7 +41,7 @@ export function BottomNavigationV2() {
               key={item.url}
               to={item.url}
               className={cn(
-                "flex flex-1 flex-col items-center justify-center gap-1 px-1 py-2 transition-all duration-200",
+                "flex flex-1 flex-col items-center justify-center gap-1 px-1 py-2 transition-colors duration-200",
                 active ? "text-primary" : "text-muted-foreground"
               )}
             >

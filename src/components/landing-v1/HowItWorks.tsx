@@ -1,10 +1,10 @@
 import { motion } from 'framer-motion';
-import { Smartphone, Coins, Home, ArrowLeft } from 'lucide-react';
+import { Smartphone, QrCode, ShieldCheck, ArrowLeft } from 'lucide-react';
 
 const steps = [
-  { num: 1, icon: Smartphone, title: 'ההורה מגדיר גבולות', desc: 'זמן מסך, אפליקציות, שגרות וחוקים.' },
-  { num: 2, icon: Coins, title: 'הילד מרוויח דקות', desc: 'באמצעות משימות יומיומיות והתנהלות אחראית.' },
-  { num: 3, icon: Home, title: 'הבית נרגע', desc: 'פחות ריבים, יותר סדר, ותחושה הוגנת לכולם.' },
+  { num: 1, icon: Smartphone, title: 'ההורה נרשם ומוסיף ילד', desc: 'מקבלים קוד QR לחיבור מאובטח של המכשיר.' },
+  { num: 2, icon: QrCode, title: 'מחברים את מכשיר הילד', desc: 'מתקינים את אפליקציית הילד ומאשרים את ההרשאות הנדרשות.' },
+  { num: 3, icon: ShieldCheck, title: 'מנהלים ממרכז ההגנה', desc: 'זמן מסך, אפליקציות, לוחות זמנים, מיקום ותקינות במקום אחד.' },
 ];
 
 export function HowItWorks() {

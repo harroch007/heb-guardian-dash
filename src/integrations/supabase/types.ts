@@ -1761,28 +1761,52 @@ export type Database = {
       }
       device_commands: {
         Row: {
+          acknowledged_at: string | null
           command_type: string
+          completed_at: string | null
           created_at: string
           device_id: string
+          error_code: string | null
+          expires_at: string | null
           id: string
+          payload: Json
+          request_key: string | null
+          requested_by: string | null
           result: string | null
           status: string
+          updated_at: string
         }
         Insert: {
+          acknowledged_at?: string | null
           command_type: string
+          completed_at?: string | null
           created_at?: string
           device_id: string
+          error_code?: string | null
+          expires_at?: string | null
           id?: string
+          payload?: Json
+          request_key?: string | null
+          requested_by?: string | null
           result?: string | null
           status?: string
+          updated_at?: string
         }
         Update: {
+          acknowledged_at?: string | null
           command_type?: string
+          completed_at?: string | null
           created_at?: string
           device_id?: string
+          error_code?: string | null
+          expires_at?: string | null
           id?: string
+          payload?: Json
+          request_key?: string | null
+          requested_by?: string | null
           result?: string | null
           status?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -3724,6 +3748,31 @@ export type Database = {
       request_extra_time: {
         Args: { p_child_id: string; p_device_id?: string; p_reason: string }
         Returns: Json
+      }
+      request_parental_control_command_v2: {
+        Args: {
+          p_command_type: string
+          p_device_id: string
+          p_payload?: Json
+          p_request_key?: string
+          p_ttl_seconds?: number
+        }
+        Returns: {
+          acknowledged_at: string | null
+          command_type: string
+          completed_at: string | null
+          created_at: string
+          device_id: string
+          error_code: string | null
+          expires_at: string | null
+          id: string
+          payload: Json
+          request_key: string | null
+          requested_by: string | null
+          result: string | null
+          status: string
+          updated_at: string
+        }
       }
       respond_friend_request: {
         Args: {

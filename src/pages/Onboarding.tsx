@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { bootstrapGuardian } from '@/lib/v2/guardianService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -50,40 +50,10 @@ export default function Onboarding() {
     setLoading(true);
 
     try {
-      const { error } = await supabase
-        .from('parents')
-        .insert({
-          id: user.id,
-          full_name: fullName.trim(),
-          phone: phone.trim(),
-          email: user.email,
-        });
-
-      if (error) {
-        console.error('Error creating parent record:', error);
-        
-        if (error.code === '23505') {
-          const isPhoneDuplicate = error.message?.includes('uq_parents_phone');
-          const isEmailDuplicate = error.message?.includes('uq_parents_email');
-          
-          toast({
-            title: 'לא ניתן להשלים את הרישום',
-            description: isPhoneDuplicate
-              ? 'מספר הטלפון כבר קיים במערכת. אם אתה חושב שמדובר בטעות, פנה לשירות הלקוחות שלנו בכתובת yariv@kippyai.com'
-              : isEmailDuplicate
-              ? 'כתובת האימייל כבר קיימת במערכת. פנה לשירות הלקוחות: yariv@kippyai.com'
-              : 'הפרטים כבר קיימים במערכת. פנה לשירות הלקוחות: yariv@kippyai.com',
-            variant: 'destructive',
-          });
-        } else {
-          toast({
-            title: 'שגיאה',
-            description: 'לא ניתן לשמור את הפרופיל',
-            variant: 'destructive',
-          });
-        }
-        return;
-      }
+      await bootstrapGuardian({
+        displayName: fullName,
+        phone,
+      });
 
       await checkParentStatus();
       
@@ -93,6 +63,13 @@ export default function Onboarding() {
       });
       
       navigate('/home-v2');
+    } catch (error) {
+      console.error('Error bootstrapping V2 guardian:', error);
+      toast({
+        title: 'שגיאה',
+        description: 'לא ניתן לשמור את הפרופיל. נסו שוב.',
+        variant: 'destructive',
+      });
     } finally {
       setLoading(false);
     }

@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { v2Supabase } from "@/integrations/supabase/v2-client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Check, X, Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { isSystemApp } from "@/lib/appUtils";
 import type { ChildWithData } from "@/pages/HomeV2";
+import { useAuth } from "@/contexts/AuthContext";
+import { saveAppPolicy } from "@/lib/parental-controls/settingsService";
 
 interface PendingApp {
   child_id: string;
@@ -29,6 +31,7 @@ function timeAgo(dateStr: string): string {
 }
 
 export const HomePendingApps = ({ childrenData }: Props) => {
+  const { user } = useAuth();
   const [apps, setApps] = useState<PendingApp[]>([]);
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState<string | null>(null);
@@ -43,28 +46,66 @@ export const HomePendingApps = ({ childrenData }: Props) => {
       setLoading(false);
       return;
     }
-    const [installedRes, policiesRes] = await Promise.all([
-      supabase
-        .from("installed_apps")
-        .select("child_id, package_name, app_name, last_seen_at, is_system")
+    const [devicesRes, policiesRes] = await Promise.all([
+      v2Supabase
+        .from("v2_protected_devices")
+        .select("id, child_id")
         .in("child_id", childIds)
-        .order("last_seen_at", { ascending: false }),
-      supabase
-        .from("app_policies")
+        .neq("status", "revoked"),
+      v2Supabase
+        .from("v2_parental_app_policies")
         .select("child_id, package_name")
         .in("child_id", childIds),
     ]);
+
+    if (devicesRes.error || policiesRes.error) {
+      setApps([]);
+      setLoading(false);
+      return;
+    }
+
+    const childByDevice = new Map(
+      (devicesRes.data || []).map((device) => [device.id, device.child_id]),
+    );
+    const deviceIds = [...childByDevice.keys()];
+    if (deviceIds.length === 0) {
+      setApps([]);
+      setLoading(false);
+      return;
+    }
+
+    const { data: installed, error: installedError } = await v2Supabase
+      .from("v2_parental_installed_apps")
+      .select("device_id, package_name, app_name, last_seen_at, is_system")
+      .in("device_id", deviceIds)
+      .eq("is_installed", true)
+      .order("last_seen_at", { ascending: false });
+
+    if (installedError) {
+      setApps([]);
+      setLoading(false);
+      return;
+    }
 
     const policyKey = new Set(
       (policiesRes.data || []).map((p) => `${p.child_id}|${p.package_name}`)
     );
 
-    const pending = (installedRes.data || []).filter((a) => {
-      if (policyKey.has(`${a.child_id}|${a.package_name}`)) return false;
-      if (a.is_system) return false;
-      if (isSystemApp(a.package_name)) return false;
-      return true;
-    });
+    const pending = (installed || [])
+      .map((app) => ({
+        child_id: childByDevice.get(app.device_id) || "",
+        package_name: app.package_name,
+        app_name: app.app_name,
+        last_seen_at: app.last_seen_at,
+        is_system: app.is_system,
+      }))
+      .filter((app) => {
+        if (!app.child_id) return false;
+        if (policyKey.has(`${app.child_id}|${app.package_name}`)) return false;
+        if (app.is_system) return false;
+        if (isSystemApp(app.package_name)) return false;
+        return true;
+      });
 
     setApps(pending.slice(0, 5));
     setLoading(false);
@@ -73,39 +114,41 @@ export const HomePendingApps = ({ childrenData }: Props) => {
   useEffect(() => {
     fetchPending();
     if (childIds.length === 0) return;
-    const channel = supabase
+    const channel = v2Supabase
       .channel("home-pending-apps")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "installed_apps" },
+        { event: "*", schema: "public", table: "v2_parental_installed_apps" },
         () => fetchPending()
       )
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "app_policies" },
+        { event: "*", schema: "public", table: "v2_parental_app_policies" },
         () => fetchPending()
       )
       .subscribe();
     return () => {
-      supabase.removeChannel(channel);
+      v2Supabase.removeChannel(channel);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [childIdsKey]);
 
   const decide = async (app: PendingApp, allow: boolean) => {
+    if (!user?.id) return;
     const key = `${app.child_id}|${app.package_name}`;
     setActing(key);
-    const { error } = await supabase.from("app_policies").insert({
-      child_id: app.child_id,
-      package_name: app.package_name,
-      app_name: app.app_name,
-      is_blocked: !allow,
-    });
-    if (error) {
-      toast.error("שגיאה בעדכון האפליקציה");
-    } else {
+    try {
+      await saveAppPolicy({
+        childId: app.child_id,
+        parentId: user.id,
+        packageName: app.package_name,
+        appName: app.app_name,
+        blocked: !allow,
+      });
       toast.success(allow ? "האפליקציה אושרה" : "האפליקציה נחסמה");
-      setApps((prev) => prev.filter((a) => `${a.child_id}|${a.package_name}` !== key));
+      setApps((prev) => prev.filter((item) => `${item.child_id}|${item.package_name}` !== key));
+    } catch {
+      toast.error("שגיאה בעדכון האפליקציה");
     }
     setActing(null);
   };

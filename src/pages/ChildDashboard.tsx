@@ -627,6 +627,7 @@ export default function ChildDashboard() {
             <SchedulesSection
               scheduleWindows={scheduleWindows}
               onToggleShabbat={toggleShabbat}
+              onUpdateShabbatMode={updateShabbatMode}
               onCreateSchedule={createSchedule}
               onUpdateSchedule={updateSchedule}
               onDeleteSchedule={deleteSchedule}

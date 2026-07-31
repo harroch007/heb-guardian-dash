@@ -17,6 +17,7 @@ import { AddChildModal } from "@/components/AddChildModal";
 import { useToast } from "@/hooks/use-toast";
 import { useRingCommand, type RingPhase } from "@/hooks/useRingCommand";
 import { WHATSAPP_MONITORING_ENABLED } from "@/config/featureFlags";
+import { grantParentBonusTime } from "@/lib/parental-controls/settingsService";
 
 interface FamilyChild {
   id: string;
@@ -28,7 +29,6 @@ interface FamilyChild {
     battery_level: number | null;
     last_seen: string | null;
   } | null;
-  rewardBankBalance: number;
   unacknowledgedAlerts: number;
 }
 
@@ -86,14 +86,10 @@ const FamilyV2 = () => {
 
       const childIds = kids.map((c) => c.id);
 
-      const [devicesRes, rewardRes, alertsRes, settingsRes] = await Promise.all([
+      const [devicesRes, alertsRes, settingsRes] = await Promise.all([
         supabase
           .from("devices")
           .select("child_id, device_id, battery_level, last_seen")
-          .in("child_id", childIds),
-        supabase
-          .from("reward_bank")
-          .select("child_id, balance_minutes")
           .in("child_id", childIds),
         supabase
           .from("alerts")
@@ -120,7 +116,6 @@ const FamilyV2 = () => {
 
       const enriched: FamilyChild[] = kids.map((child) => {
         const device = devicesRes.data?.find((d) => d.child_id === child.id) || null;
-        const bank = rewardRes.data?.find((r) => r.child_id === child.id);
         const threshold = thresholds[child.id] ?? 65;
         const alertCount = (alertsRes.data || []).filter(
           (a) =>
@@ -141,7 +136,6 @@ const FamilyV2 = () => {
                 last_seen: device.last_seen,
               }
             : null,
-          rewardBankBalance: bank?.balance_minutes ?? 0,
           unacknowledgedAlerts: alertCount,
         };
       });
@@ -223,14 +217,14 @@ const FamilyV2 = () => {
   };
 
   const handleAddTime = async (child: FamilyChild) => {
+    if (!user?.id) return;
     setAddingTime(child.id);
     try {
-      const todayIsrael = getIsraelDate();
-      await supabase.from("bonus_time_grants").insert({
-        child_id: child.id,
-        bonus_minutes: 15,
-        grant_date: todayIsrael,
-        granted_by: user?.id,
+      await grantParentBonusTime({
+        childId: child.id,
+        parentId: user.id,
+        grantDate: getIsraelDate(),
+        minutes: 15,
       });
       toast({ title: "זמן בונוס נוסף", description: `15 דקות נוספו ל${child.name}` });
       fetchData();
@@ -488,7 +482,6 @@ const FamilyV2 = () => {
                           🔋 {child.device.battery_level}%
                         </span>
                       )}
-                      <span>🏦 {child.rewardBankBalance} דק׳</span>
                       {WHATSAPP_MONITORING_ENABLED && child.unacknowledgedAlerts > 0 && (
                         <span className="text-warning">
                           <Bell className="w-3 h-3 inline ml-0.5" />

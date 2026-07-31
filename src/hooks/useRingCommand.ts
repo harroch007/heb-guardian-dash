@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  enqueueParentalControlCommand,
+  getParentalControlCommand,
+} from "@/lib/parental-controls/commandService";
 
 export type RingPhase =
   | "idle"
@@ -68,11 +71,13 @@ export function useRingCommand(deviceId: string | null) {
         setCommandId(null);
         return;
       }
-      const { data } = await supabase
-        .from("device_commands")
-        .select("status, result")
-        .eq("id", commandId)
-        .single();
+      let data;
+      try {
+        data = await getParentalControlCommand(commandId);
+      } catch {
+        timerRef.current = setTimeout(poll, POLL_INTERVAL);
+        return;
+      }
 
       if (!data) {
         timerRef.current = setTimeout(poll, POLL_INTERVAL);
@@ -104,19 +109,17 @@ export function useRingCommand(deviceId: string | null) {
     setPhase("sending");
     startTimeRef.current = Date.now();
 
-    const { data, error } = await supabase
-      .from("device_commands")
-      .insert({ device_id: deviceId, command_type: "RING_DEVICE", status: "PENDING" })
-      .select("id")
-      .single();
-
-    if (error || !data) {
+    try {
+      const command = await enqueueParentalControlCommand({
+        deviceId,
+        commandType: "RING_DEVICE",
+      });
+      setCommandId(command.id);
+      return true;
+    } catch {
       setPhase("failed");
       return false;
     }
-
-    setCommandId(data.id);
-    return true;
   }, [deviceId, cleanup]);
 
   const retry = useCallback(() => {

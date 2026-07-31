@@ -1,16 +1,16 @@
 import { useNavigate } from "react-router-dom";
-import { Battery, MapPin, Clock, Smartphone, Bell, Plus, Volume2, Lock, Loader2, CheckCircle2, AlertTriangle, WifiOff, Gift } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { Battery, MapPin, Clock, Smartphone, Bell, Plus, Volume2, Lock, Loader2, CheckCircle2, AlertTriangle, WifiOff } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { getIsraelDate } from "@/lib/utils";
 import { toast } from "sonner";
 import { useState } from "react";
 import { useRingCommand } from "@/hooks/useRingCommand";
-import { WHATSAPP_MONITORING_ENABLED } from "@/config/featureFlags";
+import { V2_GUARDIAN_ALERTS_ENABLED } from "@/config/featureFlags";
 import { HelpTooltip } from "@/components/help/HelpTooltip";
 import { AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import type { ChildWithData } from "@/pages/HomeV2";
 import { gt, child as childWord } from "@/lib/genderText";
+import { grantParentBonusTime } from "@/lib/parental-controls/settingsService";
 
 interface Props {
   child: ChildWithData;
@@ -57,9 +57,6 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
   const remaining = hasLimit ? Math.max(0, effectiveLimit! - usedMinutes) : null;
   const screenTimeExceeded =
     hasLimit && remaining === 0 && !child.activeRestriction;
-  const hasBankReserve = (child.rewardBankBalance ?? 0) > 0;
-  const exceededWithReserve = screenTimeExceeded && hasBankReserve;
-  const exceededHardLock = screenTimeExceeded && !hasBankReserve;
 
   const handleRing = async (e?: React.MouseEvent) => {
     e?.stopPropagation();
@@ -73,19 +70,12 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
     if (!user?.id) return;
     setAddingTime(true);
     try {
-      await supabase.from("bonus_time_grants").insert({
-        child_id: child.id,
-        grant_date: getIsraelDate(),
-        bonus_minutes: 15,
-        granted_by: user.id,
+      await grantParentBonusTime({
+        childId: child.id,
+        parentId: user.id,
+        grantDate: getIsraelDate(),
+        minutes: 15,
       });
-      if (child.device) {
-        await supabase.from("device_commands").insert({
-          device_id: child.device.device_id,
-          command_type: "REFRESH_SETTINGS",
-          status: "PENDING",
-        });
-      }
       toast.success("נוספו 15 דקות בונוס");
       onRefresh();
     } catch {
@@ -118,18 +108,15 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
 
   // Status line
   const statusParts: string[] = [];
-  if (child.pendingTimeRequests > 0) statusParts.push(`⏱️ ${child.pendingTimeRequests} בקשות`);
   if (child.permissionIssues.length > 0) statusParts.push("🛡️ בעיית הרשאות");
 
   const borderClass = !connected
     ? "border-red-300 ring-1 ring-red-200"
-    : exceededHardLock
+    : screenTimeExceeded
       ? "border-red-300 ring-1 ring-red-200"
-      : exceededWithReserve
+      : child.activeRestriction
         ? "border-amber-300"
-        : child.activeRestriction
-          ? "border-amber-300"
-          : "border-border";
+        : "border-border";
 
   return (
     <AccordionItem
@@ -145,21 +132,12 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
           </span>
         </div>
       )}
-      {/* Screen-time exceeded — hard lock (no bank reserve) */}
-      {connected && exceededHardLock && (
+      {/* Screen-time exceeded */}
+      {connected && screenTimeExceeded && (
         <div className="flex items-center gap-2 px-4 py-2 bg-destructive/10 border-b border-red-200">
           <Lock className="h-4 w-4 text-destructive shrink-0" />
           <span className="text-xs font-semibold text-destructive">
             {gt(child.gender, "המכשיר נעול — הילד חרג ממגבלת זמן המסך היומית", "המכשיר נעול — הילדה חרגה ממגבלת זמן המסך היומית")}
-          </span>
-        </div>
-      )}
-      {/* Screen-time exceeded — bank reserve available */}
-      {connected && exceededWithReserve && (
-        <div className="flex items-center gap-2 px-4 py-2 bg-amber-500/10 border-b border-amber-300">
-          <Gift className="h-4 w-4 text-amber-600 shrink-0" />
-          <span className="text-xs font-semibold text-amber-700">
-            חרג מהמכסה היומית — יש {child.rewardBankBalance} דק׳ בבנק זמינות לפדיון
           </span>
         </div>
       )}
@@ -183,17 +161,7 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
               </span>
             </div>
             <div className="text-right min-w-0">
-              <div className="flex items-center gap-2">
-                <h3 className="font-semibold text-foreground text-sm truncate">{child.name}</h3>
-                {child.streak >= 1 && (
-                  <span
-                    className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-orange-500/15 border border-orange-400/40 text-orange-500 text-[10px] font-bold leading-none shrink-0"
-                    title={`רצף של ${child.streak} ימים`}
-                  >
-                    🔥 {child.streak}
-                  </span>
-                )}
-              </div>
+              <h3 className="font-semibold text-foreground text-sm truncate">{child.name}</h3>
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <span
                   className={`w-2 h-2 rounded-full ${connected ? "bg-success" : "bg-destructive"}`}
@@ -236,23 +204,14 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
               helpText="כרגע פעיל לוח זמנים שמגביל את השימוש במכשיר."
             />
           ) : remaining !== null ? (
-            exceededWithReserve ? (
-              <MetricCell
-                icon={<Gift className="h-3.5 w-3.5 text-amber-500" />}
-                label="זמין מהבנק"
-                value={formatMinutes(child.rewardBankBalance)}
-                helpText={`${childWord(child.gender)} ${gt(child.gender, "חרג", "חרגה")} מהמכסה הבסיסית אך ${gt(child.gender, "יכול", "יכולה")} לפדות דקות מהבנק כדי להמשיך.`}
-              />
-            ) : (
-              <MetricCell
-                icon={<Clock className={`h-3.5 w-3.5 ${screenTimeExceeded ? "text-red-500" : "text-emerald-500"}`} />}
-                label="נותר"
-                value={formatMinutes(remaining)}
-                warn={!screenTimeExceeded && remaining <= 15}
-                danger={screenTimeExceeded}
-                helpText={`כמה זמן מסך ${gt(child.gender, "נותר לילד", "נותר לילדה")} היום עד סיום המגבלה היומית.`}
-              />
-            )
+            <MetricCell
+              icon={<Clock className={`h-3.5 w-3.5 ${screenTimeExceeded ? "text-red-500" : "text-emerald-500"}`} />}
+              label="נותר"
+              value={formatMinutes(remaining)}
+              warn={!screenTimeExceeded && remaining <= 15}
+              danger={screenTimeExceeded}
+              helpText={`כמה זמן מסך ${gt(child.gender, "נותר לילד", "נותר לילדה")} היום עד סיום המגבלה היומית.`}
+            />
           ) : (
             <MetricCell
               icon={<Clock className="h-3.5 w-3.5 text-muted-foreground" />}
@@ -261,14 +220,16 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
               helpText={`לא הוגדרה מגבלת זמן יומית. ניתן להגדיר במסך ניהול ${childWord(child.gender)}.`}
             />
           )}
-          <div className={exceededWithReserve ? "rounded-lg ring-1 ring-amber-300" : ""}>
-            <MetricCell
-              icon={<Smartphone className="h-3.5 w-3.5 text-purple-500" />}
-              label="בנק בונוס"
-              value={`${child.rewardBankBalance} דק׳`}
-              helpText={`דקות בונוס ש${childWord(child.gender)} ${gt(child.gender, "צבר", "צברה")} ממשימות וזמינות לפדיון.`}
-            />
-          </div>
+          <MetricCell
+            icon={<Smartphone className="h-3.5 w-3.5 text-purple-500" />}
+            label={child.todayBonusMinutes > 0 ? "מכסה + תוספת" : "מכסה יומית"}
+            value={effectiveLimit !== null ? formatMinutes(effectiveLimit) : "ללא הגבלה"}
+            helpText={
+              child.todayBonusMinutes > 0
+                ? `המכסה להיום כוללת תוספת של ${child.todayBonusMinutes} דקות שההורה העניק.`
+                : "מגבלת זמן המסך היומית שהוגדרה במרכז ההגנה."
+            }
+          />
         </div>
 
         {/* Location */}
@@ -308,7 +269,7 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
                 {getRingIcon()}
                 <span>{getRingTitle()}</span>
               </button>
-              {WHATSAPP_MONITORING_ENABLED && child.unacknowledgedAlerts > 0 && (
+              {V2_GUARDIAN_ALERTS_ENABLED && child.unacknowledgedAlerts > 0 && (
                 <button
                   onClick={(e) => { e.stopPropagation(); navigate("/alerts-v2"); }}
                   title="התראות"

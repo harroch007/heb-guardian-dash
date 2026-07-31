@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type { DeviceHealthInfo } from "@/hooks/useChildControls";
 import { formatLastSeen } from "@/lib/deviceStatus";
-import { WHATSAPP_MONITORING_ENABLED } from "@/config/featureFlags";
+import { V2_GUARDIAN_ALERTS_ENABLED } from "@/config/featureFlags";
 import { HelpTooltip } from "@/components/help/HelpTooltip";
 
 const WHATSAPP_PERMISSION_KEYS = ["accessibilityEnabled", "notificationListenerEnabled"];
@@ -64,7 +64,7 @@ export function DeviceHealthBanner({ health }: DeviceHealthBannerProps) {
   const [expandedFix, setExpandedFix] = useState<Set<string>>(new Set());
 
   const allPermissions = Object.entries(PERMISSION_META).filter(
-    ([key]) => WHATSAPP_MONITORING_ENABLED || !WHATSAPP_PERMISSION_KEYS.includes(key)
+    ([key]) => V2_GUARDIAN_ALERTS_ENABLED || !WHATSAPP_PERMISSION_KEYS.includes(key)
   );
   const missingPermissions = allPermissions.filter(([key]) => permissions[key] === false);
   const allGranted = missingPermissions.length === 0;
@@ -76,7 +76,8 @@ export function DeviceHealthBanner({ health }: DeviceHealthBannerProps) {
   const toggleInfo = (key: string) => {
     setExpandedInfo((prev) => {
       const next = new Set(prev);
-      next.has(key) ? next.delete(key) : next.add(key);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
       return next;
     });
   };
@@ -84,7 +85,8 @@ export function DeviceHealthBanner({ health }: DeviceHealthBannerProps) {
   const toggleFix = (key: string) => {
     setExpandedFix((prev) => {
       const next = new Set(prev);
-      next.has(key) ? next.delete(key) : next.add(key);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
       return next;
     });
   };
@@ -108,7 +110,7 @@ export function DeviceHealthBanner({ health }: DeviceHealthBannerProps) {
             </span>
             <HelpTooltip text="הרשאות שהמכשיר צריך כדי שהפיצ׳רים השונים של Kippy יעבדו (זמן מסך, מיקום, חסימת אפליקציות ועוד)." iconSize={12} />
           </div>
-          {WHATSAPP_MONITORING_ENABLED && (
+          {V2_GUARDIAN_ALERTS_ENABLED && (
             <Badge
               variant="secondary"
               className={cn(

@@ -1,4 +1,4 @@
-import { Clock, Gift, ListChecks } from "lucide-react";
+import { Clock, Gift } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { ChildWithData } from "@/pages/HomeV2";
 
@@ -21,20 +21,9 @@ export const DailyControlSummary = ({ childrenData }: Props) => {
     (s, c) => s + (c.snapshot?.total_usage_minutes ?? 0),
     0
   );
-  const totalTimeReqs = childrenData.reduce((s, c) => s + c.pendingTimeRequests, 0);
   const totalBonus = childrenData.reduce((s, c) => s + c.todayBonusMinutes, 0);
-  const totalChoreApprovals = childrenData.reduce(
-    (s, c) => s + c.pendingChoreApprovals,
-    0
-  );
-  const totalPending = totalTimeReqs + totalChoreApprovals;
 
   const childPath = child ? `/child-v2/${child.id}` : null;
-
-  // When both exist, prefer chores screen (more visual context). When only time
-  // requests exist, go to the child control screen where the time-request card lives.
-  const pendingTarget =
-    totalChoreApprovals > 0 ? "/chores-v2" : childPath;
 
   const metrics = [
     {
@@ -43,13 +32,6 @@ export const DailyControlSummary = ({ childrenData }: Props) => {
       label: "זמן מסך",
       onClick: childPath ? () => navigate(childPath) : null,
       active: totalUsage > 0,
-    },
-    {
-      icon: <ListChecks className="h-4 w-4 text-amber-500" />,
-      value: String(totalPending),
-      label: "ממתינות לאישור",
-      onClick: pendingTarget ? () => navigate(pendingTarget) : null,
-      active: totalPending > 0,
     },
     {
       icon: <Gift className="h-4 w-4 text-purple-500" />,
@@ -63,7 +45,7 @@ export const DailyControlSummary = ({ childrenData }: Props) => {
   return (
     <div className="space-y-2">
       <h2 className="text-sm font-semibold text-foreground/80">סיכום יומי</h2>
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 gap-2">
         {metrics.map((m, i) => {
           const clickable = m.active && !!m.onClick;
           const Tag = clickable ? "button" : "div";
@@ -71,7 +53,7 @@ export const DailyControlSummary = ({ childrenData }: Props) => {
             <Tag
               key={i}
               onClick={clickable ? m.onClick! : undefined}
-              className={`flex flex-col items-center gap-1 py-3 rounded-xl bg-card border border-border transition-all ${
+              className={`flex flex-col items-center gap-1 py-3 rounded-xl bg-card border border-border transition-colors ${
                 clickable
                   ? "cursor-pointer hover:border-primary/60 hover:bg-accent/40 active:scale-95"
                   : ""

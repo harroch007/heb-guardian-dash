@@ -1,17 +1,19 @@
 import { motion } from 'framer-motion';
-import { BedDouble, Dog, BookOpen, Calendar, Clock, Star, ArrowLeft } from 'lucide-react';
-import { CoinsJar } from './CoinsJar';
+import {
+  Activity,
+  AppWindow,
+  CalendarClock,
+  Clock3,
+  MapPinned,
+  ShieldCheck,
+} from 'lucide-react';
 
-const tasks = [
-  { icon: BedDouble, title: 'סידור החדר', mins: 20 },
-  { icon: Dog, title: 'הוצאה לכלב', mins: 15 },
-  { icon: BookOpen, title: 'קריאה 20 דק', mins: 15 },
-];
-
-const bullets = [
-  { icon: Calendar, text: 'מבצעים משימות יומיומיות' },
-  { icon: Clock, text: 'מרוויחים דקות מסך' },
-  { icon: Star, text: 'לומדים אחריות וניהול עצמי' },
+const protectionAreas = [
+  { icon: Clock3, text: 'זמן מסך ובקשות זמן' },
+  { icon: AppWindow, text: 'אישור וחסימת אפליקציות' },
+  { icon: CalendarClock, text: 'לוחות זמנים ושגרה' },
+  { icon: MapPinned, text: 'מיקום, אזורים ואיתור' },
+  { icon: Activity, text: 'תקינות והרשאות המכשיר' },
 ];
 
 export function CoachSpotlight() {
@@ -25,44 +27,56 @@ export function CoachSpotlight() {
           transition={{ duration: 0.6 }}
           className="relative max-w-6xl mx-auto"
         >
-          <div className="absolute -inset-4 bg-gradient-to-tr from-primary/20 via-primary/5 to-transparent rounded-3xl blur-2xl" />
           <div className="relative bg-card border border-primary/30 rounded-3xl p-5 sm:p-8 md:p-12 shadow-xl">
             <div className="grid lg:grid-cols-2 gap-8 sm:gap-10 items-center">
-              {/* Right: text + tasks */}
               <div>
                 <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-4 leading-tight">
-                  זמן מסך יכול
+                  כל ילד מקבל
                   <br />
-                  <span className="text-primary">להפוך לכלי חינוכי</span>
+                  <span className="text-primary">מרכז הגנה משלו</span>
                 </h2>
                 <p className="text-base text-muted-foreground mb-6 leading-relaxed">
-                  אם מלמדים ילדים לנהל כסף, אפשר ללמד אותם גם לנהל זמן.
+                  רואים את מצב המכשיר ומגיעים לכל כלי הבקרה בלי לחפש בין מסכים.
                 </p>
 
-                <div className="space-y-2 mb-6">
-                  {bullets.map(({ icon: Icon, text }) => (
-                    <div key={text} className="flex items-center gap-2 text-sm text-foreground">
-                      <Icon className="w-4 h-4 text-primary" />
+                <div className="space-y-3">
+                  {protectionAreas.map(({ icon: Icon, text }) => (
+                    <div
+                      key={text}
+                      className="flex items-center gap-3 rounded-xl border border-border bg-background/50 p-3 text-sm text-foreground"
+                    >
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                        <Icon className="h-4 w-4 text-primary" />
+                      </span>
                       <span>{text}</span>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="grid grid-cols-3 gap-2">
-                  {tasks.map(({ icon: Icon, title, mins }) => (
-                    <div key={title} className="bg-background border border-border rounded-xl p-3 text-center">
-                      <Icon className="w-5 h-5 text-primary mx-auto mb-1.5" />
-                      <p className="text-[11px] font-semibold text-foreground leading-tight mb-1">{title}</p>
-                      <p className="text-xs font-bold text-primary">+{mins} דק'</p>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Left: jar with arrows */}
-              <div className="relative flex items-center justify-center">
-                <ArrowLeft className="absolute left-full top-1/2 -translate-y-1/2 w-12 h-12 text-primary/40 hidden lg:block" />
-                <CoinsJar />
+              <div className="rounded-3xl border border-border bg-background p-5 shadow-lg">
+                <div className="mb-5 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+                      <ShieldCheck className="h-5 w-5 text-primary" />
+                    </span>
+                    <div>
+                      <p className="font-bold text-foreground">מרכז ההגנה של נועם</p>
+                      <p className="text-xs text-muted-foreground">המכשיר מחובר והבקרה פעילה</p>
+                    </div>
+                  </div>
+                  <span className="rounded-full bg-success/15 px-2 py-1 text-[10px] font-semibold text-success">
+                    פעיל
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {protectionAreas.slice(0, 4).map(({ icon: Icon, text }) => (
+                    <div key={text} className="rounded-xl border border-border p-3">
+                      <Icon className="mb-2 h-4 w-4 text-primary" />
+                      <p className="text-xs font-semibold text-foreground">{text}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>

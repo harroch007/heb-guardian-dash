@@ -1,16 +1,16 @@
 import { motion } from 'framer-motion';
-import { Trophy, MessageSquare, ShieldCheck } from 'lucide-react';
+import { Activity, LayoutDashboard, ShieldCheck } from 'lucide-react';
 
 const pillars = [
   {
-    icon: Trophy,
-    title: 'אחריות שמתגמלת',
-    desc: 'הילד מבצע משימות ומרוויח דקות בזמן מסך בצורה הוגנת וברורה.',
+    icon: LayoutDashboard,
+    title: 'מרכז הגנה אחד',
+    desc: 'כל כלי הבקרה וכל מצב המכשיר מאורגנים במסך אחד לכל ילד.',
   },
   {
-    icon: MessageSquare,
-    title: 'פחות ויכוחים',
-    desc: 'כללים ברורים, תהליך הוגן, ופחות "אבא תפתח" ו"אמא תוסיפי".',
+    icon: Activity,
+    title: 'יודעים מה עובד',
+    desc: 'חיבור, סוללה, מיקום והרשאות מוצגים בצורה ברורה ומתריעים כשצריך לבדוק.',
   },
   {
     icon: ShieldCheck,
@@ -34,7 +34,7 @@ export function ValuePillars() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-50px' }}
               transition={{ duration: 0.4, delay: i * 0.1 }}
-              className="bg-card border border-border rounded-2xl p-6 text-center hover:border-primary/40 transition-all"
+              className="bg-card border border-border rounded-2xl p-6 text-center hover:border-primary/40 transition-colors"
             >
               <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-primary/15 border border-primary/30 flex items-center justify-center">
                 <Icon className="w-7 h-7 text-primary" />
