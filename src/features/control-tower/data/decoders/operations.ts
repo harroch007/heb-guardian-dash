@@ -158,4 +158,3 @@ export type CtR0DecodedAuditQuery = z.output<typeof ctR0AuditQuerySchema>;
 export function decodeCtR0AuditQuery(value: unknown): CtR0DecodeResult<CtR0DecodedAuditQuery> {
   return decodeWithSchema(ctR0AuditQuerySchema, value);
 }
-

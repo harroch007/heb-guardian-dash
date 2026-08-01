@@ -10,4 +10,3 @@ export function canEnterInbox(session: StaffSession): boolean {
     (hasPermission(session, "inbox.read.all") || hasPermission(session, "inbox.read.assigned"))
   );
 }
-

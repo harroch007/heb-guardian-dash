@@ -14,4 +14,3 @@ export function ControlTowerEntry() {
     </div>
   );
 }
-

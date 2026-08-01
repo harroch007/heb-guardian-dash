@@ -61,4 +61,3 @@ export function createControlTowerService(repository: ControlTowerRepository): C
     executeAction: (command) => repository.executeSafeAction(command),
   };
 }
-

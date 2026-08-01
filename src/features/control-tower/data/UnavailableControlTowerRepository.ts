@@ -67,4 +67,3 @@ export class UnavailableControlTowerRepository implements ControlTowerRepository
     return this.unavailable();
   }
 }
-

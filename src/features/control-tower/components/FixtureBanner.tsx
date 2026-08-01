@@ -8,4 +8,3 @@ export function FixtureBanner() {
     </div>
   );
 }
-

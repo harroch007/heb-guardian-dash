@@ -118,4 +118,3 @@ values in a remote session.
 - Production fail-closed Playwright: 2 passed.
 - Development fixture Playwright: timed out without a test result and remains an
   open verification item.
-

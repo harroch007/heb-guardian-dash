@@ -212,4 +212,3 @@ export type CtR0DecodedInboxQuery = z.output<typeof ctR0InboxQuerySchema>;
 export function decodeCtR0InboxQuery(value: unknown): CtR0DecodeResult<CtR0DecodedInboxQuery> {
   return decodeWithSchema(ctR0InboxQuerySchema, value);
 }
-
