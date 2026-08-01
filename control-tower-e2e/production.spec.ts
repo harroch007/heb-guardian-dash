@@ -36,7 +36,7 @@ test("production ignores the fixture flag, performs no external data call and fa
   });
 
   await page.goto("/control-tower/inbox");
-  await expect(page.locator('[data-access-state="UNAVAILABLE"]')).toBeVisible();
+  await expect(page.locator('[data-access-state="UNAUTHENTICATED"]')).toBeVisible();
   await expect(page.getByTestId("fixture-banner")).toHaveCount(0);
   await expect(page.locator("[data-conversation-id]")).toHaveCount(0);
   expect(externalDataRequests).toEqual([]);
@@ -54,5 +54,5 @@ test("all production assets exclude the synthetic fixture dataset", async ({ pag
   }
 
   await page.goto("/control-tower/inbox");
-  await expect(page.locator('[data-access-state="UNAVAILABLE"]')).toBeVisible();
+  await expect(page.locator('[data-access-state="UNAUTHENTICATED"]')).toBeVisible();
 });

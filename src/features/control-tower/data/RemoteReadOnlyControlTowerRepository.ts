@@ -1,4 +1,5 @@
 import type { CtR0ClientError, CtR0InboxCursor, CtR0StagingService360 } from "./decoders";
+import { supabase } from "@/integrations/supabase/client";
 import { createCtR0ReadOnlyClient } from "./ct-r0/CtR0ReadOnlyClient";
 import {
   projectCtR0InboxItem,
@@ -23,6 +24,15 @@ export class RemoteReadOnlyControlTowerRepository implements ControlTowerReposit
   readonly mode = "REMOTE" as const;
 
   async getStaffAccess(signal?: AbortSignal): Promise<StaffAccess> {
+    if (signal?.aborted) {
+      return { kind: "UNAVAILABLE", reasonCode: "SOURCE_UNAVAILABLE" };
+    }
+    const { data, error } = await supabase.auth.getSession();
+    if (error) {
+      return { kind: "UNAVAILABLE", reasonCode: "SOURCE_UNAVAILABLE" };
+    }
+    if (!data.session) return { kind: "UNAUTHENTICATED" };
+
     const result = await client.getSession(signal);
     if (result.ok === true) return projectCtR0SessionToStaffAccess(result.data);
     if (result.error.code === "UNAUTHENTICATED") return { kind: "UNAUTHENTICATED" };
