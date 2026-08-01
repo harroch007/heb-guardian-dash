@@ -3,7 +3,10 @@ import { LegalPageLayout } from '@/components/legal/LegalPageLayout';
 export default function TermsOfService() {
   return (
     <LegalPageLayout title="תנאי שימוש - KippyAI">
-      <p className="text-muted-foreground mb-8">עדכון אחרון: דצמבר 2024</p>
+      <p className="text-muted-foreground mb-4">טיוטת V2 מעודכנת: אוגוסט 2026</p>
+      <div className="mb-8 rounded-xl border border-warning/30 bg-warning/10 p-4 text-sm leading-relaxed text-foreground" role="note">
+        נוסח זה משקף את יכולות מוצר V2 הנוכחי, אך אינו נוסח משפטי סופי. נדרש אישור משפטי לפני השקת פרודקשן או גביית תשלום.
+      </div>
 
       <section className="mb-10">
         <h2 className="text-2xl font-semibold text-foreground mb-4">1. הסכמה לתנאים</h2>
@@ -16,13 +19,13 @@ export default function TermsOfService() {
       <section className="mb-10">
         <h2 className="text-2xl font-semibold text-foreground mb-4">2. תיאור השירות</h2>
         <p className="text-muted-foreground leading-relaxed mb-4">
-          KippyAI היא אפליקציית בקרת הורים המספקת:
+          KippyAI היא מערכת בטיחות לילדים המספקת כיום:
         </p>
         <ul className="list-disc list-inside text-muted-foreground space-y-2 mr-4">
-          <li>ניטור תקשורת דיגיטלית של הילד בפלטפורמות שונות (WhatsApp, Telegram, Discord, TikTok ועוד)</li>
-          <li>ניתוח תוכן באמצעות בינה מלאכותית לזיהוי תוכן מדאיג</li>
-          <li>התראות להורים כאשר מזוהה תוכן בעייתי</li>
-          <li>לוח בקרה להורים עם נתוני שימוש באפליקציות</li>
+          <li>ניטור WhatsApp במכשיר Android של הילד, לאחר התקנה ואישור מפורש של ההורה</li>
+          <li>סינון מקומי במכשיר וזיהוי אירועים שמצדיקים בדיקה מתקדמת</li>
+          <li>ניתוח הקשר מתקדם והתראות להורה רק לאחר אישור אירוע בטיחות</li>
+          <li>לוח הורה המציג תקינות ניטור, הרשאות והתראות מאומתות</li>
         </ul>
       </section>
 
@@ -39,26 +42,10 @@ export default function TermsOfService() {
       </section>
 
       <section className="mb-10">
-        <h2 className="text-2xl font-semibold text-foreground mb-4">4. מחירון ותשלומים</h2>
-        
-        <h3 className="text-xl font-medium text-foreground mt-6 mb-3">4.1 חבילת Basic (חינם)</h3>
-        <ul className="list-disc list-inside text-muted-foreground space-y-2 mr-4">
-          <li>ניטור ילד אחד</li>
-          <li>התראות בסיסיות</li>
-          <li>היסטוריה של 7 ימים</li>
-        </ul>
-
-        <h3 className="text-xl font-medium text-foreground mt-6 mb-3">4.2 חבילת Premium (בתשלום)</h3>
-        <ul className="list-disc list-inside text-muted-foreground space-y-2 mr-4">
-          <li>ניטור עד 5 ילדים</li>
-          <li>התראות מתקדמות עם הקשר</li>
-          <li>היסטוריה של 30 יום</li>
-          <li>דוחות שבועיים</li>
-          <li>תמיכה עדיפה</li>
-        </ul>
-
+        <h2 className="text-2xl font-semibold text-foreground mb-4">4. שלב בדיקות וזמינות מסחרית</h2>
         <p className="text-muted-foreground leading-relaxed mt-4">
-          המחירים עשויים להשתנות. שינויים במחיר יחולו על תקופת החיוב הבאה לאחר הודעה מראש.
+          גרסת V2 נמצאת בשלב בדיקות ואינה מפעילה כעת מסלול חיוב מסחרי. לפני גביית תשלום
+          יפורסמו מחירון, תנאי ביטול ותנאים מסחריים מעודכנים ויינתן למשתמש אישור מפורש.
         </p>
       </section>
 
@@ -86,8 +73,8 @@ export default function TermsOfService() {
         </p>
         
         <p className="text-muted-foreground leading-relaxed mb-4">
-          <strong className="text-foreground">תלות בפלטפורמות צד שלישי:</strong> יכולות הניטור תלויות בפלטפורמות 
-          שהילד משתמש בהן. שינויים בפלטפורמות אלה עשויים להשפיע על השירות.
+          <strong className="text-foreground">תלות ב־WhatsApp וב־Android:</strong> שינוי במבנה המסך,
+          בהרשאות מערכת ההפעלה או במדיניות הפלטפורמה עשוי להשפיע על קליטת ההודעות ועל השירות.
         </p>
         
         <p className="text-muted-foreground leading-relaxed">
@@ -171,7 +158,7 @@ export default function TermsOfService() {
       </section>
 
       <p className="text-sm text-muted-foreground mt-12 pt-8 border-t border-border">
-        © 2024 KippyAI. כל הזכויות שמורות.
+        © 2026 KippyAI. כל הזכויות שמורות.
       </p>
     </LegalPageLayout>
   );

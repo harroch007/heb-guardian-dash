@@ -21,7 +21,7 @@ export function NavbarV1() {
           <span className="text-xl font-bold text-foreground">KippyAI</span>
         </Link>
         <div className="hidden md:flex items-center gap-6 text-sm text-muted-foreground">
-          <a href="#features" className="hover:text-primary transition-colors">פיצ'רים</a>
+          <a href="#features" className="hover:text-primary transition-colors">שכבות ההגנה</a>
           <a href="#how-it-works" className="hover:text-primary transition-colors">איך זה עובד</a>
           <a href="#faq" className="hover:text-primary transition-colors">שאלות נפוצות</a>
         </div>

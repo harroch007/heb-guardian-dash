@@ -1,4 +1,10 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Smartphone } from "lucide-react";
 import { QRCodeDisplay } from "@/components/QRCodeDisplay";
 import { useAuth } from "@/contexts/AuthContext";
@@ -7,12 +13,14 @@ interface ReconnectChildV2ModalProps {
   childId: string | null;
   childName: string;
   onClose: () => void;
+  onConnected?: () => void;
 }
 
 export function ReconnectChildV2Modal({
   childId,
   childName,
   onClose,
+  onConnected,
 }: ReconnectChildV2ModalProps) {
   const { user } = useAuth();
 
@@ -24,6 +32,9 @@ export function ReconnectChildV2Modal({
             <Smartphone className="h-5 w-5 text-primary" />
             חיבור מכשיר — {childName}
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            סרקו את קוד ה־QR ממכשיר הילד כדי לחבר אותו לניטור Kippy.
+          </DialogDescription>
         </DialogHeader>
 
         {childId && user?.id && user.email ? (
@@ -32,6 +43,7 @@ export function ReconnectChildV2Modal({
             parentId={user.id}
             parentEmail={user.email}
             onFinish={onClose}
+            onConnected={onConnected}
           />
         ) : (
           <p className="py-8 text-center text-sm text-muted-foreground">

@@ -1,13 +1,13 @@
 import { motion } from 'framer-motion';
-import { Activity, Calendar, Clock, Lock, MapPin, Siren } from 'lucide-react';
+import { Activity, Bell, BrainCircuit, Lock, MessageCircle, Mic } from 'lucide-react';
 
 const features = [
-  { icon: Clock, title: 'ניהול זמן מסך', desc: 'הגבלת זמן ואיתות בצורה פשוטה וברורה.' },
-  { icon: Lock, title: 'שליטה באפליקציות', desc: 'אישור או חסימה של אפליקציות לכל ילד בנפרד.' },
-  { icon: Calendar, title: 'לוחות זמנים', desc: 'שעות לימודים, שינה ושגרה משפחתית.' },
-  { icon: MapPin, title: 'מיקום והתראות', desc: 'לדעת כשהילד הגיע או יצא מהמקום שהגדרתם.' },
-  { icon: Siren, title: 'איתור ומצב אבוד', desc: 'צלצול, איתור ופעולות חירום ישירות ממרכז ההגנה.' },
-  { icon: Activity, title: 'תקינות והרשאות', desc: 'לראות אם המכשיר מחובר ואם חסרה הרשאה חיונית.' },
+  { icon: MessageCircle, title: 'הודעות טקסט', desc: 'זיהוי עברית, אנגלית, סלנג, אימוג׳ים והקשר של שיחה פרטית או קבוצתית.' },
+  { icon: Mic, title: 'הודעות קוליות', desc: 'תמלול מהיר ושמירת התוצאה במקום המקורי שלה ברצף השיחה.' },
+  { icon: BrainCircuit, title: 'הבנת הקשר', desc: 'המומחה בוחן מי אמר מה, למי ובאיזו התפתחות של השיחה.' },
+  { icon: Lock, title: 'פרטיות כברירת מחדל', desc: 'הסינון והמחסניות נשארים מקומית במכשיר הילד ככל האפשר.' },
+  { icon: Bell, title: 'התראות מאומתות', desc: 'הורה מקבל התראה רק לאחר שנמצא אירוע שמצריך התערבות.' },
+  { icon: Activity, title: 'מצב ניטור ברור', desc: 'רואים אם המכשיר מדווח ואם אחת מארבע הרשאות ההגנה חסרה.' },
 ];
 
 export function FeaturesGrid() {
@@ -15,7 +15,7 @@ export function FeaturesGrid() {
     <section id="features" className="py-16 md:py-24" dir="rtl">
       <div className="container mx-auto px-4">
         <h2 className="text-3xl md:text-4xl font-bold text-foreground text-center mb-12">
-          כל מה שהורה צריך, במקום אחד
+          שכבות ההגנה של Kippy
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 max-w-6xl mx-auto">
           {features.map(({ icon: Icon, title, desc }, i) => (

@@ -16,6 +16,7 @@ import { WAITLIST_MODE } from '@/config/featureFlags';
 // Demo credentials
 const DEMO_EMAIL = 'demo@kippyai.com';
 const DEMO_PASSWORD = 'demo123!';
+const LEGACY_V1_DEMO_LOGIN_ENABLED = false;
 
 // Keep the legacy V1 admin redirect code available for reference, but never
 // execute it from the canonical V2 guardian portal.
@@ -154,7 +155,11 @@ export default function Auth() {
     if (!validateForm()) return;
     
     // Check for demo credentials first
-    if (email === DEMO_EMAIL && password === DEMO_PASSWORD) {
+    if (
+      LEGACY_V1_DEMO_LOGIN_ENABLED &&
+      email === DEMO_EMAIL &&
+      password === DEMO_PASSWORD
+    ) {
       setDemoMode(true);
       toast({
         title: "מצב הדגמה",

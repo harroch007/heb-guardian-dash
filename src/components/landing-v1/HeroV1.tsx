@@ -19,7 +19,7 @@ export function HeroV1() {
 
   const PrimaryCTA = (
     <Button size="lg" onClick={handleCTA} className="bg-primary text-primary-foreground hover:bg-primary/90 text-base sm:text-lg h-12 sm:h-14 px-6 sm:px-8 rounded-xl glow-primary font-bold w-full sm:w-auto">
-      הצטרפו לרשימת ההמתנה
+      התחילו להגן
     </Button>
   );
 
@@ -54,14 +54,14 @@ export function HeroV1() {
             className="order-1 lg:order-2 text-center lg:text-right"
           >
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6 text-foreground">
-              כל ההגנה על הטלפון של הילד
+              להבין מה באמת קורה
               <br />
-              במקום אחד, ברור ופשוט.
+              ב־WhatsApp של הילד.
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-xl mx-auto lg:mx-0 leading-relaxed">
-              זמן מסך, אפליקציות, לוחות זמנים, מיקום ותקינות המכשיר
+              Kippy בודקת טקסט והודעות קוליות, מבינה את ההקשר
               <br />
-              במרכז הגנה אחד שנבנה במיוחד להורים.
+              ומתריעה להורה רק כשיש סיבה אמיתית להתערב.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start mb-4">
               {WAITLIST_MODE ? PrimaryCTA : <Link to="/auth?signup=true">{PrimaryCTA}</Link>}
@@ -72,7 +72,7 @@ export function HeroV1() {
             </div>
             <p className="text-sm text-muted-foreground flex items-center gap-1.5 justify-center lg:justify-start">
               <Star className="w-4 h-4 text-primary fill-primary" />
-              שליטה שקטה וברורה, גם מהטלפון.
+              מקסימום הגנה, מינימום חשיפה ומינימום התראות שווא.
             </p>
           </motion.div>
         </div>

@@ -1,11 +1,10 @@
 import {
   Activity,
-  AppWindow,
+  Battery,
   Bell,
-  CalendarClock,
-  Clock,
   Home,
-  MapPin,
+  MessageCircle,
+  Mic,
   Settings,
   ShieldCheck,
   Users,
@@ -36,53 +35,53 @@ function OverviewScreen() {
   return (
     <div className="flex-1 space-y-3">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-bold text-foreground">היי אבא 👋</span>
+        <span className="text-xs font-bold text-foreground">מרכז ההגנה</span>
         <div className="w-7 h-7 rounded-full bg-primary/20 border border-primary/40" />
       </div>
-      <p className="text-[10px] text-muted-foreground">מצב המשפחה</p>
+      <p className="text-[10px] text-muted-foreground">ניטור WhatsApp</p>
 
       <div className="bg-card border border-border rounded-2xl p-4">
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <ShieldCheck className="h-4 w-4 text-success" />
-            <span className="text-[11px] font-bold text-foreground">2 מכשירים מוגנים</span>
+            <span className="text-[11px] font-bold text-foreground">2 מכשירים מנוטרים</span>
           </div>
           <span className="rounded-full bg-success/15 px-2 py-0.5 text-[9px] text-success">תקין</span>
         </div>
         <div className="grid grid-cols-2 gap-2">
           <div className="rounded-lg bg-background p-2">
-            <p className="text-[9px] text-muted-foreground">זמן מסך היום</p>
-            <p className="text-sm font-bold text-foreground">2:05 שעות</p>
+            <p className="text-[9px] text-muted-foreground">ניטור פעיל</p>
+            <p className="text-sm font-bold text-foreground">2 מתוך 2</p>
           </div>
           <div className="rounded-lg bg-background p-2">
-            <p className="text-[9px] text-muted-foreground">דורש טיפול</p>
-            <p className="text-sm font-bold text-primary">1 בקשה</p>
+            <p className="text-[9px] text-muted-foreground">התראות חדשות</p>
+            <p className="text-sm font-bold text-primary">1</p>
           </div>
         </div>
       </div>
 
       <div className="bg-card border border-border rounded-xl p-2.5 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Clock className="w-3.5 h-3.5 text-primary" />
-          <span className="text-[10px] text-foreground">נועם · זמן מסך</span>
+          <MessageCircle className="w-3.5 h-3.5 text-primary" />
+          <span className="text-[10px] text-foreground">נועם · WhatsApp</span>
         </div>
-        <span className="text-[10px] font-bold text-foreground">95 דק׳</span>
+        <span className="text-[10px] font-bold text-success">פעיל</span>
       </div>
 
       <div className="bg-card border border-border rounded-xl p-2.5 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <MapPin className="w-3.5 h-3.5 text-success" />
-          <span className="text-[10px] text-foreground">מיקום אחרון</span>
+          <Battery className="w-3.5 h-3.5 text-success" />
+          <span className="text-[10px] text-foreground">מצב סוללה</span>
         </div>
-        <span className="text-[9px] text-muted-foreground">בבית</span>
+        <span className="text-[9px] text-muted-foreground">82%</span>
       </div>
 
       <div className="bg-card border border-border rounded-xl p-2.5 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Activity className="w-3.5 h-3.5 text-warning" />
-          <span className="text-[10px] text-foreground">תקינות המכשיר</span>
+          <span className="text-[10px] text-foreground">הרשאות הניטור</span>
         </div>
-        <span className="text-[9px] font-bold text-warning">בדיקה אחת</span>
+        <span className="text-[9px] font-bold text-warning">3 מתוך 4</span>
       </div>
     </div>
   );
@@ -90,10 +89,10 @@ function OverviewScreen() {
 
 function ProtectionScreen() {
   const areas = [
-    { icon: Clock, title: 'זמן מסך', value: '95 מתוך 180 דק׳' },
-    { icon: AppWindow, title: 'אפליקציות', value: '12 מותקנות' },
-    { icon: CalendarClock, title: 'לוחות זמנים', value: '2 פעילים' },
-    { icon: MapPin, title: 'מיקום וצלצול', value: 'מיקום זמין' },
+    { icon: MessageCircle, title: 'הודעות טקסט', value: 'נבדקות בהקשר' },
+    { icon: Mic, title: 'הודעות קוליות', value: 'תמלול מהיר ומדויק' },
+    { icon: ShieldCheck, title: 'שתי שכבות מקומיות', value: 'המידע נשאר במכשיר' },
+    { icon: Bell, title: 'התראות מאומתות', value: 'רק כשנדרשת התערבות' },
   ];
 
   return (
@@ -120,8 +119,8 @@ function ProtectionScreen() {
         <div className="flex items-center gap-2">
           <Activity className="h-4 w-4 text-success" />
           <div>
-            <p className="text-[10px] font-bold text-foreground">המכשיר תקין</p>
-            <p className="text-[8px] text-muted-foreground">כל ההרשאות שדווחו פעילות</p>
+            <p className="text-[10px] font-bold text-foreground">הניטור פעיל</p>
+            <p className="text-[8px] text-muted-foreground">כל ארבע הרשאות ההגנה פעילות</p>
           </div>
         </div>
       </div>

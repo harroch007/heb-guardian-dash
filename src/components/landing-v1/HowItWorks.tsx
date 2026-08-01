@@ -4,7 +4,7 @@ import { Smartphone, QrCode, ShieldCheck, ArrowLeft } from 'lucide-react';
 const steps = [
   { num: 1, icon: Smartphone, title: 'ההורה נרשם ומוסיף ילד', desc: 'מקבלים קוד QR לחיבור מאובטח של המכשיר.' },
   { num: 2, icon: QrCode, title: 'מחברים את מכשיר הילד', desc: 'מתקינים את אפליקציית הילד ומאשרים את ההרשאות הנדרשות.' },
-  { num: 3, icon: ShieldCheck, title: 'מנהלים ממרכז ההגנה', desc: 'זמן מסך, אפליקציות, לוחות זמנים, מיקום ותקינות במקום אחד.' },
+  { num: 3, icon: ShieldCheck, title: 'מקבלים רק התראות שאומתו', desc: 'Kippy מנתחת את ההקשר ומציגה להורה הסבר רגוע ופעולה מומלצת רק כשנדרשת התערבות.' },
 ];
 
 export function HowItWorks() {

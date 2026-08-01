@@ -101,7 +101,14 @@ export function LocationSectionV2({
                 {getLocateButtonContent()}
               </Button>
               <Button
-                onClick={(e) => { e.stopPropagation(); isRingFailed ? handleRetryRing() : handleRingDevice(); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (isRingFailed) {
+                    handleRetryRing();
+                  } else {
+                    handleRingDevice();
+                  }
+                }}
                 size="sm"
                 variant={isRingFailed ? "destructive" : isRingTerminalSuccess ? "outline" : "default"}
                 disabled={isRingBusy || isRingTerminalSuccess}

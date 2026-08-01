@@ -7,7 +7,10 @@ const FAMILY_ID = "72000000-0000-4000-8000-000000000001";
 const CHILD_ID = "73000000-0000-4000-8000-000000000001";
 const DEVICE_ID = "74000000-0000-4000-8000-000000000001";
 const INCIDENT_ID = "75000000-0000-4000-8000-000000000001";
-const NOW = "2026-07-31T12:00:00.000Z";
+const NOW_MS = Date.now();
+const NOW = new Date(NOW_MS).toISOString();
+const LATE_AFTER = new Date(NOW_MS + 15 * 60_000).toISOString();
+const INTERRUPTED_AFTER = new Date(NOW_MS + 45 * 60_000).toISOString();
 
 const env = new Map(
   readFileSync(".env", "utf8")
@@ -192,7 +195,13 @@ const rowsByTable: Record<string, object[]> = {
       capture_ready: true,
       product_ready: true,
       battery_level_percent: 78,
-      capabilities: {},
+      capabilities: {
+        app_notifications_allowed: {
+          state: "satisfied",
+          requiredForCapture: false,
+          requiredForProduct: true,
+        },
+      },
       degraded_reasons: [],
       affects_current_state: true,
       contract_version: 2,
@@ -205,6 +214,28 @@ const rowsByTable: Record<string, object[]> = {
       boot_session_id: "synthetic-boot",
       payload_hash: null,
       sequence_no: 1,
+    },
+  ],
+  v2_device_monitoring_state: [
+    {
+      device_id: DEVICE_ID,
+      monitoring_state: "healthy",
+      reason_codes: [],
+      expected_interval_seconds: 900,
+      healthy_streak: 3,
+      last_event_key: "synthetic-health",
+      last_health_event_id: "76000000-0000-4000-8000-000000000001",
+      last_observed_at: NOW,
+      last_received_at: NOW,
+      last_sequence_no: 1,
+      last_boot_session_id: "synthetic-boot",
+      late_after_at: LATE_AFTER,
+      interrupted_after_at: INTERRUPTED_AFTER,
+      interruption_started_at: null,
+      episode_id: null,
+      state_version: 1,
+      created_at: NOW,
+      updated_at: NOW,
     },
   ],
   v2_safety_incidents: [incident],
@@ -231,11 +262,14 @@ const rowsByTable: Record<string, object[]> = {
   v2_alert_deliveries: [],
 };
 
-async function fulfillPostgrest(route: Route) {
+async function fulfillPostgrest(
+  route: Route,
+  rowSource: Record<string, object[]> = rowsByTable,
+) {
   const request = route.request();
   const url = new URL(request.url());
   const table = decodeURIComponent(url.pathname.split("/").pop() ?? "");
-  const rows = rowsByTable[table] ?? [];
+  const rows = rowSource[table] ?? [];
   const headers = {
     ...corsHeaders,
     "content-profile": "public",
@@ -284,7 +318,7 @@ async function installSyntheticV2Session(page: Page) {
       json: pathname.endsWith("/user") ? user : session,
     });
   });
-  await page.route("**/rest/v1/**", fulfillPostgrest);
+  await page.route("**/rest/v1/**", (route) => fulfillPostgrest(route));
   await page.route("**/functions/v1/**", (route) =>
     route.fulfill({
       status: route.request().method() === "OPTIONS" ? 204 : 200,
@@ -295,6 +329,110 @@ async function installSyntheticV2Session(page: Page) {
       ...(route.request().method() === "OPTIONS" ? {} : { json: {} }),
     }),
   );
+}
+
+async function installSyntheticNewGuardianSession(page: Page) {
+  let guardianCreated = false;
+  let childCreated = false;
+  const bootstrapBodies: Record<string, unknown>[] = [];
+  const childBodies: Record<string, unknown>[] = [];
+  const installBodies: Record<string, unknown>[] = [];
+
+  await page.route("**/auth/v1/**", async (route) => {
+    const pathname = new URL(route.request().url()).pathname;
+    if (route.request().method() === "OPTIONS") {
+      await route.fulfill({ status: 204, headers: corsHeaders });
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      headers: { ...corsHeaders, "content-type": "application/json" },
+      json: pathname.endsWith("/user") ? user : session,
+    });
+  });
+
+  await page.route("**/rest/v1/**", async (route) => {
+    const request = route.request();
+    const pathname = new URL(request.url()).pathname;
+
+    if (request.method() === "OPTIONS") {
+      await route.fulfill({ status: 204, headers: corsHeaders });
+      return;
+    }
+
+    if (pathname.endsWith("/rpc/v2_bootstrap_guardian")) {
+      const body = request.postDataJSON() as Record<string, unknown>;
+      bootstrapBodies.push(body);
+      guardianCreated = true;
+      await route.fulfill({
+        status: 200,
+        headers: { ...corsHeaders, "content-type": "application/json" },
+        json: [{ family_id: FAMILY_ID, created: true }],
+      });
+      return;
+    }
+
+    if (pathname.endsWith("/rpc/v2_create_guardian_child")) {
+      const body = request.postDataJSON() as Record<string, unknown>;
+      childBodies.push(body);
+      childCreated = true;
+      await route.fulfill({
+        status: 200,
+        headers: { ...corsHeaders, "content-type": "application/json" },
+        json: [{ child_id: CHILD_ID, created: true }],
+      });
+      return;
+    }
+
+    const dynamicRows: Record<string, object[]> = {
+      ...rowsByTable,
+      v2_guardian_memberships: guardianCreated
+        ? rowsByTable.v2_guardian_memberships
+        : [],
+      v2_guardian_profiles: guardianCreated
+        ? rowsByTable.v2_guardian_profiles
+        : [],
+      v2_children: childCreated ? [child] : [],
+      v2_protected_devices: [],
+      v2_device_health_events: [],
+      v2_device_monitoring_state: [],
+      v2_safety_incidents: [],
+      v2_incident_analysis: [],
+    };
+    await fulfillPostgrest(route, dynamicRows);
+  });
+
+  await page.route("**/functions/v1/**", async (route) => {
+    const request = route.request();
+    if (request.method() === "OPTIONS") {
+      await route.fulfill({ status: 204, headers: corsHeaders });
+      return;
+    }
+
+    const pathname = new URL(request.url()).pathname;
+    if (pathname.endsWith("/v2-create-child-install")) {
+      installBodies.push(request.postDataJSON() as Record<string, unknown>);
+      await route.fulfill({
+        status: 200,
+        headers: { ...corsHeaders, "content-type": "application/json" },
+        json: {
+          install_session_id: "77000000-0000-4000-8000-000000000002",
+          expires_at: new Date(NOW_MS + 20 * 60_000).toISOString(),
+          activation_url: "https://example.invalid/install/first-child",
+          qr_payload: "https://example.invalid/install/first-child",
+        },
+      });
+      return;
+    }
+
+    await route.fulfill({
+      status: 200,
+      headers: { ...corsHeaders, "content-type": "application/json" },
+      json: {},
+    });
+  });
+
+  return { bootstrapBodies, childBodies, installBodies };
 }
 
 async function authenticateSyntheticParent(page: Page) {
@@ -334,7 +472,7 @@ const privateRoutes = [
   {
     path: "/family-v2",
     visible: (page: Page) =>
-      page.getByRole("heading", { level: 1, name: "המשפחה שלי" }),
+      page.getByText(child.display_name, { exact: true }).first(),
   },
   {
     path: "/settings-v2",
@@ -390,6 +528,17 @@ test.describe("V2 private parent routes", () => {
     const expiresAt = "2030-07-31T13:00:00.000Z";
     const requestedSessionIds: string[] = [];
     let installStatus = "created";
+    let protectedDeviceReads = 0;
+
+    page.on("request", (request) => {
+      const pathname = new URL(request.url()).pathname;
+      if (
+        request.method() === "GET" &&
+        pathname.endsWith("/rest/v1/v2_protected_devices")
+      ) {
+        protectedDeviceReads += 1;
+      }
+    });
 
     await page.route("**/functions/v1/v2-create-child-install", async (route) => {
       if (route.request().method() === "OPTIONS") {
@@ -437,8 +586,88 @@ test.describe("V2 private parent routes", () => {
     await expect(modalHeading).toBeVisible();
     expect(new Set(requestedSessionIds)).toEqual(new Set([installSessionId]));
 
+    const readsBeforeConsume = protectedDeviceReads;
     installStatus = "consumed";
     await expect(modalHeading).toBeHidden({ timeout: 7_000 });
+    await expect
+      .poll(() => protectedDeviceReads, { timeout: 7_000 })
+      .toBeGreaterThan(readsBeforeConsume);
+  });
+});
+
+test.describe("V2 first-time guardian flow", () => {
+  test("creates a guardian profile and first-child QR with minimum data", async ({
+    page,
+  }, testInfo) => {
+    const calls = await installSyntheticNewGuardianSession(page);
+    const birthYear = String(new Date().getFullYear() - 12);
+
+    await page.goto("/auth", { waitUntil: "domcontentloaded" });
+    await page.getByLabel("אימייל").fill(user.email);
+    await page.getByLabel("סיסמה").fill("Synthetic123!");
+    await page.getByRole("button", { name: "התחבר", exact: true }).click();
+
+    await expect(page).toHaveURL(/\/onboarding$/);
+    await expect(page.getByLabel("מספר טלפון (אופציונלי)")).toBeVisible();
+    await page.getByLabel("שם מלא *").fill("הורה בדיקה");
+    await page
+      .getByRole("button", { name: "המשך למרכז הבטיחות", exact: true })
+      .click();
+
+    await expect(page).toHaveURL(/\/home-v2$/);
+    await expect(
+      page.getByRole("heading", { name: "עדיין אין מכשיר מנוטר" }),
+    ).toBeVisible();
+    expect(calls.bootstrapBodies).toHaveLength(1);
+    expect(calls.bootstrapBodies[0]).toMatchObject({ target_phone: "" });
+
+    await page
+      .getByRole("button", { name: "הוספת ילד ראשון", exact: true })
+      .click();
+    const dialog = page.getByRole("dialog");
+    await expect(
+      dialog.getByRole("heading", { name: "הוספת ילד חדש" }),
+    ).toBeVisible();
+    await dialog.getByLabel("שם הילד/ה *").fill("ילד בדיקה");
+
+    await dialog.getByRole("combobox", { name: "שנת לידה" }).click();
+    await page.getByRole("option", { name: birthYear, exact: true }).click();
+    await dialog.getByRole("combobox", { name: "מין" }).click();
+    await page.getByRole("option", { name: "בן", exact: true }).click();
+    await dialog
+      .getByRole("button", { name: "המשך לחיבור מכשיר", exact: true })
+      .click();
+
+    await expect(
+      dialog.getByRole("heading", { name: "חיבור מכשיר" }),
+    ).toBeVisible();
+    await expect(
+      dialog.getByText("סרקו את הקוד ממכשיר הילד/ה", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      dialog.getByRole("button", { name: "העתק קישור התקנה" }),
+    ).toBeVisible();
+
+    expect(calls.childBodies).toHaveLength(1);
+    expect(calls.childBodies[0]).toMatchObject({
+      target_birth_year: Number(birthYear),
+      target_gender: "male",
+    });
+    expect(calls.childBodies[0]).not.toHaveProperty("target_day");
+    expect(calls.childBodies[0]).not.toHaveProperty("target_month");
+    expect(calls.installBodies).toEqual([{ child_id: CHILD_ID }]);
+    expect(
+      await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth <=
+          document.documentElement.clientWidth + 1,
+      ),
+    ).toBe(true);
+
+    await testInfo.attach("v2-first-child-qr-desktop-rtl", {
+      body: await page.screenshot({ fullPage: true }),
+      contentType: "image/png",
+    });
   });
 });
 
