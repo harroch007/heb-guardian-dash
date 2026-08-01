@@ -30,14 +30,14 @@ export function MonitoringSummaryCard({ children }: Props) {
           <div>
             <h1 className="text-xl font-bold text-foreground">
               {children.length === 0
-                ? "עדיין אין מכשיר מנוטר"
+                ? "עדיין אין מכשיר מוגן"
                 : allActive
-                  ? "הניטור פעיל"
+                  ? "המכשירים מדווחים"
                   : "יש מכשיר שדורש בדיקה"}
             </h1>
             <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
               {children.length === 0
-                ? "הוסיפו ילד וחברו את מכשיר ה־Android כדי להתחיל."
+                ? "הוסיפו ילד וחברו את מכשיר ה־Android כדי להפעיל את ההגנה."
                 : `${activeCount} מתוך ${children.length} מכשירים מדווחים באופן תקין.`}
             </p>
           </div>

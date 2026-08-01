@@ -464,9 +464,12 @@ export function useChildControls(childId: string | undefined) {
             health.battery_optimization_exempt,
         };
         const capabilities: Array<[string, string]> = [
+          ["appNotificationsAllowed", "app_notifications_allowed"],
           ["usageStatsGranted", "usage_access"],
+          ["preciseLocationGranted", "precise_location"],
           ["locationPermissionGranted", "background_location"],
           ["locationServicesEnabled", "location_services"],
+          ["packageInventoryGranted", "package_inventory"],
         ];
         for (const [permissionKey, capabilityKey] of capabilities) {
           const satisfied = capabilitySatisfied(

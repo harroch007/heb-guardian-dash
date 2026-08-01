@@ -1,63 +1,21 @@
-import { Users, ShieldCheck, AlertTriangle, Wifi, Crown } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { WHATSAPP_MONITORING_ENABLED } from "@/config/featureFlags";
+import { Users, ShieldCheck, AlertTriangle, Wifi } from "lucide-react";
 import { HelpTooltip } from "@/components/help/HelpTooltip";
 
 interface FamilyStatusHeroProps {
   childrenCount: number;
   connectedCount: number;
   openIssues: number;
-  permissionIssueCount: number;
-  hasPremium: boolean;
 }
 
 export const FamilyStatusHero = ({
   childrenCount,
   connectedCount,
   openIssues,
-  permissionIssueCount,
-  hasPremium,
 }: FamilyStatusHeroProps) => {
-  const navigate = useNavigate();
   const allConnected = connectedCount === childrenCount && childrenCount > 0;
   const hasIssues = openIssues > 0;
-  // When WhatsApp monitoring is disabled, suppress all premium upsell UI
-  const showPremiumUpsell = WHATSAPP_MONITORING_ENABLED && !hasPremium;
-  const effectivePremium = WHATSAPP_MONITORING_ENABLED ? hasPremium : true;
-  const showIssuesPill = WHATSAPP_MONITORING_ENABLED && effectivePremium;
 
-  // When monitoring is off, status line depends only on connectivity
   const renderStatusLine = () => {
-    if (showPremiumUpsell) {
-      return (
-        <>
-          <Crown className="h-5 w-5 text-amber-500" />
-          <span className="text-sm font-semibold text-foreground">
-            שדרגו לפרימיום כדי להפעיל ניטור חכם
-          </span>
-        </>
-      );
-    }
-    if (!WHATSAPP_MONITORING_ENABLED) {
-      if (childrenCount > 0 && !allConnected) {
-        return (
-          <>
-            <AlertTriangle className="h-5 w-5 text-amber-500" />
-            <span className="text-sm font-semibold text-foreground">
-              {childrenCount - connectedCount === 1 ? "יש מכשיר מנותק" : `${childrenCount - connectedCount} מכשירים מנותקים`}
-            </span>
-          </>
-        );
-      }
-      return (
-        <>
-          <ShieldCheck className="h-5 w-5 text-success" />
-          <span className="text-sm font-semibold text-foreground">
-            הכול תקין כרגע
-          </span>
-        </>
-      );
-    }
     if (hasIssues) {
       return (
         <>
@@ -86,7 +44,7 @@ export const FamilyStatusHero = ({
       </div>
 
       {/* Metric pills */}
-      <div className={`grid ${showIssuesPill ? 'grid-cols-3' : 'grid-cols-2'} gap-2`}>
+      <div className="grid grid-cols-3 gap-2">
         <Pill
           icon={<Users className="h-4 w-4 text-primary" />}
           value={`${connectedCount}/${childrenCount}`}
@@ -100,26 +58,14 @@ export const FamilyStatusHero = ({
           warn={!allConnected}
           helpText="מצב התקשורת של מכשירי הילדים. 'מנותק' = המכשיר לא שלח עדכון ב-24 שעות."
         />
-        {showIssuesPill && (
-          <Pill
-            icon={<AlertTriangle className="h-4 w-4 text-amber-500" />}
-            value={String(openIssues)}
-            label="פתוחים"
-            warn={openIssues > 0}
-            helpText="התראות, בקשות זמן ובעיות הרשאה שמחכות לטיפול."
-          />
-        )}
+        <Pill
+          icon={<AlertTriangle className="h-4 w-4 text-amber-500" />}
+          value={String(openIssues)}
+          label="דורשים טיפול"
+          warn={openIssues > 0}
+          helpText="התראות בטיחות מאומתות, בעיות הרשאה ומכשירים שלא דיווחו."
+        />
       </div>
-
-      {/* Upgrade button for free users */}
-      {showPremiumUpsell && (
-        <button
-          onClick={() => navigate("/checkout")}
-          className="mt-3 w-full py-2 bg-warning text-white text-xs font-semibold rounded-lg hover:bg-warning transition-colors"
-        >
-          שדרוג לפרימיום
-        </button>
-      )}
     </div>
   );
 };

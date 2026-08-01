@@ -5,20 +5,16 @@ import {
   CalendarClock,
   Clock3,
   MapPinned,
+  MessageCircle,
   ShieldCheck,
   Siren,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { V2_GUARDIAN_ALERTS_ENABLED } from "@/config/featureFlags";
 import type { DeviceHealthInfo } from "@/hooks/useChildControls";
 import type { DeviceStatus } from "@/lib/deviceStatus";
+import type { GuardianMonitoringState } from "@/lib/v2/guardianMonitoringService";
 import { cn } from "@/lib/utils";
-
-const WHATSAPP_PERMISSION_KEYS = [
-  "accessibilityEnabled",
-  "notificationListenerEnabled",
-];
 
 interface ProtectionCenterOverviewProps {
   childName: string;
@@ -33,6 +29,8 @@ interface ProtectionCenterOverviewProps {
   activeRestrictionName: string | null;
   hasLocation: boolean;
   deviceHealth: DeviceHealthInfo | null;
+  monitoringState: GuardianMonitoringState | null;
+  newIncidentCount: number;
 }
 
 interface ProtectionArea {
@@ -75,6 +73,8 @@ export function ProtectionCenterOverview({
   activeRestrictionName,
   hasLocation,
   deviceHealth,
+  monitoringState,
+  newIncidentCount,
 }: ProtectionCenterOverviewProps) {
   const effectiveLimit =
     dailyLimitMinutes !== null && dailyLimitMinutes > 0
@@ -82,15 +82,33 @@ export function ProtectionCenterOverview({
       : null;
 
   const missingPermissionCount = deviceHealth
-    ? Object.entries(deviceHealth.permissions).filter(
-        ([key, value]) =>
-          value === false &&
-          (V2_GUARDIAN_ALERTS_ENABLED ||
-            !WHATSAPP_PERMISSION_KEYS.includes(key)),
+    ? Object.values(deviceHealth.permissions).filter(
+        (value) => value === false,
       ).length
     : null;
 
   const areas: ProtectionArea[] = [
+    {
+      id: "whatsapp-safety",
+      label: "בטיחות ב־WhatsApp",
+      value:
+        newIncidentCount > 0
+          ? `${newIncidentCount} התראות חדשות`
+          : monitoringState === "healthy"
+            ? "ניטור פעיל · אין התראות חדשות"
+            : monitoringState
+              ? "הניטור דורש בדיקה"
+              : "ממתין לדיווח מהמכשיר",
+      icon: MessageCircle,
+      tone:
+        newIncidentCount > 0
+          ? "warning"
+          : monitoringState === "healthy"
+            ? "success"
+            : monitoringState
+              ? "warning"
+              : "muted",
+    },
     {
       id: "screen-time",
       label: "זמן מסך",

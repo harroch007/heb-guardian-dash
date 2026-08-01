@@ -1,6 +1,7 @@
 export { StatusStrip } from "./StatusStrip";
 export { ProblemBanner } from "./ProblemBanner";
 export { ProtectionCenterOverview } from "./ProtectionCenterOverview";
+export { WhatsAppSafetySection } from "./WhatsAppSafetySection";
 
 export { QuickActionsGrid } from "./QuickActionsGrid";
 export { AppsSection } from "./AppsSection";

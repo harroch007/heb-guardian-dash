@@ -1,18 +1,13 @@
 import { Home, Users, Bell, Settings } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { V2_GUARDIAN_ALERTS_ENABLED } from "@/config/featureFlags";
 
-const allNavItems = [
+const navItems = [
   { title: "בית", url: "/home-v2", icon: Home },
   { title: "משפחה", url: "/family-v2", icon: Users },
-  { title: "התראות", url: "/alerts-v2", icon: Bell, requiresWhatsApp: true },
+  { title: "התראות", url: "/alerts-v2", icon: Bell },
   { title: "הגדרות", url: "/settings-v2", icon: Settings },
 ];
-
-const navItems = allNavItems.filter(
-  (item) => V2_GUARDIAN_ALERTS_ENABLED || !item.requiresWhatsApp
-);
 
 /**
  * Desktop-only top navigation for V2 pages.

@@ -5,10 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type { DeviceHealthInfo } from "@/hooks/useChildControls";
 import { formatLastSeen } from "@/lib/deviceStatus";
-import { V2_GUARDIAN_ALERTS_ENABLED } from "@/config/featureFlags";
 import { HelpTooltip } from "@/components/help/HelpTooltip";
-
-const WHATSAPP_PERMISSION_KEYS = ["accessibilityEnabled", "notificationListenerEnabled"];
 
 interface DeviceHealthBannerProps {
   health: DeviceHealthInfo;
@@ -31,6 +28,11 @@ const PERMISSION_META: Record<string, PermissionMeta> = {
     description: "מאפשר לנטר הודעות נכנסות לצורך ניתוח בטיחות",
     fix: "הגדרות → התראות → גישה להתראות → Kippy → הפעל",
   },
+  appNotificationsAllowed: {
+    label: "התראות Kippy",
+    description: "מאפשר להציג שההגנה פעילה ולהתריע כשהמערכת דורשת טיפול",
+    fix: "הגדרות → אפליקציות → Kippy → התראות → אפשר",
+  },
   usageStatsGranted: {
     label: "סטטיסטיקת שימוש",
     description: "מאפשר לעקוב אחרי זמן מסך ולאכוף מגבלות שימוש",
@@ -40,6 +42,11 @@ const PERMISSION_META: Record<string, PermissionMeta> = {
     label: "מיקום",
     description: "מאפשר לאתר את מיקום המכשיר ולהפעיל התראות גיאוגרפיות",
     fix: "הגדרות → אפליקציות → Kippy → הרשאות → מיקום → אפשר תמיד",
+  },
+  preciseLocationGranted: {
+    label: "מיקום מדויק",
+    description: "מאפשר לעדכן מיקום מדויק ולזהות כניסה או יציאה מאזור מוגדר",
+    fix: "הגדרות → אפליקציות → Kippy → הרשאות → מיקום → השתמש במיקום מדויק",
   },
   locationServicesEnabled: {
     label: "שירותי מיקום",
@@ -51,10 +58,10 @@ const PERMISSION_META: Record<string, PermissionMeta> = {
     description: "מונע מהמערכת לסגור את Kippy ברקע כדי לחסוך סוללה",
     fix: "הגדרות → סוללה → אופטימיזציית סוללה → Kippy → לא לבצע אופטימיזציה",
   },
-  canDrawOverlays: {
-    label: "הצגה מעל אפליקציות",
-    description: "מאפשר להציג מסך חסימה כשאפליקציה חסומה",
-    fix: "הגדרות → אפליקציות → גישה מיוחדת → הצגה מעל אפליקציות → Kippy → הפעל",
+  packageInventoryGranted: {
+    label: "רשימת אפליקציות",
+    description: "מאפשר להציג להורה את האפליקציות המותקנות וליישם מדיניות אישור או חסימה",
+    fix: "פתחו את Kippy במכשיר הילד והשלימו מחדש את בדיקת ההרשאות",
   },
 };
 
@@ -63,11 +70,13 @@ export function DeviceHealthBanner({ health }: DeviceHealthBannerProps) {
   const [expandedInfo, setExpandedInfo] = useState<Set<string>>(new Set());
   const [expandedFix, setExpandedFix] = useState<Set<string>>(new Set());
 
-  const allPermissions = Object.entries(PERMISSION_META).filter(
-    ([key]) => V2_GUARDIAN_ALERTS_ENABLED || !WHATSAPP_PERMISSION_KEYS.includes(key)
-  );
+  const allPermissions = Object.entries(PERMISSION_META);
   const missingPermissions = allPermissions.filter(([key]) => permissions[key] === false);
-  const allGranted = missingPermissions.length === 0;
+  const pendingPermissions = allPermissions.filter(
+    ([key]) => permissions[key] === undefined,
+  );
+  const allGranted =
+    missingPermissions.length === 0 && pendingPermissions.length === 0;
 
   const whatsappHealthy =
     permissions.accessibilityEnabled === true &&
@@ -106,24 +115,26 @@ export function DeviceHealthBanner({ health }: DeviceHealthBannerProps) {
               <ShieldAlert className="w-5 h-5 text-warning" />
             )}
             <span className="font-semibold text-sm text-foreground">
-              {allGranted ? "כל ההרשאות פעילות" : `${missingPermissions.length} הרשאות חסרות`}
+              {allGranted
+                ? "כל ההרשאות פעילות"
+                : missingPermissions.length > 0
+                  ? `${missingPermissions.length} הרשאות חסרות`
+                  : `ממתינים לדיווח על ${pendingPermissions.length} הרשאות`}
             </span>
             <HelpTooltip text="הרשאות שהמכשיר צריך כדי שהפיצ׳רים השונים של Kippy יעבדו (זמן מסך, מיקום, חסימת אפליקציות ועוד)." iconSize={12} />
           </div>
-          {V2_GUARDIAN_ALERTS_ENABLED && (
-            <Badge
-              variant="secondary"
-              className={cn(
-                "gap-1 text-xs",
-                whatsappHealthy
-                  ? "bg-success/20 text-success"
-                  : "bg-destructive/20 text-destructive"
-              )}
-            >
-              <MessageCircle className="w-3 h-3" />
-              {whatsappHealthy ? "ניטור פעיל" : "ניטור לקוי"}
-            </Badge>
-          )}
+          <Badge
+            variant="secondary"
+            className={cn(
+              "gap-1 text-xs",
+              whatsappHealthy
+                ? "bg-success/20 text-success"
+                : "bg-destructive/20 text-destructive"
+            )}
+          >
+            <MessageCircle className="w-3 h-3" />
+            {whatsappHealthy ? "ניטור פעיל" : "ניטור לקוי"}
+          </Badge>
         </div>
 
         {/* Permissions list */}
@@ -131,21 +142,36 @@ export function DeviceHealthBanner({ health }: DeviceHealthBannerProps) {
           <div className="space-y-1.5">
             {allPermissions.map(([key, meta]) => {
               const granted = permissions[key] !== false;
+              const pending = permissions[key] === undefined;
+              const permissionGranted = permissions[key] === true;
               const infoOpen = expandedInfo.has(key);
               const fixOpen = expandedFix.has(key);
 
               return (
                 <div key={key} className={cn(
                   "rounded-md px-2.5 py-1.5 text-xs",
-                  granted ? "bg-success/10" : "bg-warning/10"
+                  pending
+                    ? "bg-muted/40"
+                    : permissionGranted
+                      ? "bg-success/10"
+                      : "bg-warning/10"
                 )}>
                   <div className="flex items-center gap-1.5">
-                    {granted ? (
+                    {permissionGranted ? (
                       <CheckCircle2 className="w-3.5 h-3.5 text-success shrink-0" />
+                    ) : pending ? (
+                      <HelpCircle className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                     ) : (
                       <XCircle className="w-3.5 h-3.5 text-warning shrink-0" />
                     )}
-                    <span className={cn("font-medium", granted ? "text-success" : "text-warning")}>
+                    <span className={cn(
+                      "font-medium",
+                      permissionGranted
+                        ? "text-success"
+                        : pending
+                          ? "text-muted-foreground"
+                          : "text-warning",
+                    )}>
                       {meta.label}
                     </span>
                     <button
@@ -155,7 +181,7 @@ export function DeviceHealthBanner({ health }: DeviceHealthBannerProps) {
                     >
                       <HelpCircle className="w-3 h-3 text-muted-foreground" />
                     </button>
-                    {!granted && (
+                    {!permissionGranted && !pending && (
                       <button
                         onClick={() => toggleFix(key)}
                         className="mr-auto flex items-center gap-0.5 text-primary hover:text-primary/80 transition-colors"
@@ -173,6 +199,11 @@ export function DeviceHealthBanner({ health }: DeviceHealthBannerProps) {
                   {fixOpen && !granted && (
                     <p className="mt-1 mr-5 text-primary font-medium leading-relaxed">
                       {meta.fix}
+                    </p>
+                  )}
+                  {pending && (
+                    <p className="mt-1 mr-5 text-muted-foreground leading-relaxed">
+                      ממתינים לדיווח מהמכשיר
                     </p>
                   )}
                 </div>

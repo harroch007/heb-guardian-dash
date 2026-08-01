@@ -22,7 +22,7 @@ export function MonitoringChildCard({ child }: Props) {
     ? monitoringStateCopy(device.monitoringState)
     : {
         label: "טרם חובר מכשיר",
-        description: "חברו את מכשיר הילד כדי להתחיל בניטור.",
+        description: "חברו את מכשיר הילד כדי להפעיל את כל שכבות ההגנה.",
         tone: "muted" as const,
       };
 
@@ -93,7 +93,7 @@ export function MonitoringChildCard({ child }: Props) {
             className="h-11 flex-1 justify-between"
             onClick={() => navigate(`/child-v2/${child.id}`)}
           >
-            <span>פרטי הניטור</span>
+            <span>מרכז ההגנה המלא</span>
             <ChevronLeft className="h-4 w-4" />
           </Button>
           {child.newIncidentCount > 0 && (

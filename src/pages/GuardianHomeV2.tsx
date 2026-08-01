@@ -1,5 +1,5 @@
-import { MonitoringOverviewPage } from "@/components/monitoring-v2/MonitoringOverviewPage";
+import HomeV2 from "./HomeV2";
 
 export default function GuardianHomeV2() {
-  return <MonitoringOverviewPage mode="home" />;
+  return <HomeV2 />;
 }

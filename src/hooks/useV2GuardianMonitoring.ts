@@ -11,7 +11,7 @@ export function useV2GuardianMonitoring() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (options?: { silent?: boolean }) => {
     if (!familyId) {
       setChildren([]);
       setError(false);
@@ -19,7 +19,7 @@ export function useV2GuardianMonitoring() {
       return;
     }
 
-    setLoading(true);
+    if (!options?.silent) setLoading(true);
     setError(false);
     try {
       setChildren(await getV2GuardianMonitoring(familyId));
