@@ -2,9 +2,9 @@ import { motion } from 'framer-motion';
 import { ShieldCheck } from 'lucide-react';
 
 const quotes = [
-  { emoji: '📱', text: '"כמה זמן הוא כבר במסך היום?"' },
-  { emoji: '📍', text: '"היא הגיעה לחוג או שהטלפון לא מעדכן?"' },
-  { emoji: '🛡️', text: '"האם כל ההרשאות עדיין פעילות?"' },
+  { emoji: '💬', text: '"האם זו סתם בדיחה בין חברים או שמשהו באמת קרה?"' },
+  { emoji: '🎙️', text: '"מה נאמר בהודעה הקולית שהוא שמע עכשיו?"' },
+  { emoji: '🛡️', text: '"איך אדע שהניטור עדיין פעיל ולא פספס הודעות?"' },
 ];
 
 export function EmpathyQuotes() {
@@ -29,7 +29,7 @@ export function EmpathyQuotes() {
         </div>
         <p className="text-center text-muted-foreground mt-8 flex items-center justify-center gap-2">
           <ShieldCheck className="w-4 h-4 text-primary" />
-          הורים צריכים תמונה אחת ברורה, לא חמש אפליקציות שונות.
+          הורים צריכים להבין מתי באמת נדרשת התערבות — בלי לקרוא כל שיחה ובלי להיבהל מכל מילה.
         </p>
       </div>
     </section>

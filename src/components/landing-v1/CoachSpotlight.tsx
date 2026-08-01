@@ -1,19 +1,19 @@
 import { motion } from 'framer-motion';
 import {
   Activity,
-  AppWindow,
-  CalendarClock,
-  Clock3,
-  MapPinned,
+  Bell,
+  BrainCircuit,
+  MessageCircle,
+  Mic,
   ShieldCheck,
 } from 'lucide-react';
 
 const protectionAreas = [
-  { icon: Clock3, text: 'זמן מסך ובקשות זמן' },
-  { icon: AppWindow, text: 'אישור וחסימת אפליקציות' },
-  { icon: CalendarClock, text: 'לוחות זמנים ושגרה' },
-  { icon: MapPinned, text: 'מיקום, אזורים ואיתור' },
-  { icon: Activity, text: 'תקינות והרשאות המכשיר' },
+  { icon: MessageCircle, text: 'ניתוח הודעות טקסט ב־WhatsApp' },
+  { icon: Mic, text: 'תמלול הודעות קוליות ברצף הנכון' },
+  { icon: BrainCircuit, text: 'הבנת הקשר ותפקיד הילד בשיחה' },
+  { icon: Bell, text: 'התראה להורה רק לאחר אימות' },
+  { icon: Activity, text: 'מצב ניטור והרשאות המכשיר' },
 ];
 
 export function CoachSpotlight() {
@@ -31,12 +31,12 @@ export function CoachSpotlight() {
             <div className="grid lg:grid-cols-2 gap-8 sm:gap-10 items-center">
               <div>
                 <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-4 leading-tight">
-                  כל ילד מקבל
+                  לכל ילד יש
                   <br />
-                  <span className="text-primary">מרכז הגנה משלו</span>
+                  <span className="text-primary">הגנה נפרדת משלו</span>
                 </h2>
                 <p className="text-base text-muted-foreground mb-6 leading-relaxed">
-                  רואים את מצב המכשיר ומגיעים לכל כלי הבקרה בלי לחפש בין מסכים.
+                  כל שיחה נשמרת במחסנית נפרדת, נבדקת בהקשר ומוצגת להורה רק כשנדרשת תשומת לב.
                 </p>
 
                 <div className="space-y-3">
@@ -61,8 +61,8 @@ export function CoachSpotlight() {
                       <ShieldCheck className="h-5 w-5 text-primary" />
                     </span>
                     <div>
-                      <p className="font-bold text-foreground">מרכז ההגנה של נועם</p>
-                      <p className="text-xs text-muted-foreground">המכשיר מחובר והבקרה פעילה</p>
+                      <p className="font-bold text-foreground">הניטור של נועם</p>
+                      <p className="text-xs text-muted-foreground">המכשיר מחובר והניטור פעיל</p>
                     </div>
                   </div>
                   <span className="rounded-full bg-success/15 px-2 py-1 text-[10px] font-semibold text-success">

@@ -1,11 +1,11 @@
 import { motion } from 'framer-motion';
-import { Activity, Brain, Home, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { Activity, Brain, LockKeyhole, ShieldCheck, CheckCircle2 } from 'lucide-react';
 
 const items = [
-  { icon: Home, title: 'מערכת אחת', sub: 'מסודרת וברורה' },
-  { icon: ShieldCheck, title: 'שליטה מדויקת', sub: 'לכל ילד בנפרד' },
-  { icon: Activity, title: 'מצב בזמן אמת', sub: 'חיבור והרשאות' },
-  { icon: Brain, title: 'פחות כאב ראש', sub: 'יומיומי' },
+  { icon: Brain, title: 'פחות התראות שווא', sub: 'בזכות הקשר מלא' },
+  { icon: ShieldCheck, title: 'הגנה לכל ילד', sub: 'וכל שיחה בנפרד' },
+  { icon: Activity, title: 'מצב ניטור ברור', sub: 'חיבור והרשאות' },
+  { icon: LockKeyhole, title: 'פרטיות מקומית', sub: 'כברירת מחדל' },
 ];
 
 export function WhyParents() {

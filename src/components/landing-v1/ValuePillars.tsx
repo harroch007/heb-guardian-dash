@@ -1,21 +1,21 @@
 import { motion } from 'framer-motion';
-import { Activity, LayoutDashboard, ShieldCheck } from 'lucide-react';
+import { BrainCircuit, LockKeyhole, ShieldCheck } from 'lucide-react';
 
 const pillars = [
   {
-    icon: LayoutDashboard,
-    title: 'מרכז הגנה אחד',
-    desc: 'כל כלי הבקרה וכל מצב המכשיר מאורגנים במסך אחד לכל ילד.',
-  },
-  {
-    icon: Activity,
-    title: 'יודעים מה עובד',
-    desc: 'חיבור, סוללה, מיקום והרשאות מוצגים בצורה ברורה ומתריעים כשצריך לבדוק.',
-  },
-  {
     icon: ShieldCheck,
-    title: 'גבולות ברורים',
-    desc: 'זמני מסך, חסימות אפליקציות, לוחות זמנים ובקשות זמן במקום אחד.',
+    title: 'מזהים סיכון אמיתי',
+    desc: 'שתי שכבות בדיקה מקומיות מסננות הודעות לפני שנדרשת בדיקה מתקדמת.',
+  },
+  {
+    icon: BrainCircuit,
+    title: 'מבינים את ההקשר',
+    desc: 'כאשר עולה חשד, המומחה בוחן את רצף השיחה כדי להבדיל בין סלנג, צחוק ופגיעה אמיתית.',
+  },
+  {
+    icon: LockKeyhole,
+    title: 'שומרים על הפרטיות',
+    desc: 'המחסניות והסינון הראשוני נשארים במכשיר הילד; רק אירוע שמצדיק בדיקה יוצא בצורה מוגנת.',
   },
 ];
 
@@ -24,7 +24,7 @@ export function ValuePillars() {
     <section className="py-16 md:py-20" dir="rtl">
       <div className="container mx-auto px-4">
         <h2 className="text-3xl md:text-4xl font-bold text-foreground text-center mb-10">
-          הדור החדש של בקרת הורים
+          הגנה חכמה לשיחות של ילדים
         </h2>
         <div className="grid md:grid-cols-3 gap-5 max-w-5xl mx-auto">
           {pillars.map(({ icon: Icon, title, desc }, i) => (

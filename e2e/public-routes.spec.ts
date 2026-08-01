@@ -9,18 +9,18 @@ test.describe("public web smoke", () => {
     await expect(
       page.getByRole("heading", {
         level: 1,
-        name: /כל ההגנה על הטלפון של הילד/,
+        name: /להבין מה באמת קורה/,
       }),
     ).toBeVisible();
     await expect(page.locator("#main-content")).toBeVisible();
 
     const question = page.getByRole("button", {
-      name: "מה ההורה יכול לנהל במרכז ההגנה?",
+      name: "איך Kippy מצמצמת התראות שווא?",
     });
     await question.click();
     await expect(
       page.getByText(
-        "לכל ילד יש מרכז הגנה נפרד ובו זמן מסך, אפליקציות, לוחות זמנים, מיקום, אזורים בטוחים, צלצול, מצב אבוד ותקינות המכשיר.",
+        "המערכת אינה מסתפקת במילת טריגר. היא בוחנת את רצף השיחה, הכיוון, המשתתפים והגיל כדי להבדיל בין צחוק וסלנג לבין פגיעה אמיתית.",
         { exact: true },
       ),
     ).toBeVisible();
@@ -39,8 +39,16 @@ test.describe("public web smoke", () => {
 
   test("legal pages are publicly reachable", async ({ page }) => {
     for (const legalPage of [
-      { path: "/privacy", heading: "מדיניות פרטיות - KippyAI" },
-      { path: "/terms", heading: "תנאי שימוש - KippyAI" },
+      {
+        path: "/privacy",
+        heading: "מדיניות פרטיות - KippyAI",
+        forbiddenLegacyClaim: "נתוני שימוש באפליקציות",
+      },
+      {
+        path: "/terms",
+        heading: "תנאי שימוש - KippyAI",
+        forbiddenLegacyClaim: "Telegram",
+      },
     ]) {
       await test.step(legalPage.path, async () => {
         await page.goto(legalPage.path, { waitUntil: "domcontentloaded" });
@@ -49,6 +57,10 @@ test.describe("public web smoke", () => {
         ).toBeVisible();
         await expect(page.locator("main")).toBeVisible();
         await expect(page.locator('[dir="rtl"]').first()).toBeVisible();
+        await expect(page.getByRole("note")).toBeVisible();
+        await expect(
+          page.getByText(legalPage.forbiddenLegacyClaim, { exact: false }),
+        ).toHaveCount(0);
       });
     }
   });
@@ -104,7 +116,7 @@ test.describe("mobile public web smoke", () => {
     await expect(
       page.getByRole("heading", {
         level: 1,
-        name: /כל ההגנה על הטלפון של הילד/,
+        name: /להבין מה באמת קורה/,
       }),
     ).toBeVisible();
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
@@ -130,10 +142,10 @@ test.describe("mobile public web smoke", () => {
       await page.waitForTimeout(50);
     }
     await expect(
-      page.getByRole("heading", { name: "מרכז הגנה אחד" }),
+      page.getByRole("heading", { name: "מזהים סיכון אמיתי" }),
     ).toBeVisible();
     await expect(
-      page.getByRole("heading", { name: "ניהול זמן מסך" }),
+      page.getByRole("heading", { name: "הודעות טקסט" }),
     ).toBeVisible();
     await page.evaluate(() => window.scrollTo({ top: 0 }));
 

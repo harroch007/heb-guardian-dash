@@ -20,11 +20,11 @@ import TermsOfService from "./pages/TermsOfService";
 import Install from "./pages/Install";
 import ChildInstallLanding from "./pages/ChildInstallLanding";
 import NotFound from "./pages/NotFound";
-import HomeV2 from "./pages/HomeV2";
-import ChildControlV2 from "./pages/ChildControlV2";
+import GuardianHomeV2 from "./pages/GuardianHomeV2";
+import GuardianChildV2 from "./pages/GuardianChildV2";
 import AlertsV2 from "./pages/AlertsV2Canonical";
 import SettingsV2 from "./pages/SettingsV2Canonical";
-import FamilyV2 from "./pages/FamilyV2Canonical";
+import GuardianFamilyV2 from "./pages/GuardianFamilyV2";
 import LandingV1 from "./pages/LandingV1";
 
 const queryClient = new QueryClient();
@@ -41,12 +41,12 @@ const AppRoutes = () => {
       <Route path="/" element={<LandingV1 />} />
       <Route path="/landing-v1" element={<LandingV1 />} />
       <Route path="/next" element={<Navigate to="/landing-v1" replace />} />
-      <Route path="/home-v2" element={<ProtectedRoute><HomeV2 /></ProtectedRoute>} />
-      <Route path="/child-v2/:childId" element={<ProtectedRoute><ChildControlV2 /></ProtectedRoute>} />
+      <Route path="/home-v2" element={<ProtectedRoute><GuardianHomeV2 /></ProtectedRoute>} />
+      <Route path="/child-v2/:childId" element={<ProtectedRoute><GuardianChildV2 /></ProtectedRoute>} />
       <Route path="/chores-v2" element={<Navigate to="/home-v2" replace />} />
       <Route path="/alerts-v2" element={<ProtectedRoute><AlertsV2 /></ProtectedRoute>} />
       <Route path="/settings-v2" element={<ProtectedRoute><SettingsV2 /></ProtectedRoute>} />
-      <Route path="/family-v2" element={<ProtectedRoute><FamilyV2 /></ProtectedRoute>} />
+      <Route path="/family-v2" element={<ProtectedRoute><GuardianFamilyV2 /></ProtectedRoute>} />
       <Route path="/chat-v2" element={<Navigate to="/home-v2" replace />} />
       <Route path="/chat-v2/:friendshipId" element={<Navigate to="/home-v2" replace />} />
       <Route path="/accept-invite/:inviteId" element={<Navigate to="/family-v2" replace />} />

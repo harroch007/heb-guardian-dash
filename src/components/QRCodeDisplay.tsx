@@ -20,12 +20,14 @@ interface QRCodeDisplayProps {
   parentId: string;
   parentEmail: string;
   onFinish: () => void;
+  onConnected?: () => void;
 }
 
 export function QRCodeDisplay({
   childId,
   parentEmail,
   onFinish,
+  onConnected,
 }: QRCodeDisplayProps) {
   const [session, setSession] =
     useState<V2ChildInstallSession | null>(null);
@@ -75,6 +77,7 @@ export function QRCodeDisplay({
             title: "🎉 המכשיר חובר בהצלחה!",
             description: "Kippy פעילה כעת במכשיר הילד/ה.",
           });
+          onConnected?.();
           onFinish();
           return;
         }
@@ -93,7 +96,7 @@ export function QRCodeDisplay({
     void checkStatus();
 
     return stopPolling;
-  }, [onFinish, session?.install_session_id, toast]);
+  }, [onConnected, onFinish, session?.install_session_id, toast]);
 
   const copyLink = async () => {
     if (!session) return;
@@ -159,7 +162,7 @@ export function QRCodeDisplay({
       </p>
 
       <div className="space-y-2">
-        <Button variant="outline" onClick={copyLink} className="w-full">
+        <Button variant="outline" onClick={copyLink} className="h-11 w-full">
           {copied ? (
             <Check className="ml-2 h-4 w-4" />
           ) : (
@@ -167,7 +170,7 @@ export function QRCodeDisplay({
           )}
           {copied ? "הקישור הועתק" : "העתק קישור התקנה"}
         </Button>
-        <Button variant="ghost" onClick={onFinish} className="w-full">
+        <Button variant="ghost" onClick={onFinish} className="h-11 w-full">
           סגור וחבר מאוחר יותר
         </Button>
       </div>

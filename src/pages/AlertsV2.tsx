@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- Frozen legacy donor surface; migrate types before reactivation. */
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AlertCardStack, AlertTabs, EmptyAlertsState, EmptySavedState, PositiveAlertCard, EmptyPositiveState } from "@/components/alerts";

@@ -1,7 +1,13 @@
 import { useState, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { createGuardianChild } from "@/lib/v2/guardianService";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +22,9 @@ interface AddChildModalProps {
   onOpenChange: (open: boolean) => void;
   onChildAdded: () => void;
 }
+
+// Kept only as a dormant donor path. V2 stores birth year, not an exact date.
+const LEGACY_EXACT_BIRTH_DATE_ENABLED = false;
 
 const childSchema = z.object({
   name: z.string().min(2, "השם חייב להכיל לפחות 2 תווים").max(100),
@@ -91,8 +100,8 @@ export function AddChildModal({ open, onOpenChange, onChildAdded }: AddChildModa
     try {
       childSchema.parse({
         name,
-        day,
-        month,
+        day: LEGACY_EXACT_BIRTH_DATE_ENABLED ? day : "1",
+        month: LEGACY_EXACT_BIRTH_DATE_ENABLED ? month : "1",
         year,
         gender: gender as "male" | "female" | "other",
       });
@@ -143,6 +152,11 @@ export function AddChildModal({ open, onOpenChange, onChildAdded }: AddChildModa
       <DialogContent className="sm:max-w-md border-primary/30 bg-card/95 backdrop-blur-sm max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl text-center">{step === "form" ? "הוספת ילד חדש" : "חיבור מכשיר"}</DialogTitle>
+          <DialogDescription className="sr-only">
+            {step === "form"
+              ? "הוסיפו את פרטי הילד כדי ליצור חיבור מאובטח למכשיר שלו."
+              : "סרקו את קוד ה־QR ממכשיר הילד כדי להתחיל את תהליך ההתקנה."}
+          </DialogDescription>
         </DialogHeader>
 
         {step === "form" ? (
@@ -158,48 +172,66 @@ export function AddChildModal({ open, onOpenChange, onChildAdded }: AddChildModa
                   placeholder="שם הילד/ה"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="pr-10"
+                  className="h-11 pr-10"
                 />
               </div>
               {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
             </div>
 
-            {/* Date of Birth - Dropdowns */}
-            <div className="space-y-2">
-              <Label>תאריך לידה *</Label>
-              <div className="grid grid-cols-3 gap-2">
-                {/* Day */}
-                <Select value={day} onValueChange={setDay}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="יום" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {days.map((d) => (
-                      <SelectItem key={d} value={d}>
-                        {d}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            {/* V2 collects only what the backend stores: birth year. */}
+            {LEGACY_EXACT_BIRTH_DATE_ENABLED ? (
+              <div className="space-y-2">
+                <Label>תאריך לידה *</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  <Select value={day} onValueChange={setDay}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="יום" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {days.map((d) => (
+                        <SelectItem key={d} value={d}>
+                          {d}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
 
-                {/* Month */}
-                <Select value={month} onValueChange={setMonth}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="חודש" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {hebrewMonths.map((m) => (
-                      <SelectItem key={m.value} value={m.value}>
-                        {m.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  <Select value={month} onValueChange={setMonth}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="חודש" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {hebrewMonths.map((m) => (
+                        <SelectItem key={m.value} value={m.value}>
+                          {m.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
 
-                {/* Year */}
+                  <Select value={year} onValueChange={setYear}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="שנה" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {years.map((y) => (
+                        <SelectItem key={y} value={y}>
+                          {y}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {(errors.day || errors.month || errors.year) && (
+                  <p className="text-sm text-destructive">נא למלא את כל שדות התאריך</p>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label>שנת לידה *</Label>
                 <Select value={year} onValueChange={setYear}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="שנה" />
+                  <SelectTrigger className="h-11" aria-label="שנת לידה">
+                    <SelectValue placeholder="בחרו שנה" />
                   </SelectTrigger>
                   <SelectContent>
                     {years.map((y) => (
@@ -209,17 +241,20 @@ export function AddChildModal({ open, onOpenChange, onChildAdded }: AddChildModa
                     ))}
                   </SelectContent>
                 </Select>
+                {errors.year && (
+                  <p className="text-sm text-destructive">נא לבחור שנת לידה</p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  השנה משמשת להתאמת ניתוח הסיכון לגיל הילד/ה.
+                </p>
               </div>
-              {(errors.day || errors.month || errors.year) && (
-                <p className="text-sm text-destructive">נא למלא את כל שדות התאריך</p>
-              )}
-            </div>
+            )}
 
             {/* Gender */}
             <div className="space-y-2">
               <Label>מין *</Label>
               <Select value={gender} onValueChange={setGender}>
-                <SelectTrigger>
+                <SelectTrigger className="h-11" aria-label="מין">
                   <SelectValue placeholder="בחר מין" />
                 </SelectTrigger>
                 <SelectContent>
@@ -231,7 +266,7 @@ export function AddChildModal({ open, onOpenChange, onChildAdded }: AddChildModa
               {errors.gender && <p className="text-sm text-destructive">{errors.gender}</p>}
             </div>
 
-            <Button type="submit" className="w-full glow-primary mt-6" disabled={loading}>
+            <Button type="submit" className="h-11 w-full glow-primary mt-6" disabled={loading}>
               {loading ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : null}
               המשך לחיבור מכשיר
             </Button>

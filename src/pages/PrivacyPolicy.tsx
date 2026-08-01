@@ -3,7 +3,10 @@ import { LegalPageLayout } from '@/components/legal/LegalPageLayout';
 export default function PrivacyPolicy() {
   return (
     <LegalPageLayout title="מדיניות פרטיות - KippyAI">
-      <p className="text-muted-foreground mb-8">עדכון אחרון: דצמבר 2024</p>
+      <p className="text-muted-foreground mb-4">טיוטת V2 מעודכנת: אוגוסט 2026</p>
+      <div className="mb-8 rounded-xl border border-warning/30 bg-warning/10 p-4 text-sm leading-relaxed text-foreground" role="note">
+        מסמך זה עודכן כדי לשקף את מוצר Kippy V2 הנוכחי. לפני השקת פרודקשן נדרש אישור משפטי מלא של הנוסח, תקופות השמירה והתחייבויות הספקים.
+      </div>
 
       <section className="mb-10">
         <h2 className="text-2xl font-semibold text-foreground mb-4">מבוא</h2>
@@ -12,9 +15,9 @@ export default function PrivacyPolicy() {
           מדיניות זו מסבירה כיצד אנו אוספים, משתמשים ומגנים על המידע שלכם.
         </p>
         <p className="text-muted-foreground leading-relaxed mt-4">
-          KippyAI היא אפליקציית בקרת הורים המאפשרת מעקב אחר תקשורת דיגיטלית של ילדים, 
-          עם דגש על פרטיות ואבטחת מידע. אנו משתמשים בבינה מלאכותית לניתוח תוכן מדאיג, 
-          תוך שמירה על פרטיות הילד ככל הניתן.
+          KippyAI היא מערכת בטיחות לילדים המתמקדת כיום בניטור WhatsApp במכשירי Android.
+          המערכת מנתחת במכשיר הילד טקסט ותמלול של הודעות קוליות שהופיעו לילד, ומעבירה
+          לבדיקה חיצונית רק אירועים שמצדיקים ניתוח מתקדם והקשר רלוונטי.
         </p>
       </section>
 
@@ -31,25 +34,34 @@ export default function PrivacyPolicy() {
 
         <h3 className="text-xl font-medium text-foreground mt-6 mb-3">מידע על הילד</h3>
         <ul className="list-disc list-inside text-muted-foreground space-y-2 mr-4">
-          <li>שם הילד (לזיהוי במערכת)</li>
-          <li>גיל (לצורך התאמת רמת הניטור)</li>
-          <li>מזהה המכשיר</li>
+          <li>שם תצוגה של הילד לצורך זיהוי אצל ההורה</li>
+          <li>שנת לידה או קבוצת גיל לצורך התאמת ניתוח הסיכון</li>
+          <li>מזהי התקנה ומכשיר הדרושים לחיבור ולבדיקת תקינות הניטור</li>
         </ul>
 
         <h3 className="text-xl font-medium text-foreground mt-6 mb-3">נתוני תקשורת</h3>
         <ul className="list-disc list-inside text-muted-foreground space-y-2 mr-4">
-          <li>הודעות שזוהו כמדאיגות בלבד (לא כל התקשורת)</li>
-          <li>מטא-דאטה של שיחות (שעה, אפליקציה, משך)</li>
-          <li>נתוני שימוש באפליקציות</li>
+          <li>טקסט ותמלול שנקלטו מ־WhatsApp בעת שהופיעו במכשיר הילד</li>
+          <li>הקשר שיחה מקומי לפי צ׳אט, לרבות כיוון ההודעה, סוג הצ׳אט ומועד ההודעה</li>
+          <li>מעטפת אירוע והקשר רלוונטי רק כאשר נדרשת בדיקה מתקדמת</li>
+          <li>סיכום מצומצם ובטוח להורה רק לאחר שאירוע אושר כהתראת בטיחות</li>
+        </ul>
+
+        <h3 className="text-xl font-medium text-foreground mt-6 mb-3">מצב מכשיר וניטור</h3>
+        <ul className="list-disc list-inside text-muted-foreground space-y-2 mr-4">
+          <li>מצב ארבע הרשאות הניטור הנדרשות</li>
+          <li>גרסת האפליקציה, זמן דיווח אחרון ומצב חיבור</li>
+          <li>אחוז סוללה לצורך אבחון הפסקת ניטור</li>
         </ul>
       </section>
 
       <section className="mb-10">
         <h2 className="text-2xl font-semibold text-foreground mb-4">כיצד אנו משתמשים במידע</h2>
         <ul className="list-disc list-inside text-muted-foreground space-y-2 mr-4">
-          <li>זיהוי תוכן מדאיג והתראה להורים</li>
-          <li>יצירת דוחות שימוש ומגמות</li>
-          <li>שיפור דיוק מערכת הזיהוי</li>
+          <li>זיהוי סיכוני בטיחות והבנת ההקשר שבו נאמרו הדברים</li>
+          <li>שליחת התראות מאומתות והכוונה רגועה להורה</li>
+          <li>הצגת תקינות הניטור וההרשאות במכשיר הילד</li>
+          <li>בדיקות איכות ושיפור דיוק המערכת תוך מזעור מידע</li>
           <li>תקשורת עמכם בנוגע לשירות</li>
           <li>עמידה בדרישות חוקיות</li>
         </ul>
@@ -58,10 +70,11 @@ export default function PrivacyPolicy() {
       <section className="mb-10">
         <h2 className="text-2xl font-semibold text-foreground mb-4">שמירת מידע ומחיקה</h2>
         <ul className="list-disc list-inside text-muted-foreground space-y-2 mr-4">
-          <li>התראות נשמרות למשך 30 יום בלבד</li>
-          <li>נתוני שימוש באפליקציות נשמרים למשך 90 יום</li>
-          <li>ניתן לבקש מחיקת כל המידע בכל עת</li>
-          <li>מחיקת מידע תתבצע תוך 48 שעות מהבקשה</li>
+          <li>מחסנית השיחה נשמרת במכשיר הילד בלבד, לפי FIFO: עד 40 הודעות בצ׳אט פרטי ועד 60 בקבוצה</li>
+          <li>הודעה נמחקת מהמחסנית המקומית כאשר היא נדחפת החוצה או לאחר 30 יום, המוקדם מביניהם</li>
+          <li>בשרת נשמרים נתוני חשבון, חיבור מכשיר, בריאות ניטור ואירועי בטיחות שאושרו בלבד</li>
+          <li>תקופות השמירה המדויקות בשרת והליך המחיקה יאושרו משפטית לפני השקת פרודקשן</li>
+          <li>ניתן לפנות אלינו בבקשת עיון, תיקון או מחיקה בהתאם לדין החל</li>
         </ul>
       </section>
 
@@ -72,9 +85,9 @@ export default function PrivacyPolicy() {
         </p>
         <ul className="list-disc list-inside text-muted-foreground space-y-2 mr-4">
           <li>הצפנת תעבורה באמצעות SSL/TLS</li>
-          <li>הצפנת מידע רגיש בבסיס הנתונים</li>
-          <li>אימות דו-שלבי (בקרוב)</li>
-          <li>ניטור אבטחה שוטף</li>
+          <li>בקרות גישה והפרדה בין משפחות וחשבונות</li>
+          <li>מזעור מזהים והפרדת זהות הילד מהתוכן שנשלח לניתוח מתקדם</li>
+          <li>ניטור אבטחה ותיעוד גישה בהתאם למדיניות שתאושר לפני ההשקה</li>
         </ul>
       </section>
 
@@ -97,7 +110,7 @@ export default function PrivacyPolicy() {
           איננו מוכרים את המידע שלכם. אנו משתפים מידע רק במקרים הבאים:
         </p>
         <ul className="list-disc list-inside text-muted-foreground space-y-2 mr-4">
-          <li>ספקי שירות (אחסון, ניתוח AI) - עם הסכמי סודיות</li>
+          <li>ספקי תשתית וניתוח AI, ורק במידה הדרושה להפעלת השירות ובכפוף להסכמים מתאימים</li>
           <li>דרישות חוקיות - צו בית משפט או דרישה חוקית</li>
           <li>הגנה על ביטחון - במקרים קיצוניים של סכנה לחיים</li>
         </ul>
@@ -143,7 +156,7 @@ export default function PrivacyPolicy() {
       </section>
 
       <p className="text-sm text-muted-foreground mt-12 pt-8 border-t border-border">
-        © 2024 KippyAI. כל הזכויות שמורות.
+        © 2026 KippyAI. כל הזכויות שמורות.
       </p>
     </LegalPageLayout>
   );

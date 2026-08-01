@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- Frozen legacy donor surface; migrate types before reactivation. */
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { User, Crown, BellRing, Send, Loader2, Users, Shield, FileText, MessageCircle, Bug, Lightbulb, LogOut, HelpCircle, ChevronLeft, Pencil, Check, X, ShieldCheck, Copy } from "lucide-react";
@@ -73,7 +74,7 @@ const SettingsV2 = () => {
         const acceptedIds = (data ?? [])
           .filter((m) => m.status === "accepted" && m.member_id)
           .map((m) => m.member_id as string);
-        let nameById = new Map<string, string>();
+        const nameById = new Map<string, string>();
         if (acceptedIds.length > 0) {
           const { data: pData } = await supabase
             .from("parents")

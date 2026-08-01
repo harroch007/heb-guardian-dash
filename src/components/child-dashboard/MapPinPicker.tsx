@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- Frozen legacy donor surface; migrate types before reactivation. */
 import { useState, useCallback, useEffect, useRef } from "react";
 import L from "leaflet";
 import { Button } from "@/components/ui/button";

@@ -275,7 +275,7 @@ Deno.serve(async (req) => {
 
     // ─── Phase 1: shabbat_times_computed (next Shabbat only, existing behavior) ───
     const dayOfWeek = now.getUTCDay();
-    let daysUntilFriday = (5 - dayOfWeek + 7) % 7;
+    const daysUntilFriday = (5 - dayOfWeek + 7) % 7;
     const friday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + daysUntilFriday));
     const saturday = addDays(friday, 1);
     const fridayDateStr = formatDate(friday);

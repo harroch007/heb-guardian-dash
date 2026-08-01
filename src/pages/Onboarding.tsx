@@ -12,7 +12,13 @@ import { z } from 'zod';
 
 const profileSchema = z.object({
   fullName: z.string().min(2, 'השם חייב להכיל לפחות 2 תווים').max(100, 'השם ארוך מדי'),
-  phone: z.string().min(9, 'מספר טלפון לא תקין').max(15, 'מספר טלפון לא תקין'),
+  phone: z
+    .string()
+    .trim()
+    .refine(
+      (value) => value.length === 0 || /^[0-9+()\-\s]{9,20}$/.test(value),
+      'מספר טלפון לא תקין',
+    ),
 });
 
 export default function Onboarding() {
@@ -52,7 +58,7 @@ export default function Onboarding() {
     try {
       await bootstrapGuardian({
         displayName: fullName,
-        phone,
+        phone: phone.trim() || null,
       });
 
       await checkParentStatus();
@@ -106,7 +112,7 @@ export default function Onboarding() {
                     placeholder="ישראל ישראלי"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className="pr-10"
+                    className="h-11 pr-10"
                   />
                 </div>
                 {errors.fullName && (
@@ -115,7 +121,7 @@ export default function Onboarding() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="phone">מספר טלפון *</Label>
+                <Label htmlFor="phone">מספר טלפון (אופציונלי)</Label>
                 <div className="relative">
                   <Phone className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
@@ -124,7 +130,7 @@ export default function Onboarding() {
                     placeholder="050-1234567"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="pr-10"
+                    className="h-11 pr-10"
                     dir="ltr"
                   />
                 </div>
@@ -135,7 +141,7 @@ export default function Onboarding() {
 
               <Button
                 type="submit"
-                className="w-full glow-primary mt-6"
+                className="h-11 w-full glow-primary mt-6"
                 disabled={loading}
               >
                 {loading ? (

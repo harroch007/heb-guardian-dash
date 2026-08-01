@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- Frozen legacy donor surface; migrate types before reactivation. */
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { BottomNavigationV2 } from "@/components/BottomNavigationV2";

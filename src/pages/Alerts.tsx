@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- Frozen legacy donor surface; migrate types before reactivation. */
 import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { AlertCardStack, AlertTabs, EmptyAlertsState, EmptySavedState, PositiveAlertCard, EmptyPositiveState } from "@/components/alerts";
