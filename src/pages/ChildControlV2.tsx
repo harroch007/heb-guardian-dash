@@ -350,6 +350,11 @@ export default function ChildControlV2() {
     }
   }, [childId, user, familyId, navigate]);
 
+  const handleDeviceConnected = useCallback(() => {
+    void fetchData(true);
+    void refreshMonitoring({ silent: true });
+  }, [fetchData, refreshMonitoring]);
+
   useEffect(() => { fetchData(false); }, [fetchData]);
 
   // Polling every 30s (aligned with sync-triggers memory)
@@ -807,6 +812,7 @@ export default function ChildControlV2() {
           childId={showReconnectModal ? child.id : null}
           childName={child.name}
           onClose={() => setShowReconnectModal(false)}
+          onConnected={handleDeviceConnected}
         />
       )}
 
