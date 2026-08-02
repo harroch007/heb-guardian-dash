@@ -24,15 +24,15 @@ export function MonitoringOverviewPage({ mode }: Props) {
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-xs font-medium text-primary">
-              Kippy · ניטור WhatsApp
+              Kippy · הגנה חכמה ובקרת הורים
             </p>
             <h1 className="mt-1 text-2xl font-bold text-foreground">
               {mode === "home" ? "מרכז ההגנה" : "המשפחה שלי"}
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
               {mode === "home"
-                ? "מצב הניטור וההתראות שדורשות את תשומת הלב שלכם."
-                : "כל ילד ומכשיר מוצגים בנפרד, בלי לערבב ביניהם."}
+                ? "כל שכבות ההגנה, בקרות המכשיר וההתראות במקום אחד."
+                : "כל ילד ומכשיר מוצגים בנפרד, עם מעבר למרכז ההגנה המלא."}
             </p>
           </div>
           <Button
@@ -86,8 +86,8 @@ export function MonitoringOverviewPage({ mode }: Props) {
                     מתחילים בחיבור מכשיר הילד
                   </h2>
                   <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
-                    הוסיפו ילד, סרקו את קוד ה־QR במכשיר שלו והשלימו את ארבע
-                    הרשאות הניטור.
+                    הוסיפו ילד, סרקו את קוד ה־QR במכשיר שלו והשלימו את הרשאות
+                    ההגנה והבקרה.
                   </p>
                   <Button
                     type="button"
@@ -105,7 +105,7 @@ export function MonitoringOverviewPage({ mode }: Props) {
                   id="children-heading"
                   className="text-sm font-semibold text-foreground/80"
                 >
-                  {mode === "home" ? "הילדים והמכשירים" : "ילדים מחוברים"}
+                  {mode === "home" ? "הילדים ומרכזי ההגנה" : "ילדים ומכשירים"}
                 </h2>
                 {children.map((child) => (
                   <MonitoringChildCard key={child.id} child={child} />

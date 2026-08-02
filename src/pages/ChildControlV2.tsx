@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useChildControls } from "@/hooks/useChildControls";
 import { useRingCommand } from "@/hooks/useRingCommand";
+import { useV2GuardianMonitoring } from "@/hooks/useV2GuardianMonitoring";
 import type { RingPhase } from "@/hooks/useRingCommand";
 import { getDeviceStatus, getStatusLabel, formatLastSeen } from "@/lib/deviceStatus";
 import { DeviceHealthBanner } from "@/components/controls/DeviceHealthBanner";
@@ -20,15 +21,16 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { ReconnectChildV2Modal } from "@/components/ReconnectChildV2Modal";
 import { BottomNavigationV2 } from "@/components/BottomNavigationV2";
+import { TopNavigationV2 } from "@/components/TopNavigationV2";
 import {
   ProblemBanner,
   AppsSection,
   ProtectionCenterOverview,
   ScreenTimeSection,
   SchedulesSection,
+  WhatsAppSafetySection,
 } from "@/components/child-dashboard";
 import { LocationSectionV2 } from "@/components/child-dashboard/LocationSectionV2";
 import { GeofenceSection } from "@/components/child-dashboard/GeofenceSection";
@@ -38,14 +40,10 @@ import {
   Loader2,
   Battery,
   RefreshCw,
-  CheckCircle2,
   AlertTriangle,
   LocateFixed,
-  Bell,
   Smartphone,
-  MessageCircle,
 } from "lucide-react";
-import { V2_GUARDIAN_ALERTS_ENABLED } from "@/config/featureFlags";
 import { gt } from "@/lib/genderText";
 
 // ---------- Interfaces ----------
@@ -103,6 +101,7 @@ export default function ChildControlV2() {
   const [device, setDevice] = useState<Device | null>(null);
   const [appUsage, setAppUsage] = useState<AppUsage[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dataError, setDataError] = useState(false);
   const [screenTimeLimit, setScreenTimeLimit] = useState<number | null>(null);
   const [totalUsageFromDb, setTotalUsageFromDb] = useState(0);
   const [unacknowledgedAlerts, setUnacknowledgedAlerts] = useState(0);
@@ -146,8 +145,18 @@ export default function ChildControlV2() {
     updateSchedule,
     deleteSchedule,
   } = useChildControls(childId);
+  const {
+    children: monitoringChildren,
+    loading: monitoringLoading,
+    error: monitoringError,
+    refresh: refreshMonitoring,
+  } = useV2GuardianMonitoring();
 
   const status = getDeviceStatus(device !== null, device?.last_seen);
+  const monitoringChild = monitoringChildren.find(
+    (candidate) => candidate.id === childId,
+  );
+  const monitoringDevice = monitoringChild?.device ?? null;
 
   // ---------- Active schedule helper (1-7 mapping) ----------
   const getActiveScheduleName = useCallback((): string | null => {
@@ -171,55 +180,16 @@ export default function ChildControlV2() {
     return null;
   }, [scheduleWindows]);
 
-  // ---------- Data fetching ----------
-  /*
-   * Legacy V1 donor read model retained until explicit cleanup.
-   *
+  // ---------- Canonical V2 data fetching ----------
   const fetchData = useCallback(async (isPolling = false) => {
-    if (!childId || !user) return;
-    if (!isPolling) setLoading(true);
-    else setIsRefreshing(true);
-
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-
-    // Explicitly scope by family ownership so admin RLS bypass cannot open another family's child.
-    const allowedParentIds = await getFamilyParentIds(user.id);
-
-    const [childRes, deviceRes, snapshotRes, settingsRes, alertsRes, alertsTodayRes] = await Promise.all([
-      supabase.from("children").select("id, name, date_of_birth, gender, subscription_tier, pairing_code, parent_id").eq("id", childId).in("parent_id", allowedParentIds).maybeSingle(),
-      supabase.from("devices").select("*").eq("child_id", childId).order("last_seen", { ascending: false }).limit(1).maybeSingle(),
-      supabase.from("parent_home_snapshot").select("top_apps, total_usage_minutes").eq("child_id", childId).maybeSingle(),
-      supabase.from("settings").select("daily_screen_time_limit_minutes").eq("child_id", childId).maybeSingle(),
-      supabase.from("alerts").select("id").eq("child_id", childId).is("acknowledged_at", null).eq("is_processed", true).eq("alert_type", "warning"),
-      supabase.from("alerts").select("id").eq("child_id", childId).gte("created_at", todayStart.toISOString()),
-    ]);
-
-    if (!childRes.data) {
-      if (!isPolling) navigate("/home-v2");
-      else setIsRefreshing(false);
+    if (!childId || !user || !familyId) {
+      setLoading(false);
       return;
     }
-
-    setChild(childRes.data as Child);
-    setDevice(deviceRes.data as Device | null);
-
-    if (snapshotRes.data?.top_apps && Array.isArray(snapshotRes.data.top_apps)) {
-      setAppUsage(snapshotRes.data.top_apps as unknown as AppUsage[]);
+    if (!isPolling) {
+      setLoading(true);
+      setDataError(false);
     }
-    setTotalUsageFromDb(snapshotRes.data?.total_usage_minutes ?? 0);
-    setScreenTimeLimit(settingsRes.data?.daily_screen_time_limit_minutes ?? null);
-    setUnacknowledgedAlerts(alertsRes.data?.length ?? 0);
-    setTodayAlerts(alertsTodayRes.data?.length ?? 0);
-
-    if (!isPolling) setLoading(false);
-    else setIsRefreshing(false);
-  }, [childId, user, navigate]);
-  */
-
-  const fetchData = useCallback(async (isPolling = false) => {
-    if (!childId || !user || !familyId) return;
-    if (!isPolling) setLoading(true);
     else setIsRefreshing(true);
 
     try {
@@ -370,28 +340,39 @@ export default function ChildControlV2() {
           ? state.total_screen_minutes ?? 0
           : 0,
       );
+      setDataError(false);
     } catch (error) {
       console.error("[ChildControlV2] Failed to load V2 data", error);
+      if (!isPolling) setDataError(true);
     } finally {
       if (!isPolling) setLoading(false);
       else setIsRefreshing(false);
     }
   }, [childId, user, familyId, navigate]);
 
+  const handleDeviceConnected = useCallback(() => {
+    void fetchData(true);
+    void refreshMonitoring({ silent: true });
+  }, [fetchData, refreshMonitoring]);
+
   useEffect(() => { fetchData(false); }, [fetchData]);
 
   // Polling every 30s (aligned with sync-triggers memory)
   useEffect(() => {
     if (!childId || !user) return;
-    const interval = setInterval(() => fetchData(true), 30_000);
+    const interval = setInterval(() => {
+      void fetchData(true);
+      void refreshMonitoring({ silent: true });
+    }, 30_000);
     return () => clearInterval(interval);
-  }, [childId, user, fetchData]);
+  }, [childId, user, fetchData, refreshMonitoring]);
 
   // Refresh immediately when tab becomes visible again
   useEffect(() => {
     const handleVisibility = () => {
       if (document.visibilityState === "visible") {
-        fetchData(true);
+        void fetchData(true);
+        void refreshMonitoring({ silent: true });
       }
     };
     document.addEventListener("visibilitychange", handleVisibility);
@@ -400,7 +381,7 @@ export default function ChildControlV2() {
       document.removeEventListener("visibilitychange", handleVisibility);
       window.removeEventListener("focus", handleVisibility);
     };
-  }, [fetchData]);
+  }, [fetchData, refreshMonitoring]);
 
   // ---------- Real-time device subscription ----------
   // Subscribe per child_id (stable) instead of device_id, so we capture the
@@ -417,13 +398,16 @@ export default function ChildControlV2() {
           table: "v2_protected_devices",
           filter: `child_id=eq.${childId}`,
         },
-        () => void fetchData(true),
+        () => {
+          void fetchData(true);
+          void refreshMonitoring({ silent: true });
+        },
       )
       .subscribe();
     return () => {
       void v2Supabase.removeChannel(channel);
     };
-  }, [childId, fetchData]);
+  }, [childId, fetchData, refreshMonitoring]);
 
   useEffect(() => {
     if (!device?.device_id) return;
@@ -447,13 +431,16 @@ export default function ChildControlV2() {
           table: "v2_device_health_events",
           filter: `device_id=eq.${device.device_id}`,
         },
-        () => void fetchData(true),
+        () => {
+          void fetchData(true);
+          void refreshMonitoring({ silent: true });
+        },
       )
       .subscribe();
     return () => {
       void v2Supabase.removeChannel(channel);
     };
-  }, [device?.device_id, fetchData]);
+  }, [device?.device_id, fetchData, refreshMonitoring]);
 
   // ---------- Command helpers ----------
   const useCommandPolling = (
@@ -520,8 +507,9 @@ export default function ChildControlV2() {
   }, [device?.device_id, fetchData]);
 
   const handleSyncCommandSuccess = useCallback(() => {
-    fetchData(true);
-  }, [fetchData]);
+    void fetchData(true);
+    void refreshMonitoring({ silent: true });
+  }, [fetchData, refreshMonitoring]);
 
   // Locate polling
   useCommandPolling(locateCommandId, locateStatus, setLocateStatus, setLocateCommandId, pollingRef,
@@ -577,9 +565,7 @@ export default function ChildControlV2() {
   // ---------- Active restriction ----------
   const activeRestrictionName = getActiveScheduleName();
 
-  // ---------- V2 safety monitoring ----------
-  const isMonitoringActive =
-    V2_GUARDIAN_ALERTS_ENABLED && device !== null && status === "connected";
+  // ---------- Unified protection summary ----------
   const activeSchedulesCount = scheduleWindows.filter((window) => window.is_active).length;
   const blockedAppsCount = appPolicies.filter((policy) => policy.is_blocked).length;
   const decidedAppPackages = new Set(appPolicies.map((policy) => policy.package_name));
@@ -590,14 +576,53 @@ export default function ChildControlV2() {
 
   if (loading) {
     return (
-      <div className="v2-dark min-h-screen flex items-center justify-center" dir="rtl">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <div className="v2-dark min-h-screen" dir="rtl">
+        <TopNavigationV2 />
+        <div
+          className="flex min-h-[70vh] items-center justify-center"
+          role="status"
+          aria-label="טוען את מרכז ההגנה"
+        >
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </div>
+    );
+  }
+
+  if (dataError || !child) {
+    return (
+      <div className="v2-dark min-h-screen pb-24" dir="rtl">
+        <TopNavigationV2 />
+        <main className="mx-auto max-w-lg px-4 py-10">
+          <Card className="border-warning/30 bg-warning/5">
+            <CardContent className="space-y-4 py-10 text-center">
+              <AlertTriangle className="mx-auto h-9 w-9 text-warning" />
+              <h1 className="font-semibold text-foreground">
+                לא הצלחנו לטעון את מרכז ההגנה
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                לא בוצע שינוי בהגדרות. אפשר לנסות שוב.
+              </p>
+              <div className="flex justify-center gap-2">
+                <Button variant="outline" onClick={() => navigate("/home-v2")}>
+                  חזרה לבית
+                </Button>
+                <Button onClick={() => void fetchData(false)}>
+                  <RefreshCw className="ml-2 h-4 w-4" />
+                  ניסיון נוסף
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </main>
+        <BottomNavigationV2 />
       </div>
     );
   }
 
   return (
     <div className="v2-dark min-h-screen pb-24" dir="rtl">
+      <TopNavigationV2 />
       <div className="max-w-lg mx-auto px-4 py-6 space-y-5">
 
         {/* ===== 1. CHILD HEADER ===== */}
@@ -606,8 +631,9 @@ export default function ChildControlV2() {
             <ArrowRight className="w-5 h-5" />
           </Button>
           <div className="flex-1 min-w-0">
+            <p className="text-xs font-medium text-primary">מרכז ההגנה</p>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold truncate text-foreground">{child?.name}</h1>
+              <h1 className="text-xl font-bold truncate text-foreground">{child.name}</h1>
               <Badge variant="secondary" className={cn("text-[11px] px-2 py-0.5 shrink-0",
                 status === "connected" && "bg-success/15 text-success",
                 status === "inactive" && "bg-warning/15 text-warning",
@@ -650,13 +676,14 @@ export default function ChildControlV2() {
             className="shrink-0 h-9 w-9 text-muted-foreground hover:text-foreground"
             onClick={() => setShowReconnectModal(true)}
             title="צור קישור חיבור חדש"
+            aria-label={`צור קישור חיבור חדש עבור ${child.name}`}
           >
             <RefreshCw className="w-4 h-4" />
           </Button>
         </div>
 
         <ProtectionCenterOverview
-          childName={child?.name || ""}
+          childName={child.name}
           status={status}
           currentUsageMinutes={totalUsageFromDb}
           dailyLimitMinutes={screenTimeLimit}
@@ -668,44 +695,19 @@ export default function ChildControlV2() {
           activeRestrictionName={activeRestrictionName}
           hasLocation={hasLocation}
           deviceHealth={deviceHealth}
+          monitoringState={monitoringDevice?.monitoringState ?? null}
+          newIncidentCount={unacknowledgedAlerts}
         />
 
-        {/* Smart Protection remains separate from parental-control navigation. */}
-        {V2_GUARDIAN_ALERTS_ENABLED && (
-          <Card className="border-border shadow-sm bg-card">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <MessageCircle className="w-5 h-5 text-primary" />
-                  <span className="font-semibold text-sm text-foreground">הגנה חכמה</span>
-                </div>
-                <Badge variant="secondary" className="text-[10px] bg-primary/15 text-primary">
-                  WhatsApp
-                </Badge>
-              </div>
-              <div className="grid grid-cols-3 gap-3 text-center">
-                <div>
-                  <p className="text-lg font-bold text-foreground">{unacknowledgedAlerts}</p>
-                  <p className="text-[11px] text-muted-foreground">התראות פתוחות</p>
-                </div>
-                <div>
-                  <p className="text-lg font-bold text-foreground">{todayAlerts}</p>
-                  <p className="text-[11px] text-muted-foreground">התראות היום</p>
-                </div>
-                <div>
-                  <div className={cn("w-2.5 h-2.5 rounded-full mx-auto mb-1", isMonitoringActive ? "bg-success" : "bg-border")} />
-                  <p className="text-[11px] text-muted-foreground">{isMonitoringActive ? "ניטור פעיל" : "ניטור לא פעיל"}</p>
-                </div>
-              </div>
-              {unacknowledgedAlerts > 0 && (
-                <Button variant="outline" size="sm" className="w-full mt-3 text-xs" onClick={() => navigate("/alerts-v2")}>
-                  <Bell className="w-3.5 h-3.5 ml-1.5" />
-                  צפה בהתראות
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-        )}
+        <WhatsAppSafetySection
+          device={monitoringDevice}
+          newIncidentCount={unacknowledgedAlerts}
+          todayIncidentCount={todayAlerts}
+          loading={monitoringLoading}
+          error={monitoringError}
+          onRefresh={() => void refreshMonitoring()}
+          onOpenAlerts={() => navigate("/alerts-v2")}
+        />
         {/* ===== 4-9. EXISTING SECTIONS (reused) ===== */}
         {device ? (
           <div className="space-y-4">
@@ -810,6 +812,7 @@ export default function ChildControlV2() {
           childId={showReconnectModal ? child.id : null}
           childName={child.name}
           onClose={() => setShowReconnectModal(false)}
+          onConnected={handleDeviceConnected}
         />
       )}
 

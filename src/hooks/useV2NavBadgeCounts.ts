@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { v2Supabase } from "@/integrations/supabase/v2-client";
 import { isSystemApp } from "@/lib/appUtils";
-import { V2_GUARDIAN_ALERTS_ENABLED } from "@/config/featureFlags";
 
 export interface NavBadgeCounts {
   home: number;
@@ -15,8 +14,8 @@ const lastSeenValue = (value: string | null) =>
 /**
  * Badge counts for active V2 navigation only.
  *
- * Child time requests are intentionally absent. Home attention is limited to
- * new apps, recent geofence events, degraded protection and stale devices.
+ * Child time requests are intentionally absent. Home attention combines
+ * confirmed safety incidents with parental-control and device-health issues.
  */
 export function useV2NavBadgeCounts(): NavBadgeCounts {
   const { familyId } = useAuth();
@@ -183,11 +182,12 @@ export function useV2NavBadgeCounts(): NavBadgeCounts {
 
       setCounts({
         home:
+          newIncidentCount +
           pendingApps +
           recentGeofenceEvents +
           degradedDevices +
           disconnected,
-        alerts: V2_GUARDIAN_ALERTS_ENABLED ? newIncidentCount : 0,
+        alerts: newIncidentCount,
       });
     } catch (error) {
       console.error("[navigation] Failed to load V2 badge counts", error);

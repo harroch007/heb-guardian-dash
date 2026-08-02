@@ -1,19 +1,14 @@
 import { Home, Users, Bell, Settings } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { V2_GUARDIAN_ALERTS_ENABLED } from "@/config/featureFlags";
 import { useV2NavBadgeCounts } from "@/hooks/useV2NavBadgeCounts";
 
-const allNavItems = [
+const navItems = [
   { title: "בית", url: "/home-v2", icon: Home, key: "home" },
   { title: "משפחה", url: "/family-v2", icon: Users, key: "family" },
-  { title: "התראות", url: "/alerts-v2", icon: Bell, key: "alerts", requiresWhatsApp: true },
+  { title: "התראות", url: "/alerts-v2", icon: Bell, key: "alerts" },
   { title: "הגדרות", url: "/settings-v2", icon: Settings, key: "settings" },
 ];
-
-const navItems = allNavItems.filter(
-  (item) => V2_GUARDIAN_ALERTS_ENABLED || !item.requiresWhatsApp
-);
 
 export function BottomNavigationV2() {
   const location = useLocation();

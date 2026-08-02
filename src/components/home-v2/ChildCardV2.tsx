@@ -1,11 +1,10 @@
 import { useNavigate } from "react-router-dom";
-import { Battery, MapPin, Clock, Smartphone, Bell, Plus, Volume2, Lock, Loader2, CheckCircle2, AlertTriangle, WifiOff } from "lucide-react";
+import { Battery, MapPin, Clock, Smartphone, Bell, Plus, Volume2, Lock, Loader2, CheckCircle2, AlertTriangle, WifiOff, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { getIsraelDate } from "@/lib/utils";
 import { toast } from "sonner";
 import { useState } from "react";
 import { useRingCommand } from "@/hooks/useRingCommand";
-import { V2_GUARDIAN_ALERTS_ENABLED } from "@/config/featureFlags";
 import { HelpTooltip } from "@/components/help/HelpTooltip";
 import { AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import type { ChildWithData } from "@/pages/HomeV2";
@@ -269,7 +268,7 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
                 {getRingIcon()}
                 <span>{getRingTitle()}</span>
               </button>
-              {V2_GUARDIAN_ALERTS_ENABLED && child.unacknowledgedAlerts > 0 && (
+              {child.unacknowledgedAlerts > 0 && (
                 <button
                   onClick={(e) => { e.stopPropagation(); navigate("/alerts-v2"); }}
                   title="התראות"
@@ -285,6 +284,17 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
           ) : (
             <p className="text-xs text-muted-foreground text-center">אין מכשיר מחובר</p>
           )}
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              navigate(`/child-v2/${child.id}`);
+            }}
+            className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-primary/10 text-xs font-semibold text-primary transition-colors hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          >
+            <ShieldCheck className="h-4 w-4" />
+            פתיחת מרכז ההגנה המלא
+          </button>
         </div>
       </AccordionContent>
     </AccordionItem>

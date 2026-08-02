@@ -1,8 +1,16 @@
 # Kippy Guardian PWA V2 — Source of Truth
 
-Status: current release contract
+Status: guardian-surface contract under the unified-product decision
 Scope owner: parent-facing PWA
 Last updated: 2026-08-01
+
+## Unified-product override
+
+The founder approved the unified Kippy V2 product on 2026-08-01. The binding
+cross-surface contract is
+[`KIPPY_UNIFIED_PRODUCT_V2_SOURCE_OF_TRUTH_HE.md`](../KIPPY_UNIFIED_PRODUCT_V2_SOURCE_OF_TRUTH_HE.md).
+The current release must contain both parental controls and WhatsApp safety.
+Any WhatsApp-only limitation below is superseded by that decision.
 
 ## Product boundary
 
@@ -14,9 +22,10 @@ Kippy V2 currently has two product surfaces:
 - The guardian uses the web/PWA to add children, connect devices, see whether
   monitoring is active and review confirmed parent-safe alerts.
 
-The current release is not a screen-time, app-blocking or location product.
-Earlier parental-control code remains in the repositories as donor code only
-and must not be imported or executed by the active route or Android runtime.
+The current release includes screen time, app policy/blocking, schedules,
+location/geofences, locate/ring/lost mode and device health alongside WhatsApp
+safety. Existing parental-control code is donor input until it is reconnected
+to reviewed V2 contracts and passes the unified release gate.
 
 ## Active parent experience
 
@@ -56,22 +65,18 @@ Location, Usage Access, package inventory, app blocking, overlays, geofences,
 ring, lost mode and screen-time enforcement are not active and are not required
 for `product_ready`.
 
-## Explicitly inactive donor scope
+## Explicitly excluded scope
 
-The following code and database contracts may remain for audit or a separately
-approved future phase, but they are not part of the current product:
+The following remain outside the current product:
 
-- daily screen-time limits, bonus time and child time requests;
-- installed-app inventory, approval, blocking and blocked-attempt UI;
-- schedules, chores, rewards and streaks;
-- location, geofences, locate-now and ring-device actions;
-- lost mode and Accessibility blocking overlays;
+- child-initiated extra-time requests;
+- chores, rewards, reward banks, streaks and competition;
 - internal parent/child chat and invitations;
-- parental settings refresh or device-command polling.
+- additional monitored social platforms.
 
-No active UI may imply that these capabilities currently work. No Android
-service may request their permissions, execute their policies or include them
-in current product-readiness health.
+Active parental controls may be shown only after their V2 contract and Android
+runtime are connected. Until then, each incomplete control must fail closed
+and must not claim successful enforcement.
 
 ## WhatsApp safety and parent alerts
 
@@ -93,7 +98,7 @@ destructive cleanup. They must remain unreachable from active navigation and
 must not be bundled into active Android execution paths. Old URLs redirect to a
 safe V2 destination.
 
-Any future activation of parental controls is a new product phase. It requires
-an explicit scope decision, updated Play disclosures, a permission review,
-end-to-end tests and a new release gate; it is not enabled by reusing dormant
-code or existing tables.
+Reactivation of parental controls is part of the approved unified-product
+phase. It still requires updated Play disclosures, permission review and
+end-to-end tests; dormant code or existing tables alone never count as an
+active capability.
