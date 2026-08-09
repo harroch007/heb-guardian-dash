@@ -29,12 +29,22 @@ const nameSchema = z.string().min(2, 'השם חייב להכיל לפחות 2 ת
 const resetEmailSchema = z.object({
   email: z.string().email('כתובת אימייל לא תקינה'),
 });
+const passwordUpdateSchema = z
+  .object({
+    password: passwordSchema,
+    confirmPassword: z.string(),
+  })
+  .refine(({ password, confirmPassword }) => password === confirmPassword, {
+    path: ['confirmPassword'],
+    message: 'הסיסמאות אינן תואמות',
+  });
 
 const getErrorMessage = (error: unknown) =>
   error instanceof Error ? error.message : 'Unexpected error';
 
 export default function Auth() {
   const [searchParams] = useSearchParams();
+  const isRecoveryFlow = searchParams.get('reset') === 'true';
   // In waitlist mode, force login only (ignore signup param)
   const [isLogin, setIsLogin] = useState(() => searchParams.get('signup') !== 'true');
   const [email, setEmail] = useState('');
@@ -46,6 +56,13 @@ export default function Auth() {
   const [resetEmail, setResetEmail] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
   const [resetSuccess, setResetSuccess] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [passwordUpdateLoading, setPasswordUpdateLoading] = useState(false);
+  const [passwordUpdateErrors, setPasswordUpdateErrors] = useState<{
+    password?: string;
+    confirmPassword?: string;
+  }>({});
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
@@ -67,6 +84,10 @@ export default function Auth() {
   // Check if email is allowed and redirect if already logged in
   useEffect(() => {
     const checkUserAccess = async () => {
+      // A recovery link creates an authenticated Supabase session. Keep the
+      // user on this page until the new password has been saved.
+      if (isRecoveryFlow) return;
+
       if (!authLoading && user) {
         // Skip waitlist check if impersonating
         const isImpersonating = sessionStorage.getItem('impersonating') === 'true';
@@ -114,7 +135,7 @@ export default function Auth() {
     };
     
     checkUserAccess();
-  }, [user, authLoading, navigate, searchParams, toast]);
+  }, [user, authLoading, isRecoveryFlow, navigate, searchParams, toast]);
 
   const validateForm = () => {
     const newErrors: { email?: string; password?: string; name?: string } = {};
@@ -283,6 +304,60 @@ export default function Auth() {
     }
   };
 
+  const handleSetNewPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      passwordUpdateSchema.parse({
+        password: newPassword,
+        confirmPassword: confirmNewPassword,
+      });
+      setPasswordUpdateErrors({});
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const nextErrors: { password?: string; confirmPassword?: string } = {};
+        for (const issue of error.errors) {
+          const field = issue.path[0];
+          if (field === 'password' || field === 'confirmPassword') {
+            nextErrors[field] = issue.message;
+          }
+        }
+        setPasswordUpdateErrors(nextErrors);
+      }
+      return;
+    }
+
+    if (!user) {
+      toast({
+        variant: 'destructive',
+        title: 'קישור האיפוס אינו תקף',
+        description: 'קבל קישור חדש ונסה שוב.',
+      });
+      return;
+    }
+
+    setPasswordUpdateLoading(true);
+
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+
+      toast({
+        title: 'הסיסמה עודכנה',
+        description: 'הסיסמה החדשה נשמרה בהצלחה.',
+      });
+      navigate('/home-v2', { replace: true });
+    } catch (error: unknown) {
+      toast({
+        variant: 'destructive',
+        title: 'שגיאה בעדכון הסיסמה',
+        description: getErrorMessage(error),
+      });
+    } finally {
+      setPasswordUpdateLoading(false);
+    }
+  };
+
   const handleGoogleAuth = async () => {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
@@ -306,6 +381,97 @@ export default function Auth() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (isRecoveryFlow) {
+    if (!user) {
+      return (
+        <div className="min-h-screen bg-background flex items-center justify-center p-4" dir="rtl">
+          <div className="w-full max-w-md bg-card border border-border rounded-2xl shadow-xl p-8 text-center">
+            <h1 className="text-2xl font-bold text-foreground mb-3">
+              קישור האיפוס אינו תקף
+            </h1>
+            <p className="text-muted-foreground mb-6">
+              הקישור פג או שכבר נוצל. בקש קישור חדש לאיפוס הסיסמה.
+            </p>
+            <Button className="w-full" onClick={() => navigate('/auth', { replace: true })}>
+              חזרה להתחברות
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="min-h-screen bg-background flex flex-col" dir="rtl">
+        <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+          <div className="container mx-auto px-4 py-4 flex items-center justify-center">
+            <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+              <img src={kippyLogo} alt="Kippy" className="h-8" />
+            </Link>
+          </div>
+        </header>
+
+        <main className="flex-1 flex items-center justify-center p-4">
+          <div className="w-full max-w-md">
+            <div className="bg-card border border-border rounded-2xl shadow-xl p-8">
+              <h1 className="text-2xl font-bold text-foreground text-right mb-2">
+                קביעת סיסמה חדשה
+              </h1>
+              <p className="text-muted-foreground text-right mb-6">
+                בחר סיסמה חדשה לחשבון שלך.
+              </p>
+
+              <form onSubmit={handleSetNewPassword} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="new-password" className="text-right block">סיסמה חדשה</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="new-password"
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className={`pl-10 text-left ${passwordUpdateErrors.password ? 'border-destructive' : ''}`}
+                      dir="ltr"
+                      autoComplete="new-password"
+                      required
+                    />
+                  </div>
+                  {passwordUpdateErrors.password && (
+                    <p className="text-destructive text-sm text-right">{passwordUpdateErrors.password}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="confirm-new-password" className="text-right block">אישור סיסמה</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="confirm-new-password"
+                      type="password"
+                      value={confirmNewPassword}
+                      onChange={(e) => setConfirmNewPassword(e.target.value)}
+                      className={`pl-10 text-left ${passwordUpdateErrors.confirmPassword ? 'border-destructive' : ''}`}
+                      dir="ltr"
+                      autoComplete="new-password"
+                      required
+                    />
+                  </div>
+                  {passwordUpdateErrors.confirmPassword && (
+                    <p className="text-destructive text-sm text-right">{passwordUpdateErrors.confirmPassword}</p>
+                  )}
+                </div>
+
+                <Button type="submit" className="w-full" disabled={passwordUpdateLoading}>
+                  {passwordUpdateLoading ? 'שומר...' : 'שמור סיסמה חדשה'}
+                </Button>
+              </form>
+            </div>
+          </div>
+        </main>
       </div>
     );
   }
