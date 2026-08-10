@@ -6,17 +6,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { useDemo } from '@/contexts/DemoContext';
 import { usePWAInstall } from '@/hooks/usePWAInstall';
 import { Mail, Lock, User, ArrowLeft, Loader2, Download } from 'lucide-react';
 import kippyLogo from '@/assets/kippy-logo.svg';
 import { z } from 'zod';
 import { WAITLIST_MODE } from '@/config/featureFlags';
-
-// Demo credentials
-const DEMO_EMAIL = 'demo@kippyai.com';
-const DEMO_PASSWORD = 'demo123!';
-const LEGACY_V1_DEMO_LOGIN_ENABLED = false;
 
 // Keep the legacy V1 admin redirect code available for reference, but never
 // execute it from the canonical V2 guardian portal.
@@ -49,7 +43,6 @@ export default function Auth() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
-  const { setDemoMode } = useDemo();
   const { isInstalled, isInstallable, install } = usePWAInstall();
 
   // Handle impersonation redirect
@@ -153,21 +146,6 @@ export default function Auth() {
     e.preventDefault();
     
     if (!validateForm()) return;
-    
-    // Check for demo credentials first
-    if (
-      LEGACY_V1_DEMO_LOGIN_ENABLED &&
-      email === DEMO_EMAIL &&
-      password === DEMO_PASSWORD
-    ) {
-      setDemoMode(true);
-      toast({
-        title: "מצב הדגמה",
-        description: "נכנסת למצב הדגמה - הנתונים אינם אמיתיים",
-      });
-      navigate('/home-v2');
-      return;
-    }
     
     setLoading(true);
 

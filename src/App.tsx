@@ -6,7 +6,6 @@ import { BrowserRouter, Routes, Route, useParams } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { AccessibilityProvider } from "@/contexts/AccessibilityContext";
 import { WaitlistProvider } from "@/contexts/WaitlistContext";
-import { DemoProvider } from "@/contexts/DemoContext";
 import { AccessibilityWrapper } from "@/components/accessibility/AccessibilityWrapper";
 import { WaitlistRouteGuard } from "@/components/WaitlistRouteGuard";
 import { WaitlistModal } from "@/components/WaitlistModal";
@@ -90,8 +89,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <AccessibilityProvider>
       <WaitlistProvider>
-        <DemoProvider>
-          <TooltipProvider>
+        <TooltipProvider>
             <Toaster />
             <Sonner />
             <WaitlistModal />
@@ -115,8 +113,7 @@ const App = () => (
                 } />
               </Routes>
             </BrowserRouter>
-          </TooltipProvider>
-        </DemoProvider>
+        </TooltipProvider>
       </WaitlistProvider>
     </AccessibilityProvider>
   </QueryClientProvider>
