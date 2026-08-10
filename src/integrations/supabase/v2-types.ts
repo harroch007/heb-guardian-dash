@@ -12,33 +12,1491 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
+      v2_admin_action_requests: {
+        Row: {
+          action_hash: string
+          action_key: string
+          case_id: string
+          created_at: string
+          environment: string
+          expected_revision: string | null
+          expires_at: string
+          id: string
+          idempotency_key: string
+          policy_version: string
+          purpose_code: string
+          request_payload_sanitized: Json
+          request_schema_version: number
+          requested_by_principal_id: string
+          resource_id: string | null
+          resource_type: string
+          risk_class: string
+          sponsor_principal_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          action_hash: string
+          action_key: string
+          case_id: string
+          created_at?: string
+          environment: string
+          expected_revision?: string | null
+          expires_at: string
+          id?: string
+          idempotency_key: string
+          policy_version: string
+          purpose_code: string
+          request_payload_sanitized?: Json
+          request_schema_version?: number
+          requested_by_principal_id: string
+          resource_id?: string | null
+          resource_type: string
+          risk_class: string
+          sponsor_principal_id?: string | null
+          status: string
+          updated_at?: string
+        }
+        Update: {
+          action_hash?: string
+          action_key?: string
+          case_id?: string
+          created_at?: string
+          environment?: string
+          expected_revision?: string | null
+          expires_at?: string
+          id?: string
+          idempotency_key?: string
+          policy_version?: string
+          purpose_code?: string
+          request_payload_sanitized?: Json
+          request_schema_version?: number
+          requested_by_principal_id?: string
+          resource_id?: string | null
+          resource_type?: string
+          risk_class?: string
+          sponsor_principal_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_admin_action_requests_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_admin_action_requests_requested_by_principal_id_fkey"
+            columns: ["requested_by_principal_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_admin_action_requests_sponsor_principal_id_fkey"
+            columns: ["sponsor_principal_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_admin_agent_evaluations: {
+        Row: {
+          created_at: string
+          environment: string
+          evaluator_version: string
+          id: string
+          invariant_results: Json
+          outcome: string
+          reason_code: string
+          run_id: string
+        }
+        Insert: {
+          created_at?: string
+          environment: string
+          evaluator_version: string
+          id?: string
+          invariant_results: Json
+          outcome: string
+          reason_code: string
+          run_id: string
+        }
+        Update: {
+          created_at?: string
+          environment?: string
+          evaluator_version?: string
+          id?: string
+          invariant_results?: Json
+          outcome?: string
+          reason_code?: string
+          run_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_admin_agent_evaluations_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "v2_admin_agent_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_admin_agent_handoffs: {
+        Row: {
+          case_id: string
+          created_at: string
+          delivery_status: string
+          destination_key: string
+          destination_kind: string
+          effect_mode: string
+          environment: string
+          handoff_key: string
+          handoff_kind: string
+          handoff_payload: Json
+          id: string
+          reason_code: string
+          run_id: string
+        }
+        Insert: {
+          case_id: string
+          created_at?: string
+          delivery_status: string
+          destination_key: string
+          destination_kind: string
+          effect_mode: string
+          environment: string
+          handoff_key: string
+          handoff_kind: string
+          handoff_payload: Json
+          id?: string
+          reason_code: string
+          run_id: string
+        }
+        Update: {
+          case_id?: string
+          created_at?: string
+          delivery_status?: string
+          destination_key?: string
+          destination_kind?: string
+          effect_mode?: string
+          environment?: string
+          handoff_key?: string
+          handoff_kind?: string
+          handoff_payload?: Json
+          id?: string
+          reason_code?: string
+          run_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_admin_agent_handoffs_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_admin_agent_handoffs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_agent_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_admin_agent_runs: {
+        Row: {
+          agent_version_id: string
+          case_id: string
+          completed_at: string
+          contract_version: string
+          correlation_id: string
+          created_at: string
+          decision_code: string
+          environment: string
+          id: string
+          input_state: string
+          job_id: string
+          model_used: boolean
+          mutations_applied: number
+          network_used: boolean
+          orchestrator_version: string
+          outbound_messages_sent: number
+          registry_version: string
+          result_payload: Json
+          routing_payload: Json
+          run_key: string
+          status: string
+          tools_executed: number
+        }
+        Insert: {
+          agent_version_id: string
+          case_id: string
+          completed_at?: string
+          contract_version: string
+          correlation_id: string
+          created_at?: string
+          decision_code: string
+          environment: string
+          id?: string
+          input_state: string
+          job_id: string
+          model_used: boolean
+          mutations_applied: number
+          network_used: boolean
+          orchestrator_version: string
+          outbound_messages_sent: number
+          registry_version: string
+          result_payload: Json
+          routing_payload: Json
+          run_key: string
+          status: string
+          tools_executed: number
+        }
+        Update: {
+          agent_version_id?: string
+          case_id?: string
+          completed_at?: string
+          contract_version?: string
+          correlation_id?: string
+          created_at?: string
+          decision_code?: string
+          environment?: string
+          id?: string
+          input_state?: string
+          job_id?: string
+          model_used?: boolean
+          mutations_applied?: number
+          network_used?: boolean
+          orchestrator_version?: string
+          outbound_messages_sent?: number
+          registry_version?: string
+          result_payload?: Json
+          routing_payload?: Json
+          run_key?: string
+          status?: string
+          tools_executed?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_admin_agent_runs_agent_version_id_fkey"
+            columns: ["agent_version_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_agent_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_admin_agent_runs_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_admin_agent_runs_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "v2_admin_shadow_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_admin_agent_versions: {
+        Row: {
+          agent_id: string
+          agent_version: string
+          contract_version: string
+          created_at: string
+          effect_mode: string
+          environment: string
+          execution_mode: string
+          id: string
+          implementation_digest: string
+          orchestrator_version: string
+          registry_version: string
+        }
+        Insert: {
+          agent_id: string
+          agent_version: string
+          contract_version: string
+          created_at?: string
+          effect_mode: string
+          environment: string
+          execution_mode: string
+          id?: string
+          implementation_digest: string
+          orchestrator_version: string
+          registry_version: string
+        }
+        Update: {
+          agent_id?: string
+          agent_version?: string
+          contract_version?: string
+          created_at?: string
+          effect_mode?: string
+          environment?: string
+          execution_mode?: string
+          id?: string
+          implementation_digest?: string
+          orchestrator_version?: string
+          registry_version?: string
+        }
+        Relationships: []
+      }
+      v2_admin_approvals: {
+        Row: {
+          action_hash: string
+          action_request_id: string
+          approval_kind: string
+          approver_principal_id: string | null
+          assurance_level: string | null
+          created_at: string
+          decided_at: string
+          decision: string
+          evidence_ref: string
+          expires_at: string
+          guardian_user_id: string | null
+          id: string
+        }
+        Insert: {
+          action_hash: string
+          action_request_id: string
+          approval_kind: string
+          approver_principal_id?: string | null
+          assurance_level?: string | null
+          created_at?: string
+          decided_at?: string
+          decision: string
+          evidence_ref: string
+          expires_at: string
+          guardian_user_id?: string | null
+          id?: string
+        }
+        Update: {
+          action_hash?: string
+          action_request_id?: string
+          approval_kind?: string
+          approver_principal_id?: string | null
+          assurance_level?: string | null
+          created_at?: string
+          decided_at?: string
+          decision?: string
+          evidence_ref?: string
+          expires_at?: string
+          guardian_user_id?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_admin_approvals_action_request_id_fkey"
+            columns: ["action_request_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_action_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_admin_approvals_approver_principal_id_fkey"
+            columns: ["approver_principal_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_admin_audit_events: {
+        Row: {
+          action_request_id: string | null
+          actor_principal_id: string | null
+          after_digest: string | null
+          approval_id: string | null
+          before_digest: string | null
+          case_id: string | null
+          client_device_hash: string | null
+          client_ip_hash: string | null
+          conversation_id: string | null
+          correlation_id: string
+          created_at: string
+          deny_reason_code: string | null
+          environment: string
+          event_id: string
+          event_type: string
+          executed_action: string | null
+          field_keys: string[]
+          id: number
+          idempotency_key: string | null
+          object_id: string | null
+          object_type: string
+          outcome: string
+          permission_snapshot: Json
+          policy_decision: string | null
+          policy_version: string | null
+          purpose_code: string
+          requested_action: string | null
+          safe_metadata: Json
+          sensitivity: string
+          session_id: string | null
+          sponsor_principal_id: string | null
+          step_up_assurance: string | null
+          trace_id: string | null
+          version_snapshot: Json
+        }
+        Insert: {
+          action_request_id?: string | null
+          actor_principal_id?: string | null
+          after_digest?: string | null
+          approval_id?: string | null
+          before_digest?: string | null
+          case_id?: string | null
+          client_device_hash?: string | null
+          client_ip_hash?: string | null
+          conversation_id?: string | null
+          correlation_id?: string
+          created_at?: string
+          deny_reason_code?: string | null
+          environment: string
+          event_id?: string
+          event_type: string
+          executed_action?: string | null
+          field_keys?: string[]
+          id?: never
+          idempotency_key?: string | null
+          object_id?: string | null
+          object_type: string
+          outcome: string
+          permission_snapshot?: Json
+          policy_decision?: string | null
+          policy_version?: string | null
+          purpose_code: string
+          requested_action?: string | null
+          safe_metadata?: Json
+          sensitivity: string
+          session_id?: string | null
+          sponsor_principal_id?: string | null
+          step_up_assurance?: string | null
+          trace_id?: string | null
+          version_snapshot?: Json
+        }
+        Update: {
+          action_request_id?: string | null
+          actor_principal_id?: string | null
+          after_digest?: string | null
+          approval_id?: string | null
+          before_digest?: string | null
+          case_id?: string | null
+          client_device_hash?: string | null
+          client_ip_hash?: string | null
+          conversation_id?: string | null
+          correlation_id?: string
+          created_at?: string
+          deny_reason_code?: string | null
+          environment?: string
+          event_id?: string
+          event_type?: string
+          executed_action?: string | null
+          field_keys?: string[]
+          id?: never
+          idempotency_key?: string | null
+          object_id?: string | null
+          object_type?: string
+          outcome?: string
+          permission_snapshot?: Json
+          policy_decision?: string | null
+          policy_version?: string | null
+          purpose_code?: string
+          requested_action?: string | null
+          safe_metadata?: Json
+          sensitivity?: string
+          session_id?: string | null
+          sponsor_principal_id?: string | null
+          step_up_assurance?: string | null
+          trace_id?: string | null
+          version_snapshot?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_admin_audit_events_action_request_id_fkey"
+            columns: ["action_request_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_action_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_admin_audit_events_actor_principal_id_fkey"
+            columns: ["actor_principal_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_admin_audit_events_approval_id_fkey"
+            columns: ["approval_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_approvals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_admin_audit_events_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_admin_audit_events_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "v2_support_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_admin_audit_events_sponsor_principal_id_fkey"
+            columns: ["sponsor_principal_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_admin_case_conversations: {
+        Row: {
+          case_id: string
+          conversation_id: string
+          is_primary: boolean
+          linked_at: string
+        }
+        Insert: {
+          case_id: string
+          conversation_id: string
+          is_primary?: boolean
+          linked_at?: string
+        }
+        Update: {
+          case_id?: string
+          conversation_id?: string
+          is_primary?: boolean
+          linked_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_admin_case_conversations_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_admin_case_conversations_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "v2_support_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_admin_case_events: {
+        Row: {
+          actor_principal_id: string | null
+          case_id: string
+          created_at: string
+          event_id: string
+          event_type: string
+          id: number
+          new_status: string | null
+          occurred_at: string
+          previous_status: string | null
+          reason_code: string
+          safe_metadata: Json
+        }
+        Insert: {
+          actor_principal_id?: string | null
+          case_id: string
+          created_at?: string
+          event_id?: string
+          event_type: string
+          id?: never
+          new_status?: string | null
+          occurred_at?: string
+          previous_status?: string | null
+          reason_code: string
+          safe_metadata?: Json
+        }
+        Update: {
+          actor_principal_id?: string | null
+          case_id?: string
+          created_at?: string
+          event_id?: string
+          event_type?: string
+          id?: never
+          new_status?: string | null
+          occurred_at?: string
+          previous_status?: string | null
+          reason_code?: string
+          safe_metadata?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_admin_case_events_actor_principal_id_fkey"
+            columns: ["actor_principal_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_admin_case_events_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_admin_case_participants: {
+        Row: {
+          assigned_at: string
+          case_id: string
+          participant_role: string
+          principal_id: string
+          removed_at: string | null
+        }
+        Insert: {
+          assigned_at?: string
+          case_id: string
+          participant_role: string
+          principal_id: string
+          removed_at?: string | null
+        }
+        Update: {
+          assigned_at?: string
+          case_id?: string
+          participant_role?: string
+          principal_id?: string
+          removed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_admin_case_participants_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_admin_case_participants_principal_id_fkey"
+            columns: ["principal_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_admin_cases: {
+        Row: {
+          accountable_owner_principal_id: string | null
+          case_number: number
+          category_key: string
+          child_id: string | null
+          closed_at: string | null
+          closure_reason: string | null
+          created_at: string
+          device_id: string | null
+          domain_key: string
+          environment: string
+          family_id: string | null
+          fixture_key: string | null
+          human_supervisor_principal_id: string | null
+          id: string
+          incident_id: string | null
+          intent_key: string
+          last_activity_at: string
+          priority: string
+          privacy_class: string
+          purpose_code: string
+          queue_key: string
+          reopen_count: number
+          resolution_code: string | null
+          resolver_principal_id: string | null
+          resume_status: string | null
+          root_cause_code: string | null
+          sensitivity: string
+          sla_deadline_at: string | null
+          source_mode: string
+          status: string
+          substatus: string | null
+          updated_at: string
+          verification_level: string
+          wait_deadline_at: string | null
+          wake_condition: string | null
+        }
+        Insert: {
+          accountable_owner_principal_id?: string | null
+          case_number?: never
+          category_key: string
+          child_id?: string | null
+          closed_at?: string | null
+          closure_reason?: string | null
+          created_at?: string
+          device_id?: string | null
+          domain_key: string
+          environment: string
+          family_id?: string | null
+          fixture_key?: string | null
+          human_supervisor_principal_id?: string | null
+          id?: string
+          incident_id?: string | null
+          intent_key: string
+          last_activity_at?: string
+          priority: string
+          privacy_class: string
+          purpose_code: string
+          queue_key: string
+          reopen_count?: number
+          resolution_code?: string | null
+          resolver_principal_id?: string | null
+          resume_status?: string | null
+          root_cause_code?: string | null
+          sensitivity: string
+          sla_deadline_at?: string | null
+          source_mode: string
+          status?: string
+          substatus?: string | null
+          updated_at?: string
+          verification_level: string
+          wait_deadline_at?: string | null
+          wake_condition?: string | null
+        }
+        Update: {
+          accountable_owner_principal_id?: string | null
+          case_number?: never
+          category_key?: string
+          child_id?: string | null
+          closed_at?: string | null
+          closure_reason?: string | null
+          created_at?: string
+          device_id?: string | null
+          domain_key?: string
+          environment?: string
+          family_id?: string | null
+          fixture_key?: string | null
+          human_supervisor_principal_id?: string | null
+          id?: string
+          incident_id?: string | null
+          intent_key?: string
+          last_activity_at?: string
+          priority?: string
+          privacy_class?: string
+          purpose_code?: string
+          queue_key?: string
+          reopen_count?: number
+          resolution_code?: string | null
+          resolver_principal_id?: string | null
+          resume_status?: string | null
+          root_cause_code?: string | null
+          sensitivity?: string
+          sla_deadline_at?: string | null
+          source_mode?: string
+          status?: string
+          substatus?: string | null
+          updated_at?: string
+          verification_level?: string
+          wait_deadline_at?: string | null
+          wake_condition?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_admin_cases_accountable_owner_principal_id_fkey"
+            columns: ["accountable_owner_principal_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_admin_cases_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "v2_children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_admin_cases_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "v2_protected_devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_admin_cases_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "v2_families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_admin_cases_fixture_key_fkey"
+            columns: ["fixture_key"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_fixture_snapshots"
+            referencedColumns: ["fixture_key"]
+          },
+          {
+            foreignKeyName: "v2_admin_cases_human_supervisor_principal_id_fkey"
+            columns: ["human_supervisor_principal_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_admin_cases_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "v2_safety_incidents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_admin_cases_resolver_principal_id_fkey"
+            columns: ["resolver_principal_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_admin_ceo_change_tasks: {
+        Row: {
+          aggregate_context_refs: string[]
+          allowed_path_scopes: string[]
+          approved_at: string | null
+          approved_by_principal_id: string | null
+          claimed_at: string | null
+          claimed_by_runner_key: string | null
+          contains_raw_child_content: boolean
+          created_at: string
+          direct_deployment: boolean
+          direct_merge: boolean
+          direct_repository_write: boolean
+          environment: string
+          execution_path: string
+          finished_at: string | null
+          human_approval_required: boolean
+          id: string
+          idempotency_key: string
+          isolated_worktree_required: boolean
+          objective_summary: string
+          owner_principal_id: string
+          pull_request_required: boolean
+          repository_key: string
+          request_fingerprint: string
+          required_check_codes: string[]
+          runner_state: string
+          safe_result_code: string | null
+          started_at: string | null
+          status: string
+          tests_required: boolean
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          aggregate_context_refs?: string[]
+          allowed_path_scopes: string[]
+          approved_at?: string | null
+          approved_by_principal_id?: string | null
+          claimed_at?: string | null
+          claimed_by_runner_key?: string | null
+          contains_raw_child_content?: boolean
+          created_at?: string
+          direct_deployment?: boolean
+          direct_merge?: boolean
+          direct_repository_write?: boolean
+          environment: string
+          execution_path?: string
+          finished_at?: string | null
+          human_approval_required?: boolean
+          id?: string
+          idempotency_key: string
+          isolated_worktree_required?: boolean
+          objective_summary: string
+          owner_principal_id: string
+          pull_request_required?: boolean
+          repository_key: string
+          request_fingerprint: string
+          required_check_codes?: string[]
+          runner_state?: string
+          safe_result_code?: string | null
+          started_at?: string | null
+          status?: string
+          tests_required?: boolean
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          aggregate_context_refs?: string[]
+          allowed_path_scopes?: string[]
+          approved_at?: string | null
+          approved_by_principal_id?: string | null
+          claimed_at?: string | null
+          claimed_by_runner_key?: string | null
+          contains_raw_child_content?: boolean
+          created_at?: string
+          direct_deployment?: boolean
+          direct_merge?: boolean
+          direct_repository_write?: boolean
+          environment?: string
+          execution_path?: string
+          finished_at?: string | null
+          human_approval_required?: boolean
+          id?: string
+          idempotency_key?: string
+          isolated_worktree_required?: boolean
+          objective_summary?: string
+          owner_principal_id?: string
+          pull_request_required?: boolean
+          repository_key?: string
+          request_fingerprint?: string
+          required_check_codes?: string[]
+          runner_state?: string
+          safe_result_code?: string | null
+          started_at?: string | null
+          status?: string
+          tests_required?: boolean
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_admin_ceo_change_tasks_approved_by_principal_id_fkey"
+            columns: ["approved_by_principal_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_admin_ceo_change_tasks_owner_principal_id_fkey"
+            columns: ["owner_principal_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_admin_fixture_snapshots: {
+        Row: {
+          created_at: string
+          fixture_key: string
+          is_synthetic: boolean
+          schema_version: number
+          service360_document: Json
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          fixture_key: string
+          is_synthetic?: boolean
+          schema_version?: number
+          service360_document: Json
+          title: string
+        }
+        Update: {
+          created_at?: string
+          fixture_key?: string
+          is_synthetic?: boolean
+          schema_version?: number
+          service360_document?: Json
+          title?: string
+        }
+        Relationships: []
+      }
+      v2_admin_outbox: {
+        Row: {
+          acknowledged_at: string | null
+          action_request_id: string
+          attempt_count: number
+          created_at: string
+          destination_kind: string
+          dispatch_envelope: Json
+          dispatched_at: string | null
+          effect_key: string
+          id: string
+          idempotency_key: string
+          last_failure_code: string | null
+          lease_expires_at: string | null
+          leased_by: string | null
+          not_before: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          action_request_id: string
+          attempt_count?: number
+          created_at?: string
+          destination_kind: string
+          dispatch_envelope?: Json
+          dispatched_at?: string | null
+          effect_key: string
+          id?: string
+          idempotency_key: string
+          last_failure_code?: string | null
+          lease_expires_at?: string | null
+          leased_by?: string | null
+          not_before?: string
+          status: string
+          updated_at?: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          action_request_id?: string
+          attempt_count?: number
+          created_at?: string
+          destination_kind?: string
+          dispatch_envelope?: Json
+          dispatched_at?: string | null
+          effect_key?: string
+          id?: string
+          idempotency_key?: string
+          last_failure_code?: string | null
+          lease_expires_at?: string | null
+          leased_by?: string | null
+          not_before?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_admin_outbox_action_request_id_fkey"
+            columns: ["action_request_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_action_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_admin_principals: {
+        Row: {
+          created_at: string
+          display_name: string
+          environment: string
+          id: string
+          principal_key: string
+          principal_type: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          environment: string
+          id?: string
+          principal_key: string
+          principal_type: string
+          status: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          environment?: string
+          id?: string
+          principal_key?: string
+          principal_type?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      v2_admin_shadow_jobs: {
+        Row: {
+          attempt_count: number
+          case_id: string
+          channel_mode: string
+          completed_at: string | null
+          created_at: string
+          dead_lettered_at: string | null
+          environment: string
+          id: string
+          job_kind: string
+          last_failed_at: string | null
+          last_failure_code: string | null
+          lease_expires_at: string | null
+          lease_token: string | null
+          leased_at: string | null
+          leased_by: string | null
+          max_attempts: number
+          message_id: string
+          not_before: string
+          safe_input_attached_at: string | null
+          safe_input_envelope: Json | null
+          safe_input_idempotency_key: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempt_count?: number
+          case_id: string
+          channel_mode: string
+          completed_at?: string | null
+          created_at?: string
+          dead_lettered_at?: string | null
+          environment: string
+          id?: string
+          job_kind?: string
+          last_failed_at?: string | null
+          last_failure_code?: string | null
+          lease_expires_at?: string | null
+          lease_token?: string | null
+          leased_at?: string | null
+          leased_by?: string | null
+          max_attempts?: number
+          message_id: string
+          not_before?: string
+          safe_input_attached_at?: string | null
+          safe_input_envelope?: Json | null
+          safe_input_idempotency_key?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempt_count?: number
+          case_id?: string
+          channel_mode?: string
+          completed_at?: string | null
+          created_at?: string
+          dead_lettered_at?: string | null
+          environment?: string
+          id?: string
+          job_kind?: string
+          last_failed_at?: string | null
+          last_failure_code?: string | null
+          lease_expires_at?: string | null
+          lease_token?: string | null
+          leased_at?: string | null
+          leased_by?: string | null
+          max_attempts?: number
+          message_id?: string
+          not_before?: string
+          safe_input_attached_at?: string | null
+          safe_input_envelope?: Json | null
+          safe_input_idempotency_key?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_admin_shadow_jobs_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_admin_shadow_jobs_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "v2_support_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_admin_whatsapp_ceo_canary_runs: {
+        Row: {
+          case_id: string
+          ceo_principal_id: string
+          ceo_sender_binding_id: string
+          consulted_agent_id: string | null
+          conversation_id: string
+          environment: string
+          failure_code: string | null
+          id: string
+          inbound_message_id: string
+          inbound_provider_message_hmac: string
+          input_tokens: number | null
+          intent_key: string | null
+          lease_expires_at: string | null
+          model_key: string | null
+          outbound_message_id: string | null
+          outbound_provider_message_hmac: string | null
+          output_tokens: number | null
+          provider_account_hmac: string
+          provider_phone_scope_hmac: string
+          reconciled_at: string | null
+          reserved_at: string
+          safe_metadata: Json
+          send_started_at: string | null
+          sender_lookup_hmac: string
+          status: string
+          status_correlation_expires_at: string | null
+          terminal_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          case_id: string
+          ceo_principal_id: string
+          ceo_sender_binding_id: string
+          consulted_agent_id?: string | null
+          conversation_id: string
+          environment?: string
+          failure_code?: string | null
+          id?: string
+          inbound_message_id: string
+          inbound_provider_message_hmac: string
+          input_tokens?: number | null
+          intent_key?: string | null
+          lease_expires_at?: string | null
+          model_key?: string | null
+          outbound_message_id?: string | null
+          outbound_provider_message_hmac?: string | null
+          output_tokens?: number | null
+          provider_account_hmac: string
+          provider_phone_scope_hmac: string
+          reconciled_at?: string | null
+          reserved_at?: string
+          safe_metadata?: Json
+          send_started_at?: string | null
+          sender_lookup_hmac: string
+          status: string
+          status_correlation_expires_at?: string | null
+          terminal_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          case_id?: string
+          ceo_principal_id?: string
+          ceo_sender_binding_id?: string
+          consulted_agent_id?: string | null
+          conversation_id?: string
+          environment?: string
+          failure_code?: string | null
+          id?: string
+          inbound_message_id?: string
+          inbound_provider_message_hmac?: string
+          input_tokens?: number | null
+          intent_key?: string | null
+          lease_expires_at?: string | null
+          model_key?: string | null
+          outbound_message_id?: string | null
+          outbound_provider_message_hmac?: string | null
+          output_tokens?: number | null
+          provider_account_hmac?: string
+          provider_phone_scope_hmac?: string
+          reconciled_at?: string | null
+          reserved_at?: string
+          safe_metadata?: Json
+          send_started_at?: string | null
+          sender_lookup_hmac?: string
+          status?: string
+          status_correlation_expires_at?: string | null
+          terminal_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_admin_whatsapp_ceo_canary_runs_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_admin_whatsapp_ceo_canary_runs_ceo_principal_id_fkey"
+            columns: ["ceo_principal_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_admin_whatsapp_ceo_canary_runs_ceo_sender_binding_id_fkey"
+            columns: ["ceo_sender_binding_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_whatsapp_ceo_sender_bindings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_admin_whatsapp_ceo_canary_runs_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "v2_support_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_admin_whatsapp_ceo_canary_runs_inbound_message_id_fkey"
+            columns: ["inbound_message_id"]
+            isOneToOne: true
+            referencedRelation: "v2_support_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_admin_whatsapp_ceo_canary_runs_outbound_message_id_fkey"
+            columns: ["outbound_message_id"]
+            isOneToOne: true
+            referencedRelation: "v2_support_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_admin_whatsapp_ceo_sender_bindings: {
+        Row: {
+          binding_status: string
+          ceo_principal_id: string
+          created_at: string
+          environment: string
+          expires_at: string
+          id: string
+          provider_account_hmac: string
+          provider_phone_scope_hmac: string
+          revoked_at: string | null
+          safe_metadata: Json
+          sender_lookup_hmac: string
+          valid_from: string
+        }
+        Insert: {
+          binding_status?: string
+          ceo_principal_id: string
+          created_at?: string
+          environment?: string
+          expires_at: string
+          id?: string
+          provider_account_hmac: string
+          provider_phone_scope_hmac: string
+          revoked_at?: string | null
+          safe_metadata?: Json
+          sender_lookup_hmac: string
+          valid_from?: string
+        }
+        Update: {
+          binding_status?: string
+          ceo_principal_id?: string
+          created_at?: string
+          environment?: string
+          expires_at?: string
+          id?: string
+          provider_account_hmac?: string
+          provider_phone_scope_hmac?: string
+          revoked_at?: string | null
+          safe_metadata?: Json
+          sender_lookup_hmac?: string
+          valid_from?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_admin_whatsapp_ceo_sender_bindings_ceo_principal_id_fkey"
+            columns: ["ceo_principal_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_agent_delegations: {
+        Row: {
+          agent_principal_id: string
+          case_id: string
+          correlation_id: string
+          created_at: string
+          expires_at: string
+          id: string
+          permission_keys: string[]
+          purpose_code: string
+          sponsor_principal_id: string
+          status: string
+          tool_keys: string[]
+          valid_from: string
+        }
+        Insert: {
+          agent_principal_id: string
+          case_id: string
+          correlation_id?: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          permission_keys?: string[]
+          purpose_code: string
+          sponsor_principal_id: string
+          status: string
+          tool_keys?: string[]
+          valid_from?: string
+        }
+        Update: {
+          agent_principal_id?: string
+          case_id?: string
+          correlation_id?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          permission_keys?: string[]
+          purpose_code?: string
+          sponsor_principal_id?: string
+          status?: string
+          tool_keys?: string[]
+          valid_from?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_agent_delegations_agent_principal_id_fkey"
+            columns: ["agent_principal_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_agent_delegations_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_agent_delegations_sponsor_principal_id_fkey"
+            columns: ["sponsor_principal_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_agent_identities: {
+        Row: {
+          agent_kind: string
+          agent_version: string
+          created_at: string
+          domain_key: string
+          principal_id: string
+          sponsor_required: boolean
+          tool_allowlist: string[]
+          updated_at: string
+        }
+        Insert: {
+          agent_kind: string
+          agent_version: string
+          created_at?: string
+          domain_key: string
+          principal_id: string
+          sponsor_required?: boolean
+          tool_allowlist?: string[]
+          updated_at?: string
+        }
+        Update: {
+          agent_kind?: string
+          agent_version?: string
+          created_at?: string
+          domain_key?: string
+          principal_id?: string
+          sponsor_required?: boolean
+          tool_allowlist?: string[]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_agent_identities_principal_id_fkey"
+            columns: ["principal_id"]
+            isOneToOne: true
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       v2_alert_deliveries: {
         Row: {
           attempt_count: number
@@ -778,11 +2236,16 @@ export type Database = {
           analysis_contract_version: number
           analyzed_at: string
           created_at: string
+          guidance_age_band: string | null
+          guidance_codes: string[]
           incident_id: string
           model_name: string
           model_provider: string
           model_version: string
           outcome: string
+          parent_avoid: string | null
+          parent_next_action: string | null
+          parent_opening: string | null
           prompt_version: string
           reason_code: string
           recommended_action: string | null
@@ -794,11 +2257,16 @@ export type Database = {
           analysis_contract_version: number
           analyzed_at?: string
           created_at?: string
+          guidance_age_band?: string | null
+          guidance_codes?: string[]
           incident_id: string
           model_name: string
           model_provider: string
           model_version: string
           outcome: string
+          parent_avoid?: string | null
+          parent_next_action?: string | null
+          parent_opening?: string | null
           prompt_version: string
           reason_code: string
           recommended_action?: string | null
@@ -810,11 +2278,16 @@ export type Database = {
           analysis_contract_version?: number
           analyzed_at?: string
           created_at?: string
+          guidance_age_band?: string | null
+          guidance_codes?: string[]
           incident_id?: string
           model_name?: string
           model_provider?: string
           model_version?: string
           outcome?: string
+          parent_avoid?: string | null
+          parent_next_action?: string | null
+          parent_opening?: string | null
           prompt_version?: string
           reason_code?: string
           recommended_action?: string | null
@@ -1489,7 +2962,10 @@ export type Database = {
           app_name: string | null
           device_id: string
           first_seen_at: string
+          install_source: Database["public"]["Enums"]["v2_app_install_source"]
+          installer_package_name: string | null
           is_installed: boolean
+          is_launchable: boolean
           is_system: boolean
           last_seen_at: string
           package_name: string
@@ -1498,7 +2974,10 @@ export type Database = {
           app_name?: string | null
           device_id: string
           first_seen_at?: string
+          install_source?: Database["public"]["Enums"]["v2_app_install_source"]
+          installer_package_name?: string | null
           is_installed?: boolean
+          is_launchable?: boolean
           is_system?: boolean
           last_seen_at?: string
           package_name: string
@@ -1507,7 +2986,10 @@ export type Database = {
           app_name?: string | null
           device_id?: string
           first_seen_at?: string
+          install_source?: Database["public"]["Enums"]["v2_app_install_source"]
+          installer_package_name?: string | null
           is_installed?: boolean
+          is_launchable?: boolean
           is_system?: boolean
           last_seen_at?: string
           package_name?: string
@@ -1577,6 +3059,7 @@ export type Database = {
       }
       v2_parental_settings: {
         Row: {
+          app_approval_baseline_completed: boolean
           child_id: string
           created_at: string
           daily_screen_time_limit_minutes: number | null
@@ -1592,6 +3075,7 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          app_approval_baseline_completed?: boolean
           child_id: string
           created_at?: string
           daily_screen_time_limit_minutes?: number | null
@@ -1607,6 +3091,7 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          app_approval_baseline_completed?: boolean
           child_id?: string
           created_at?: string
           daily_screen_time_limit_minutes?: number | null
@@ -1690,6 +3175,7 @@ export type Database = {
       }
       v2_protected_devices: {
         Row: {
+          app_approval_baseline_completed: boolean
           app_version: string
           capture_contract_version: number
           child_id: string
@@ -1705,6 +3191,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          app_approval_baseline_completed?: boolean
           app_version: string
           capture_contract_version?: number
           child_id: string
@@ -1720,6 +3207,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          app_approval_baseline_completed?: boolean
           app_version?: string
           capture_contract_version?: number
           child_id?: string
@@ -1894,6 +3382,768 @@ export type Database = {
           },
         ]
       }
+      v2_staff_permissions: {
+        Row: {
+          created_at: string
+          description: string
+          permission_key: string
+          risk_class: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          permission_key: string
+          risk_class: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          permission_key?: string
+          risk_class?: string
+        }
+        Relationships: []
+      }
+      v2_staff_profiles: {
+        Row: {
+          auth_user_id: string
+          created_at: string
+          locale: string
+          principal_id: string
+          updated_at: string
+        }
+        Insert: {
+          auth_user_id: string
+          created_at?: string
+          locale?: string
+          principal_id: string
+          updated_at?: string
+        }
+        Update: {
+          auth_user_id?: string
+          created_at?: string
+          locale?: string
+          principal_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_staff_profiles_principal_id_fkey"
+            columns: ["principal_id"]
+            isOneToOne: true
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_staff_role_assignments: {
+        Row: {
+          created_at: string
+          environment: string
+          expires_at: string | null
+          granted_by_principal_id: string
+          id: string
+          reason_code: string
+          role_key: string
+          scope_key: string | null
+          scope_type: string
+          staff_principal_id: string
+          valid_from: string
+        }
+        Insert: {
+          created_at?: string
+          environment: string
+          expires_at?: string | null
+          granted_by_principal_id: string
+          id?: string
+          reason_code: string
+          role_key: string
+          scope_key?: string | null
+          scope_type?: string
+          staff_principal_id: string
+          valid_from?: string
+        }
+        Update: {
+          created_at?: string
+          environment?: string
+          expires_at?: string | null
+          granted_by_principal_id?: string
+          id?: string
+          reason_code?: string
+          role_key?: string
+          scope_key?: string | null
+          scope_type?: string
+          staff_principal_id?: string
+          valid_from?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_staff_role_assignments_granted_by_principal_id_fkey"
+            columns: ["granted_by_principal_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_staff_role_assignments_role_key_fkey"
+            columns: ["role_key"]
+            isOneToOne: false
+            referencedRelation: "v2_staff_roles"
+            referencedColumns: ["role_key"]
+          },
+          {
+            foreignKeyName: "v2_staff_role_assignments_staff_principal_id_fkey"
+            columns: ["staff_principal_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_staff_role_permissions: {
+        Row: {
+          created_at: string
+          permission_key: string
+          role_key: string
+        }
+        Insert: {
+          created_at?: string
+          permission_key: string
+          role_key: string
+        }
+        Update: {
+          created_at?: string
+          permission_key?: string
+          role_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_staff_role_permissions_permission_key_fkey"
+            columns: ["permission_key"]
+            isOneToOne: false
+            referencedRelation: "v2_staff_permissions"
+            referencedColumns: ["permission_key"]
+          },
+          {
+            foreignKeyName: "v2_staff_role_permissions_role_key_fkey"
+            columns: ["role_key"]
+            isOneToOne: false
+            referencedRelation: "v2_staff_roles"
+            referencedColumns: ["role_key"]
+          },
+        ]
+      }
+      v2_staff_roles: {
+        Row: {
+          created_at: string
+          display_name: string
+          is_active: boolean
+          role_key: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          is_active?: boolean
+          role_key: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          is_active?: boolean
+          role_key?: string
+        }
+        Relationships: []
+      }
+      v2_support_channel_identities: {
+        Row: {
+          channel: string
+          contact_id: string
+          created_at: string
+          display_identity_redacted: string
+          environment: string
+          id: string
+          provider_account_key: string
+          provider_identity_hash: string
+          updated_at: string
+        }
+        Insert: {
+          channel: string
+          contact_id: string
+          created_at?: string
+          display_identity_redacted: string
+          environment: string
+          id?: string
+          provider_account_key: string
+          provider_identity_hash: string
+          updated_at?: string
+        }
+        Update: {
+          channel?: string
+          contact_id?: string
+          created_at?: string
+          display_identity_redacted?: string
+          environment?: string
+          id?: string
+          provider_account_key?: string
+          provider_identity_hash?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_support_channel_identities_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v2_support_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_support_contacts: {
+        Row: {
+          contact_hash: string
+          contact_kind: string
+          created_at: string
+          display_label_redacted: string
+          environment: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          contact_hash: string
+          contact_kind: string
+          created_at?: string
+          display_label_redacted: string
+          environment: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          contact_hash?: string
+          contact_kind?: string
+          created_at?: string
+          display_label_redacted?: string
+          environment?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      v2_support_conversations: {
+        Row: {
+          channel: string
+          channel_identity_id: string
+          closed_at: string | null
+          created_at: string
+          environment: string
+          id: string
+          last_activity_at: string
+          responder_lease_expires_at: string | null
+          responder_lease_id: string | null
+          responder_principal_id: string | null
+          source_mode: string
+          status: string
+          updated_at: string
+          verification_evidence_ref: string | null
+          verification_expires_at: string | null
+          verification_level: string
+          verified_family_id: string | null
+          verified_guardian_user_id: string | null
+        }
+        Insert: {
+          channel: string
+          channel_identity_id: string
+          closed_at?: string | null
+          created_at?: string
+          environment: string
+          id?: string
+          last_activity_at?: string
+          responder_lease_expires_at?: string | null
+          responder_lease_id?: string | null
+          responder_principal_id?: string | null
+          source_mode: string
+          status?: string
+          updated_at?: string
+          verification_evidence_ref?: string | null
+          verification_expires_at?: string | null
+          verification_level?: string
+          verified_family_id?: string | null
+          verified_guardian_user_id?: string | null
+        }
+        Update: {
+          channel?: string
+          channel_identity_id?: string
+          closed_at?: string | null
+          created_at?: string
+          environment?: string
+          id?: string
+          last_activity_at?: string
+          responder_lease_expires_at?: string | null
+          responder_lease_id?: string | null
+          responder_principal_id?: string | null
+          source_mode?: string
+          status?: string
+          updated_at?: string
+          verification_evidence_ref?: string | null
+          verification_expires_at?: string | null
+          verification_level?: string
+          verified_family_id?: string | null
+          verified_guardian_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_support_conversations_channel_identity_id_fkey"
+            columns: ["channel_identity_id"]
+            isOneToOne: false
+            referencedRelation: "v2_support_channel_identities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_support_conversations_responder_principal_id_fkey"
+            columns: ["responder_principal_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_support_conversations_verified_family_id_fkey"
+            columns: ["verified_family_id"]
+            isOneToOne: false
+            referencedRelation: "v2_families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_support_message_status_events: {
+        Row: {
+          content_digest_hmac: string
+          created_at: string
+          delivery_status: string
+          environment: string
+          error_fingerprint_hmac: string | null
+          event_hmac: string
+          id: string
+          message_id: string
+          provider_account_hmac: string
+          provider_occurred_at: string
+          received_at: string
+          safe_error_code: string | null
+        }
+        Insert: {
+          content_digest_hmac: string
+          created_at?: string
+          delivery_status: string
+          environment: string
+          error_fingerprint_hmac?: string | null
+          event_hmac: string
+          id?: string
+          message_id: string
+          provider_account_hmac: string
+          provider_occurred_at: string
+          received_at: string
+          safe_error_code?: string | null
+        }
+        Update: {
+          content_digest_hmac?: string
+          created_at?: string
+          delivery_status?: string
+          environment?: string
+          error_fingerprint_hmac?: string | null
+          event_hmac?: string
+          id?: string
+          message_id?: string
+          provider_account_hmac?: string
+          provider_occurred_at?: string
+          received_at?: string
+          safe_error_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_support_message_status_events_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "v2_support_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_support_messages: {
+        Row: {
+          conversation_id: string
+          created_at: string
+          delivery_status: string
+          direction: string
+          environment: string
+          failure_code: string | null
+          id: string
+          ingest_status: string
+          media_mime_type: string | null
+          media_provider_sha256: string | null
+          media_scan_state: string | null
+          message_type: string
+          protected_content_ref: string | null
+          provider_account_hmac: string | null
+          provider_media_hmac: string | null
+          provider_message_hmac: string | null
+          provider_occurred_at: string | null
+          provider_phone_scope_hmac: string | null
+          redacted_text: string | null
+          reply_to_message_id: string | null
+          retention_class: string
+          sensitivity: string
+          server_received_at: string
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string
+          delivery_status?: string
+          direction: string
+          environment: string
+          failure_code?: string | null
+          id?: string
+          ingest_status: string
+          media_mime_type?: string | null
+          media_provider_sha256?: string | null
+          media_scan_state?: string | null
+          message_type: string
+          protected_content_ref?: string | null
+          provider_account_hmac?: string | null
+          provider_media_hmac?: string | null
+          provider_message_hmac?: string | null
+          provider_occurred_at?: string | null
+          provider_phone_scope_hmac?: string | null
+          redacted_text?: string | null
+          reply_to_message_id?: string | null
+          retention_class?: string
+          sensitivity?: string
+          server_received_at?: string
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string
+          delivery_status?: string
+          direction?: string
+          environment?: string
+          failure_code?: string | null
+          id?: string
+          ingest_status?: string
+          media_mime_type?: string | null
+          media_provider_sha256?: string | null
+          media_scan_state?: string | null
+          message_type?: string
+          protected_content_ref?: string | null
+          provider_account_hmac?: string | null
+          provider_media_hmac?: string | null
+          provider_message_hmac?: string | null
+          provider_occurred_at?: string | null
+          provider_phone_scope_hmac?: string | null
+          redacted_text?: string | null
+          reply_to_message_id?: string | null
+          retention_class?: string
+          sensitivity?: string
+          server_received_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_support_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "v2_support_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_support_messages_reply_to_message_id_fkey"
+            columns: ["reply_to_message_id"]
+            isOneToOne: false
+            referencedRelation: "v2_support_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_support_pending_whatsapp_statuses: {
+        Row: {
+          consumed_at: string | null
+          content_digest_hmac: string
+          created_at: string
+          delivery_status: string
+          environment: string
+          error_fingerprint_hmac: string | null
+          event_hmac: string
+          expired_at: string | null
+          expires_at: string
+          id: string
+          message_id: string | null
+          provider_account_hmac: string
+          provider_message_hmac: string
+          provider_occurred_at: string
+          provider_phone_scope_hmac: string
+          received_at: string
+          resolution: string
+          safe_error_code: string | null
+        }
+        Insert: {
+          consumed_at?: string | null
+          content_digest_hmac: string
+          created_at?: string
+          delivery_status: string
+          environment: string
+          error_fingerprint_hmac?: string | null
+          event_hmac: string
+          expired_at?: string | null
+          expires_at: string
+          id?: string
+          message_id?: string | null
+          provider_account_hmac: string
+          provider_message_hmac: string
+          provider_occurred_at: string
+          provider_phone_scope_hmac: string
+          received_at: string
+          resolution?: string
+          safe_error_code?: string | null
+        }
+        Update: {
+          consumed_at?: string | null
+          content_digest_hmac?: string
+          created_at?: string
+          delivery_status?: string
+          environment?: string
+          error_fingerprint_hmac?: string | null
+          event_hmac?: string
+          expired_at?: string | null
+          expires_at?: string
+          id?: string
+          message_id?: string | null
+          provider_account_hmac?: string
+          provider_message_hmac?: string
+          provider_occurred_at?: string
+          provider_phone_scope_hmac?: string
+          received_at?: string
+          resolution?: string
+          safe_error_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_support_pending_whatsapp_statuses_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "v2_support_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_support_protected_content: {
+        Row: {
+          aad_sha256: string
+          algorithm: string
+          ciphertext_b64: string
+          contact_lookup_hmac_key_id: number
+          content_digest_hmac: string
+          content_digest_hmac_key_id: number
+          content_encryption_key_id: number
+          content_kind: string
+          created_at: string
+          environment: string
+          id: string
+          item_hmac: string
+          key_ref: string
+          message_id: string | null
+          nonce_b64: string
+          provider_account_hmac: string
+          provider_id_hmac_key_id: number
+        }
+        Insert: {
+          aad_sha256: string
+          algorithm: string
+          ciphertext_b64: string
+          contact_lookup_hmac_key_id: number
+          content_digest_hmac: string
+          content_digest_hmac_key_id: number
+          content_encryption_key_id: number
+          content_kind: string
+          created_at?: string
+          environment: string
+          id?: string
+          item_hmac: string
+          key_ref: string
+          message_id?: string | null
+          nonce_b64: string
+          provider_account_hmac: string
+          provider_id_hmac_key_id: number
+        }
+        Update: {
+          aad_sha256?: string
+          algorithm?: string
+          ciphertext_b64?: string
+          contact_lookup_hmac_key_id?: number
+          content_digest_hmac?: string
+          content_digest_hmac_key_id?: number
+          content_encryption_key_id?: number
+          content_kind?: string
+          created_at?: string
+          environment?: string
+          id?: string
+          item_hmac?: string
+          key_ref?: string
+          message_id?: string | null
+          nonce_b64?: string
+          provider_account_hmac?: string
+          provider_id_hmac_key_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_support_protected_content_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: true
+            referencedRelation: "v2_support_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_support_webhook_envelopes: {
+        Row: {
+          accepted_items: number
+          case_ids: string[]
+          channel_mode: string
+          conversation_ids: string[]
+          created_at: string
+          duplicate_items: number
+          envelope_sha256: string
+          environment: string
+          id: string
+          item_count: number
+          processed_at: string | null
+          processing_status: string
+          provider_account_hmac: string
+          received_at: string
+          rejected_items: number
+          shadow_job_ids: string[]
+        }
+        Insert: {
+          accepted_items?: number
+          case_ids?: string[]
+          channel_mode: string
+          conversation_ids?: string[]
+          created_at?: string
+          duplicate_items?: number
+          envelope_sha256: string
+          environment: string
+          id?: string
+          item_count: number
+          processed_at?: string | null
+          processing_status?: string
+          provider_account_hmac: string
+          received_at: string
+          rejected_items?: number
+          shadow_job_ids?: string[]
+        }
+        Update: {
+          accepted_items?: number
+          case_ids?: string[]
+          channel_mode?: string
+          conversation_ids?: string[]
+          created_at?: string
+          duplicate_items?: number
+          envelope_sha256?: string
+          environment?: string
+          id?: string
+          item_count?: number
+          processed_at?: string | null
+          processing_status?: string
+          provider_account_hmac?: string
+          received_at?: string
+          rejected_items?: number
+          shadow_job_ids?: string[]
+        }
+        Relationships: []
+      }
+      v2_support_webhook_items: {
+        Row: {
+          accepted: boolean
+          case_id: string | null
+          conversation_id: string | null
+          created_at: string
+          envelope_id: string
+          environment: string
+          error_fingerprint_hmac: string | null
+          id: string
+          item_hmac: string
+          item_type: string
+          message_id: string | null
+          provider_account_hmac: string
+          rejection_code: string | null
+          safe_error_code: string | null
+          shadow_job_id: string | null
+        }
+        Insert: {
+          accepted: boolean
+          case_id?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          envelope_id: string
+          environment: string
+          error_fingerprint_hmac?: string | null
+          id?: string
+          item_hmac: string
+          item_type: string
+          message_id?: string | null
+          provider_account_hmac: string
+          rejection_code?: string | null
+          safe_error_code?: string | null
+          shadow_job_id?: string | null
+        }
+        Update: {
+          accepted?: boolean
+          case_id?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          envelope_id?: string
+          environment?: string
+          error_fingerprint_hmac?: string | null
+          id?: string
+          item_hmac?: string
+          item_type?: string
+          message_id?: string | null
+          provider_account_hmac?: string
+          rejection_code?: string | null
+          safe_error_code?: string | null
+          shadow_job_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_support_webhook_items_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_support_webhook_items_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "v2_support_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_support_webhook_items_envelope_id_fkey"
+            columns: ["envelope_id"]
+            isOneToOne: false
+            referencedRelation: "v2_support_webhook_envelopes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_support_webhook_items_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "v2_support_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_support_webhook_items_shadow_job_id_fkey"
+            columns: ["shadow_job_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_shadow_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -1913,8 +4163,316 @@ export type Database = {
           expires_at: string
           guardian_user_id: string
           install_session_id: string
+          otp_reservation_at: string
           should_send_otp: boolean
         }[]
+      }
+      v2_admin_approve_ceo_change_task: {
+        Args: { target_task_id: string }
+        Returns: Json
+      }
+      v2_admin_begin_whatsapp_ceo_canary_send_service: {
+        Args: {
+          target_consulted_agent_id: string
+          target_input_tokens: number
+          target_intent_key: string
+          target_model_key: string
+          target_output_tokens: number
+          target_run_id: string
+        }
+        Returns: Json
+      }
+      v2_admin_can_read_case: {
+        Args: { target_case_id: string; target_permission_key: string }
+        Returns: boolean
+      }
+      v2_admin_cancel_ceo_change_task: {
+        Args: { target_task_id: string }
+        Returns: Json
+      }
+      v2_admin_ceo_path_array_is_safe: {
+        Args: { target_max_items?: number; target_value: string[] }
+        Returns: boolean
+      }
+      v2_admin_claim_shadow_jobs_service: {
+        Args: {
+          target_batch_size?: number
+          target_environment: string
+          target_lease_seconds?: number
+          target_worker_id: string
+        }
+        Returns: Json
+      }
+      v2_admin_complete_shadow_job_service: {
+        Args: {
+          target_job_id: string
+          target_lease_token: string
+          target_result: Json
+        }
+        Returns: Json
+      }
+      v2_admin_complete_whatsapp_ceo_canary_service: {
+        Args: {
+          target_consulted_agent_id: string
+          target_input_tokens: number
+          target_intent_key: string
+          target_model_key: string
+          target_outbound_provider_message_hmac: string
+          target_output_tokens: number
+          target_run_id: string
+        }
+        Returns: Json
+      }
+      v2_admin_create_ceo_change_task: {
+        Args: {
+          target_aggregate_context_refs: string[]
+          target_allowed_path_scopes: string[]
+          target_contains_raw_child_content?: boolean
+          target_idempotency_key: string
+          target_objective_summary: string
+          target_repository_key: string
+          target_required_check_codes: string[]
+          target_title: string
+        }
+        Returns: Json
+      }
+      v2_admin_current_staff_principal: { Args: never; Returns: string }
+      v2_admin_denied_response: {
+        Args: {
+          target_case_id: string
+          target_conversation_id: string
+          target_field_keys?: string[]
+          target_object_id: string
+          target_object_type: string
+          target_purpose_code: string
+          target_reason_code: string
+        }
+        Returns: Json
+      }
+      v2_admin_fail_shadow_job_service: {
+        Args: {
+          target_failure_code: string
+          target_job_id: string
+          target_lease_token: string
+          target_retryable?: boolean
+        }
+        Returns: Json
+      }
+      v2_admin_fail_whatsapp_ceo_canary_service: {
+        Args: {
+          target_delivery_state: string
+          target_failure_code: string
+          target_run_id: string
+        }
+        Returns: Json
+      }
+      v2_admin_field_envelope: {
+        Args: {
+          target_availability: string
+          target_effective_at: string
+          target_freshness_status: string
+          target_observed_at: string
+          target_received_at: string
+          target_redaction: string
+          target_revision_or_etag: string
+          target_sensitivity: string
+          target_source: string
+          target_value: Json
+        }
+        Returns: Json
+      }
+      v2_admin_get_case: { Args: { target_case_id: string }; Returns: Json }
+      v2_admin_get_conversation: {
+        Args: { target_conversation_id: string }
+        Returns: Json
+      }
+      v2_admin_get_executive_operational_summary: { Args: never; Returns: Json }
+      v2_admin_get_parent_safe_incident: {
+        Args: { target_case_id: string }
+        Returns: Json
+      }
+      v2_admin_get_parental_controls_projection: {
+        Args: { target_case_id: string }
+        Returns: Json
+      }
+      v2_admin_get_service360: {
+        Args: { target_case_id: string }
+        Returns: Json
+      }
+      v2_admin_get_session: { Args: never; Returns: Json }
+      v2_admin_has_permission: {
+        Args: { target_case_id?: string; target_permission_key: string }
+        Returns: boolean
+      }
+      v2_admin_ingest_whatsapp_webhook_foundation_private: {
+        Args: {
+          target_channel_mode: string
+          target_envelope_sha256: string
+          target_environment: string
+          target_items: Json
+          target_received_at: string
+        }
+        Returns: Json
+      }
+      v2_admin_ingest_whatsapp_webhook_service: {
+        Args: {
+          target_channel_mode: string
+          target_envelope_sha256: string
+          target_environment: string
+          target_items: Json
+          target_received_at: string
+        }
+        Returns: Json
+      }
+      v2_admin_is_current_ceo: { Args: never; Returns: boolean }
+      v2_admin_json_is_safe: {
+        Args: { target_max_bytes?: number; target_value: Json }
+        Returns: boolean
+      }
+      v2_admin_list_audit_events: {
+        Args: {
+          target_before_created_at?: string
+          target_before_event_id?: number
+          target_case_id?: string
+          target_limit?: number
+        }
+        Returns: Json
+      }
+      v2_admin_list_case_actions: {
+        Args: { target_case_id: string }
+        Returns: Json
+      }
+      v2_admin_list_case_messages: {
+        Args: {
+          target_before_message_id?: string
+          target_before_server_received_at?: string
+          target_case_id: string
+          target_limit?: number
+        }
+        Returns: Json
+      }
+      v2_admin_list_case_timeline: {
+        Args: {
+          target_before_event_id?: number
+          target_before_occurred_at?: string
+          target_case_id: string
+          target_limit?: number
+        }
+        Returns: Json
+      }
+      v2_admin_list_ceo_change_tasks: {
+        Args: { target_limit?: number }
+        Returns: Json
+      }
+      v2_admin_list_fixture_scenarios: { Args: never; Returns: Json }
+      v2_admin_list_inbox: {
+        Args: {
+          target_before_conversation_id?: string
+          target_before_last_activity_at?: string
+          target_case_status?: string
+          target_limit?: number
+          target_queue_key?: string
+          target_source_mode: string
+        }
+        Returns: Json
+      }
+      v2_admin_manage_whatsapp_ceo_sender_binding_service: {
+        Args: {
+          target_binding_id: string
+          target_ceo_principal_id: string
+          target_expires_at: string
+          target_operation: string
+          target_source_inbound_message_id: string
+        }
+        Returns: Json
+      }
+      v2_admin_provision_staff_service: {
+        Args: {
+          target_display_name: string
+          target_reason: string
+          target_role_keys: string[]
+          target_user_id: string
+        }
+        Returns: string
+      }
+      v2_admin_reconcile_whatsapp_ceo_canary_statuses_service: {
+        Args: never
+        Returns: Json
+      }
+      v2_admin_reserve_whatsapp_ceo_canary_service: {
+        Args: {
+          target_ceo_principal_id: string
+          target_inbound_provider_message_hmac: string
+          target_provider_account_hmac: string
+          target_provider_phone_scope_hmac: string
+          target_sender_lookup_hmac: string
+        }
+        Returns: Json
+      }
+      v2_admin_set_shadow_job_input_service: {
+        Args: {
+          target_envelope: Json
+          target_idempotency_key: string
+          target_job_id: string
+        }
+        Returns: Json
+      }
+      v2_admin_shadow_safe_code: {
+        Args: { target_max_length?: number; target_value: string }
+        Returns: boolean
+      }
+      v2_admin_shadow_string_array_is_safe: {
+        Args: {
+          target_max_items: number
+          target_max_length: number
+          target_value: Json
+        }
+        Returns: boolean
+      }
+      v2_admin_valid_ciphertext_envelope: {
+        Args: { target_value: Json }
+        Returns: boolean
+      }
+      v2_admin_valid_crypto_key_ids: {
+        Args: { target_value: Json }
+        Returns: boolean
+      }
+      v2_admin_valid_shadow_envelope: {
+        Args: {
+          target_case_id: string
+          target_job_id: string
+          target_message_id: string
+          target_value: Json
+        }
+        Returns: boolean
+      }
+      v2_admin_valid_shadow_result: {
+        Args: {
+          target_case_id: string
+          target_job_id: string
+          target_value: Json
+        }
+        Returns: boolean
+      }
+      v2_admin_whatsapp_ceo_agent_for_intent: {
+        Args: { target_intent_key: string }
+        Returns: string
+      }
+      v2_admin_write_audit_event: {
+        Args: {
+          target_case_id: string
+          target_conversation_id: string
+          target_correlation_id: string
+          target_event_type: string
+          target_field_keys: string[]
+          target_object_id: string
+          target_object_type: string
+          target_outcome: string
+          target_purpose_code: string
+          target_reason_code: string
+          target_safe_metadata: Json
+        }
+        Returns: number
       }
       v2_analyzer_capability_is_valid: {
         Args: { target_capability_token: string }
@@ -1936,6 +4494,10 @@ export type Database = {
         Args: { target_actor: string; target_child_id: string }
         Returns: number
       }
+      v2_child_age_band: {
+        Args: { target_birth_year: number; target_year?: number }
+        Returns: string
+      }
       v2_claim_device_commands_service: {
         Args: { requested_limit?: number; target_device_id: string }
         Returns: {
@@ -1946,6 +4508,36 @@ export type Database = {
         }[]
       }
       v2_claim_incident_analysis_service: {
+        Args: {
+          target_capability_token: string
+          target_lease_seconds: number
+          target_worker_id: string
+        }
+        Returns: {
+          aad_version: number
+          capture_quality_canonical: string
+          category: string
+          child_id: string
+          child_role: string
+          client_incident_id: string
+          confidence_canonical: string
+          context_expires_at_canonical: string
+          device_id: string
+          encrypted_payload_base64: string
+          encryption_algorithm: string
+          incident_id: string
+          key_version: number
+          lease_expires_at_canonical: string
+          lease_token: string
+          message_count: number
+          model_contract_version: number
+          occurred_at_canonical: string
+          privacy_contract_version: number
+          privacy_identity_version: number
+          severity: string
+        }[]
+      }
+      v2_claim_incident_analysis_uncanonicalized_internal: {
         Args: {
           target_capability_token: string
           target_lease_seconds: number
@@ -2266,6 +4858,30 @@ export type Database = {
         Args: { target_action_code: string }
         Returns: string
       }
+      v2_parent_avoid_template: {
+        Args: { target_category: string }
+        Returns: string
+      }
+      v2_parent_guidance_codes: {
+        Args: {
+          target_action_code: string
+          target_category: string
+          target_severity: string
+        }
+        Returns: string[]
+      }
+      v2_parent_next_action_template: {
+        Args: {
+          target_action_code: string
+          target_category: string
+          target_severity: string
+        }
+        Returns: string
+      }
+      v2_parent_opening_template: {
+        Args: { target_age_band: string; target_category: string }
+        Returns: string
+      }
       v2_parent_reason_template: {
         Args: { target_reason_code: string }
         Returns: string
@@ -2338,6 +4954,13 @@ export type Database = {
           endpoint_last_seen_at: string
           endpoint_status: string
         }[]
+      }
+      v2_release_child_install_otp_reservation_service: {
+        Args: {
+          expected_otp_reservation_at: string
+          target_install_session_id: string
+        }
+        Returns: boolean
       }
       v2_report_device_health_service: {
         Args: {
@@ -2611,7 +5234,7 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      v2_app_install_source: "store" | "sideload" | "unknown"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2737,10 +5360,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
-    Enums: {},
+    Enums: {
+      v2_app_install_source: ["store", "sideload", "unknown"],
+    },
   },
 } as const
