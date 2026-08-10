@@ -5,9 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useWaitlist } from '@/contexts/WaitlistContext';
-import { supabase } from '@/integrations/supabase/client';
+import { submitMarketingWaitlist } from '@/integrations/supabase/v2-marketing-client';
 import { User, Mail, Phone, Calendar, Smartphone, MapPin, MessageCircle, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { captureWaitlistAttribution } from '@/lib/marketingAttribution';
 import kippyLogo from '@/assets/kippy-logo.svg';
 
 const regions = [
@@ -114,20 +115,22 @@ export function WaitlistModal() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) return;
+    if (!validateForm() || !formData.deviceOs) return;
 
     setIsSubmitting(true);
 
     try {
-      const { error } = await supabase.from('waitlist_signups').insert({
-        parent_name: formData.parentName.trim(),
+      const attribution = captureWaitlistAttribution();
+      const { error } = await submitMarketingWaitlist({
+        parentName: formData.parentName.trim(),
         email: formData.email.trim().toLowerCase(),
         phone: formData.phone.replace(/[-\s]/g, ''),
-        child_age: parseInt(formData.childAge),
-        device_os: formData.deviceOs,
+        childAge: parseInt(formData.childAge),
+        deviceOs: formData.deviceOs,
         region: formData.region || null,
-        referral_source: formData.referralSource || null,
-        referral_other: formData.referralSource === 'other' ? formData.referralOther : null,
+        referralSource: formData.referralSource || null,
+        referralOther: formData.referralSource === 'other' ? formData.referralOther : null,
+        attribution,
       });
 
       if (error) {
@@ -185,7 +188,7 @@ export function WaitlistModal() {
             </div>
             <h3 className="text-xl font-bold mb-2">נרשמת בהצלחה</h3>
             <p className="text-muted-foreground mb-6">
-              נעדכן אותך כשייפתח מקום לגישה.
+              נעדכן אותך בהתקדמות לקראת ההשקה.
             </p>
             <Button onClick={handleClose} className="px-8">
               סגור
@@ -199,11 +202,11 @@ export function WaitlistModal() {
                 <span className="text-xl font-bold text-primary">KippyAI</span>
               </div>
               <DialogTitle className="text-xl md:text-2xl font-bold text-right">
-                הצטרפות לרשימת ההמתנה של KippyAI
+                מצטרפים לעדכוני KippyAI
               </DialogTitle>
               <p className="text-sm text-muted-foreground mt-2 text-right">
-                אנחנו פותחים גישה בהדרגה למעגלים קטנים כדי לוודא חוויה בטוחה ומדויקת.
-                השאירו פרטים ונעדכן כשייפתח מקום לגישה. אין ספאם, ניתן להסיר בכל רגע.
+                KippyAI נבנית לקראת השקה. השאירו פרטים כדי לקבל עדכונים על ההתקדמות
+                ועל הזדמנויות עתידיות להשתתף בפיילוט.
               </p>
             </DialogHeader>
 
@@ -229,7 +232,7 @@ export function WaitlistModal() {
                     <User className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   </div>
                   {errors.parentName && (
-                    <p className="text-xs text-destructive">{errors.parentName}</p>
+                    <p role="alert" className="text-xs text-destructive">{errors.parentName}</p>
                   )}
                 </div>
 
@@ -254,7 +257,7 @@ export function WaitlistModal() {
                     <Mail className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   </div>
                   {errors.email && (
-                    <p className="text-xs text-destructive">{errors.email}</p>
+                    <p role="alert" className="text-xs text-destructive">{errors.email}</p>
                   )}
                 </div>
 
@@ -279,7 +282,7 @@ export function WaitlistModal() {
                     <Phone className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   </div>
                   {errors.phone && (
-                    <p className="text-xs text-destructive">{errors.phone}</p>
+                    <p role="alert" className="text-xs text-destructive">{errors.phone}</p>
                   )}
                 </div>
 
@@ -305,7 +308,7 @@ export function WaitlistModal() {
                     <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   </div>
                   {errors.childAge && (
-                    <p className="text-xs text-destructive">{errors.childAge}</p>
+                    <p role="alert" className="text-xs text-destructive">{errors.childAge}</p>
                   )}
                 </div>
               </div>
@@ -346,7 +349,7 @@ export function WaitlistModal() {
                   </button>
                 </div>
                 {errors.deviceOs && (
-                  <p className="text-xs text-destructive">{errors.deviceOs}</p>
+                  <p role="alert" className="text-xs text-destructive">{errors.deviceOs}</p>
                 )}
               </div>
 
@@ -415,13 +418,12 @@ export function WaitlistModal() {
                 className="w-full py-5 text-lg glow-primary"
                 disabled={!isFormValid || isSubmitting}
               >
-                {isSubmitting ? 'שולח...' : 'הצטרפתי לרשימה'}
+                {isSubmitting ? 'שולח...' : 'מצטרפים לעדכונים'}
               </Button>
 
               {/* Privacy Text */}
               <p className="text-xs text-muted-foreground/70 text-center leading-relaxed">
-                בלחיצה על "הצטרפתי לרשימה" אני מסכימ/ה לקבל עדכונים על גישה מוקדמת.
-                הפרטים נשמרים לצורך יצירת קשר בלבד ולא מועברים לצדדים שלישיים.
+                בלחיצה על "מצטרפים לעדכונים" אני מסכימ/ה לקבל עדכונים על התקדמות KippyAI לקראת ההשקה.
               </p>
             </form>
           </>

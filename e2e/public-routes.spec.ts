@@ -26,6 +26,70 @@ test.describe("public web smoke", () => {
     ).toBeVisible();
   });
 
+  test("waitlist submission persists once with first-touch and submission-touch attribution", async ({
+    page,
+  }) => {
+    const waitlistRpcCalls: Record<string, unknown>[] = [];
+
+    await page.route("**/rest/v1/rpc/v2_submit_marketing_waitlist", async (route) => {
+      if (route.request().method() !== "POST") {
+        await route.continue();
+        return;
+      }
+
+      const body = route.request().postDataJSON() as Record<string, unknown>;
+      waitlistRpcCalls.push(body);
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify("11111111-1111-4111-8111-111111111111"),
+      });
+    });
+
+    await page.goto(
+      "/?utm_source=founder&utm_medium=organic&utm_campaign=prelaunch&utm_content=hero&utm_term=parents",
+      { waitUntil: "domcontentloaded" },
+    );
+    await page.getByRole("button", { name: "מצטרפים לעדכונים", exact: true }).first().click();
+
+    const dialog = page.getByRole("dialog");
+    await dialog.getByLabel(/^שם ההורה/).fill("בדיקת קיפי");
+    await dialog.getByLabel(/^אימייל/).fill("landing-gate@example.com");
+    await dialog.getByLabel(/^מספר טלפון/).fill("0501234567");
+    await dialog.getByLabel(/^גיל הילד/).fill("11");
+    await dialog.getByRole("button", { name: "Android" }).click();
+    await dialog.getByRole("button", { name: "מצטרפים לעדכונים", exact: true }).click();
+
+    await expect(dialog.getByRole("heading", { name: "נרשמת בהצלחה" })).toBeVisible();
+    expect(waitlistRpcCalls).toHaveLength(1);
+    expect(waitlistRpcCalls[0]).toMatchObject({
+      target_parent_name: "בדיקת קיפי",
+      target_email: "landing-gate@example.com",
+      target_phone: "0501234567",
+      target_child_age: 11,
+      target_device_os: "android",
+      target_landing_path: "/",
+      target_referrer_host: null,
+      target_marketing_notice_version: "waitlist-updates-v1",
+      target_first_touch: {
+        utm_source: "founder",
+        utm_medium: "organic",
+        utm_campaign: "prelaunch",
+        utm_content: "hero",
+        utm_term: "parents",
+        landing_path: "/",
+      },
+      target_submission_touch: {
+        utm_source: "founder",
+        utm_medium: "organic",
+        utm_campaign: "prelaunch",
+        utm_content: "hero",
+        utm_term: "parents",
+        landing_path: "/",
+      },
+    });
+  });
+
   test("authentication screen is available without submitting credentials", async ({ page }) => {
     await page.goto("/auth", { waitUntil: "domcontentloaded" });
 
