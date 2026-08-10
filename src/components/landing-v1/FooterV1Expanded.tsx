@@ -11,11 +11,11 @@ export function FooterV1Expanded() {
           <div className="col-span-2">
             <Link to="/" className="flex items-center gap-2 mb-4">
               <img src={kippyLogo} alt="Kippy" className="h-8 w-auto" />
-              <span className="text-xl font-bold text-foreground">Kippy</span>
+              <span className="text-xl font-bold text-foreground">KippyAI</span>
             </Link>
             <p className="text-muted-foreground mb-6 max-w-md leading-relaxed">
-              הגנה חכמה לילדים ברשת — בלי לפגוע בפרטיות שלהם.
-              אנחנו כאן כדי לעזור לכם לשמור על הילדים בטוחים.
+              KippyAI נבנית כדרך רגועה יותר להציב גבולות, להבין הקשר
+              ולדעת מתי שווה לפתוח שיחה.
             </p>
           </div>
 

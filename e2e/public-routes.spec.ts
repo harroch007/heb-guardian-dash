@@ -9,21 +9,45 @@ test.describe("public web smoke", () => {
     await expect(
       page.getByRole("heading", {
         level: 1,
-        name: /להבין מה באמת קורה/,
+        name: /הם לא צריכים שתראו הכול/,
       }),
     ).toBeVisible();
     await expect(page.locator("#main-content")).toBeVisible();
 
+    const waitlistCta = page.getByRole("button", {
+      name: "מצטרפים לעדכונים",
+      exact: true,
+    }).first();
+    await expect(waitlistCta).toBeVisible();
+    await waitlistCta.click();
+    await expect(
+      page.getByRole("dialog").getByRole("heading", {
+        name: "מצטרפים לעדכוני KippyAI",
+      }),
+    ).toBeVisible();
+    await page.keyboard.press("Escape");
+
     const question = page.getByRole("button", {
-      name: "איך Kippy מצמצמת התראות שווא?",
+      name: "מה הסטטוס של KippyAI כיום?",
     });
     await question.click();
     await expect(
       page.getByText(
-        "המערכת אינה מסתפקת במילת טריגר. היא בוחנת את רצף השיחה, הכיוון, המשתתפים והגיל כדי להבדיל בין צחוק וסלנג לבין פגיעה אמיתית.",
+        "KippyAI נמצאת בפיתוח לקראת השקה. הצטרפות לעדכונים אינה פתיחת חשבון ואינה מעידה שהמוצר זמין לציבור.",
         { exact: true },
       ),
     ).toBeVisible();
+
+    const body = page.locator("body");
+    for (const unsupportedCopy of [
+      "Kippy בודקת טקסט והודעות קוליות",
+      "תמלול מהיר ומדויק",
+      "פרטיות מקומית",
+      "צרו חשבון, הוסיפו ילד",
+      "קיצור ללוח ההורה במסך הבית",
+    ]) {
+      await expect(body).not.toContainText(unsupportedCopy);
+    }
   });
 
   test("waitlist submission persists once with first-touch and submission-touch attribution", async ({
@@ -180,7 +204,7 @@ test.describe("mobile public web smoke", () => {
     await expect(
       page.getByRole("heading", {
         level: 1,
-        name: /להבין מה באמת קורה/,
+        name: /הם לא צריכים שתראו הכול/,
       }),
     ).toBeVisible();
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
@@ -206,10 +230,10 @@ test.describe("mobile public web smoke", () => {
       await page.waitForTimeout(50);
     }
     await expect(
-      page.getByRole("heading", { name: "מזהים סיכון אמיתי" }),
+      page.getByRole("heading", { name: "דרך רגועה יותר להורות בעולם הדיגיטלי" }),
     ).toBeVisible();
     await expect(
-      page.getByRole("heading", { name: "הודעות טקסט" }),
+      page.getByRole("heading", { name: "מה KippyAI נבנית להציע" }),
     ).toBeVisible();
     await page.evaluate(() => window.scrollTo({ top: 0 }));
 

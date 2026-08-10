@@ -4,16 +4,16 @@ import {
   Bell,
   BrainCircuit,
   MessageCircle,
-  Mic,
+  SlidersHorizontal,
   ShieldCheck,
 } from 'lucide-react';
 
 const protectionAreas = [
-  { icon: MessageCircle, text: 'ניתוח הודעות טקסט ב־WhatsApp' },
-  { icon: Mic, text: 'תמלול הודעות קוליות ברצף הנכון' },
-  { icon: BrainCircuit, text: 'הבנת הקשר ותפקיד הילד בשיחה' },
-  { icon: Bell, text: 'התראה להורה רק לאחר אימות' },
-  { icon: Activity, text: 'מצב ניטור והרשאות המכשיר' },
+  { icon: SlidersHorizontal, text: 'גבולות ברורים לשימוש בטלפון' },
+  { icon: BrainCircuit, text: 'הבנת הקשר במקום תגובה למילה בודדת' },
+  { icon: Bell, text: 'סימנים ממוקדים שכדאי לבדוק' },
+  { icon: MessageCircle, text: 'הכוונה לשיחה רגועה עם הילד' },
+  { icon: Activity, text: 'שקיפות לגבי מצב המוצר והתקדמותו' },
 ];
 
 export function CoachSpotlight() {
@@ -31,12 +31,12 @@ export function CoachSpotlight() {
             <div className="grid lg:grid-cols-2 gap-8 sm:gap-10 items-center">
               <div>
                 <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-4 leading-tight">
-                  לכל ילד יש
+                  מה אנחנו בונים
                   <br />
-                  <span className="text-primary">הגנה נפרדת משלו</span>
+                  <span className="text-primary">לקראת ההשקה</span>
                 </h2>
                 <p className="text-base text-muted-foreground mb-6 leading-relaxed">
-                  כל שיחה נשמרת במחסנית נפרדת, נבדקת בהקשר ומוצגת להורה רק כשנדרשת תשומת לב.
+                  KippyAI נמצאת בפיתוח. אלה עקרונות היעד של המוצר, לא תיאור של יכולות שזמינות כעת.
                 </p>
 
                 <div className="space-y-3">
@@ -61,12 +61,12 @@ export function CoachSpotlight() {
                       <ShieldCheck className="h-5 w-5 text-primary" />
                     </span>
                     <div>
-                      <p className="font-bold text-foreground">הניטור של נועם</p>
-                      <p className="text-xs text-muted-foreground">המכשיר מחובר והניטור פעיל</p>
+                      <p className="font-bold text-foreground">כיוון המוצר</p>
+                      <p className="text-xs text-muted-foreground">תצוגת עקרונות לקראת ההשקה</p>
                     </div>
                   </div>
                   <span className="rounded-full bg-success/15 px-2 py-1 text-[10px] font-semibold text-success">
-                    פעיל
+                    בפיתוח
                   </span>
                 </div>
                 <div className="grid grid-cols-2 gap-2">

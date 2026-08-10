@@ -1,13 +1,13 @@
 import { motion } from 'framer-motion';
-import { Activity, Bell, BrainCircuit, Lock, MessageCircle, Mic } from 'lucide-react';
+import { Activity, Bell, BrainCircuit, Compass, MessageCircle, SlidersHorizontal } from 'lucide-react';
 
 const features = [
-  { icon: MessageCircle, title: 'הודעות טקסט', desc: 'זיהוי עברית, אנגלית, סלנג, אימוג׳ים והקשר של שיחה פרטית או קבוצתית.' },
-  { icon: Mic, title: 'הודעות קוליות', desc: 'תמלול מהיר ושמירת התוצאה במקום המקורי שלה ברצף השיחה.' },
-  { icon: BrainCircuit, title: 'הבנת הקשר', desc: 'המומחה בוחן מי אמר מה, למי ובאיזו התפתחות של השיחה.' },
-  { icon: Lock, title: 'פרטיות כברירת מחדל', desc: 'הסינון והמחסניות נשארים מקומית במכשיר הילד ככל האפשר.' },
-  { icon: Bell, title: 'התראות מאומתות', desc: 'הורה מקבל התראה רק לאחר שנמצא אירוע שמצריך התערבות.' },
-  { icon: Activity, title: 'מצב ניטור ברור', desc: 'רואים אם המכשיר מדווח ואם אחת מארבע הרשאות ההגנה חסרה.' },
+  { icon: SlidersHorizontal, title: 'גבולות ברורים', desc: 'כללים משפחתיים שקל להבין ושנועדו להפחית מאבקים סביב הטלפון.' },
+  { icon: BrainCircuit, title: 'הקשר לפני מסקנה', desc: 'כיוון המוצר הוא להתייחס לרצף ולהקשר, לא רק למילה בודדת.' },
+  { icon: Bell, title: 'פחות רעש', desc: 'החוויה מתוכננת למקד את תשומת הלב במה ששווה בדיקה.' },
+  { icon: Compass, title: 'צעד הבא', desc: 'הכוונה בהירה שנועדה לעזור להורה לפתוח שיחה רגועה.' },
+  { icon: MessageCircle, title: 'שיחה לפני שליטה', desc: 'כלים שנועדו לתמוך בנוכחות הורית בלי להפוך את הבית לחקירה.' },
+  { icon: Activity, title: 'שקיפות בהתקדמות', desc: 'נעדכן מה עבר בדיקה ומה עדיין נמצא בפיתוח לפני פתיחת הגישה.' },
 ];
 
 export function FeaturesGrid() {
@@ -15,7 +15,7 @@ export function FeaturesGrid() {
     <section id="features" className="py-16 md:py-24" dir="rtl">
       <div className="container mx-auto px-4">
         <h2 className="text-3xl md:text-4xl font-bold text-foreground text-center mb-12">
-          שכבות ההגנה של Kippy
+          מה KippyAI נבנית להציע
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 max-w-6xl mx-auto">
           {features.map(({ icon: Icon, title, desc }, i) => (

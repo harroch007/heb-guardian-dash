@@ -1,17 +1,17 @@
 import { motion } from 'framer-motion';
-import { Smartphone, QrCode, ShieldCheck, ArrowLeft } from 'lucide-react';
+import { BellRing, ClipboardCheck, Sparkles, ArrowLeft } from 'lucide-react';
 
 const steps = [
-  { num: 1, icon: Smartphone, title: 'ההורה נרשם ומוסיף ילד', desc: 'מקבלים קוד QR לחיבור מאובטח של המכשיר.' },
-  { num: 2, icon: QrCode, title: 'מחברים את מכשיר הילד', desc: 'מתקינים את אפליקציית הילד ומאשרים את ההרשאות הנדרשות.' },
-  { num: 3, icon: ShieldCheck, title: 'מקבלים רק התראות שאומתו', desc: 'Kippy מנתחת את ההקשר ומציגה להורה הסבר רגוע ופעולה מומלצת רק כשנדרשת התערבות.' },
+  { num: 1, icon: Sparkles, title: 'מצטרפים לעדכונים', desc: 'משאירים פרטים כדי לעקוב אחרי ההתקדמות לקראת ההשקה.' },
+  { num: 2, icon: ClipboardCheck, title: 'אנחנו משלימים שערי מוצר', desc: 'זמינות, זרימת מידע וטענות שיווקיות נבדקות לפני פתיחת גישה.' },
+  { num: 3, icon: BellRing, title: 'נעדכן כשהגישה תהיה מוכנה', desc: 'הצטרפות לעדכונים אינה הרשמה למוצר ואינה מבטיחה מועד פתיחה.' },
 ];
 
 export function HowItWorks() {
   return (
     <section id="how-it-works" className="py-16 md:py-24" dir="rtl">
       <div className="container mx-auto px-4">
-        <h2 className="text-3xl md:text-4xl font-bold text-foreground text-center mb-12">איך זה עובד?</h2>
+        <h2 className="text-3xl md:text-4xl font-bold text-foreground text-center mb-12">מה קורה לקראת ההשקה?</h2>
         <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto relative">
           {steps.map(({ num, icon: Icon, title, desc }, i) => (
             <motion.div

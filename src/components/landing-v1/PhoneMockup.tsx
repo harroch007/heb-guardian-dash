@@ -4,9 +4,9 @@ import {
   Bell,
   Home,
   MessageCircle,
-  Mic,
   Settings,
   ShieldCheck,
+  Sparkles,
   Users,
 } from 'lucide-react';
 
@@ -38,24 +38,24 @@ function OverviewScreen() {
         <span className="text-xs font-bold text-foreground">מרכז ההגנה</span>
         <div className="w-7 h-7 rounded-full bg-primary/20 border border-primary/40" />
       </div>
-      <p className="text-[10px] text-muted-foreground">ניטור WhatsApp</p>
+      <p className="text-[10px] text-muted-foreground">תצוגת כיוון · לקראת השקה</p>
 
       <div className="bg-card border border-border rounded-2xl p-4">
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <ShieldCheck className="h-4 w-4 text-success" />
-            <span className="text-[11px] font-bold text-foreground">2 מכשירים מנוטרים</span>
+            <span className="text-[11px] font-bold text-foreground">KippyAI נבנית</span>
           </div>
-          <span className="rounded-full bg-success/15 px-2 py-0.5 text-[9px] text-success">תקין</span>
+          <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[9px] text-primary">בפיתוח</span>
         </div>
         <div className="grid grid-cols-2 gap-2">
           <div className="rounded-lg bg-background p-2">
-            <p className="text-[9px] text-muted-foreground">ניטור פעיל</p>
-            <p className="text-sm font-bold text-foreground">2 מתוך 2</p>
+            <p className="text-[9px] text-muted-foreground">עיקרון ראשון</p>
+            <p className="text-sm font-bold text-foreground">גבולות</p>
           </div>
           <div className="rounded-lg bg-background p-2">
-            <p className="text-[9px] text-muted-foreground">התראות חדשות</p>
-            <p className="text-sm font-bold text-primary">1</p>
+            <p className="text-[9px] text-muted-foreground">עיקרון שני</p>
+            <p className="text-sm font-bold text-primary">הקשר</p>
           </div>
         </div>
       </div>
@@ -63,25 +63,25 @@ function OverviewScreen() {
       <div className="bg-card border border-border rounded-xl p-2.5 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <MessageCircle className="w-3.5 h-3.5 text-primary" />
-          <span className="text-[10px] text-foreground">נועם · WhatsApp</span>
+          <span className="text-[10px] text-foreground">פחות רעש · יותר בהירות</span>
         </div>
-        <span className="text-[10px] font-bold text-success">פעיל</span>
+        <span className="text-[10px] font-bold text-primary">יעד</span>
       </div>
 
       <div className="bg-card border border-border rounded-xl p-2.5 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Battery className="w-3.5 h-3.5 text-success" />
-          <span className="text-[10px] text-foreground">מצב סוללה</span>
+          <Battery className="w-3.5 h-3.5 text-primary" />
+          <span className="text-[10px] text-foreground">שיחה לפני מסקנה</span>
         </div>
-        <span className="text-[9px] text-muted-foreground">82%</span>
+        <span className="text-[9px] text-muted-foreground">עיקרון</span>
       </div>
 
       <div className="bg-card border border-border rounded-xl p-2.5 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Activity className="w-3.5 h-3.5 text-warning" />
-          <span className="text-[10px] text-foreground">הרשאות הניטור</span>
+          <span className="text-[10px] text-foreground">יותר מקום לגדול</span>
         </div>
-        <span className="text-[9px] font-bold text-warning">3 מתוך 4</span>
+        <span className="text-[9px] font-bold text-warning">חזון</span>
       </div>
     </div>
   );
@@ -89,18 +89,18 @@ function OverviewScreen() {
 
 function ProtectionScreen() {
   const areas = [
-    { icon: MessageCircle, title: 'הודעות טקסט', value: 'נבדקות בהקשר' },
-    { icon: Mic, title: 'הודעות קוליות', value: 'תמלול מהיר ומדויק' },
-    { icon: ShieldCheck, title: 'שתי שכבות מקומיות', value: 'המידע נשאר במכשיר' },
-    { icon: Bell, title: 'התראות מאומתות', value: 'רק כשנדרשת התערבות' },
+    { icon: MessageCircle, title: 'שיחה רגועה', value: 'לפני מסקנה' },
+    { icon: Sparkles, title: 'פחות רעש', value: 'יותר בהירות' },
+    { icon: ShieldCheck, title: 'גבולות ברורים', value: 'למשפחה' },
+    { icon: Bell, title: 'סימן ממוקד', value: 'כשכדאי לבדוק' },
   ];
 
   return (
     <div className="flex-1 space-y-3">
       <div className="flex items-center justify-between">
         <div>
-          <span className="block text-xs font-bold text-foreground">מרכז ההגנה של נועם</span>
-          <span className="text-[9px] text-muted-foreground">מחובר עכשיו · 82% סוללה</span>
+          <span className="block text-xs font-bold text-foreground">עקרונות המוצר</span>
+          <span className="text-[9px] text-muted-foreground">תצוגת כיוון · לא מוצר זמין</span>
         </div>
         <ShieldCheck className="h-5 w-5 text-success" />
       </div>
@@ -119,8 +119,8 @@ function ProtectionScreen() {
         <div className="flex items-center gap-2">
           <Activity className="h-4 w-4 text-success" />
           <div>
-            <p className="text-[10px] font-bold text-foreground">הניטור פעיל</p>
-            <p className="text-[8px] text-muted-foreground">כל ארבע הרשאות ההגנה פעילות</p>
+            <p className="text-[10px] font-bold text-foreground">לקראת השקה</p>
+            <p className="text-[8px] text-muted-foreground">הגישה תיפתח רק לאחר השלמת שערי המוצר</p>
           </div>
         </div>
       </div>

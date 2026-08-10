@@ -1,7 +1,7 @@
-import { Download, Share, Plus, Smartphone, Chrome, MoreVertical } from "lucide-react";
+import { BellRing, Download, Share, Plus, Smartphone, Chrome, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePWAInstall } from "@/hooks/usePWAInstall";
-import kippyLogo from "@/assets/kippy-logo.svg";
+import { useWaitlist } from "@/contexts/WaitlistContext";
 
 interface InstallAppCardProps {
   variant?: "settings" | "landing";
@@ -15,6 +15,31 @@ interface InstallAppCardProps {
  */
 export function InstallAppCard({ variant = "settings" }: InstallAppCardProps) {
   const { isInstalled, isInstallable, install, isIOS, isAndroid } = usePWAInstall();
+  const { openModal } = useWaitlist();
+
+  if (variant === "landing") {
+    return (
+      <section className="py-12" dir="rtl">
+        <div className="container mx-auto px-4">
+          <div className="max-w-2xl mx-auto bg-card/60 backdrop-blur border border-primary/20 rounded-2xl p-6 sm:p-8 shadow-[0_0_24px_hsl(var(--primary)/0.15)]">
+            <div className="flex items-start gap-4 mb-5">
+              <div className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/30 flex items-center justify-center shrink-0">
+                <BellRing className="w-6 h-6 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-foreground">KippyAI נבנית לקראת השקה</h2>
+                <p className="text-sm text-muted-foreground mt-1">הגישה עדיין אינה פתוחה לציבור. הצטרפו לעדכונים כדי לעקוב אחרי ההתקדמות.</p>
+              </div>
+            </div>
+            <Button onClick={openModal} className="gap-2 w-full sm:w-auto">
+              <BellRing className="w-4 h-4" />
+              מצטרפים לעדכונים
+            </Button>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   if (isInstalled) return null;
 
@@ -68,27 +93,6 @@ export function InstallAppCard({ variant = "settings" }: InstallAppCardProps) {
       </p>
     </div>
   ) : null;
-
-  if (variant === "landing") {
-    return (
-      <section className="py-12" dir="rtl">
-        <div className="container mx-auto px-4">
-          <div className="max-w-2xl mx-auto bg-card/60 backdrop-blur border border-primary/20 rounded-2xl p-6 sm:p-8 shadow-[0_0_24px_hsl(var(--primary)/0.15)]">
-            <div className="flex items-start gap-4 mb-5">
-              <div className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/30 flex items-center justify-center shrink-0">
-                <Download className="w-6 h-6 text-primary" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-foreground">קיצור ללוח ההורה במסך הבית</h2>
-                <p className="text-sm text-muted-foreground mt-1">לוח ההורה שלכם, גישה מהירה ממסך הבית של הטלפון. לא מחליף את אפליקציית הילד — זו אפליקציה נפרדת בשבילכם, ללא צורך בחנות אפליקציות.</p>
-              </div>
-            </div>
-            {Action}
-          </div>
-        </div>
-      </section>
-    );
-  }
 
   // settings variant
   const Title = (

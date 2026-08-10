@@ -13,7 +13,7 @@ export function FreeAccessCTA() {
 
   const button = (
     <Button size="lg" onClick={handleCTA} className="bg-primary text-primary-foreground hover:bg-primary/90 text-base sm:text-lg h-12 sm:h-14 px-6 sm:px-10 rounded-xl font-bold glow-primary w-full sm:w-auto">
-      התחילו להגן
+      מצטרפים לעדכונים
     </Button>
   );
 
@@ -34,12 +34,12 @@ export function FreeAccessCTA() {
               <Users className="w-10 h-10 text-primary" />
             </div>
             <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold text-foreground mb-4 leading-tight">
-              מוכנים להבין מתי הילד
+              רוצים לעקוב אחרי הדרך
               <br />
-              <span className="text-primary">באמת צריך אתכם?</span>
+              <span className="text-primary">לקראת ההשקה?</span>
             </h2>
             <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
-              צרו חשבון, הוסיפו ילד וחברו את מכשיר ה־Android באמצעות קוד QR מאובטח.
+              הצטרפו לעדכוני KippyAI וקבלו הודעה כשהמוצר יהיה מוכן לפתיחת גישה.
             </p>
             <div className="flex justify-center">
               {WAITLIST_MODE ? button : <Link to="/auth?signup=true">{button}</Link>}

@@ -1,11 +1,11 @@
 import { motion } from 'framer-motion';
-import { Activity, Brain, LockKeyhole, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { Brain, MessageCircle, SlidersHorizontal, Sprout, CheckCircle2 } from 'lucide-react';
 
 const items = [
-  { icon: Brain, title: 'פחות התראות שווא', sub: 'בזכות הקשר מלא' },
-  { icon: ShieldCheck, title: 'הגנה לכל ילד', sub: 'וכל שיחה בנפרד' },
-  { icon: Activity, title: 'מצב ניטור ברור', sub: 'חיבור והרשאות' },
-  { icon: LockKeyhole, title: 'פרטיות מקומית', sub: 'כברירת מחדל' },
+  { icon: Brain, title: 'פחות רעש', sub: 'יותר בהירות' },
+  { icon: SlidersHorizontal, title: 'גבולות ברורים', sub: 'פחות מאבקים' },
+  { icon: Sprout, title: 'מרחב לילדים', sub: 'נוכחות להורים' },
+  { icon: MessageCircle, title: 'שיחה רגועה', sub: 'לפני מסקנה' },
 ];
 
 export function WhyParents() {
@@ -13,7 +13,7 @@ export function WhyParents() {
     <section className="py-16 md:py-20" dir="rtl">
       <div className="container mx-auto px-4">
         <h2 className="text-3xl md:text-4xl font-bold text-foreground text-center mb-10">
-          למה הורים מתחברים לקיפי?
+          למה אנחנו בונים את KippyAI?
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-5 max-w-5xl mx-auto mb-8">
           {items.map(({ icon: Icon, title, sub }, i) => (
@@ -35,7 +35,7 @@ export function WhyParents() {
         </div>
         <p className="text-center text-muted-foreground text-sm flex items-center justify-center gap-2">
           <CheckCircle2 className="w-4 h-4 text-success" />
-          נבנה עבור משפחות אמיתיות, מתוך הצרכים האמיתיים של הבית המודרני
+          נבנית עבור הורים שרוצים לתת מרחב בלי להישאר בחושך
         </p>
       </div>
     </section>

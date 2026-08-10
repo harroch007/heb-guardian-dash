@@ -3,8 +3,8 @@ import { ShieldCheck } from 'lucide-react';
 
 const quotes = [
   { emoji: '💬', text: '"האם זו סתם בדיחה בין חברים או שמשהו באמת קרה?"' },
-  { emoji: '🎙️', text: '"מה נאמר בהודעה הקולית שהוא שמע עכשיו?"' },
-  { emoji: '🛡️', text: '"איך אדע שהניטור עדיין פעיל ולא פספס הודעות?"' },
+  { emoji: '⏳', text: '"איך מציבים גבולות בלי שכל ערב יהפוך למאבק?"' },
+  { emoji: '🌱', text: '"איך נותנים לילדים מרחב בלי להישאר בחושך?"' },
 ];
 
 export function EmpathyQuotes() {
@@ -29,7 +29,7 @@ export function EmpathyQuotes() {
         </div>
         <p className="text-center text-muted-foreground mt-8 flex items-center justify-center gap-2">
           <ShieldCheck className="w-4 h-4 text-primary" />
-          הורים צריכים להבין מתי באמת נדרשת התערבות — בלי לקרוא כל שיחה ובלי להיבהל מכל מילה.
+          הורים צריכים דרך רגועה להבחין בין רעש לבין רגע שכדאי לבדוק.
         </p>
       </div>
     </section>
