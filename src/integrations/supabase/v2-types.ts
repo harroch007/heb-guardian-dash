@@ -1728,6 +1728,509 @@ export type Database = {
           },
         ]
       }
+      v2_cmo_approval_requests: {
+        Row: {
+          claim_review_result: string
+          content_hash: string
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_note: string | null
+          expires_at: string
+          id: string
+          launch_stage: string
+          preview: Json
+          requested_at: string
+          requested_by: string
+          resource_id: string
+          resource_type: string
+          risk: string
+          source_versions: Json
+          status: Database["public"]["Enums"]["v2_cmo_approval_status"]
+          unresolved_risks: Json
+          updated_at: string
+        }
+        Insert: {
+          claim_review_result: string
+          content_hash: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          expires_at: string
+          id?: string
+          launch_stage: string
+          preview?: Json
+          requested_at?: string
+          requested_by: string
+          resource_id: string
+          resource_type: string
+          risk: string
+          source_versions?: Json
+          status?: Database["public"]["Enums"]["v2_cmo_approval_status"]
+          unresolved_risks?: Json
+          updated_at?: string
+        }
+        Update: {
+          claim_review_result?: string
+          content_hash?: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          expires_at?: string
+          id?: string
+          launch_stage?: string
+          preview?: Json
+          requested_at?: string
+          requested_by?: string
+          resource_id?: string
+          resource_type?: string
+          risk?: string
+          source_versions?: Json
+          status?: Database["public"]["Enums"]["v2_cmo_approval_status"]
+          unresolved_risks?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_cmo_approval_requests_decided_by_fkey"
+            columns: ["decided_by"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_cmo_approval_requests_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_cmo_audit_events: {
+        Row: {
+          actor_agent: string | null
+          actor_principal_id: string | null
+          created_at: string
+          event_type: string
+          id: number
+          payload: Json
+          resource_id: string | null
+          resource_type: string
+        }
+        Insert: {
+          actor_agent?: string | null
+          actor_principal_id?: string | null
+          created_at?: string
+          event_type: string
+          id?: never
+          payload?: Json
+          resource_id?: string | null
+          resource_type: string
+        }
+        Update: {
+          actor_agent?: string | null
+          actor_principal_id?: string | null
+          created_at?: string
+          event_type?: string
+          id?: never
+          payload?: Json
+          resource_id?: string | null
+          resource_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_cmo_audit_events_actor_principal_id_fkey"
+            columns: ["actor_principal_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_cmo_campaign_briefs: {
+        Row: {
+          audience: string
+          channel: string
+          constraints_json: Json
+          created_at: string
+          hypothesis: string
+          id: string
+          launch_stage: string
+          objective: string
+          owner_principal_id: string
+          single_cta: string
+          source_versions: Json
+          status: Database["public"]["Enums"]["v2_cmo_workflow_status"]
+          success_signals: Json
+          updated_at: string
+        }
+        Insert: {
+          audience: string
+          channel: string
+          constraints_json?: Json
+          created_at?: string
+          hypothesis: string
+          id?: string
+          launch_stage: string
+          objective: string
+          owner_principal_id: string
+          single_cta: string
+          source_versions?: Json
+          status?: Database["public"]["Enums"]["v2_cmo_workflow_status"]
+          success_signals?: Json
+          updated_at?: string
+        }
+        Update: {
+          audience?: string
+          channel?: string
+          constraints_json?: Json
+          created_at?: string
+          hypothesis?: string
+          id?: string
+          launch_stage?: string
+          objective?: string
+          owner_principal_id?: string
+          single_cta?: string
+          source_versions?: Json
+          status?: Database["public"]["Enums"]["v2_cmo_workflow_status"]
+          success_signals?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_cmo_campaign_briefs_owner_principal_id_fkey"
+            columns: ["owner_principal_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_cmo_content_items: {
+        Row: {
+          brief_id: string
+          claim_gate_result: string
+          claim_refs: Json
+          claim_reviewed_at: string | null
+          claim_reviewed_by: string | null
+          content_hash: string
+          copy_json: Json
+          created_at: string
+          creative_refs: Json
+          format: string
+          id: string
+          owner_principal_id: string
+          status: Database["public"]["Enums"]["v2_cmo_workflow_status"]
+          updated_at: string
+          utm: Json
+        }
+        Insert: {
+          brief_id: string
+          claim_gate_result?: string
+          claim_refs?: Json
+          claim_reviewed_at?: string | null
+          claim_reviewed_by?: string | null
+          content_hash: string
+          copy_json: Json
+          created_at?: string
+          creative_refs?: Json
+          format: string
+          id?: string
+          owner_principal_id: string
+          status?: Database["public"]["Enums"]["v2_cmo_workflow_status"]
+          updated_at?: string
+          utm?: Json
+        }
+        Update: {
+          brief_id?: string
+          claim_gate_result?: string
+          claim_refs?: Json
+          claim_reviewed_at?: string | null
+          claim_reviewed_by?: string | null
+          content_hash?: string
+          copy_json?: Json
+          created_at?: string
+          creative_refs?: Json
+          format?: string
+          id?: string
+          owner_principal_id?: string
+          status?: Database["public"]["Enums"]["v2_cmo_workflow_status"]
+          updated_at?: string
+          utm?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_cmo_content_items_brief_id_fkey"
+            columns: ["brief_id"]
+            isOneToOne: false
+            referencedRelation: "v2_cmo_campaign_briefs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_cmo_content_items_claim_reviewed_by_fkey"
+            columns: ["claim_reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_cmo_content_items_owner_principal_id_fkey"
+            columns: ["owner_principal_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_cmo_creative_assets: {
+        Row: {
+          asset_type: string
+          claim_gate_result: string
+          content_hash: string
+          content_item_id: string | null
+          created_at: string
+          id: string
+          metadata: Json
+          owner_principal_id: string
+          status: Database["public"]["Enums"]["v2_cmo_workflow_status"]
+          storage_ref: string
+          updated_at: string
+        }
+        Insert: {
+          asset_type: string
+          claim_gate_result?: string
+          content_hash: string
+          content_item_id?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json
+          owner_principal_id: string
+          status?: Database["public"]["Enums"]["v2_cmo_workflow_status"]
+          storage_ref: string
+          updated_at?: string
+        }
+        Update: {
+          asset_type?: string
+          claim_gate_result?: string
+          content_hash?: string
+          content_item_id?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json
+          owner_principal_id?: string
+          status?: Database["public"]["Enums"]["v2_cmo_workflow_status"]
+          storage_ref?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_cmo_creative_assets_content_item_id_fkey"
+            columns: ["content_item_id"]
+            isOneToOne: false
+            referencedRelation: "v2_cmo_content_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_cmo_creative_assets_owner_principal_id_fkey"
+            columns: ["owner_principal_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_cmo_experiments: {
+        Row: {
+          brief_id: string
+          created_at: string
+          ends_at: string | null
+          hypothesis: string
+          id: string
+          name: string
+          owner_principal_id: string
+          starts_at: string | null
+          status: string
+          success_metric: string
+          updated_at: string
+          variants: Json
+        }
+        Insert: {
+          brief_id: string
+          created_at?: string
+          ends_at?: string | null
+          hypothesis: string
+          id?: string
+          name: string
+          owner_principal_id: string
+          starts_at?: string | null
+          status?: string
+          success_metric: string
+          updated_at?: string
+          variants: Json
+        }
+        Update: {
+          brief_id?: string
+          created_at?: string
+          ends_at?: string | null
+          hypothesis?: string
+          id?: string
+          name?: string
+          owner_principal_id?: string
+          starts_at?: string | null
+          status?: string
+          success_metric?: string
+          updated_at?: string
+          variants?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_cmo_experiments_brief_id_fkey"
+            columns: ["brief_id"]
+            isOneToOne: false
+            referencedRelation: "v2_cmo_campaign_briefs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_cmo_experiments_owner_principal_id_fkey"
+            columns: ["owner_principal_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_cmo_metric_snapshots: {
+        Row: {
+          brief_id: string
+          collected_at: string
+          collected_by: string | null
+          data_quality: string
+          dimensions: Json
+          id: number
+          metrics: Json
+          period_end: string
+          period_start: string
+          source: string
+        }
+        Insert: {
+          brief_id: string
+          collected_at?: string
+          collected_by?: string | null
+          data_quality: string
+          dimensions?: Json
+          id?: never
+          metrics: Json
+          period_end: string
+          period_start: string
+          source: string
+        }
+        Update: {
+          brief_id?: string
+          collected_at?: string
+          collected_by?: string | null
+          data_quality?: string
+          dimensions?: Json
+          id?: never
+          metrics?: Json
+          period_end?: string
+          period_start?: string
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_cmo_metric_snapshots_brief_id_fkey"
+            columns: ["brief_id"]
+            isOneToOne: false
+            referencedRelation: "v2_cmo_campaign_briefs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_cmo_metric_snapshots_collected_by_fkey"
+            columns: ["collected_by"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_cmo_publication_jobs: {
+        Row: {
+          approval_id: string
+          channel: string
+          content_hash: string
+          created_at: string
+          failure_code: string | null
+          id: string
+          idempotency_key: string
+          provider_ref: string | null
+          published_at: string | null
+          requested_by: string
+          resource_id: string
+          resource_type: string
+          scheduled_for: string | null
+          status: Database["public"]["Enums"]["v2_cmo_workflow_status"]
+          updated_at: string
+          verification_evidence: Json | null
+          verified_at: string | null
+        }
+        Insert: {
+          approval_id: string
+          channel: string
+          content_hash: string
+          created_at?: string
+          failure_code?: string | null
+          id?: string
+          idempotency_key: string
+          provider_ref?: string | null
+          published_at?: string | null
+          requested_by: string
+          resource_id: string
+          resource_type: string
+          scheduled_for?: string | null
+          status: Database["public"]["Enums"]["v2_cmo_workflow_status"]
+          updated_at?: string
+          verification_evidence?: Json | null
+          verified_at?: string | null
+        }
+        Update: {
+          approval_id?: string
+          channel?: string
+          content_hash?: string
+          created_at?: string
+          failure_code?: string | null
+          id?: string
+          idempotency_key?: string
+          provider_ref?: string | null
+          published_at?: string | null
+          requested_by?: string
+          resource_id?: string
+          resource_type?: string
+          scheduled_for?: string | null
+          status?: Database["public"]["Enums"]["v2_cmo_workflow_status"]
+          updated_at?: string
+          verification_evidence?: Json | null
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_cmo_publication_jobs_approval_id_fkey"
+            columns: ["approval_id"]
+            isOneToOne: false
+            referencedRelation: "v2_cmo_approval_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_cmo_publication_jobs_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       v2_device_commands: {
         Row: {
           claimed_at: string | null
@@ -2512,6 +3015,69 @@ export type Database = {
           public_key_pem?: string
           retires_at?: string | null
           status?: string
+        }
+        Relationships: []
+      }
+      v2_marketing_waitlist_signups: {
+        Row: {
+          child_age: number
+          consented_at: string
+          created_at: string
+          device_os: string
+          email: string
+          first_touch: Json
+          id: string
+          landing_path: string
+          marketing_notice_version: string
+          parent_name: string
+          phone: string
+          referral_other: string | null
+          referral_source: string | null
+          referrer_host: string | null
+          region: string | null
+          status: string
+          submission_touch: Json
+          updated_at: string
+        }
+        Insert: {
+          child_age: number
+          consented_at?: string
+          created_at?: string
+          device_os: string
+          email: string
+          first_touch: Json
+          id?: string
+          landing_path: string
+          marketing_notice_version: string
+          parent_name: string
+          phone: string
+          referral_other?: string | null
+          referral_source?: string | null
+          referrer_host?: string | null
+          region?: string | null
+          status?: string
+          submission_touch: Json
+          updated_at?: string
+        }
+        Update: {
+          child_age?: number
+          consented_at?: string
+          created_at?: string
+          device_os?: string
+          email?: string
+          first_touch?: Json
+          id?: string
+          landing_path?: string
+          marketing_notice_version?: string
+          parent_name?: string
+          phone?: string
+          referral_other?: string | null
+          referral_source?: string | null
+          referrer_host?: string | null
+          region?: string | null
+          status?: string
+          submission_touch?: Json
+          updated_at?: string
         }
         Relationships: []
       }
@@ -4581,6 +5147,110 @@ export type Database = {
           targets: Json
         }[]
       }
+      v2_cmo_can_transition: {
+        Args: {
+          from_status: Database["public"]["Enums"]["v2_cmo_workflow_status"]
+          to_status: Database["public"]["Enums"]["v2_cmo_workflow_status"]
+        }
+        Returns: boolean
+      }
+      v2_cmo_create_campaign_brief: {
+        Args: {
+          target_audience: string
+          target_channel: string
+          target_constraints?: Json
+          target_hypothesis: string
+          target_launch_stage: string
+          target_objective: string
+          target_single_cta: string
+          target_source_versions?: Json
+          target_success_signals?: Json
+        }
+        Returns: string
+      }
+      v2_cmo_create_content_item: {
+        Args: {
+          target_brief_id: string
+          target_claim_refs?: Json
+          target_content_hash: string
+          target_copy: Json
+          target_creative_refs?: Json
+          target_format: string
+          target_utm?: Json
+        }
+        Returns: string
+      }
+      v2_cmo_create_publication_intent: {
+        Args: {
+          target_approval_id: string
+          target_channel: string
+          target_content_hash: string
+          target_idempotency_key: string
+          target_resource_id: string
+          target_resource_type: string
+          target_scheduled_for?: string
+        }
+        Returns: string
+      }
+      v2_cmo_decide_content_approval: {
+        Args: {
+          target_approval_id: string
+          target_content_hash: string
+          target_decision: string
+          target_decision_note?: string
+        }
+        Returns: string
+      }
+      v2_cmo_list_pending_approvals: {
+        Args: { target_limit?: number }
+        Returns: {
+          approval_id: string
+          content_hash: string
+          expires_at: string
+          launch_stage: string
+          preview: Json
+          requested_at: string
+          resource_id: string
+          resource_type: string
+          risk: string
+          unresolved_risks: Json
+        }[]
+      }
+      v2_cmo_record_claim_review: {
+        Args: {
+          target_claim_gate_result: string
+          target_claim_refs?: Json
+          target_content_hash: string
+          target_content_id: string
+        }
+        Returns: string
+      }
+      v2_cmo_request_content_approval: {
+        Args: {
+          target_content_hash: string
+          target_content_id: string
+          target_expires_at?: string
+          target_preview: Json
+          target_risk: string
+          target_source_versions: Json
+          target_unresolved_risks?: Json
+        }
+        Returns: string
+      }
+      v2_cmo_require_permission: {
+        Args: { target_permission_key: string }
+        Returns: string
+      }
+      v2_cmo_write_audit_internal: {
+        Args: {
+          target_actor_principal_id: string
+          target_event_type: string
+          target_payload?: Json
+          target_resource_id: string
+          target_resource_type: string
+        }
+        Returns: undefined
+      }
       v2_complete_child_install_service: {
         Args: {
           actor_user_id: string
@@ -4854,6 +5524,10 @@ export type Database = {
         Args: { target_family_id: string }
         Returns: boolean
       }
+      v2_marketing_touch_is_valid: {
+        Args: { target_touch: Json }
+        Returns: boolean
+      }
       v2_parent_action_template: {
         Args: { target_action_code: string }
         Returns: string
@@ -5121,6 +5795,24 @@ export type Database = {
         }
         Returns: number
       }
+      v2_submit_marketing_waitlist: {
+        Args: {
+          target_child_age: number
+          target_device_os: string
+          target_email: string
+          target_first_touch?: Json
+          target_landing_path?: string
+          target_marketing_notice_version?: string
+          target_parent_name: string
+          target_phone: string
+          target_referral_other?: string
+          target_referral_source?: string
+          target_referrer_host?: string
+          target_region?: string
+          target_submission_touch?: Json
+        }
+        Returns: string
+      }
       v2_submit_safety_incident_service: {
         Args: {
           target_capture_quality: number
@@ -5235,6 +5927,23 @@ export type Database = {
     }
     Enums: {
       v2_app_install_source: "store" | "sideload" | "unknown"
+      v2_cmo_approval_status:
+        | "PENDING"
+        | "APPROVED"
+        | "REJECTED"
+        | "EXPIRED"
+        | "CANCELLED"
+      v2_cmo_workflow_status:
+        | "DRAFT"
+        | "POLICY_REVIEW"
+        | "AWAITING_APPROVAL"
+        | "APPROVED"
+        | "SCHEDULED"
+        | "PUBLISHED"
+        | "VERIFIED"
+        | "REJECTED"
+        | "FAILED"
+        | "CANCELLED"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -5363,6 +6072,25 @@ export const Constants = {
   public: {
     Enums: {
       v2_app_install_source: ["store", "sideload", "unknown"],
+      v2_cmo_approval_status: [
+        "PENDING",
+        "APPROVED",
+        "REJECTED",
+        "EXPIRED",
+        "CANCELLED",
+      ],
+      v2_cmo_workflow_status: [
+        "DRAFT",
+        "POLICY_REVIEW",
+        "AWAITING_APPROVAL",
+        "APPROVED",
+        "SCHEDULED",
+        "PUBLISHED",
+        "VERIFIED",
+        "REJECTED",
+        "FAILED",
+        "CANCELLED",
+      ],
     },
   },
 } as const
