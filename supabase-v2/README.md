@@ -6,10 +6,8 @@ directory, whose 205 legacy migrations do not belong to the linked V2 history.
 
 ## Migration history
 
-- `20260727150000` through `20260810150000`: the 48 migrations already recorded
-  by linked `kippy-v2-staging`.
-- `20260810160000_cmo_marketing_foundation.sql`: the next local migration under
-  review. It has not been applied to the linked project.
+- `20260727150000` through `20260810211000`: all 52 migrations are recorded by
+  linked `kippy-v2-staging`.
 - The 43 formerly remote-only files were reconciled against the remote migration
   ledger. Stored statements matched in order; zero-statement ledger entries were
   corroborated against the live schema and matching local source copies.
@@ -28,18 +26,18 @@ supabase migration list --linked --workdir supabase-v2
 supabase db push --linked --dry-run --workdir supabase-v2
 ```
 
-Expected pre-apply state:
+Expected linked state:
 
-- 48 matched migrations;
+- 52 matched migrations;
 - 0 remote-only migrations;
-- only `20260810160000_cmo_marketing_foundation.sql` local-only;
-- dry-run lists only that migration.
+- 0 local-only migrations;
+- dry-run reports no pending migrations.
 
 ## Disposable runtime contract
 
-`supabase/tests/cmo_marketing_foundation_contract.sql` is destructive test SQL
-for a disposable database only. It uses synthetic principals and rolls back its
-fixtures. Apply the 48-migration baseline and the pending CMO migration first,
-then execute the contract with `psql -v ON_ERROR_STOP=1`.
+SQL files under `supabase/tests/` are destructive contracts for a disposable
+database only. They use synthetic principals and roll back their fixtures. Apply
+the full 52-migration baseline first, then execute the relevant contract with
+`psql -v ON_ERROR_STOP=1`.
 
 Never run the contract against linked staging or production.
