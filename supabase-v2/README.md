@@ -14,16 +14,19 @@ directory, whose 205 legacy migrations do not belong to the linked V2 history.
 - `20260811120000` is a forward-only privacy hardening for the shadow-result
   and edge-gated waitlist boundaries. It is pending and has not been applied
   to linked staging.
+- `20260811130000` is a forward-only atomic idempotency repair for concurrent
+  publication-intent calls. It is pending and has not been applied to linked
+  staging.
 - The 43 formerly remote-only files were reconciled against the remote migration
   ledger. Stored statements matched in order; zero-statement ledger entries were
   corroborated against the live schema and matching local source copies.
 - Linked staging also exposes 11 WhatsApp-canary objects whose DDL is not present
-  in this 54-file history. The checked-in `v2-types.ts` preserves that linked
+  in this 55-file history. The checked-in `v2-types.ts` preserves that linked
   surface while adding the locally validated pending schema. Their migration
   provenance remains a separate reconciliation item; do not rewrite historical
   migration blobs to absorb it.
 
-The 54 migration files in `supabase-v2/supabase/migrations/` are the source of
+The 55 migration files in `supabase-v2/supabase/migrations/` are the source of
 truth for V2. Do not run V2 migration commands from the repository-root
 `supabase/` directory, and do not use `migration repair` or `db pull` to bridge
 the two histories.
@@ -42,24 +45,29 @@ Expected linked state:
 
 - 52 matched migrations;
 - 0 remote-only migrations;
-- 2 local-only migrations (`20260811110000`, `20260811120000`);
-- dry-run reports exactly those two migrations as pending.
+- 3 local-only migrations (`20260811110000`, `20260811120000`,
+  `20260811130000`);
+- dry-run reports exactly those three migrations as pending.
 
 ## Disposable runtime contract
 
 Contract files under `supabase/tests/` are destructive tests for a disposable
 database only. They use synthetic principals and remove their fixtures. Apply
-the full 54-migration baseline first, then execute SQL contracts with
+the full 55-migration baseline first, then execute SQL contracts with
 `psql -v ON_ERROR_STOP=1`.
 
-The real two-connection lease race contract requires `psql` on `PATH` and a
-password supplied through the normal libpq environment. It refuses non-loopback
-hosts and does not print the lease token. A loopback proxy or SSH tunnel does
-not make a remote database disposable; never point this test at one:
+The real two-connection publication-intent and lease race contracts require
+`psql` on `PATH` and a password supplied through the normal libpq environment.
+They refuse non-loopback hosts and sanitize their output; the lease contract
+also never prints the lease token. A loopback proxy or SSH tunnel does not make
+a remote database disposable; never point either test at one:
 
 ```powershell
 $env:PGPASSWORD = 'postgres'
 try {
+  python -B supabase-v2/supabase/tests/v2_cmo_publication_intent_race_contract.py `
+    --port 54322 `
+    --confirm-disposable-local
   python -B supabase-v2/supabase/tests/v2_ephemeral_lease_race_contract.py `
     --port 54322 `
     --confirm-disposable-local

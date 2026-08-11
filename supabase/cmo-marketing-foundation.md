@@ -44,6 +44,10 @@ used as a `db push` deployment target for the unrelated legacy project.
 Publication jobs are reviewable intents. No RPC in this migration can mark a
 job published or call Meta. Content changes invalidate prior claims review,
 cancel approvals and publication intents, and return the item to policy review.
+The forward-only `20260811130000` repair makes publication-intent idempotency
+atomic under concurrent calls: identical payloads return one shared job, while
+different payloads using the same key fail with a controlled conflict. Only the
+winning insert writes the creation audit event.
 Claim references are part of the hash-covered content: claim review verifies
 that submitted references exactly match the stored references and never mutates
 them. A mismatch returns `claim_refs_mismatch_for_content_hash`.
@@ -51,25 +55,29 @@ them. A mismatch returns `claim_refs_mismatch_for_content_hash`.
 ## Apply prerequisites and validation
 
 The 52 applied V2 migrations are reconciled into the dedicated `supabase-v2`
-workdir without modifying or deleting the 205 legacy migrations. Two
-forward-only migrations are pending there: the admin-audit repair and the
-privacy hardening. Do not run V2
+workdir without modifying or deleting the 205 legacy migrations. Three
+forward-only migrations are pending there: the admin-audit repair, the privacy
+hardening, and the publication-intent idempotency repair. Do not run V2
 migration commands from the repository-root `supabase` directory. Do not use
 `migration repair` or `db pull` to bridge the unrelated histories.
 
 After history reconciliation, validate in a disposable/local database first:
 
 1. Run migration commands with `--workdir supabase-v2` and confirm dry-run lists
-   only `20260811110000_v2_admin_write_audit_event_ambiguity_fix.sql` and
-   `20260811120000_v2_privacy_contract_hardening.sql`.
-2. Regenerate `src/integrations/supabase/v2-types.ts` from the validated target.
+   only `20260811110000_v2_admin_write_audit_event_ambiguity_fix.sql`,
+   `20260811120000_v2_privacy_contract_hardening.sql`, and
+   `20260811130000_v2_cmo_publication_intent_idempotency_race_fix.sql`.
+2. Keep `src/integrations/supabase/v2-types.ts` unchanged for migration 55; the
+   repaired function preserves its existing arguments and return type.
 3. Verify only `service_role` can execute the waitlist RPC, browser roles cannot
    invoke it, and API roles cannot select signup, rate-limit, or secret tables.
 4. Verify staff RPCs reject no-session, non-AAL2, and missing-permission callers.
-5. Exercise claim review, approval, hash invalidation, idempotency conflict, and
-   append-only audit rejection inside transactions.
-6. Run the admin-audit, shadow-privacy, CMO, and ephemeral contracts, then
-   re-run database lint and the public-route Playwright suite.
+5. Exercise claim review, approval, hash invalidation, sequential idempotency,
+   and append-only audit rejection inside transactions.
+6. Run the admin-audit, shadow-privacy, CMO, and ephemeral SQL contracts, then
+   run both real two-connection race contracts. The publication race must prove
+   one job and one audit for identical and conflicting concurrent calls.
+7. Re-run database lint and the public-route Playwright suite.
 
 ## Rollback posture
 
