@@ -35,9 +35,25 @@ Expected linked state:
 
 ## Disposable runtime contract
 
-SQL files under `supabase/tests/` are destructive contracts for a disposable
-database only. They use synthetic principals and roll back their fixtures. Apply
-the full 52-migration baseline first, then execute the relevant contract with
+Contract files under `supabase/tests/` are destructive tests for a disposable
+database only. They use synthetic principals and remove their fixtures. Apply
+the full 52-migration baseline first, then execute SQL contracts with
 `psql -v ON_ERROR_STOP=1`.
+
+The real two-connection lease race contract requires `psql` on `PATH` and a
+password supplied through the normal libpq environment. It refuses non-loopback
+hosts and does not print the lease token. A loopback proxy or SSH tunnel does
+not make a remote database disposable; never point this test at one:
+
+```powershell
+$env:PGPASSWORD = 'postgres'
+try {
+  python -B supabase-v2/supabase/tests/v2_ephemeral_lease_race_contract.py `
+    --port 54322 `
+    --confirm-disposable-local
+} finally {
+  Remove-Item Env:PGPASSWORD -ErrorAction SilentlyContinue
+}
+```
 
 Never run the contract against linked staging or production.
