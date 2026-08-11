@@ -9,12 +9,21 @@ directory, whose 205 legacy migrations do not belong to the linked V2 history.
 - `20260727150000` through `20260810211000`: all 52 migrations are recorded by
   linked `kippy-v2-staging`.
 - `20260811110000` is a forward-only local repair for the admin audit helper.
-  It is pending and has not been applied to linked staging.
+  It is pending and has not been applied to linked staging; its audit snapshot
+  includes only active, scope-applicable permissions.
+- `20260811120000` is a forward-only privacy hardening for the shadow-result
+  and edge-gated waitlist boundaries. It is pending and has not been applied
+  to linked staging.
 - The 43 formerly remote-only files were reconciled against the remote migration
   ledger. Stored statements matched in order; zero-statement ledger entries were
   corroborated against the live schema and matching local source copies.
+- Linked staging also exposes 11 WhatsApp-canary objects whose DDL is not present
+  in this 54-file history. The checked-in `v2-types.ts` preserves that linked
+  surface while adding the locally validated pending schema. Their migration
+  provenance remains a separate reconciliation item; do not rewrite historical
+  migration blobs to absorb it.
 
-The 53 migration files in `supabase-v2/supabase/migrations/` are the source of
+The 54 migration files in `supabase-v2/supabase/migrations/` are the source of
 truth for V2. Do not run V2 migration commands from the repository-root
 `supabase/` directory, and do not use `migration repair` or `db pull` to bridge
 the two histories.
@@ -33,14 +42,14 @@ Expected linked state:
 
 - 52 matched migrations;
 - 0 remote-only migrations;
-- 1 local-only migration (`20260811110000`);
-- dry-run reports exactly `20260811110000` as pending.
+- 2 local-only migrations (`20260811110000`, `20260811120000`);
+- dry-run reports exactly those two migrations as pending.
 
 ## Disposable runtime contract
 
 Contract files under `supabase/tests/` are destructive tests for a disposable
 database only. They use synthetic principals and remove their fixtures. Apply
-the full 53-migration baseline first, then execute SQL contracts with
+the full 54-migration baseline first, then execute SQL contracts with
 `psql -v ON_ERROR_STOP=1`.
 
 The real two-connection lease race contract requires `psql` on `PATH` and a

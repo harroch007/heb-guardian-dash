@@ -46,15 +46,36 @@ begin
       from public.v2_admin_principals principal
      where principal.id = actor_principal_id_value;
 
-    select coalesce(array_agg(distinct role_permission.permission_key), '{}')
+    select coalesce(
+        array_agg(distinct role_permission.permission_key order by role_permission.permission_key),
+        '{}'
+    )
       into permission_keys_value
       from public.v2_staff_role_assignments assignment
+      join public.v2_staff_roles role
+        on role.role_key = assignment.role_key
+       and role.is_active
       join public.v2_staff_role_permissions role_permission
         on role_permission.role_key = assignment.role_key
+      left join public.v2_admin_cases admin_case
+        on admin_case.id = target_case_id
      where assignment.staff_principal_id = actor_principal_id_value
        and assignment.environment = actor_environment_value
        and assignment.valid_from <= now()
-       and (assignment.expires_at is null or assignment.expires_at > now());
+       and (assignment.expires_at is null or assignment.expires_at > now())
+       and (
+           assignment.scope_type = 'global'
+           or (
+               target_case_id is not null
+               and assignment.scope_type = 'case'
+               and assignment.scope_key = target_case_id::text
+           )
+           or (
+               target_case_id is not null
+               and assignment.scope_type = 'queue'
+               and assignment.scope_key = admin_case.queue_key
+           )
+       );
 
     insert into public.v2_admin_audit_events (
         environment,

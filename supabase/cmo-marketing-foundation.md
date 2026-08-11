@@ -6,13 +6,24 @@ It does not connect a provider, publish content, or create a spend path.
 
 The canonical V2 migration history is under `supabase-v2/supabase/migrations`.
 The copy under the repository-root `supabase/migrations` is retained as a
-transition mirror and is verified byte-for-byte by the static validator.
+transition mirror and is verified byte-for-byte by the static validator. It is
+archival only, is intentionally not a complete V2 sequence, and must never be
+used as a `db push` deployment target for the unrelated legacy project.
 
 ## Access model
 
-- Public waitlist writes use only `v2_submit_marketing_waitlist`.
-- The waitlist table and all eight `v2_cmo_*` tables have RLS enabled and no
-  direct grants for `anon` or `authenticated`.
+- The V2 waitlist RPC is executable only by `service_role` and is reserved for
+  a trusted Edge/WAF gateway. Browser roles cannot invoke it directly.
+- Accepted, duplicate, invalid, and limited waitlist submissions return opaque
+  acknowledgements. Server-secret HMAC buckets limit repeated email and phone
+  identities, a higher global circuit breaker bounds aggregate abuse, stale
+  buckets are opportunistically pruned, and the consent notice version is
+  server-owned.
+- The database limits are defense-in-depth; do not open the RPC to browser roles
+  or launch the V2 form without trusted request-layer rate limiting and bot
+  verification.
+- The waitlist table, private rate secret, rate buckets, and all eight
+  `v2_cmo_*` tables have RLS enabled and no direct API-role grants.
 - Staff RPCs call `v2_admin_current_staff_principal()` and
   `v2_admin_has_permission(...)`; the existing V2 staff boundary supplies the
   active staging principal and AAL2 requirement.
@@ -39,22 +50,26 @@ them. A mismatch returns `claim_refs_mismatch_for_content_hash`.
 
 ## Apply prerequisites and validation
 
-The 48 linked V2 migrations were reconciled into the dedicated `supabase-v2`
-workdir without modifying or deleting the 205 legacy migrations. Do not run V2
+The 52 applied V2 migrations are reconciled into the dedicated `supabase-v2`
+workdir without modifying or deleting the 205 legacy migrations. Two
+forward-only migrations are pending there: the admin-audit repair and the
+privacy hardening. Do not run V2
 migration commands from the repository-root `supabase` directory. Do not use
 `migration repair` or `db pull` to bridge the unrelated histories.
 
 After history reconciliation, validate in a disposable/local database first:
 
 1. Run migration commands with `--workdir supabase-v2` and confirm dry-run lists
-   only `20260810160000_cmo_marketing_foundation.sql`.
-2. Regenerate `src/integrations/supabase/v2-types.ts` from the validated target
-   and remove the temporary RPC overlay in `v2-marketing-client.ts`.
-3. Verify `anon` can execute only the waitlist RPC and cannot select the table.
+   only `20260811110000_v2_admin_write_audit_event_ambiguity_fix.sql` and
+   `20260811120000_v2_privacy_contract_hardening.sql`.
+2. Regenerate `src/integrations/supabase/v2-types.ts` from the validated target.
+3. Verify only `service_role` can execute the waitlist RPC, browser roles cannot
+   invoke it, and API roles cannot select signup, rate-limit, or secret tables.
 4. Verify staff RPCs reject no-session, non-AAL2, and missing-permission callers.
 5. Exercise claim review, approval, hash invalidation, idempotency conflict, and
    append-only audit rejection inside transactions.
-6. Re-run database lint and the public-route Playwright suite.
+6. Run the admin-audit, shadow-privacy, CMO, and ephemeral contracts, then
+   re-run database lint and the public-route Playwright suite.
 
 ## Rollback posture
 

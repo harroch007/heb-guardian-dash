@@ -81,6 +81,51 @@ values (
     'admin-audit-runtime-contract'
 );
 
+insert into public.v2_staff_roles (role_key, display_name, is_active)
+values
+    ('contract_disabled', 'Contract disabled role', false),
+    ('contract_queue', 'Contract queue role', true);
+
+insert into public.v2_staff_permissions (
+    permission_key, risk_class, description
+) values
+    ('contract.disabled.read', 'r0_masked', 'Disabled-role audit contract permission'),
+    ('contract.queue.read', 'r0_masked', 'Out-of-scope audit contract permission');
+
+insert into public.v2_staff_role_permissions (role_key, permission_key)
+values
+    ('contract_disabled', 'contract.disabled.read'),
+    ('contract_queue', 'contract.queue.read');
+
+insert into public.v2_staff_role_assignments (
+    staff_principal_id,
+    role_key,
+    environment,
+    scope_type,
+    scope_key,
+    granted_by_principal_id,
+    reason_code
+)
+values
+    (
+        '29000000-0000-4000-8000-000000000001',
+        'contract_disabled',
+        'staging',
+        'global',
+        null,
+        '29000000-0000-4000-8000-000000000001',
+        'admin-audit-disabled-role'
+    ),
+    (
+        '29000000-0000-4000-8000-000000000001',
+        'contract_queue',
+        'staging',
+        'queue',
+        'unrelated-queue',
+        '29000000-0000-4000-8000-000000000001',
+        'admin-audit-out-of-scope'
+    );
+
 select set_config(
     'request.jwt.claim.sub',
     '19000000-0000-4000-8000-000000000001',
@@ -184,6 +229,17 @@ begin
            false
        ) then
         raise exception 'direct_admin_audit_row_contract_failed';
+    end if;
+
+    if coalesce(
+           direct_event.permission_snapshot->'permission_keys' ? 'contract.disabled.read',
+           false
+       )
+       or coalesce(
+           direct_event.permission_snapshot->'permission_keys' ? 'contract.queue.read',
+           false
+       ) then
+        raise exception 'inactive_or_out_of_scope_permission_in_snapshot';
     end if;
 
     select *

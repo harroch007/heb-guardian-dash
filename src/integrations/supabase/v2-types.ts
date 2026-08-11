@@ -7,10 +7,30 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.5"
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
@@ -2549,6 +2569,74 @@ export type Database = {
           },
         ]
       }
+      v2_ephemeral_incident_receipts: {
+        Row: {
+          completed_at: string | null
+          completion_analysis_outcome: string | null
+          completion_delivery_count: number | null
+          completion_incident_status: string | null
+          completion_lease_token_hash: string | null
+          completion_request_hash: string | null
+          context_expires_at: string
+          created_at: string
+          incident_id: string
+          key_version: number
+          lease_expires_at: string | null
+          lease_token_hash: string | null
+          message_count: number
+          privacy_identity_version: number
+          state: string
+          submission_hash: string
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          completion_analysis_outcome?: string | null
+          completion_delivery_count?: number | null
+          completion_incident_status?: string | null
+          completion_lease_token_hash?: string | null
+          completion_request_hash?: string | null
+          context_expires_at: string
+          created_at?: string
+          incident_id: string
+          key_version: number
+          lease_expires_at?: string | null
+          lease_token_hash?: string | null
+          message_count: number
+          privacy_identity_version: number
+          state?: string
+          submission_hash: string
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          completion_analysis_outcome?: string | null
+          completion_delivery_count?: number | null
+          completion_incident_status?: string | null
+          completion_lease_token_hash?: string | null
+          completion_request_hash?: string | null
+          context_expires_at?: string
+          created_at?: string
+          incident_id?: string
+          key_version?: number
+          lease_expires_at?: string | null
+          lease_token_hash?: string | null
+          message_count?: number
+          privacy_identity_version?: number
+          state?: string
+          submission_hash?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_ephemeral_incident_receipts_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: true
+            referencedRelation: "v2_safety_incidents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       v2_families: {
         Row: {
           created_at: string
@@ -3015,6 +3103,27 @@ export type Database = {
           public_key_pem?: string
           retires_at?: string | null
           status?: string
+        }
+        Relationships: []
+      }
+      v2_marketing_waitlist_rate_limits: {
+        Row: {
+          rate_key: string
+          submission_count: number
+          updated_at: string
+          window_started_at: string
+        }
+        Insert: {
+          rate_key: string
+          submission_count: number
+          updated_at?: string
+          window_started_at: string
+        }
+        Update: {
+          rate_key?: string
+          submission_count?: number
+          updated_at?: string
+          window_started_at?: string
         }
         Relationships: []
       }
@@ -4983,6 +5092,10 @@ export type Database = {
         }
         Returns: Json
       }
+      v2_admin_shadow_object_keys_are_allowed: {
+        Args: { target_allowed_keys: string[]; target_value: Json }
+        Returns: boolean
+      }
       v2_admin_shadow_safe_code: {
         Args: { target_max_length?: number; target_value: string }
         Returns: boolean
@@ -5043,6 +5156,35 @@ export type Database = {
       v2_analyzer_capability_is_valid: {
         Args: { target_capability_token: string }
         Returns: boolean
+      }
+      v2_begin_ephemeral_incident_analysis_service: {
+        Args: {
+          target_capture_quality: number
+          target_category: string
+          target_child_role: string
+          target_client_incident_id: string
+          target_confidence: number
+          target_context_expires_at: string
+          target_device_id: string
+          target_key_version: number
+          target_lease_seconds?: number
+          target_message_count: number
+          target_model_contract_version: number
+          target_occurred_at: string
+          target_privacy_contract_version: number
+          target_privacy_identity_version: number
+          target_severity: string
+          target_submission_hash_hex: string
+        }
+        Returns: {
+          analysis_outcome: string
+          analysis_state: string
+          created: boolean
+          delivery_count: number
+          incident_id: string
+          incident_status: string
+          lease_token: string
+        }[]
       }
       v2_bootstrap_guardian: {
         Args: {
@@ -5417,6 +5559,30 @@ export type Database = {
         }
         Returns: number
       }
+      v2_finalize_ephemeral_incident_analysis_service: {
+        Args: {
+          target_action_code: string
+          target_evidence_segment_refs: string[]
+          target_expert_category: string
+          target_expert_child_role: string
+          target_expert_confidence: number
+          target_expert_pattern: string
+          target_expert_severity: string
+          target_expert_urgency: string
+          target_incident_id: string
+          target_lease_token: string
+          target_model_version: string
+          target_outcome: string
+          target_policy_channels: string[]
+          target_reason_code: string
+          target_secondary_categories: string[]
+        }
+        Returns: {
+          analysis_outcome: string
+          delivery_count: number
+          incident_status: string
+        }[]
+      }
       v2_finalize_incident_analysis_internal: {
         Args: {
           target_action_code: string
@@ -5634,6 +5800,10 @@ export type Database = {
           expected_otp_reservation_at: string
           target_install_session_id: string
         }
+        Returns: boolean
+      }
+      v2_release_ephemeral_incident_analysis_service: {
+        Args: { target_incident_id: string; target_lease_token: string }
         Returns: boolean
       }
       v2_report_device_health_service: {
@@ -6069,6 +6239,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       v2_app_install_source: ["store", "sideload", "unknown"],
