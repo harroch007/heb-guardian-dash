@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { AlertTriangle, WifiOff, ShieldAlert } from "lucide-react";
 import type { ChildWithData } from "@/pages/HomeV2";
+import { hasCurrentDeviceReport } from "@/lib/v2/guardianMonitoringService";
 
 interface Props {
   childrenData: ChildWithData[];
@@ -37,11 +38,32 @@ export const AttentionSection = ({ childrenData }: Props) => {
         path: `/child-v2/${child.id}`,
         color: "bg-destructive/10 border-red-200",
       });
+    } else if (
+      child.device?.monitoring_state === "degraded" ||
+      child.device?.monitoring_state === "needs_setup"
+    ) {
+      items.push({
+        id: `protection-${child.id}`,
+        icon: <ShieldAlert className="h-4 w-4 text-amber-500" />,
+        text: `${child.name}: ההגנה דורשת בדיקה`,
+        path: `/child-v2/${child.id}`,
+        color: "bg-warning/10 border-amber-200",
+      });
+    } else if (child.device?.monitoring_state === "recovering") {
+      items.push({
+        id: `recovering-${child.id}`,
+        icon: <ShieldAlert className="h-4 w-4 text-amber-500" />,
+        text: `${child.name}: החיבור חזר וממתין לאימות יציבות`,
+        path: `/child-v2/${child.id}`,
+        color: "bg-warning/10 border-amber-200",
+      });
     }
 
-    const isDisconnected = !child.device?.last_seen ||
-      Date.now() - new Date(child.device.last_seen).getTime() > 24 * 60 * 60 * 1000;
-    if (isDisconnected && child.device !== null) {
+    const isDisconnected = Boolean(
+      child.device &&
+        !hasCurrentDeviceReport(child.device.monitoring_state),
+    );
+    if (isDisconnected) {
       items.push({
         id: `disc-${child.id}`,
         icon: <WifiOff className="h-4 w-4 text-muted-foreground" />,

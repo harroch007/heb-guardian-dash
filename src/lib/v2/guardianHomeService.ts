@@ -1,11 +1,16 @@
 import { v2Supabase } from "@/integrations/supabase/v2-client";
 import type { Database as V2Database, Json } from "@/integrations/supabase/v2-types";
+import {
+  normalizeMonitoringState,
+  type GuardianMonitoringState,
+} from "@/lib/v2/guardianMonitoringService";
 
 type Tables = V2Database["public"]["Tables"];
 type V2Child = Tables["v2_children"]["Row"];
 type V2Device = Tables["v2_protected_devices"]["Row"];
 type V2DeviceState = Tables["v2_parental_device_state"]["Row"];
 type V2DeviceHealth = Tables["v2_device_health_events"]["Row"];
+type V2MonitoringState = Tables["v2_device_monitoring_state"]["Row"];
 type V2Settings = Tables["v2_parental_settings"]["Row"];
 type V2Schedule = Tables["v2_parental_schedules"]["Row"];
 
@@ -18,6 +23,7 @@ export interface V2GuardianHomeDevice {
   latitude: number | null;
   longitude: number | null;
   productReady: boolean | null;
+  monitoringState: GuardianMonitoringState;
   degradedReasons: string[];
   capabilities: Json;
 }
@@ -127,9 +133,10 @@ export async function getV2GuardianHome(
 
   const statesByDevice = new Map<string, V2DeviceState>();
   const healthByDevice = new Map<string, V2DeviceHealth>();
+  const monitoringByDevice = new Map<string, V2MonitoringState>();
 
   if (activeDeviceIds.length > 0) {
-    const [statesResult, healthResult] = await Promise.all([
+    const [statesResult, healthResult, monitoringResult] = await Promise.all([
       v2Supabase
         .from("v2_parental_device_state")
         .select("*")
@@ -140,10 +147,15 @@ export async function getV2GuardianHome(
         .in("device_id", activeDeviceIds)
         .eq("affects_current_state", true)
         .order("observed_at", { ascending: false }),
+      v2Supabase
+        .from("v2_device_monitoring_state")
+        .select("*")
+        .in("device_id", activeDeviceIds),
     ]);
 
     if (statesResult.error) throw statesResult.error;
     if (healthResult.error) throw healthResult.error;
+    if (monitoringResult.error) throw monitoringResult.error;
 
     for (const state of (statesResult.data ?? []) as V2DeviceState[]) {
       statesByDevice.set(state.device_id, state);
@@ -152,6 +164,9 @@ export async function getV2GuardianHome(
       (healthResult.data ?? []) as V2DeviceHealth[],
     )) {
       healthByDevice.set(deviceId, health);
+    }
+    for (const state of (monitoringResult.data ?? []) as V2MonitoringState[]) {
+      monitoringByDevice.set(state.device_id, state);
     }
   }
 
@@ -208,6 +223,9 @@ export async function getV2GuardianHome(
     const device = devicesByChild.get(child.id) ?? null;
     const state = device ? statesByDevice.get(device.id) ?? null : null;
     const health = device ? healthByDevice.get(device.id) ?? null : null;
+    const monitoring = device
+      ? monitoringByDevice.get(device.id) ?? null
+      : null;
     const settings = settingsByChild.get(child.id) ?? null;
 
     return {
@@ -224,6 +242,7 @@ export async function getV2GuardianHome(
             latitude: state?.latitude ?? null,
             longitude: state?.longitude ?? null,
             productReady: health?.product_ready ?? null,
+            monitoringState: normalizeMonitoringState(monitoring),
             degradedReasons: health?.degraded_reasons ?? [],
             capabilities: health?.capabilities ?? {},
           }
