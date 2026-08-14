@@ -418,8 +418,12 @@ async function installSyntheticNewGuardianSession(page: Page) {
         json: {
           install_session_id: "77000000-0000-4000-8000-000000000002",
           expires_at: new Date(NOW_MS + 20 * 60_000).toISOString(),
-          activation_url: "https://example.invalid/install/first-child",
-          qr_payload: "https://example.invalid/install/first-child",
+          activation_url:
+            "https://example.supabase.co/functions/v1/" +
+            "v2-activate-child-install?activation_token=first-child",
+          qr_payload:
+            "https://example.supabase.co/functions/v1/" +
+            "v2-activate-child-install?activation_token=first-child",
         },
       });
       return;
@@ -715,8 +719,12 @@ test.describe("V2 private parent routes", () => {
         json: {
           install_session_id: installSessionId,
           expires_at: expiresAt,
-          activation_url: "https://example.invalid/install/synthetic",
-          qr_payload: "https://example.invalid/install/synthetic",
+          activation_url:
+            "https://example.supabase.co/functions/v1/" +
+            "v2-activate-child-install?activation_token=synthetic",
+          qr_payload:
+            "https://example.supabase.co/functions/v1/" +
+            "v2-activate-child-install?activation_token=synthetic",
         },
       });
     });
@@ -944,7 +952,9 @@ test.describe("V2 child install activation", () => {
     await page.goto("/install/recent-reservation");
 
     await expect(
-      page.getByText("קוד OTP זמין באימייל של ההורה.", { exact: false }),
+      page.getByText("קוד אימות בן 6 ספרות נשלח לאימייל של ההורה", {
+        exact: false,
+      }),
     ).toBeVisible();
     await expect(page).toHaveURL(/\/play-store-stub$/);
     expect(requestBodies).toEqual([

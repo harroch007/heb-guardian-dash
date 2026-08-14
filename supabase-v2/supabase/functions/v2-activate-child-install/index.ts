@@ -10,13 +10,23 @@ import {
   readJsonObject,
 } from "../_shared/http.ts";
 import { webCorsPreflight, withWebCors } from "../_shared/web_cors.ts";
+import { childAppLaunchIntent } from "../_shared/child_install_links.ts";
 
 Deno.serve(async (request) => {
   const preflight = webCorsPreflight(request);
   if (preflight) return preflight;
 
   try {
-    const body = await readJsonObject(request, 2_048);
+    if (request.method !== "GET" && request.method !== "POST") {
+      throw new HttpError(405, "method_not_allowed");
+    }
+    const body = request.method === "GET"
+      ? {
+        activation_token: new URL(request.url).searchParams.get(
+          "activation_token",
+        ),
+      }
+      : await readJsonObject(request, 2_048);
     const activationToken = requiredString(
       body.activation_token,
       "invalid_activation_token",
@@ -67,6 +77,19 @@ Deno.serve(async (request) => {
       }
     }
 
+    const playStoreUrl =
+      "https://play.google.com/store/apps/details?id=com.kippy.safety.core";
+    if (request.method === "GET") {
+      return new Response(null, {
+        status: 302,
+        headers: {
+          "cache-control": "no-store",
+          "location": childAppLaunchIntent(playStoreUrl),
+          "referrer-policy": "no-referrer",
+        },
+      });
+    }
+
     return withWebCors(
       request,
       jsonResponse(200, {
@@ -74,8 +97,7 @@ Deno.serve(async (request) => {
         otp_sent: shouldSendOtp,
         otp_delivery: shouldSendOtp ? "requested" : "recent_request_exists",
         expires_at: session.expires_at,
-        play_store_url:
-          "https://play.google.com/store/apps/details?id=com.kippy.safety.core",
+        play_store_url: playStoreUrl,
       }),
     );
   } catch (error) {
@@ -85,15 +107,25 @@ Deno.serve(async (request) => {
 
 async function requestGuardianOtp(email: string): Promise<void> {
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const publicWebUrl = Deno.env.get("KIPPY_PUBLIC_WEB_URL")
+    ?.replace(/\/+$/, "");
   const publishableKey = Deno.env.get("SUPABASE_ANON_KEY") ??
     Deno.env.get("SUPABASE_PUBLISHABLE_KEY");
-  if (!supabaseUrl || !publishableKey) {
+  if (
+    !supabaseUrl ||
+    !publicWebUrl?.startsWith("https://") ||
+    !publishableKey
+  ) {
     throw new HttpError(503, "otp_delivery_configuration_missing");
   }
 
   let response: Response;
   try {
-    response = await fetch(`${supabaseUrl}/auth/v1/otp`, {
+    const otpUrl = new URL("/auth/v1/otp", `${supabaseUrl}/`);
+    const redirectUrl = new URL("/", `${publicWebUrl}/`);
+    redirectUrl.searchParams.set("kippy_flow", "child_install");
+    otpUrl.searchParams.set("redirect_to", redirectUrl.toString());
+    response = await fetch(otpUrl, {
       method: "POST",
       headers: {
         "apikey": publishableKey,

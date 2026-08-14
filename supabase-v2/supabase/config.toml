@@ -1,5 +1,9 @@
 project_id = "gscclrgcmvtbyquveoze"
 
+[auth.email]
+otp_length = 6
+otp_expiry = 600
+
 [functions.v2-create-child-install]
 verify_jwt = false
 
@@ -16,4 +20,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.v2-submit-safety-incident]
+verify_jwt = false
+
+[functions.send-email]
 verify_jwt = false

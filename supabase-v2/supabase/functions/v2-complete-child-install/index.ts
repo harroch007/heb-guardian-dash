@@ -19,8 +19,8 @@ Deno.serve(async (request) => {
     const email = normalizeEmail(
       requiredString(body.email, "invalid_email", 254),
     );
-    const otp = requiredString(body.otp, "invalid_otp", 8);
-    if (!/^\d{6,8}$/.test(otp) || !isUuid(body.installation_id)) {
+    const otp = requiredString(body.otp, "invalid_otp", 6);
+    if (!/^\d{6}$/.test(otp) || !isUuid(body.installation_id)) {
       throw new HttpError(400, "invalid_child_install_request");
     }
 

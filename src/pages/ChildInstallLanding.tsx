@@ -81,8 +81,9 @@ export default function ChildInstallLanding() {
             <>
               <ShieldCheck className="mx-auto h-12 w-12 text-primary" />
               <p className="text-sm text-muted-foreground">
-                קוד OTP זמין באימייל של ההורה. לאחר ההתקנה הזינו
-                באפליקציה את אימייל ההורה ואת הקוד.
+                קוד אימות בן 6 ספרות נשלח לאימייל של ההורה והוא בתוקף
+                ל־10 דקות. לאחר ההתקנה הזינו באפליקציה את אימייל ההורה
+                ואת הקוד.
               </p>
               <Button
                 className="w-full"

@@ -11,10 +11,8 @@ import {
   jsonResponse,
   readJsonObject,
 } from "../_shared/http.ts";
-import {
-  webCorsPreflight,
-  withWebCors,
-} from "../_shared/web_cors.ts";
+import { webCorsPreflight, withWebCors } from "../_shared/web_cors.ts";
+import { childInstallActivationUrl } from "../_shared/child_install_links.ts";
 
 Deno.serve(async (request) => {
   const preflight = webCorsPreflight(request);
@@ -28,16 +26,15 @@ Deno.serve(async (request) => {
 
     const client = serviceClient();
     const guardian = await requireGuardian(request, client);
-    const publicWebUrl = Deno.env.get("KIPPY_PUBLIC_WEB_URL")
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")
       ?.replace(/\/+$/, "");
-    if (!publicWebUrl?.startsWith("https://")) {
-      throw new Error("missing_public_web_url");
+    if (!supabaseUrl?.startsWith("https://")) {
+      throw new Error("missing_supabase_url");
     }
 
     const sessionId = crypto.randomUUID();
     const activationToken = randomDeviceCredential();
-    const activationTokenHash =
-      await hashDeviceCredential(activationToken);
+    const activationTokenHash = await hashDeviceCredential(activationToken);
     const expiresAt = new Date(Date.now() + 15 * 60 * 1_000);
 
     const { data, error } = await client.rpc(
@@ -60,7 +57,10 @@ Deno.serve(async (request) => {
     const result = data?.[0];
     if (!result) throw new Error("missing_child_install_session");
 
-    const activationUrl = `${publicWebUrl}/install/${activationToken}`;
+    const activationUrl = childInstallActivationUrl(
+      supabaseUrl,
+      activationToken,
+    );
 
     return withWebCors(
       request,

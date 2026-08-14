@@ -138,8 +138,8 @@ export function QRCodeDisplay({
       <div>
         <p className="font-medium">סרקו את הקוד ממכשיר הילד/ה</p>
         <p className="mt-1 text-sm text-muted-foreground">
-          הקישור יפתח את דף ההתקנה, ישלח OTP אל {parentEmail},
-          ויעביר לחנות Google Play.
+          הסריקה תשלח קוד אימות בן 6 ספרות אל {parentEmail}. אם Kippy
+          כבר מותקנת היא תיפתח; אחרת תועברו ישירות ל־Google Play.
         </p>
       </div>
 
