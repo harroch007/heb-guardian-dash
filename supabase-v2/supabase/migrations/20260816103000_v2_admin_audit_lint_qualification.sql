@@ -31,11 +31,18 @@ declare
     line_break text;
     declaration_marker text;
     labeled_declaration_marker text;
+    ambiguous_occurrences integer;
+    safe_occurrences integer;
+    normalized_source_sha256 text;
     ambiguous_expression constant text :=
         'assignment.staff_principal_id = staff_principal_id';
     qualified_expression constant text :=
         'assignment.staff_principal_id = '
         || 'audit_event_context.staff_principal_id';
+    safe_live_expression constant text :=
+        'assignment.staff_principal_id = current_staff_principal_id';
+    safe_live_normalized_sha256 constant text :=
+        'd97d379c63e5fd3027efb3e0ade9564b6773833c81986b07cce5af667522f6f2';
 begin
     if (select count(*) from pg_temp.v2_admin_audit_lint_fix_before) <> 1 then
         raise exception 'v2_admin_write_audit_event_missing';
@@ -45,51 +52,81 @@ begin
       into strict before_snapshot
       from pg_temp.v2_admin_audit_lint_fix_before snapshot;
 
-    if (
+    ambiguous_occurrences := (
         length(before_snapshot.definition)
         - length(replace(
             before_snapshot.definition,
             ambiguous_expression,
             ''
         ))
-    ) <> length(ambiguous_expression) then
-        raise exception 'v2_admin_write_audit_event_unexpected_source';
-    end if;
-
-    line_break := case
-        when position(chr(13) || chr(10) in before_snapshot.prosrc) > 0
-            then chr(13) || chr(10)
-        else chr(10)
-    end;
-    declaration_marker := line_break || 'declare' || line_break;
-    labeled_declaration_marker :=
-        line_break
-        || '<<audit_event_context>>'
-        || line_break
-        || 'declare'
-        || line_break;
-
-    if (
-        length(before_snapshot.prosrc)
+    ) / length(ambiguous_expression);
+    safe_occurrences := (
+        length(before_snapshot.definition)
         - length(replace(
-            before_snapshot.prosrc,
-            declaration_marker,
+            before_snapshot.definition,
+            safe_live_expression,
             ''
         ))
-    ) <> length(declaration_marker) then
-        raise exception 'v2_admin_write_audit_event_unexpected_block';
-    end if;
+    ) / length(safe_live_expression);
 
-    expected_source := replace(
-        before_snapshot.prosrc,
-        declaration_marker,
-        labeled_declaration_marker
-    );
-    expected_source := replace(
-        expected_source,
-        ambiguous_expression,
-        qualified_expression
-    );
+    if ambiguous_occurrences = 1 and safe_occurrences = 0 then
+        line_break := case
+            when position(chr(13) || chr(10) in before_snapshot.prosrc) > 0
+                then chr(13) || chr(10)
+            else chr(10)
+        end;
+        declaration_marker := line_break || 'declare' || line_break;
+        labeled_declaration_marker :=
+            line_break
+            || '<<audit_event_context>>'
+            || line_break
+            || 'declare'
+            || line_break;
+
+        if (
+            length(before_snapshot.prosrc)
+            - length(replace(
+                before_snapshot.prosrc,
+                declaration_marker,
+                ''
+            ))
+        ) <> length(declaration_marker) then
+            raise exception 'v2_admin_write_audit_event_unexpected_block';
+        end if;
+
+        expected_source := replace(
+            before_snapshot.prosrc,
+            declaration_marker,
+            labeled_declaration_marker
+        );
+        expected_source := replace(
+            expected_source,
+            ambiguous_expression,
+            qualified_expression
+        );
+    elsif ambiguous_occurrences = 0 and safe_occurrences = 1 then
+        normalized_source_sha256 := encode(
+            extensions.digest(
+                convert_to(
+                    regexp_replace(
+                        before_snapshot.prosrc,
+                        '[[:space:]]+',
+                        '',
+                        'g'
+                    ),
+                    'UTF8'
+                ),
+                'sha256'
+            ),
+            'hex'
+        );
+        if normalized_source_sha256 <> safe_live_normalized_sha256 then
+            raise exception 'v2_admin_write_audit_event_unexpected_safe_variant';
+        end if;
+        expected_source := before_snapshot.prosrc;
+    else
+        raise exception 'v2_admin_write_audit_event_unexpected_source';
+    end if;
 
     if (
         length(before_snapshot.definition)
@@ -108,7 +145,9 @@ begin
         expected_source
     );
 
-    execute expected_definition;
+    if expected_definition is distinct from before_snapshot.definition then
+        execute expected_definition;
+    end if;
 
     select
         procedure.oid,
