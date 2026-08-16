@@ -4,9 +4,52 @@ import type { Database as V2Database } from "@/integrations/supabase/v2-types";
 type Tables = V2Database["public"]["Tables"];
 type Incident = Tables["v2_safety_incidents"]["Row"];
 type Analysis = Tables["v2_incident_analysis"]["Row"];
+type AnalysisDetails = Pick<
+  Tables["v2_incident_analysis_details"]["Row"],
+  "incident_id" | "expert_child_role"
+>;
 type GuardianState = Tables["v2_guardian_incident_states"]["Row"];
 
 export type V2GuardianIncidentState = "new" | "saved" | "acknowledged";
+
+export type GuardianChildRole =
+  | "target"
+  | "participant"
+  | "initiator"
+  | "unknown";
+
+const childRoles = new Set<GuardianChildRole>([
+  "target",
+  "participant",
+  "initiator",
+  "unknown",
+]);
+
+const validGuardianChildRole = (
+  value: string | null | undefined,
+): GuardianChildRole | null =>
+  value !== null && value !== undefined &&
+    childRoles.has(value as GuardianChildRole)
+    ? value as GuardianChildRole
+    : null;
+
+/**
+ * V3 attribution is expert-owned. Legacy V1/V2 rows may fall back to the
+ * local role only when no valid expert detail exists.
+ */
+export const resolveGuardianChildRole = (
+  privacyContractVersion: number,
+  localRole: string,
+  expertRole: string | null | undefined,
+): GuardianChildRole => {
+  const verifiedExpertRole = validGuardianChildRole(expertRole);
+  if (verifiedExpertRole !== null) return verifiedExpertRole;
+
+  if (privacyContractVersion <= 2) {
+    return validGuardianChildRole(localRole) ?? "unknown";
+  }
+  return "unknown";
+};
 
 export interface V2GuardianAlert {
   id: string;
@@ -25,7 +68,6 @@ export interface V2GuardianAlert {
 }
 
 const requestKey = () => `guardian-incident:${crypto.randomUUID()}`;
-
 export async function getV2GuardianAlerts(input: {
   familyId: string;
   childId?: string | null;
@@ -65,24 +107,35 @@ export async function getV2GuardianAlerts(input: {
   if (incidents.length === 0) return { children, alerts: [] };
 
   const incidentIds = incidents.map((incident) => incident.id);
-  const [analysesResult, statesResult] = await Promise.all([
+  const [analysesResult, detailsResult, statesResult] = await Promise.all([
     v2Supabase
       .from("v2_incident_analysis")
       .select("*")
       .in("incident_id", incidentIds)
       .eq("outcome", "confirmed"),
     v2Supabase
+      .from("v2_incident_analysis_details")
+      .select("incident_id, expert_child_role")
+      .in("incident_id", incidentIds),
+    v2Supabase
       .from("v2_guardian_incident_states")
       .select("*")
       .in("incident_id", incidentIds),
   ]);
   if (analysesResult.error) throw analysesResult.error;
+  if (detailsResult.error) throw detailsResult.error;
   if (statesResult.error) throw statesResult.error;
 
   const analysisByIncident = new Map(
     ((analysesResult.data ?? []) as Analysis[]).map((analysis) => [
       analysis.incident_id,
       analysis,
+    ]),
+  );
+  const detailsByIncident = new Map(
+    ((detailsResult.data ?? []) as AnalysisDetails[]).map((details) => [
+      details.incident_id,
+      details,
     ]),
   );
   const stateByIncident = new Map(
@@ -112,7 +165,11 @@ export async function getV2GuardianAlerts(input: {
       childName: childNameById.get(incident.child_id) ?? "הילד/ה",
       category: incident.category,
       severity: incident.severity,
-      childRole: incident.child_role,
+      childRole: resolveGuardianChildRole(
+        incident.privacy_contract_version,
+        incident.child_role,
+        detailsByIncident.get(incident.id)?.expert_child_role,
+      ),
       confidence: incident.confidence,
       sourcePlatform: incident.source_platform,
       occurredAt: incident.occurred_at,

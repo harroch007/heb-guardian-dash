@@ -36,7 +36,7 @@ const categoryLabels: Record<string, string> = {
 
 const roleLabels: Record<string, string> = {
   target: "הילד/ה יעד לפגיעה",
-  participant: "הילד/ה משתתף/ת",
+  participant: "הילד/ה נחשף/ה או היה/תה מעורב/ת",
   initiator: "הילד/ה יזם/ה",
   unknown: "תפקיד הילד/ה עדיין לא ודאי",
 };

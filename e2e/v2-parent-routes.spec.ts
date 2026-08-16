@@ -257,6 +257,12 @@ const rowsByTable: Record<string, object[]> = {
       created_at: NOW,
     },
   ],
+  v2_incident_analysis_details: [
+    {
+      incident_id: INCIDENT_ID,
+      expert_child_role: "participant",
+    },
+  ],
   v2_guardian_incident_states: [],
   v2_push_subscriptions: [],
   v2_alert_deliveries: [],
@@ -597,6 +603,86 @@ test.describe("V2 private parent routes", () => {
     });
   });
 
+  test("uses expert V3 child role with neutral group wording", async ({ page }, testInfo) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await navigateWithinParentApp(page, "/alerts-v2");
+
+    await expect(
+      page.getByText("הילד/ה נחשף/ה או היה/תה מעורב/ת", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("הילד/ה יעד לפגיעה", { exact: true }),
+    ).toHaveCount(0);
+    expect(
+      await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth <=
+          document.documentElement.clientWidth + 1,
+      ),
+    ).toBe(true);
+    await testInfo.attach("alerts-v3-expert-role-desktop-rtl-reduced-motion", {
+      body: await page.screenshot({ fullPage: true }),
+      contentType: "image/png",
+    });
+  });
+
+  test("fails closed when V3 expert child role is missing or invalid", async ({ page }) => {
+    const originalDetails = rowsByTable.v2_incident_analysis_details;
+    try {
+      rowsByTable.v2_incident_analysis_details = [];
+      await navigateWithinParentApp(page, "/alerts-v2");
+      await expect(
+        page.getByText("תפקיד הילד/ה עדיין לא ודאי", { exact: true }),
+      ).toBeVisible();
+      await expect(
+        page.getByText("הילד/ה יעד לפגיעה", { exact: true }),
+      ).toHaveCount(0);
+
+      rowsByTable.v2_incident_analysis_details = [{
+        incident_id: INCIDENT_ID,
+        expert_child_role: "invalid",
+      }];
+      await page.reload({ waitUntil: "domcontentloaded" });
+      await expect(
+        page.getByText("תפקיד הילד/ה עדיין לא ודאי", { exact: true }),
+      ).toBeVisible();
+    } finally {
+      rowsByTable.v2_incident_analysis_details = originalDetails;
+    }
+  });
+
+  test("retains the V1 and V2 local child-role fallback", async ({ page }) => {
+    const originalPrivacyVersion = incident.privacy_contract_version;
+    const originalLocalRole = incident.child_role;
+    const originalDetails = rowsByTable.v2_incident_analysis_details;
+    try {
+      rowsByTable.v2_incident_analysis_details = [];
+      incident.privacy_contract_version = 1;
+      incident.child_role = "initiator";
+      await navigateWithinParentApp(page, "/alerts-v2");
+      await expect(
+        page.getByText("הילד/ה יזם/ה", { exact: true }),
+      ).toBeVisible();
+
+      incident.privacy_contract_version = 2;
+      incident.child_role = "target";
+      await page.reload({ waitUntil: "domcontentloaded" });
+      await expect(
+        page.getByText("הילד/ה יעד לפגיעה", { exact: true }),
+      ).toBeVisible();
+
+      incident.child_role = "invalid";
+      await page.reload({ waitUntil: "domcontentloaded" });
+      await expect(
+        page.getByText("תפקיד הילד/ה עדיין לא ודאי", { exact: true }),
+      ).toBeVisible();
+    } finally {
+      incident.privacy_contract_version = originalPrivacyVersion;
+      incident.child_role = originalLocalRole;
+      rowsByTable.v2_incident_analysis_details = originalDetails;
+    }
+  });
+
   test("does not present a heartbeat_late device as connected", async ({
     page,
   }, testInfo) => {
@@ -905,6 +991,26 @@ test.describe("V2 private parent routes on mobile", () => {
     }
 
     await testInfo.attach("v2-parent-settings-mobile-rtl-reduced-motion", {
+      body: await page.screenshot({ fullPage: true }),
+      contentType: "image/png",
+    });
+  });
+
+  test("shows expert role neutral wording on mobile", async ({ page }, testInfo) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await navigateWithinParentApp(page, "/alerts-v2");
+
+    await expect(
+      page.getByText("הילד/ה נחשף/ה או היה/תה מעורב/ת", { exact: true }),
+    ).toBeVisible();
+    expect(
+      await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth <=
+          document.documentElement.clientWidth + 1,
+      ),
+    ).toBe(true);
+    await testInfo.attach("alerts-v3-expert-role-mobile-rtl-reduced-motion", {
       body: await page.screenshot({ fullPage: true }),
       contentType: "image/png",
     });

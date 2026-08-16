@@ -2,6 +2,7 @@ import {
   assertIncidentContextBinding,
   buildOpenAIRequest,
   deriveExpertPolicy,
+  EXPERT_PROMPT_VERSION,
   ExpertAnalysisError,
   openAIRequestRejectionCode,
   parseOpenAIResponse,
@@ -17,6 +18,70 @@ import {
   IncidentCryptoError,
 } from "./incident_crypto.ts";
 import type { ClaimedIncidentEnvelope } from "./incident_crypto.ts";
+
+// Raw UTF-8 output of Android's V2IncidentContextContract Json serializer
+// (encodeDefaults=true, explicitNulls=false). It is intentionally parsed as a
+// serialized cross-repository fixture instead of being rebuilt as a TS object.
+const ANDROID_V3_REPLY_CONTEXT_FIXTURE_JSON =
+  `{"schema_version":2,"privacy_contract_version":3,"privacy_identity_version":7,"conversation_ref":"ZZZZZZZZZZZZZZZZZZZZZZ","conversation_type":"group","trigger_segment_ref":"BBBBBBBBBBBBBBBBBBBBBB","evidence_segment_refs":["AAAAAAAAAAAAAAAAAAAAAA","BBBBBBBBBBBBBBBBBBBBBB"],"safety_context":{"child_age_band":"unknown","child_age_confidence":0.0,"child_age_evidence":"child_age_unavailable","relationship_type":"unknown","relationship_confidence":0.0,"relationship_evidence":"relationship_capture_unknown","conversation_setting":"unknown_group","conversation_setting_confidence":0.9,"conversation_setting_evidence":"capture_group_semantics_unknown","active_trend_counts":{}},"messages":[{"segment_ref":"AAAAAAAAAAAAAAAAAAAAAA","participant_ref":"PPPPPPPPPPPPPPPPPPPPPP","sequence":0,"relative_time_seconds":0,"sender_role":"peer","source_kind":"text","capture_sources":["accessibility"],"capture_confidence":{"conversation":0.9,"message":0.9,"sender":0.9,"direction":0.9},"text":"redacted peer context"},{"segment_ref":"BBBBBBBBBBBBBBBBBBBBBB","participant_ref":"QQQQQQQQQQQQQQQQQQQQQQ","sequence":1,"relative_time_seconds":60,"sender_role":"child","source_kind":"text","capture_sources":["accessibility"],"capture_confidence":{"conversation":0.9,"message":0.9,"sender":0.9,"direction":0.9},"reply_context":{"quoted_sender_role":"peer","quoted_text":"redacted peer context","quoted_segment_ref":"AAAAAAAAAAAAAAAAAAAAAA","quoted_participant_ref":"PPPPPPPPPPPPPPPPPPPPPP"},"text":"redacted child reply"}],"redaction_manifest":{}}`;
+
+const ANDROID_V3_REPLY_CONTEXT_FIXTURE_PROVENANCE = {
+  android_worktree_base: "8c5de519337e651f149064d3c297345686c53402",
+  serializer_source:
+    "app/src/main/java/com/kippy/safety/core/v2/backend/V2IncidentContextContract.kt",
+  serializer_source_sha256:
+    "d85c1b4f2fba2d5de2607739003680266a17aa0b093fee0a86cb3e7dc33751dd",
+  source_test:
+    "app/src/test/java/com/kippy/safety/core/v2/backend/V2IncidentContextContractTest.kt",
+  source_test_sha256:
+    "f710419ee5f3de3b81c7dfc5e06ad8d0a3d889d69d139eeb2525a56ddf4cb507",
+  fixture_sha256:
+    "7980b8a90328c30d1f2aa35d2b19703b52219478d9c8804407edd91830bfbbf7",
+} as const;
+
+Deno.test("expert prompt provenance is immutable v5", () => {
+  assertEquals(EXPERT_PROMPT_VERSION, "kippy-expert-v5");
+});
+
+Deno.test("Android serialized V3 reply fixture reaches the real validator", async () => {
+  const bytes = new TextEncoder().encode(
+    ANDROID_V3_REPLY_CONTEXT_FIXTURE_JSON,
+  );
+  try {
+    const digest = new Uint8Array(
+      await crypto.subtle.digest("SHA-256", bytes),
+    );
+    const digestHex = Array.from(digest)
+      .map((value) => value.toString(16).padStart(2, "0"))
+      .join("");
+    assertEquals(
+      digestHex,
+      ANDROID_V3_REPLY_CONTEXT_FIXTURE_PROVENANCE.fixture_sha256,
+    );
+
+    const parsed = parseSanitizedIncidentContext(bytes, 2);
+    const reply = parsed.messages[1].reply_context;
+    assertEquals(reply?.quoted_segment_ref, parsed.messages[0].segment_ref);
+    assertEquals(
+      reply?.quoted_participant_ref,
+      parsed.messages[0].participant_ref,
+    );
+
+    const request = buildOpenAIRequest(
+      parsed,
+      "kippy_v1_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    );
+    const input = request.input as Array<Record<string, unknown>>;
+    const user = input.find((item) => item.role === "user");
+    const content = user?.content as Array<Record<string, unknown>>;
+    const projected = JSON.parse(String(content[0].text)) as {
+      messages: SanitizedIncidentContext["messages"];
+    };
+    assertEquals(projected.messages[1].reply_context, reply);
+  } finally {
+    bytes.fill(0);
+  }
+});
 
 Deno.test("AAD v3 has byte-stable Android field order", () => {
   const claim = encryptedClaim();
@@ -200,6 +265,38 @@ Deno.test("OpenAI request is stateless, tool-free and strict", () => {
   assertEquals(serializedFormat.includes("reason_code"), false);
   assertEquals(serializedFormat.includes("action_code"), false);
   assertEquals(serializedFormat.includes("safe_summary"), false);
+  const input = request.input as Array<Record<string, unknown>>;
+  const system = input.find((item) => item.role === "system");
+  const systemContent = system?.content as Array<Record<string, unknown>>;
+  const instructions = String(systemContent[0].text);
+  assertEquals(
+    instructions.includes(
+      "A peer-authored trigger does not by itself make the child the target",
+    ),
+    true,
+  );
+  assertEquals(
+    instructions.includes(
+      'use "participant" when the child participates in, is',
+    ),
+    true,
+  );
+  assertEquals(
+    instructions.includes(
+      "witnesses a harmful peer-to-peer exchange",
+    ),
+    true,
+  );
+  assertEquals(
+    instructions.includes(
+      "A background notification or capture record alone",
+    ),
+    true,
+  );
+  assertEquals(
+    instructions.includes('without supporting context, use "unknown"'),
+    true,
+  );
 });
 
 Deno.test("OpenAI request rejection keeps only safe diagnostics", () => {
@@ -311,6 +408,22 @@ Deno.test("context parser enforces Android per-message limits", () => {
       ),
     "invalid_context_message",
   );
+});
+
+Deno.test("context parser rejects a decreasing relative timeline", () => {
+  const context = sanitizedContext();
+  context.messages[0].relative_time_seconds = 2;
+  context.messages[1].relative_time_seconds = 1;
+  const bytes = new TextEncoder().encode(JSON.stringify(context));
+
+  try {
+    assertThrowsCode(
+      () => parseSanitizedIncidentContext(bytes, 2),
+      "invalid_context_message",
+    );
+  } finally {
+    bytes.fill(0);
+  }
 });
 
 Deno.test("OpenAI request rejects malformed safety identifier", () => {
@@ -647,6 +760,156 @@ Deno.test("privacy v3 accepts redacted text and a typed safety context", () => {
   }
 });
 
+Deno.test("privacy v3 keeps legacy reply context without structural refs", () => {
+  const context = privacyV3Context();
+  context.messages[1].reply_context = {
+    quoted_sender_role: "peer",
+    quoted_text: "redacted quoted text",
+  };
+  const bytes = new TextEncoder().encode(JSON.stringify(context));
+  try {
+    const parsed = parseSanitizedIncidentContext(bytes, 2);
+    assertEquals(parsed.messages[1].reply_context, {
+      quoted_sender_role: "peer",
+      quoted_text: "redacted quoted text",
+    });
+  } finally {
+    bytes.fill(0);
+  }
+});
+
+Deno.test("privacy v3 validates and projects exact earlier reply refs", () => {
+  const context = privacyV3Context();
+  context.messages[1].reply_context = {
+    quoted_sender_role: "peer",
+    quoted_text: "redacted quoted text",
+    quoted_segment_ref: context.messages[0].segment_ref,
+    quoted_participant_ref: context.messages[0].participant_ref,
+  };
+  const bytes = new TextEncoder().encode(JSON.stringify(context));
+  try {
+    const parsed = parseSanitizedIncidentContext(bytes, 2);
+    const request = buildOpenAIRequest(
+      parsed,
+      "kippy_v1_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    );
+    const input = request.input as Array<Record<string, unknown>>;
+    const user = input.find((item) => item.role === "user");
+    const content = user?.content as Array<Record<string, unknown>>;
+    const projected = JSON.parse(String(content[0].text)) as {
+      messages: SanitizedIncidentContext["messages"];
+    };
+    assertEquals(
+      projected.messages[1].reply_context,
+      context.messages[1].reply_context,
+    );
+  } finally {
+    bytes.fill(0);
+  }
+});
+
+Deno.test("privacy v3 rejects partial or malformed exact reply refs", () => {
+  const partial = privacyV3Context();
+  partial.messages[1].reply_context = {
+    quoted_sender_role: "peer",
+    quoted_text: "redacted quoted text",
+    quoted_segment_ref: partial.messages[0].segment_ref,
+  };
+  assertThrowsCode(
+    () =>
+      parseSanitizedIncidentContext(
+        new TextEncoder().encode(JSON.stringify(partial)),
+        2,
+      ),
+    "invalid_context_message",
+  );
+
+  const malformed = privacyV3Context();
+  malformed.messages[1].reply_context = {
+    quoted_sender_role: "peer",
+    quoted_text: "redacted quoted text",
+    quoted_segment_ref: "not-a-ref",
+    quoted_participant_ref: malformed.messages[0].participant_ref,
+  };
+  assertThrowsCode(
+    () =>
+      parseSanitizedIncidentContext(
+        new TextEncoder().encode(JSON.stringify(malformed)),
+        2,
+      ),
+    "invalid_context_message",
+  );
+});
+
+Deno.test("privacy v3 reply refs must match the same earlier message", () => {
+  const cases: Array<(context: SanitizedIncidentContext) => void> = [
+    (context) => {
+      context.messages[1].reply_context = {
+        quoted_sender_role: "peer",
+        quoted_text: "redacted quoted text",
+        quoted_segment_ref: "CCCCCCCCCCCCCCCCCCCCCC",
+        quoted_participant_ref: context.messages[0].participant_ref,
+      };
+    },
+    (context) => {
+      context.messages[0].reply_context = {
+        quoted_sender_role: "child",
+        quoted_text: "redacted quoted text",
+        quoted_segment_ref: context.messages[1].segment_ref,
+        quoted_participant_ref: context.messages[1].participant_ref,
+      };
+    },
+    (context) => {
+      context.messages[1].reply_context = {
+        quoted_sender_role: "peer",
+        quoted_text: "redacted quoted text",
+        quoted_segment_ref: context.messages[0].segment_ref,
+        quoted_participant_ref: context.messages[1].participant_ref,
+      };
+    },
+    (context) => {
+      context.messages[1].reply_context = {
+        quoted_sender_role: "child",
+        quoted_text: "redacted quoted text",
+        quoted_segment_ref: context.messages[0].segment_ref,
+        quoted_participant_ref: context.messages[0].participant_ref,
+      };
+    },
+  ];
+
+  for (const mutate of cases) {
+    const context = privacyV3Context();
+    mutate(context);
+    assertThrowsCode(
+      () =>
+        parseSanitizedIncidentContext(
+          new TextEncoder().encode(JSON.stringify(context)),
+          2,
+        ),
+      "invalid_context_reply_reference",
+    );
+  }
+});
+
+Deno.test("legacy privacy contracts reject structural reply refs", () => {
+  const context = privacyV3Context();
+  context.privacy_contract_version = 2;
+  context.messages[1].reply_context = {
+    quoted_sender_role: "peer",
+    quoted_text: "redacted quoted text",
+    quoted_segment_ref: context.messages[0].segment_ref,
+    quoted_participant_ref: context.messages[0].participant_ref,
+  };
+  assertThrowsCode(
+    () =>
+      parseSanitizedIncidentContext(
+        new TextEncoder().encode(JSON.stringify(context)),
+        2,
+      ),
+    "invalid_context_reply_reference",
+  );
+});
+
 Deno.test("privacy v3 rejects invalid redaction manifest values", () => {
   const context = sanitizedContext();
   context.privacy_contract_version = 3;
@@ -834,6 +1097,24 @@ function sanitizedContext(): SanitizedIncidentContext {
     ],
     redaction_manifest: { child_identity: 1 },
   };
+}
+
+function privacyV3Context(): SanitizedIncidentContext {
+  const context = sanitizedContext();
+  context.privacy_contract_version = 3;
+  context.safety_context = {
+    child_age_band: "unknown",
+    child_age_confidence: 0,
+    child_age_evidence: "child_age_unavailable",
+    relationship_type: "unknown",
+    relationship_confidence: 0,
+    relationship_evidence: "relationship_capture_unknown",
+    conversation_setting: "private",
+    conversation_setting_confidence: 1,
+    conversation_setting_evidence: "capture_private_chat",
+    active_trend_counts: {},
+  };
+  return context;
 }
 
 function maximumGroupContext(): SanitizedIncidentContext {

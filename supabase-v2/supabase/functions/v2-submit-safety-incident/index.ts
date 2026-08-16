@@ -22,6 +22,7 @@ import {
   assertIncidentContextBinding,
   callOpenAIExpert,
   deriveExpertPolicy,
+  EXPERT_PROMPT_VERSION,
   ExpertAnalysisError,
   parseSanitizedIncidentContext,
 } from "../_shared/incident_expert.ts";
@@ -348,6 +349,7 @@ async function processEphemeralExpertIncident(
         target_expert_confidence: analysis.confidence,
         target_evidence_segment_refs: analysis.evidence_segment_refs,
         target_policy_channels: policy.channels,
+        target_prompt_version: EXPERT_PROMPT_VERSION,
       },
     );
     if (finalizeError) throw finalizeError;
