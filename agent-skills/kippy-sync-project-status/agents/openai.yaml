@@ -1,0 +1,4 @@
+interface:
+  display_name: "Kippy Project Status"
+  short_description: "Synchronize Kippy project state safely"
+  default_prompt: "Use $kippy-sync-project-status to establish the verified current state of Kippy before continuing work."

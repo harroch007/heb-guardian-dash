@@ -1,0 +1,185 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "id": "sync-he-status",
+      "prompt": "איפה אנחנו כרגע בקיפי? תסתנכרן מול הקבצים וה-Git לפני שממשיכים.",
+      "expected_primary": "kippy-sync-project-status"
+    },
+    {
+      "id": "sync-he-handoff",
+      "prompt": "אני ממשיך עבודה מסוכן Codex אחר; תבדוק מה באמת נשמר ומה חסר בהעברה.",
+      "expected_primary": "kippy-sync-project-status"
+    },
+    {
+      "id": "sync-en-android-location",
+      "prompt": "Establish whether the Kippy Android child app is in this repository or another one, and report only verified state.",
+      "expected_primary": "kippy-sync-project-status"
+    },
+    {
+      "id": "sync-he-remote",
+      "prompt": "האם main באמת מסונכרן עם origin ומה מצב ה-build, tests וה-feature flags?",
+      "expected_primary": "kippy-sync-project-status"
+    },
+    {
+      "id": "sync-en-validate-handoff",
+      "prompt": "Validate this Kippy handoff against the workspace and distinguish confirmed facts from thread-only claims.",
+      "expected_primary": "kippy-sync-project-status"
+    },
+    {
+      "id": "parallel-he-feature",
+      "prompt": "חלק את פיצ'ר Lost Mode בין שלושה סוכנים והגדר בעלות קבצים וסדר מיזוג.",
+      "expected_primary": "kippy-plan-parallel-work"
+    },
+    {
+      "id": "parallel-en-cross-stack",
+      "prompt": "Can the parent UI, Supabase RPC, and Android receiver be built in parallel? Map dependencies and owners.",
+      "expected_primary": "kippy-plan-parallel-work"
+    },
+    {
+      "id": "parallel-he-worktrees",
+      "prompt": "תכנן branches ו-worktrees לשני agents בלי ששניהם יערכו routes, migrations או lockfiles.",
+      "expected_primary": "kippy-plan-parallel-work"
+    },
+    {
+      "id": "parallel-en-overlap",
+      "prompt": "Two Kippy agents produced overlapping diffs. Reassign ownership and define incremental integration gates.",
+      "expected_primary": "kippy-plan-parallel-work"
+    },
+    {
+      "id": "parallel-he-merge",
+      "prompt": "יש שלושה ענפים של הודעות קוליות; תכנן שילוב הדרגתי עם handoff ובדיקות אחרי כל lane.",
+      "expected_primary": "kippy-plan-parallel-work"
+    },
+    {
+      "id": "release-he-commit",
+      "prompt": "סיימנו את מסך המשפחה. תריץ release gate ותגיד אם אפשר לעשות commit.",
+      "expected_primary": "kippy-release-gate"
+    },
+    {
+      "id": "release-en-pr",
+      "prompt": "Are these Kippy changes ready for a pull request? Run the repository-discovered checks.",
+      "expected_primary": "kippy-release-gate"
+    },
+    {
+      "id": "release-he-merge",
+      "prompt": "לפני ה-merge תוודא שכל הבדיקות הרלוונטיות עברו ושאין שינויים לא קשורים.",
+      "expected_primary": "kippy-release-gate"
+    },
+    {
+      "id": "release-en-supabase",
+      "prompt": "Verify this Supabase and frontend change before production release without deploying it.",
+      "expected_primary": "kippy-release-gate"
+    },
+    {
+      "id": "release-he-handoff",
+      "prompt": "המימוש הסתיים; אמת אותו ותכין handoff עם verdict, פערים ובדיקות שלא רצו.",
+      "expected_primary": "kippy-release-gate"
+    },
+    {
+      "id": "ui-he-button-polish",
+      "prompt": "שנה את צבע כפתור ההתחברות במסך הבית.",
+      "expected_primary": "kippy-ui-polish"
+    },
+    {
+      "id": "ui-he-rtl-mobile",
+      "prompt": "תלטש את מסך ההצטרפות של קיפי למובייל בעברית, כולל RTL, היררכיה, ריווחים ונגישות, בלי לשנות את ה-flow.",
+      "expected_primary": "kippy-ui-polish"
+    },
+    {
+      "id": "ui-en-figma-implementation",
+      "prompt": "Implement this approved Figma screen in Kippy while preserving the existing routes, design tokens, components, and behavior.",
+      "expected_primary": "kippy-ui-polish"
+    },
+    {
+      "id": "ui-en-motion-review",
+      "prompt": "Review the Kippy landing-page motion and remove distracting animation while honoring prefers-reduced-motion.",
+      "expected_primary": "kippy-ui-polish"
+    },
+    {
+      "id": "none-explain-file",
+      "prompt": "הסבר לי מה עושה src/config/featureFlags.ts.",
+      "expected_primary": null
+    },
+    {
+      "id": "none-single-implementation",
+      "prompt": "Implement an isolated TypeScript data parser in another repository.",
+      "expected_primary": null
+    },
+    {
+      "id": "none-debug",
+      "prompt": "Diagnose why the development build command is failing.",
+      "expected_primary": null
+    },
+    {
+      "id": "none-create-migration",
+      "prompt": "צור migration חדש לטבלת device_commands.",
+      "expected_primary": null
+    },
+    {
+      "id": "ui-en-accessibility-review",
+      "prompt": "Review this Kippy component for keyboard focus, labels, contrast, RTL, and touch-target accessibility issues.",
+      "expected_primary": "kippy-ui-polish"
+    },
+    {
+      "id": "none-non-ui-review",
+      "prompt": "Review this Supabase function for error handling without changing any rendered interface.",
+      "expected_primary": null
+    },
+    {
+      "id": "boundary-status-before-parallel",
+      "prompt": "לפני שנחלק את קיפי בין שלושה סוכנים, תוודא מה הסטטוס ואז תכין תכנית מקבילית.",
+      "expected_primary": "kippy-plan-parallel-work",
+      "expected_dependency": "kippy-sync-project-status"
+    },
+    {
+      "id": "boundary-integrated-release",
+      "prompt": "כל ה-lanes מוזגו. בצע עכשיו את בדיקת המוכנות הסופית לפני PR.",
+      "expected_primary": "kippy-release-gate"
+    },
+    {
+      "id": "boundary-status-only",
+      "prompt": "רק תגיד מה השתנה ובאיזה branch; אל תבדוק מוכנות לשחרור.",
+      "expected_primary": "kippy-sync-project-status"
+    },
+    {
+      "id": "architect-he-whole-system-audit",
+      "prompt": "בצע audit ארכיטקטוני מלא של Kippy על ה-Web, Supabase, Android וה-Control Tower, וזהה פערים בין היעד למה שבאמת עובד.",
+      "expected_primary": "kippy-technical-architect",
+      "expected_dependency": "kippy-sync-project-status"
+    },
+    {
+      "id": "architect-en-adr",
+      "prompt": "Propose an ADR for versioning the cross-repository device-command contract, compare real alternatives, and define migration, rollback, and runtime validation.",
+      "expected_primary": "kippy-technical-architect"
+    },
+    {
+      "id": "architect-he-roadmap",
+      "prompt": "בנה roadmap טכנולוגי מדורג למוצר Kippy המאוחד עם dependencies, חוזים, exit gates וסדר שילוב בין Android, PWA ו-Supabase.",
+      "expected_primary": "kippy-technical-architect",
+      "expected_dependency": "kippy-sync-project-status"
+    },
+    {
+      "id": "architect-en-review",
+      "prompt": "Review this proposed Supabase-to-Android event architecture and return an architectural verdict with evidence and conditions, without deciding release readiness.",
+      "expected_primary": "kippy-technical-architect"
+    },
+    {
+      "id": "architect-en-agent-system",
+      "prompt": "Design the architecture and governance for Kippy runtime AI agents and the Codex agents that will implement them, keeping permissions and responsibilities separate.",
+      "expected_primary": "kippy-technical-architect"
+    },
+    {
+      "id": "boundary-architect-before-parallel",
+      "prompt": "First freeze Kippy's shared contracts and decide the target architecture, then prepare the work for several implementation agents.",
+      "expected_primary": "kippy-technical-architect",
+      "expected_dependency": "kippy-sync-project-status",
+      "expected_follow_on": "kippy-plan-parallel-work"
+    },
+    {
+      "id": "boundary-architecture-not-release",
+      "prompt": "Assess whether this target architecture is sound; do not run final checks or tell me whether the branch is ready to merge.",
+      "expected_primary": "kippy-technical-architect"
+    }
+  ]
+}

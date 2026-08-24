@@ -1,0 +1,4 @@
+interface:
+  display_name: "Kippy Parallel Work"
+  short_description: "Plan safe parallel work and integration"
+  default_prompt: "Use $kippy-plan-parallel-work to divide Kippy work into safe parallel lanes with a clear integration plan."

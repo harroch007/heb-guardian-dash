@@ -1,0 +1,4 @@
+interface:
+  display_name: "Kippy Release Gate"
+  short_description: "Verify Kippy changes before delivery"
+  default_prompt: "Use $kippy-release-gate to verify that the current Kippy change is safe and ready to deliver."

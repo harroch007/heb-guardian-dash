@@ -1,0 +1,4 @@
+interface:
+  display_name: "Kippy Technical Architect"
+  short_description: "Evidence-first Kippy architecture governance"
+  default_prompt: "Use $kippy-technical-architect to audit Kippy architecture and propose an evidence-backed phased roadmap."

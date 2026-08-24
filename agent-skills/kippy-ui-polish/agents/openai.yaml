@@ -1,0 +1,7 @@
+interface:
+  display_name: "Kippy UI Polish"
+  short_description: "Polish Kippy UI safely and consistently"
+  default_prompt: "Use $kippy-ui-polish to refine this Kippy interface while preserving its behavior and architecture."
+
+policy:
+  allow_implicit_invocation: true
