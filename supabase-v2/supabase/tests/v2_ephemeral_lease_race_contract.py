@@ -19,9 +19,9 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 
-EXPECTED_MIGRATION_COUNT = 55
+EXPECTED_MIGRATION_COUNT = 58
 EXPECTED_FIRST_MIGRATION = "20260727150000"
-EXPECTED_LAST_MIGRATION = "20260811130000"
+EXPECTED_LAST_MIGRATION = "20260826170000"
 RESULT_PATTERN = re.compile(r"^[0-9a-f-]{36}\|")
 
 
@@ -138,7 +138,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "Run a committed-fixture, two-connection lease race against a "
-            "disposable local 55-migration Kippy V2 database."
+            "disposable local 58-migration Kippy V2 database."
         )
     )
     parser.add_argument("--host", default="127.0.0.1")
