@@ -1,1 +1,4 @@
 project_id = "gscclrgcmvtbyquveoze"
+
+[functions.v2-get-parental-settings]
+verify_jwt = false

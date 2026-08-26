@@ -1,8 +1,9 @@
 # Kippy V2 Supabase workdir
 
-This directory is the canonical Supabase CLI workdir for the clean Kippy V2
-project. It is intentionally separate from the repository-root `supabase/`
-directory, whose 205 legacy migrations do not belong to the linked V2 history.
+This directory is the canonical Supabase CLI workdir and backend source for the
+clean Kippy V2 project. It is intentionally separate from the repository-root
+`supabase/` directory, whose 205 legacy migrations do not belong to the linked
+V2 history. V2 migrations, service RPCs and Edge Functions are owned here.
 
 ## Migration history
 
@@ -17,6 +18,8 @@ directory, whose 205 legacy migrations do not belong to the linked V2 history.
 - `20260811130000` is a forward-only atomic idempotency repair for concurrent
   publication-intent calls. It is pending and has not been applied to linked
   staging.
+- `20260826170000` adds the default-off, service-owned and per-device private
+  text P0 activation contract. It is pending and has not been applied.
 - The 43 formerly remote-only files were reconciled against the remote migration
   ledger. Stored statements matched in order; zero-statement ledger entries were
   corroborated against the live schema and matching local source copies.
@@ -26,7 +29,7 @@ directory, whose 205 legacy migrations do not belong to the linked V2 history.
   provenance remains a separate reconciliation item; do not rewrite historical
   migration blobs to absorb it.
 
-The 55 migration files in `supabase-v2/supabase/migrations/` are the source of
+The 56 migration files in `supabase-v2/supabase/migrations/` are the source of
 truth for V2. Do not run V2 migration commands from the repository-root
 `supabase/` directory, and do not use `migration repair` or `db pull` to bridge
 the two histories.
@@ -45,9 +48,9 @@ Expected linked state:
 
 - 52 matched migrations;
 - 0 remote-only migrations;
-- 3 local-only migrations (`20260811110000`, `20260811120000`,
-  `20260811130000`);
-- dry-run reports exactly those three migrations as pending.
+- 4 local-only migrations (`20260811110000`, `20260811120000`,
+  `20260811130000`, `20260826170000`);
+- dry-run reports exactly those four migrations as pending.
 
 ## Disposable runtime contract
 
