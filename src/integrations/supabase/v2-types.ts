@@ -5653,6 +5653,20 @@ export type Database = {
           status: string
         }[]
       }
+      v2_get_guardian_incident_evidence: {
+        Args: { target_incident_ids: string[] }
+        Returns: {
+          expires_at: string
+          incident_id: string
+          is_evidence: boolean
+          is_trigger: boolean
+          relative_time_seconds: number
+          sanitized_text: string
+          segment_ref: string
+          sender_role: string
+          sequence: number
+        }[]
+      }
       v2_get_guardian_push_state: {
         Args: { target_installation_id: string }
         Returns: {

@@ -7,6 +7,7 @@ const FAMILY_ID = "72000000-0000-4000-8000-000000000001";
 const CHILD_ID = "73000000-0000-4000-8000-000000000001";
 const DEVICE_ID = "74000000-0000-4000-8000-000000000001";
 const INCIDENT_ID = "75000000-0000-4000-8000-000000000001";
+const OTHER_INCIDENT_ID = "75000000-0000-4000-8000-000000000002";
 const NOW_MS = Date.now();
 const NOW = new Date(NOW_MS).toISOString();
 const LATE_AFTER = new Date(NOW_MS + 15 * 60_000).toISOString();
@@ -257,6 +258,30 @@ const rowsByTable: Record<string, object[]> = {
       created_at: NOW,
     },
   ],
+  v2_get_guardian_incident_evidence: [
+    {
+      incident_id: INCIDENT_ID,
+      segment_ref: "seg_e2e_unknown_sender",
+      sequence: 0,
+      sender_role: "unknown",
+      sanitized_text: "זהו תוכן בדיקה מסונן שההורה צריך לראות.",
+      relative_time_seconds: 0,
+      is_trigger: true,
+      is_evidence: true,
+      expires_at: new Date(NOW_MS + 24 * 60 * 60_000).toISOString(),
+    },
+    {
+      incident_id: OTHER_INCIDENT_ID,
+      segment_ref: "seg_e2e_other_incident",
+      sequence: 0,
+      sender_role: "peer",
+      sanitized_text: "תוכן מאירוע אחר שאסור לצרף להתראה הזו.",
+      relative_time_seconds: 0,
+      is_trigger: true,
+      is_evidence: true,
+      expires_at: new Date(NOW_MS + 24 * 60 * 60_000).toISOString(),
+    },
+  ],
   v2_guardian_incident_states: [],
   v2_push_subscriptions: [],
   v2_alert_deliveries: [],
@@ -269,7 +294,19 @@ async function fulfillPostgrest(
   const request = route.request();
   const url = new URL(request.url());
   const table = decodeURIComponent(url.pathname.split("/").pop() ?? "");
-  const rows = rowSource[table] ?? [];
+  let rows = rowSource[table] ?? [];
+  if (
+    table === "v2_get_guardian_incident_evidence" &&
+    request.method() === "POST"
+  ) {
+    const body = request.postDataJSON() as {
+      target_incident_ids?: string[];
+    };
+    const requestedIds = new Set(body.target_incident_ids ?? []);
+    rows = rows.filter((row) =>
+      requestedIds.has((row as { incident_id?: string }).incident_id ?? "")
+    );
+  }
   const headers = {
     ...corsHeaders,
     "content-profile": "public",
@@ -520,6 +557,106 @@ test.describe("V2 private parent routes", () => {
     await testInfo.attach("v2-parent-settings-desktop-rtl", {
       body: await page.screenshot({ fullPage: true }),
       contentType: "image/png",
+    });
+  });
+
+  test("shows confirmed sanitized content when the sender is unresolved", async ({ page }) => {
+    const evidenceRpcBodies: Array<{ target_incident_ids?: string[] }> = [];
+    page.on("request", (request) => {
+      if (
+        request.method() === "POST" &&
+        new URL(request.url()).pathname.endsWith(
+          "/rpc/v2_get_guardian_incident_evidence",
+        )
+      ) {
+        evidenceRpcBodies.push(
+          request.postDataJSON() as { target_incident_ids?: string[] },
+        );
+      }
+    });
+    await navigateWithinParentApp(page, "/alerts-v2");
+
+    await expect(
+      page.getByText("שולח לא מזוהה", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("זהו תוכן בדיקה מסונן שההורה צריך לראות.", {
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("הודעות רלוונטיות", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("תוכן מאירוע אחר שאסור לצרף להתראה הזו.", {
+        exact: true,
+      }),
+    ).toHaveCount(0);
+    expect(evidenceRpcBodies).toEqual([
+      { target_incident_ids: [INCIDENT_ID] },
+    ]);
+  });
+
+  test("keeps confirmed alerts visible when evidence is temporarily unavailable", async ({ page }) => {
+    await page.route(
+      "**/rest/v1/rpc/v2_get_guardian_incident_evidence",
+      (route) =>
+        route.fulfill({
+          status: 500,
+          headers: { ...corsHeaders, "content-type": "application/json" },
+          json: { message: "synthetic evidence outage" },
+        }),
+      { times: 1 },
+    );
+
+    await navigateWithinParentApp(page, "/alerts-v2");
+
+    await expect(
+      page.getByText("זוהתה שיחה שעשויה לדרוש תשומת לב הורית.", {
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(
+      page.getByText(
+        "תוכן ההודעה אינו זמין כרגע. אפשר לנסות לרענן בעוד רגע.",
+        { exact: true },
+      ),
+    ).toBeVisible();
+    await expect(
+      page.getByText("זהו תוכן בדיקה מסונן שההורה צריך לראות.", {
+        exact: true,
+      }),
+    ).toHaveCount(0);
+  });
+
+  test("removes sensitive evidence from an open tab when retention expires", async ({ page }) => {
+    const expiringText = "תוכן מסונן שפג במהלך פתיחת המסך.";
+    await page.route(
+      "**/rest/v1/rpc/v2_get_guardian_incident_evidence",
+      (route) =>
+        route.fulfill({
+          status: 200,
+          headers: { ...corsHeaders, "content-type": "application/json" },
+          json: [{
+            incident_id: INCIDENT_ID,
+            segment_ref: "seg_e2e_expiring_text",
+            sequence: 0,
+            sender_role: "unknown",
+            sanitized_text: expiringText,
+            relative_time_seconds: 0,
+            is_trigger: true,
+            is_evidence: true,
+            expires_at: new Date(Date.now() + 2_000).toISOString(),
+          }],
+        }),
+      { times: 1 },
+    );
+
+    await navigateWithinParentApp(page, "/alerts-v2");
+
+    await expect(page.getByText(expiringText, { exact: true })).toBeVisible();
+    await expect(page.getByText(expiringText, { exact: true })).toHaveCount(0, {
+      timeout: 4_000,
     });
   });
 

@@ -6,7 +6,32 @@ type Incident = Tables["v2_safety_incidents"]["Row"];
 type Analysis = Tables["v2_incident_analysis"]["Row"];
 type GuardianState = Tables["v2_guardian_incident_states"]["Row"];
 
+type GuardianEvidenceRow = {
+  incident_id: string;
+  segment_ref: string;
+  sequence: number;
+  sender_role: string;
+  sanitized_text: string;
+  relative_time_seconds: number;
+  is_trigger: boolean;
+  is_evidence: boolean;
+  expires_at: string;
+};
+
 export type V2GuardianIncidentState = "new" | "saved" | "acknowledged";
+
+export type GuardianEvidenceSenderRole = "child" | "peer" | "unknown";
+
+export interface V2GuardianIncidentEvidence {
+  segmentRef: string;
+  sequence: number;
+  senderRole: GuardianEvidenceSenderRole;
+  text: string;
+  relativeTimeSeconds: number;
+  isTrigger: boolean;
+  isEvidence: boolean;
+  expiresAt: string;
+}
 
 export interface V2GuardianAlert {
   id: string;
@@ -21,8 +46,46 @@ export interface V2GuardianAlert {
   summary: string;
   reason: string;
   recommendedAction: string;
+  evidence: V2GuardianIncidentEvidence[];
+  evidenceStatus: "available" | "unavailable";
   state: V2GuardianIncidentState;
 }
+
+const evidenceSenderRoles = new Set<GuardianEvidenceSenderRole>([
+  "child",
+  "peer",
+  "unknown",
+]);
+
+const normalizeGuardianEvidence = (
+  row: GuardianEvidenceRow,
+  nowMs: number,
+): V2GuardianIncidentEvidence | null => {
+  const text = row.sanitized_text.trim();
+  const expiresAtMs = Date.parse(row.expires_at);
+  if (
+    !evidenceSenderRoles.has(row.sender_role as GuardianEvidenceSenderRole) ||
+    text.length === 0 ||
+    !Number.isInteger(row.sequence) ||
+    row.sequence < 0 ||
+    !Number.isInteger(row.relative_time_seconds) ||
+    row.relative_time_seconds < 0 ||
+    !Number.isFinite(expiresAtMs) ||
+    expiresAtMs <= nowMs
+  ) {
+    return null;
+  }
+  return {
+    segmentRef: row.segment_ref,
+    sequence: row.sequence,
+    senderRole: row.sender_role as GuardianEvidenceSenderRole,
+    text,
+    relativeTimeSeconds: row.relative_time_seconds,
+    isTrigger: row.is_trigger,
+    isEvidence: row.is_evidence,
+    expiresAt: row.expires_at,
+  };
+};
 
 const requestKey = () => `guardian-incident:${crypto.randomUUID()}`;
 
@@ -65,7 +128,7 @@ export async function getV2GuardianAlerts(input: {
   if (incidents.length === 0) return { children, alerts: [] };
 
   const incidentIds = incidents.map((incident) => incident.id);
-  const [analysesResult, statesResult] = await Promise.all([
+  const [analysesResult, statesResult, evidenceResult] = await Promise.all([
     v2Supabase
       .from("v2_incident_analysis")
       .select("*")
@@ -75,9 +138,13 @@ export async function getV2GuardianAlerts(input: {
       .from("v2_guardian_incident_states")
       .select("*")
       .in("incident_id", incidentIds),
+    v2Supabase.rpc("v2_get_guardian_incident_evidence", {
+      target_incident_ids: incidentIds,
+    }),
   ]);
   if (analysesResult.error) throw analysesResult.error;
   if (statesResult.error) throw statesResult.error;
+  const evidenceAvailable = evidenceResult.error === null;
 
   const analysisByIncident = new Map(
     ((analysesResult.data ?? []) as Analysis[]).map((analysis) => [
@@ -91,6 +158,18 @@ export async function getV2GuardianAlerts(input: {
       state,
     ]),
   );
+  const evidenceByIncident = new Map<string, V2GuardianIncidentEvidence[]>();
+  const evidenceReadAtMs = Date.now();
+  for (const row of (evidenceResult.data ?? []) as GuardianEvidenceRow[]) {
+    const evidence = normalizeGuardianEvidence(row, evidenceReadAtMs);
+    if (evidence === null || !incidentIds.includes(row.incident_id)) continue;
+    const current = evidenceByIncident.get(row.incident_id) ?? [];
+    current.push(evidence);
+    evidenceByIncident.set(row.incident_id, current);
+  }
+  for (const evidence of evidenceByIncident.values()) {
+    evidence.sort((left, right) => left.sequence - right.sequence);
+  }
   const childNameById = new Map(
     children.map((child) => [child.id, child.displayName]),
   );
@@ -119,6 +198,8 @@ export async function getV2GuardianAlerts(input: {
       summary: analysis.safe_summary,
       reason: analysis.safe_reason,
       recommendedAction: analysis.recommended_action,
+      evidence: evidenceByIncident.get(incident.id) ?? [],
+      evidenceStatus: evidenceAvailable ? "available" : "unavailable",
       state:
         state === "saved" || state === "acknowledged" ? state : "new",
     });

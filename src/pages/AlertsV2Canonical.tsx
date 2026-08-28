@@ -60,6 +60,15 @@ const confidenceCopy = (confidence: number) => {
   return "נדרשת זהירות בפרשנות";
 };
 
+const evidenceSenderLabels: Record<string, string> = {
+  child: "הילד/ה",
+  peer: "משתתף/ת בשיחה",
+  unknown: "שולח לא מזוהה",
+};
+
+const activeEvidence = (alert: V2GuardianAlert, nowMs: number) =>
+  alert.evidence.filter((message) => Date.parse(message.expiresAt) > nowMs);
+
 export default function AlertsV2Canonical() {
   const { familyId } = useAuth();
   const [children, setChildren] = useState<
@@ -70,6 +79,7 @@ export default function AlertsV2Canonical() {
   const [activeTab, setActiveTab] = useState<V2GuardianIncidentState>("new");
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [evidenceNowMs, setEvidenceNowMs] = useState(Date.now());
 
   const load = useCallback(async () => {
     if (!familyId) {
@@ -86,6 +96,7 @@ export default function AlertsV2Canonical() {
       });
       setChildren(result.children);
       setAlerts(result.alerts);
+      setEvidenceNowMs(Date.now());
     } catch (error) {
       console.error("[alerts-v2] Failed to load confirmed incidents", error);
       toast.error("לא ניתן לטעון את ההתראות כרגע");
@@ -97,6 +108,29 @@ export default function AlertsV2Canonical() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    const nextExpiryMs = alerts
+      .flatMap((alert) => alert.evidence)
+      .map((message) => Date.parse(message.expiresAt))
+      .filter((expiresAtMs) => Number.isFinite(expiresAtMs) && expiresAtMs > evidenceNowMs)
+      .sort((left, right) => left - right)[0];
+    if (nextExpiryMs === undefined) return;
+    const timer = window.setTimeout(
+      () => setEvidenceNowMs(Date.now()),
+      Math.min(Math.max(nextExpiryMs - Date.now() + 25, 0), 2_147_483_647),
+    );
+    return () => window.clearTimeout(timer);
+  }, [alerts, evidenceNowMs]);
+
+  useEffect(() => {
+    const refreshExpiryBoundary = () => {
+      if (document.visibilityState === "visible") setEvidenceNowMs(Date.now());
+    };
+    document.addEventListener("visibilitychange", refreshExpiryBoundary);
+    return () =>
+      document.removeEventListener("visibilitychange", refreshExpiryBoundary);
+  }, []);
 
   const counts = useMemo(
     () => ({
@@ -239,6 +273,43 @@ export default function AlertsV2Canonical() {
                       {alert.reason}
                     </p>
                   </div>
+
+                  {activeEvidence(alert, evidenceNowMs).length > 0 && (
+                    <section
+                      aria-label="הודעות רלוונטיות לאירוע"
+                      className="space-y-2 rounded-xl border border-border/60 bg-muted/20 p-3"
+                    >
+                      <p className="text-xs font-semibold text-foreground">
+                        הודעות רלוונטיות
+                      </p>
+                      {activeEvidence(alert, evidenceNowMs).map((message) => (
+                        <blockquote
+                          key={message.segmentRef}
+                          className="rounded-lg border border-border/50 bg-card p-3"
+                        >
+                          <p className="mb-1 text-xs font-semibold text-muted-foreground">
+                            {evidenceSenderLabels[message.senderRole] ??
+                              evidenceSenderLabels.unknown}
+                          </p>
+                          <p
+                            className="whitespace-pre-wrap break-words text-sm leading-relaxed text-foreground"
+                            dir="auto"
+                          >
+                            {message.text}
+                          </p>
+                        </blockquote>
+                      ))}
+                    </section>
+                  )}
+
+                  {alert.evidenceStatus === "unavailable" && (
+                    <p
+                      role="status"
+                      className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-foreground"
+                    >
+                      תוכן ההודעה אינו זמין כרגע. אפשר לנסות לרענן בעוד רגע.
+                    </p>
+                  )}
 
                   <div className="rounded-xl border border-primary/20 bg-primary/5 p-3">
                     <p className="mb-1 text-xs font-semibold text-primary">מה מומלץ לעשות</p>
