@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="420" viewBox="0 0 1400 420" role="img" aria-labelledby="title desc">
+  <title id="title">KippyAI horizontal logo lockup concept</title>
+  <desc id="desc">The Signal K symbol with the KippyAI wordmark in deep ink and mint.</desc>
+  <g transform="translate(48 52) scale(1.22)">
+    <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M66 48V208" stroke="#102A2E" stroke-width="28"/>
+      <path d="M79 128L150 57" stroke="#102A2E" stroke-width="28"/>
+      <path d="M79 128L157 204" stroke="#102A2E" stroke-width="28"/>
+      <path d="M180 88C204 100 219 120 221 146" stroke="#39CBB7" stroke-width="18"/>
+    </g>
+    <circle cx="181" cy="54" r="12" fill="#F26B65"/>
+  </g>
+  <text x="380" y="270" fill="#102A2E" font-family="Manrope, Arial, sans-serif" font-size="180" font-weight="800" letter-spacing="-9">Kippy</text>
+  <text x="870" y="270" fill="#39CBB7" font-family="Manrope, Arial, sans-serif" font-size="118" font-weight="800" letter-spacing="-3">AI</text>
+</svg>

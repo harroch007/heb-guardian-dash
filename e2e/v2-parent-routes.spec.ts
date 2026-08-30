@@ -219,7 +219,7 @@ const rowsByTable: Record<string, object[]> = {
   v2_device_monitoring_state: [
     {
       device_id: DEVICE_ID,
-      monitoring_state: "healthy",
+      monitoring_state: "protected",
       reason_codes: [],
       expected_interval_seconds: 900,
       healthy_streak: 3,
@@ -435,6 +435,76 @@ async function installSyntheticNewGuardianSession(page: Page) {
   return { bootstrapBodies, childBodies, installBodies };
 }
 
+async function installSyntheticIncompleteGuardianSession(page: Page) {
+  let profileCreated = false;
+  const bootstrapBodies: Record<string, unknown>[] = [];
+  const bootstrapResults: Array<{ family_id: string; created: boolean }> = [];
+  const childBodies: Record<string, unknown>[] = [];
+
+  await page.route("**/auth/v1/**", async (route) => {
+    const pathname = new URL(route.request().url()).pathname;
+    if (route.request().method() === "OPTIONS") {
+      await route.fulfill({ status: 204, headers: corsHeaders });
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      headers: { ...corsHeaders, "content-type": "application/json" },
+      json: pathname.endsWith("/user") ? user : session,
+    });
+  });
+
+  await page.route("**/rest/v1/**", async (route) => {
+    const request = route.request();
+    const pathname = new URL(request.url()).pathname;
+
+    if (request.method() === "OPTIONS") {
+      await route.fulfill({ status: 204, headers: corsHeaders });
+      return;
+    }
+
+    if (pathname.endsWith("/rpc/v2_bootstrap_guardian")) {
+      bootstrapBodies.push(request.postDataJSON() as Record<string, unknown>);
+      profileCreated = true;
+      const result = { family_id: FAMILY_ID, created: false };
+      bootstrapResults.push(result);
+      await route.fulfill({
+        status: 200,
+        headers: { ...corsHeaders, "content-type": "application/json" },
+        json: [result],
+      });
+      return;
+    }
+
+    if (pathname.endsWith("/rpc/v2_create_guardian_child")) {
+      childBodies.push(request.postDataJSON() as Record<string, unknown>);
+      await route.fulfill({
+        status: 500,
+        headers: { ...corsHeaders, "content-type": "application/json" },
+        json: { message: "existing_family_must_not_create_child" },
+      });
+      return;
+    }
+
+    await fulfillPostgrest(route, {
+      ...rowsByTable,
+      v2_guardian_profiles: profileCreated
+        ? rowsByTable.v2_guardian_profiles
+        : [],
+    });
+  });
+
+  await page.route("**/functions/v1/**", async (route) => {
+    await route.fulfill({
+      status: route.request().method() === "OPTIONS" ? 204 : 200,
+      headers: { ...corsHeaders, "content-type": "application/json" },
+      ...(route.request().method() === "OPTIONS" ? {} : { json: {} }),
+    });
+  });
+
+  return { bootstrapBodies, bootstrapResults, childBodies };
+}
+
 async function authenticateSyntheticParent(page: Page) {
   await page.goto("/auth", { waitUntil: "domcontentloaded" });
   await page.getByLabel("אימייל").fill(user.email);
@@ -523,6 +593,106 @@ test.describe("V2 private parent routes", () => {
     });
   });
 
+  test("does not present a heartbeat_late device as connected", async ({ page }, testInfo) => {
+    const monitoringState = rowsByTable.v2_device_monitoring_state[0] as {
+      monitoring_state: string;
+    };
+    const originalState = monitoringState.monitoring_state;
+    monitoringState.monitoring_state = "heartbeat_late";
+
+    try {
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      await page.reload({ waitUntil: "domcontentloaded" });
+      await expect(
+        page.getByText("המכשיר לא מחובר — ייתכן שהשליטה אינה פעילה", {
+          exact: true,
+        }),
+      ).toBeVisible();
+      const screenshot = await page.screenshot({
+        fullPage: true,
+        path: testInfo.outputPath("home-heartbeat-late.png"),
+      });
+      await testInfo.attach("home-heartbeat-late-desktop-rtl", {
+        body: screenshot,
+        contentType: "image/png",
+      });
+    } finally {
+      monitoringState.monitoring_state = originalState;
+    }
+  });
+
+  test("keeps a freshly reporting degraded device connected", async ({ page }) => {
+    const monitoringState = rowsByTable.v2_device_monitoring_state[0] as {
+      monitoring_state: string;
+    };
+    const health = rowsByTable.v2_device_health_events[0] as {
+      product_ready: boolean;
+      degraded_reasons: string[];
+    };
+    const originalState = monitoringState.monitoring_state;
+    const originalProductReady = health.product_ready;
+    const originalReasons = health.degraded_reasons;
+    monitoringState.monitoring_state = "degraded";
+    health.product_ready = false;
+    health.degraded_reasons = ["app_notifications_allowed"];
+
+    try {
+      await page.reload({ waitUntil: "domcontentloaded" });
+      await expect(
+        page.getByText("המכשיר לא מחובר — ייתכן שהשליטה אינה פעילה", {
+          exact: true,
+        }),
+      ).toHaveCount(0);
+      await expect(
+        page.getByText(
+          "ניטור WhatsApp פעיל — יכולת נוספת במכשיר דורשת בדיקה",
+          { exact: true },
+        ),
+      ).toBeVisible();
+      await expect(page.getByText("1/1", { exact: true }).first()).toBeVisible();
+    } finally {
+      monitoringState.monitoring_state = originalState;
+      health.product_ready = originalProductReady;
+      health.degraded_reasons = originalReasons;
+    }
+  });
+
+  test("never renders fake family counts after a settings query failure", async ({
+    page,
+  }) => {
+    let failChildrenCount = true;
+    await page.route("**/rest/v1/v2_children*", async (route) => {
+      if (route.request().method() === "HEAD" && failChildrenCount) {
+        await route.fulfill({
+          status: 500,
+          headers: { ...corsHeaders, "content-type": "application/json" },
+        });
+        return;
+      }
+      await fulfillPostgrest(route);
+    });
+
+    await navigateWithinParentApp(page, "/settings-v2");
+
+    await expect(
+      page.getByRole("heading", {
+        name: "לא ניתן לטעון את הגדרות החשבון",
+      }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("0 ילדים · 0 הורים", { exact: true }),
+    ).toHaveCount(0);
+    await expect(page.getByText("הורה שותף", { exact: true })).toHaveCount(0);
+
+    failChildrenCount = false;
+    await page.getByRole("button", { name: "נסה שוב", exact: true }).click();
+
+    await expect(
+      page.getByText("1 ילדים · 1 הורים", { exact: true }),
+    ).toBeVisible();
+    await expect(page.getByText("הורה ראשי", { exact: true })).toBeVisible();
+  });
+
   test("keeps a reconnect QR open until its exact install session is consumed", async ({ page }) => {
     const installSessionId = "77000000-0000-4000-8000-000000000001";
     const expiresAt = "2030-07-31T13:00:00.000Z";
@@ -592,6 +762,34 @@ test.describe("V2 private parent routes", () => {
     await expect
       .poll(() => protectedDeviceReads, { timeout: 7_000 })
       .toBeGreaterThan(readsBeforeConsume);
+  });
+});
+
+test.describe("V2 incomplete guardian repair", () => {
+  test("repairs a missing profile inside the existing family", async ({
+    page,
+  }) => {
+    const calls = await installSyntheticIncompleteGuardianSession(page);
+
+    await page.goto("/auth", { waitUntil: "domcontentloaded" });
+    await page.getByLabel("אימייל").fill(user.email);
+    await page.getByLabel("סיסמה").fill("Synthetic123!");
+    await page.getByRole("button", { name: "התחבר", exact: true }).click();
+
+    await expect(page).toHaveURL(/\/onboarding$/);
+    await page.getByLabel("שם מלא *").fill("הורה בדיקה");
+    await page
+      .getByRole("button", { name: "המשך למרכז הבטיחות", exact: true })
+      .click();
+
+    await expect(page).toHaveURL(/\/home-v2$/);
+    await expect(page.getByText("ילד בדיקה", { exact: true }).first()).toBeVisible();
+    expect(calls.bootstrapBodies).toHaveLength(1);
+    expect(calls.bootstrapBodies[0].target_family_id).not.toBe(FAMILY_ID);
+    expect(calls.bootstrapResults).toEqual([
+      { family_id: FAMILY_ID, created: false },
+    ]);
+    expect(calls.childBodies).toEqual([]);
   });
 });
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Kippy Market Research"
+  short_description: "Turn market evidence into testable Kippy insights"
+  default_prompt: "Use $kippy-research-market to research one audience tension for Kippy."

@@ -15,11 +15,11 @@ interface ActivationResult {
 export default function ChildInstallLanding() {
   const { activationToken } = useParams();
   const [result, setResult] = useState<ActivationResult | null>(null);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<"link" | "otp" | null>(null);
 
   useEffect(() => {
     if (!activationToken) {
-      setError(true);
+      setError("link");
       return;
     }
     let redirectTimer: number | undefined;
@@ -29,15 +29,20 @@ export default function ChildInstallLanding() {
       })
       .then(({ data, error: activationError }) => {
         if (activationError || !data?.play_store_url) {
-          setError(true);
+          setError("link");
           return;
         }
         const activation = data as ActivationResult;
+        if (activation.otp_sent !== true) {
+          setError("otp");
+          return;
+        }
         setResult(activation);
         redirectTimer = window.setTimeout(() => {
           window.location.assign(activation.play_store_url);
         }, 1_200);
-      });
+      })
+      .catch(() => setError("link"));
     return () => {
       if (redirectTimer) window.clearTimeout(redirectTimer);
     };
@@ -51,7 +56,7 @@ export default function ChildInstallLanding() {
       <Card className="w-full max-w-md text-center">
         <CardHeader>
           <CardTitle>
-            {error ? "קישור ההתקנה אינו זמין" : "מתקינים את Kippy"}
+            {error ? "לא הצלחנו להשלים את ההפעלה" : "מתקינים את Kippy"}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-5">
@@ -59,8 +64,9 @@ export default function ChildInstallLanding() {
             <>
               <TriangleAlert className="mx-auto h-12 w-12 text-destructive" />
               <p className="text-sm text-muted-foreground">
-                הקישור פג תוקף או שכבר נעשה בו שימוש. בקשו מההורה ליצור
-                קוד QR חדש.
+                {error === "otp"
+                  ? "קוד האימות לא נשלח. נסו לפתוח שוב את אותו קישור בעוד רגע."
+                  : "הקישור לא הופעל. נסו לפתוח אותו שוב; אם פג תוקפו, צרו קישור חדש ממסך ההורה."}
               </p>
             </>
           ) : result ? (

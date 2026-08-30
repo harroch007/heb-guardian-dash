@@ -1,0 +1,23 @@
+{
+  "name": "kippy-cmo",
+  "version": "0.1.0",
+  "description": "Governed go-to-market orchestration and production for KippyAI",
+  "author": {
+    "name": "KippyAI"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Kippy CMO",
+    "shortDescription": "Governed go-to-market studio for KippyAI.",
+    "longDescription": "Coordinates KippyAI market research, Hebrew content, creative production, website conversion, aggregate analytics, and founder approval without autonomous publishing or media spend.",
+    "developerName": "KippyAI",
+    "category": "Business",
+    "capabilities": ["Research", "Content", "Creative", "Analytics"],
+    "defaultPrompt": [
+      "Prepare today's pre-launch founder approval batch.",
+      "Draft a gated organic content experiment for KippyAI.",
+      "Review this marketing draft against Kippy's claims policy."
+    ],
+    "brandColor": "#39CBB7"
+  }
+}

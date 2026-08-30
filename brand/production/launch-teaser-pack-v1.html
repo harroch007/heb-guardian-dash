@@ -1,0 +1,580 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>KippyAI — Launch Teaser Pack V1</title>
+  <style>
+    :root {
+      --ink: #102a2e;
+      --mint: #39cbb7;
+      --quiet-mint: #ddf5f0;
+      --warm-white: #f7f9f7;
+      --pure-white: #ffffff;
+      --coral: #f26b65;
+      --gold: #f3c866;
+      --slate: #66797b;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background: #d9e1df;
+      color: var(--ink);
+      font-family: Arial, "Segoe UI", sans-serif;
+    }
+
+    body {
+      display: grid;
+      justify-content: center;
+      gap: 64px;
+      padding: 64px;
+    }
+
+    .creative {
+      position: relative;
+      width: 1080px;
+      height: 1350px;
+      overflow: hidden;
+      isolation: isolate;
+      box-shadow: 0 30px 90px rgba(16, 42, 46, 0.18);
+    }
+
+    .wordmark {
+      direction: ltr;
+      font-family: "Segoe UI", Arial, sans-serif;
+      font-size: 48px;
+      font-weight: 900;
+      letter-spacing: -2.5px;
+      line-height: 1;
+    }
+
+    .wordmark span { color: var(--mint); }
+
+    .topbar {
+      position: absolute;
+      inset: 74px 130px auto 130px;
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      direction: ltr;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 58px;
+      padding: 0 26px;
+      border: 2px solid rgba(16, 42, 46, 0.14);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.72);
+      color: var(--ink);
+      font-size: 25px;
+      font-weight: 800;
+      letter-spacing: -0.4px;
+      backdrop-filter: blur(12px);
+    }
+
+    .cta {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 78px;
+      padding: 0 38px;
+      border-radius: 22px;
+      background: var(--mint);
+      color: var(--ink);
+      font-size: 30px;
+      font-weight: 900;
+      letter-spacing: -0.7px;
+    }
+
+    .manifesto {
+      background:
+        radial-gradient(circle at 8% 90%, rgba(57, 203, 183, 0.16), transparent 34%),
+        var(--warm-white);
+    }
+
+    .manifesto::before,
+    .manifesto::after {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      width: 690px;
+      height: 690px;
+      border: 44px solid var(--quiet-mint);
+      border-radius: 50%;
+      top: -410px;
+      left: -270px;
+    }
+
+    .manifesto::after {
+      width: 520px;
+      height: 520px;
+      border-width: 24px;
+      border-color: rgba(243, 200, 102, 0.8);
+      top: -350px;
+      left: -180px;
+    }
+
+    .manifesto-copy {
+      position: absolute;
+      z-index: 3;
+      top: 260px;
+      right: 130px;
+      width: 750px;
+    }
+
+    .eyebrow {
+      margin: 0 0 30px;
+      color: var(--slate);
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.4px;
+    }
+
+    .manifesto h1 {
+      margin: 0;
+      max-width: 750px;
+      color: var(--ink);
+      font-size: 94px;
+      font-weight: 900;
+      line-height: 1.02;
+      letter-spacing: -4.8px;
+    }
+
+    .manifesto h1 span {
+      display: block;
+      margin-top: 18px;
+      color: var(--mint);
+    }
+
+    .manifesto .support {
+      width: 650px;
+      margin: 38px 0 0;
+      color: var(--slate);
+      font-size: 33px;
+      font-weight: 600;
+      line-height: 1.45;
+      letter-spacing: -0.9px;
+    }
+
+    .manifesto .cta { margin-top: 38px; }
+
+    .mascot-large {
+      position: absolute;
+      z-index: 2;
+      bottom: -112px;
+      left: -70px;
+      width: 630px;
+      height: 630px;
+      object-fit: cover;
+      mix-blend-mode: multiply;
+    }
+
+    .palette-rail {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      z-index: 4;
+      display: grid;
+      grid-template-columns: 2.2fr 1fr 1fr 1fr 1fr;
+      height: 20px;
+    }
+
+    .palette-rail span:nth-child(1) { background: var(--ink); }
+    .palette-rail span:nth-child(2) { background: var(--mint); }
+    .palette-rail span:nth-child(3) { background: var(--gold); }
+    .palette-rail span:nth-child(4) { background: var(--quiet-mint); }
+    .palette-rail span:nth-child(5) { background: var(--coral); }
+
+    .signal {
+      background:
+        radial-gradient(circle at 76% 84%, rgba(57, 203, 183, 0.18), transparent 26%),
+        var(--ink);
+      color: var(--warm-white);
+    }
+
+    .signal .topbar .wordmark { color: var(--warm-white); }
+
+    .signal .pill {
+      border-color: rgba(247, 249, 247, 0.24);
+      background: rgba(247, 249, 247, 0.08);
+      color: var(--warm-white);
+    }
+
+    .signal-copy {
+      position: absolute;
+      z-index: 4;
+      top: 278px;
+      right: 130px;
+      width: 760px;
+    }
+
+    .signal-copy .eyebrow { color: var(--mint); }
+
+    .signal h2 {
+      margin: 0;
+      font-size: 82px;
+      font-weight: 900;
+      line-height: 1.02;
+      letter-spacing: -4.2px;
+    }
+
+    .signal h2 span {
+      display: block;
+      margin-top: 22px;
+      color: var(--gold);
+    }
+
+    .signal p {
+      width: 580px;
+      margin: 34px 0 0;
+      color: var(--quiet-mint);
+      font-size: 30px;
+      font-weight: 600;
+      line-height: 1.45;
+      letter-spacing: -0.8px;
+    }
+
+    .dot-field {
+      position: absolute;
+      z-index: 1;
+      top: 160px;
+      left: 40px;
+      width: 430px;
+      height: 620px;
+      opacity: 0.85;
+    }
+
+    .dot-field span {
+      position: absolute;
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      background: rgba(221, 245, 240, 0.22);
+    }
+
+    .dot-field span:nth-child(1) { top: 8%; left: 16%; }
+    .dot-field span:nth-child(2) { top: 20%; left: 42%; }
+    .dot-field span:nth-child(3) { top: 35%; left: 10%; }
+    .dot-field span:nth-child(4) { top: 49%; left: 55%; }
+    .dot-field span:nth-child(5) { top: 68%; left: 26%; }
+    .dot-field span:nth-child(6) { top: 83%; left: 72%; }
+    .dot-field span:nth-child(7) { top: 13%; left: 82%; }
+    .dot-field span:nth-child(8) { top: 57%; left: 88%; }
+    .dot-field span:nth-child(9) {
+      top: 40%;
+      left: 35%;
+      width: 28px;
+      height: 28px;
+      background: var(--coral);
+      box-shadow: 0 0 0 16px rgba(242, 107, 101, 0.12);
+    }
+
+    .mascot-medallion {
+      position: absolute;
+      z-index: 3;
+      right: 80px;
+      bottom: 54px;
+      width: 370px;
+      height: 370px;
+      overflow: hidden;
+      border: 12px solid rgba(247, 249, 247, 0.12);
+      border-radius: 50%;
+      background: var(--warm-white);
+    }
+
+    .mascot-medallion img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scale(1.02);
+    }
+
+    .signal-signature {
+      position: absolute;
+      z-index: 4;
+      bottom: 138px;
+      left: 130px;
+      width: 400px;
+      direction: rtl;
+      unicode-bidi: plaintext;
+      color: var(--warm-white);
+      font-size: 30px;
+      font-weight: 800;
+      line-height: 1.35;
+    }
+
+    .signal-signature small {
+      display: block;
+      margin-top: 13px;
+      color: var(--mint);
+      font-size: 24px;
+      font-weight: 800;
+    }
+
+    .signature-brand {
+      margin-bottom: 8px;
+      color: var(--warm-white);
+      font-size: 34px;
+      font-weight: 900;
+      letter-spacing: -1.4px;
+    }
+
+    .plans {
+      background:
+        radial-gradient(circle at 90% 0%, rgba(57, 203, 183, 0.18), transparent 26%),
+        var(--warm-white);
+    }
+
+    .plans-header {
+      position: absolute;
+      top: 92px;
+      right: 130px;
+      left: 130px;
+      z-index: 4;
+    }
+
+    .plans-title-row {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 30px;
+      direction: rtl;
+    }
+
+    .plans h2 {
+      width: 720px;
+      margin: 0;
+      color: var(--ink);
+      font-size: 74px;
+      font-weight: 900;
+      line-height: 1.03;
+      letter-spacing: -3.2px;
+    }
+
+    .plans .intro {
+      margin: 22px 0 0;
+      color: var(--slate);
+      font-size: 29px;
+      font-weight: 650;
+      line-height: 1.4;
+    }
+
+    .mascot-mini {
+      width: 190px;
+      height: 190px;
+      flex: 0 0 auto;
+      border-radius: 50%;
+      object-fit: cover;
+      background: var(--warm-white);
+    }
+
+    .plan-stack {
+      position: absolute;
+      z-index: 3;
+      top: 390px;
+      right: 130px;
+      left: 130px;
+      display: grid;
+      gap: 22px;
+    }
+
+    .plan-card {
+      min-height: 205px;
+      padding: 34px 38px;
+      border: 2px solid rgba(16, 42, 46, 0.1);
+      border-radius: 34px;
+      background: var(--pure-white);
+      box-shadow: 0 22px 55px rgba(16, 42, 46, 0.08);
+    }
+
+    .plan-card.free {
+      border-color: transparent;
+      background: var(--quiet-mint);
+    }
+
+    .plan-card.premium {
+      border-color: transparent;
+      background: var(--ink);
+      color: var(--warm-white);
+    }
+
+    .plan-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 28px;
+    }
+
+    .plan-name {
+      font-size: 38px;
+      font-weight: 900;
+      letter-spacing: -1.2px;
+    }
+
+    .plan-price {
+      direction: rtl;
+      color: var(--ink);
+      font-size: 42px;
+      font-weight: 900;
+      letter-spacing: -1.4px;
+      white-space: nowrap;
+    }
+
+    .premium .plan-price { color: var(--gold); }
+
+    .coming {
+      display: inline-flex;
+      margin-right: 12px;
+      padding: 8px 16px;
+      border-radius: 999px;
+      background: var(--coral);
+      color: var(--ink);
+      font-size: 22px;
+      font-weight: 900;
+      vertical-align: 5px;
+    }
+
+    .plan-copy {
+      margin-top: 25px;
+      color: var(--slate);
+      font-size: 27px;
+      font-weight: 650;
+      line-height: 1.42;
+      unicode-bidi: plaintext;
+    }
+
+    .premium .plan-copy { color: var(--quiet-mint); }
+
+    .plans-footer {
+      position: absolute;
+      right: 130px;
+      bottom: 70px;
+      left: 130px;
+      z-index: 4;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 34px;
+    }
+
+    .plans-note {
+      width: 450px;
+      margin: 0;
+      color: var(--slate);
+      font-size: 22px;
+      font-weight: 650;
+      line-height: 1.42;
+    }
+  </style>
+</head>
+<body>
+  <section class="creative manifesto" id="creative-brand" aria-label="מודעת מותג">
+    <div class="topbar">
+      <div class="wordmark">Kippy<span>AI</span></div>
+      <div class="pill" dir="rtl">בקרוב · טרום־השקה</div>
+    </div>
+
+    <div class="manifesto-copy">
+      <p class="eyebrow">הורות דיגיטלית יכולה להרגיש אחרת</p>
+      <h1>
+        הם לא צריכים שתראו הכול.
+        <span>הם צריכים שתדעו מתי להיות שם.</span>
+      </h1>
+      <p class="support"><bdi dir="ltr">KippyAI</bdi> נבנית כדי לעזור להורים לזהות את הרגעים שבאמת דורשים תשומת לב — בלי להפוך כל שיחה למעקב.</p>
+      <div class="cta">הצטרפו לעדכונים</div>
+    </div>
+
+    <img class="mascot-large" src="../assets/kippyai-mascot-signal-scholar-a3-palette-quills.png" alt="" />
+
+    <div class="palette-rail" aria-hidden="true">
+      <span></span><span></span><span></span><span></span><span></span>
+    </div>
+  </section>
+
+  <section class="creative signal" id="creative-signal" aria-label="מודעת אות בתוך הרעש">
+    <div class="topbar">
+      <div class="wordmark">Kippy<span>AI</span></div>
+      <div class="pill" dir="rtl">אות בתוך הרעש</div>
+    </div>
+
+    <div class="dot-field" aria-hidden="true">
+      <span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span><span></span>
+    </div>
+
+    <div class="signal-copy">
+      <p class="eyebrow">פחות פאניקה. יותר הקשר.</p>
+      <h2>
+        לא כל הודעה דורשת התערבות.
+        <span>לפעמים צריך רק לדעת מתי לבדוק.</span>
+      </h2>
+      <p><bdi dir="ltr">KippyAI</bdi> נבנית סביב דרך רגועה יותר להורות בעולם דיגיטלי.</p>
+    </div>
+
+    <div class="mascot-medallion">
+      <img src="../assets/kippyai-mascot-signal-scholar-a3-palette-quills.png" alt="" />
+    </div>
+
+    <div class="signal-signature">
+      <div class="signature-brand" dir="ltr">KippyAI</div>
+      <div>יודעים מתי להיות שם.</div>
+      <small>בקרוב · הצטרפו לעדכונים</small>
+    </div>
+  </section>
+
+  <section class="creative plans" id="creative-plans" aria-label="כרטיסי חבילות מתוכננות">
+    <div class="plans-header">
+      <div class="plans-title-row">
+        <div>
+          <p class="eyebrow">החבילות שאנחנו בונים</p>
+          <h2>מתחילים בחינם. מוסיפים עומק כשצריך.</h2>
+        </div>
+        <img class="mascot-mini" src="../assets/kippyai-mascot-signal-scholar-a3-palette-quills.png" alt="" />
+      </div>
+      <p class="intro">השקה מדורגת, עם שקיפות לגבי מה זמין ומה עדיין בדרך.</p>
+    </div>
+
+    <div class="plan-stack">
+      <article class="plan-card free">
+        <div class="plan-row">
+          <div class="plan-name" dir="ltr">Kippy</div>
+          <div class="plan-price">חינם</div>
+        </div>
+        <div class="plan-copy">בקרות הורים + ניתוח הודעות טקסט ב־<bdi dir="ltr">WhatsApp</bdi>.</div>
+      </article>
+
+      <article class="plan-card">
+        <div class="plan-row">
+          <div class="plan-name" dir="ltr">Kippy Plus</div>
+          <div class="plan-price">20 ש״ח לחודש</div>
+        </div>
+        <div class="plan-copy">בקרות הורים + ניתוח הודעות טקסט וקול ב־<bdi dir="ltr">WhatsApp</bdi>.</div>
+      </article>
+
+      <article class="plan-card premium">
+        <div class="plan-row">
+          <div class="plan-name"><bdi dir="ltr">Kippy Premium</bdi> <span class="coming">בקרוב</span></div>
+          <div class="plan-price">60 ש״ח לחודש</div>
+        </div>
+        <div class="plan-copy">
+          <span>בתוכנית הרב־פלטפורמית:</span><br />
+          <bdi dir="ltr">WhatsApp · TikTok · Instagram</bdi>
+        </div>
+      </article>
+    </div>
+
+    <div class="plans-footer">
+      <p class="plans-note">המחיר הוא עבור ילד אחד או ילדה אחת. כל חבילה תפורסם כזמינה רק לאחר שתעבור את שער המוצר המתאים.</p>
+      <div class="cta">הצטרפו לעדכונים</div>
+    </div>
+  </section>
+</body>
+</html>

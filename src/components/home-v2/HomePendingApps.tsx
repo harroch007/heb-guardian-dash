@@ -2,18 +2,25 @@ import { useEffect, useState } from "react";
 import { v2Supabase } from "@/integrations/supabase/v2-client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Check, X, Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { isSystemApp } from "@/lib/appUtils";
 import type { ChildWithData } from "@/pages/HomeV2";
 import { useAuth } from "@/contexts/AuthContext";
-import { saveAppPolicy } from "@/lib/parental-controls/settingsService";
+import {
+  isManageableInstalledApp,
+  isOutsideStoreInstall,
+  saveAppPolicy,
+} from "@/lib/parental-controls/settingsService";
 
 interface PendingApp {
   child_id: string;
   package_name: string;
   app_name: string | null;
   last_seen_at: string;
+  is_system: boolean;
+  is_launchable: boolean;
+  install_source: string;
 }
 
 interface Props {
@@ -76,9 +83,13 @@ export const HomePendingApps = ({ childrenData }: Props) => {
 
     const { data: installed, error: installedError } = await v2Supabase
       .from("v2_parental_installed_apps")
-      .select("device_id, package_name, app_name, last_seen_at, is_system")
+      .select(
+        "device_id, package_name, app_name, last_seen_at, is_system, is_launchable, install_source",
+      )
       .in("device_id", deviceIds)
       .eq("is_installed", true)
+      .eq("is_system", false)
+      .eq("is_launchable", true)
       .order("last_seen_at", { ascending: false });
 
     if (installedError) {
@@ -98,13 +109,13 @@ export const HomePendingApps = ({ childrenData }: Props) => {
         app_name: app.app_name,
         last_seen_at: app.last_seen_at,
         is_system: app.is_system,
+        is_launchable: app.is_launchable,
+        install_source: app.install_source,
       }))
       .filter((app) => {
         if (!app.child_id) return false;
         if (policyKey.has(`${app.child_id}|${app.package_name}`)) return false;
-        if (app.is_system) return false;
-        if (isSystemApp(app.package_name)) return false;
-        return true;
+        return isManageableInstalledApp(app);
       });
 
     setApps(pending.slice(0, 5));
@@ -145,7 +156,11 @@ export const HomePendingApps = ({ childrenData }: Props) => {
         appName: app.app_name,
         blocked: !allow,
       });
-      toast.success(allow ? "האפליקציה אושרה" : "האפליקציה נחסמה");
+      toast.success(
+        allow
+          ? "בקשת האישור נשלחה למכשיר"
+          : "בקשת החסימה נשלחה למכשיר",
+      );
       setApps((prev) => prev.filter((item) => `${item.child_id}|${item.package_name}` !== key));
     } catch {
       toast.error("שגיאה בעדכון האפליקציה");
@@ -179,6 +194,14 @@ export const HomePendingApps = ({ childrenData }: Props) => {
                 <p className="text-[11px] text-muted-foreground">
                   {timeAgo(app.last_seen_at)}
                 </p>
+                {isOutsideStoreInstall(app.install_source) && (
+                  <Badge
+                    variant="outline"
+                    className="mt-1 h-5 border-amber-500/40 px-1.5 text-[10px] text-amber-600"
+                  >
+                    הותקנה מחוץ לחנות
+                  </Badge>
+                )}
               </div>
               <div className="flex gap-1.5 shrink-0">
                 <Button

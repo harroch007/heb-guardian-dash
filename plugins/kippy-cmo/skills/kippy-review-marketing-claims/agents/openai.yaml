@@ -1,0 +1,4 @@
+interface:
+  display_name: "Kippy Claims Gate"
+  short_description: "Block unsupported Kippy marketing claims before use"
+  default_prompt: "Use $kippy-review-marketing-claims to gate this Kippy marketing draft."

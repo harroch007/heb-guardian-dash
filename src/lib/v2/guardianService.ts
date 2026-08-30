@@ -35,12 +35,13 @@ export async function getGuardianContext(
     .eq("user_id", userId)
     .maybeSingle();
   if (profileError) throw profileError;
+  if (!profile) return null;
 
   return {
     familyId: membership.family_id,
     role: membership.role,
-    displayName: profile?.display_name ?? null,
-    phone: profile?.phone ?? null,
+    displayName: profile.display_name,
+    phone: profile.phone,
   };
 }
 

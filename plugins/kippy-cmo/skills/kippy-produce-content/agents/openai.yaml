@@ -1,0 +1,4 @@
+interface:
+  display_name: "Kippy Content Studio"
+  short_description: "Create gated Hebrew content for Kippy channels"
+  default_prompt: "Use $kippy-produce-content to draft a pre-launch Kippy content batch."

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { v2Supabase } from "@/integrations/supabase/v2-client";
-import { isSystemApp } from "@/lib/appUtils";
+import { isManageableInstalledApp } from "@/lib/parental-controls/settingsService";
 
 export interface NavBadgeCounts {
   home: number;
@@ -100,9 +100,13 @@ export function useV2NavBadgeCounts(): NavBadgeCounts {
           await Promise.all([
             v2Supabase
               .from("v2_parental_installed_apps")
-              .select("device_id, package_name, is_system")
+              .select(
+                "device_id, package_name, is_system, is_launchable, install_source",
+              )
               .in("device_id", activeDeviceIds)
-              .eq("is_installed", true),
+              .eq("is_installed", true)
+              .eq("is_system", false)
+              .eq("is_launchable", true),
             v2Supabase
               .from("v2_parental_geofence_events")
               .select("id")
@@ -135,8 +139,7 @@ export function useV2NavBadgeCounts(): NavBadgeCounts {
           const childId = childByDevice.get(app.device_id);
           if (!childId) return false;
           if (policyKey.has(`${childId}|${app.package_name}`)) return false;
-          if (app.is_system || isSystemApp(app.package_name)) return false;
-          return true;
+          return isManageableInstalledApp(app);
         }).length;
 
         recentGeofenceEvents = (geofenceResult.data || []).length;

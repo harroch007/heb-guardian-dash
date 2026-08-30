@@ -83,6 +83,10 @@ export type StaffPermission =
   | "customer360.read.masked"
   | "customer360.read.sensitive"
   | "diagnostics.read.device"
+  | "marketing.read"
+  | "marketing.draft.write"
+  | "marketing.approve"
+  | "marketing.publish.request"
   | "action.report_heartbeat.request"
   | "action.refresh_settings.request";
 

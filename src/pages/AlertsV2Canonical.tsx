@@ -241,11 +241,33 @@ export default function AlertsV2Canonical() {
                   </div>
 
                   <div className="rounded-xl border border-primary/20 bg-primary/5 p-3">
-                    <p className="mb-1 text-xs font-semibold text-primary">מה מומלץ לעשות</p>
+                    <p className="mb-1 text-xs font-semibold text-primary">הצעד הבא</p>
                     <p className="text-sm leading-relaxed text-foreground">
-                      {alert.recommendedAction}
+                      {alert.parentNextAction ?? alert.recommendedAction}
                     </p>
                   </div>
+
+                  {alert.parentOpening && (
+                    <div className="rounded-xl border border-border bg-muted/30 p-3">
+                      <p className="mb-1 text-xs font-semibold text-foreground">
+                        איך לפתוח את השיחה
+                      </p>
+                      <p className="text-sm leading-relaxed text-foreground">
+                        ״{alert.parentOpening}״
+                      </p>
+                    </div>
+                  )}
+
+                  {alert.parentAvoid && (
+                    <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-3">
+                      <p className="mb-1 text-xs font-semibold text-amber-800">
+                        ממה להימנע
+                      </p>
+                      <p className="text-sm leading-relaxed text-foreground">
+                        {alert.parentAvoid}
+                      </p>
+                    </div>
+                  )}
 
                   <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                     <span>{roleLabels[alert.childRole] ?? roleLabels.unknown}</span>

@@ -10,6 +10,7 @@ import { AccordionItem, AccordionTrigger, AccordionContent } from "@/components/
 import type { ChildWithData } from "@/pages/HomeV2";
 import { gt, child as childWord } from "@/lib/genderText";
 import { grantParentBonusTime } from "@/lib/parental-controls/settingsService";
+import { hasCurrentDeviceReport } from "@/lib/v2/guardianMonitoringService";
 
 interface Props {
   child: ChildWithData;
@@ -26,18 +27,12 @@ const formatMinutes = (m: number): string => {
 const formatLastSeen = (ts: string | null): string => {
   if (!ts) return "לא זמין";
   const diff = Math.floor((Date.now() - new Date(ts).getTime()) / 60000);
-  if (diff < 1) return "מחובר עכשיו";
+  if (diff < 1) return "דיווח עכשיו";
   if (diff < 60) return `לפני ${diff} דק׳`;
   const h = Math.floor(diff / 60);
   if (h < 24) return `לפני ${h} שעות`;
   return `לפני ${Math.floor(h / 24)} ימים`;
 };
-
-const isConnected = (lastSeen: string | null) => {
-  if (!lastSeen) return false;
-  return Date.now() - new Date(lastSeen).getTime() < 24 * 60 * 60 * 1000;
-};
-
 
 export const ChildCardV2 = ({ child, onRefresh }: Props) => {
   const navigate = useNavigate();
@@ -46,7 +41,11 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
 
   const { phase: ringPhase, sendRing, retry: retryRing } = useRingCommand(child.device?.device_id ?? null);
 
-  const connected = isConnected(child.device?.last_seen ?? null);
+  const monitoringState = child.device?.monitoring_state ?? "unknown";
+  const connected = child.device
+    ? hasCurrentDeviceReport(monitoringState)
+    : false;
+  const fullyProtected = monitoringState === "healthy";
   const usedMinutes = child.snapshot?.total_usage_minutes ?? 0;
   const effectiveLimit =
     child.dailyLimit !== null && child.dailyLimit > 0
@@ -111,6 +110,8 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
 
   const borderClass = !connected
     ? "border-red-300 ring-1 ring-red-200"
+    : !fullyProtected
+      ? "border-amber-300"
     : screenTimeExceeded
       ? "border-red-300 ring-1 ring-red-200"
       : child.activeRestriction
@@ -140,6 +141,18 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
           </span>
         </div>
       )}
+      {connected && !fullyProtected && (
+        <div className="flex items-center gap-2 border-b border-amber-200 bg-warning/10 px-4 py-2">
+          <AlertTriangle className="h-4 w-4 shrink-0 text-warning" />
+          <span className="text-xs font-semibold text-warning">
+            {monitoringState === "needs_setup"
+              ? "המכשיר מחובר — נדרשת השלמת הרשאות הניטור"
+              : monitoringState === "recovering"
+                ? "המכשיר חזר לדווח — Kippy מוודאת שהחיבור יציב"
+                : "ניטור WhatsApp פעיל — יכולת נוספת במכשיר דורשת בדיקה"}
+          </span>
+        </div>
+      )}
       {/* Restriction banner */}
       {child.activeRestriction && (
         <div className="flex items-center gap-2 px-4 py-2 bg-warning/10 border-b border-amber-200">
@@ -163,7 +176,13 @@ export const ChildCardV2 = ({ child, onRefresh }: Props) => {
               <h3 className="font-semibold text-foreground text-sm truncate">{child.name}</h3>
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <span
-                  className={`w-2 h-2 rounded-full ${connected ? "bg-success" : "bg-destructive"}`}
+                  className={`h-2 w-2 rounded-full ${
+                    fullyProtected
+                      ? "bg-success"
+                      : connected
+                        ? "bg-warning"
+                        : "bg-destructive"
+                  }`}
                 />
                 {formatLastSeen(child.device?.last_seen ?? null)}
               </div>

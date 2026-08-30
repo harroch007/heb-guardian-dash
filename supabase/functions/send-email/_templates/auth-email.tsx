@@ -58,7 +58,7 @@ const ACTION_LABELS: Record<string, { subject: string; heading: string; cta: str
   },
 }
 
-const LOGO_URL = 'https://fsedenvbdpctzoznppwo.supabase.co/storage/v1/object/public/email-assets/kippy-logo.png?v=1'
+const LOGO_URL = 'https://kippyai.com/pwa-192x192.png'
 
 export const AuthEmail = ({
   token,

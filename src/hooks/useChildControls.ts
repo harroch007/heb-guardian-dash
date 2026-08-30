@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { v2Supabase } from "@/integrations/supabase/v2-client";
-import type { Json } from "@/integrations/supabase/v2-types";
+import type { Database, Json } from "@/integrations/supabase/v2-types";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { getIsraelDate } from "@/lib/utils";
@@ -9,6 +9,7 @@ import {
   createProtectionSchedule,
   deleteProtectionSchedule,
   grantParentBonusTime,
+  isManageableInstalledApp,
   saveAppPolicy,
   saveDailyScreenTimeLimit,
   saveShabbatMode,
@@ -26,6 +27,7 @@ export interface AppPolicy {
   blocked_by: string | null;
   policy_status: "approved" | "blocked";
   always_allowed: boolean;
+  sync_status: "applied" | "pending";
 }
 
 export interface BlockedAttemptSummary {
@@ -55,6 +57,8 @@ export interface InstalledApp {
   package_name: string;
   app_name: string | null;
   is_system: boolean;
+  is_launchable: boolean;
+  install_source: string;
   category: string | null;
   first_seen_at: string;
   last_seen_at: string;
@@ -123,6 +127,27 @@ const scheduleDisplayType = (name: string, scheduleType: string) => {
   }
   return scheduleType;
 };
+
+type V2AppPolicyRow =
+  Database["public"]["Tables"]["v2_parental_app_policies"]["Row"];
+
+const mapPolicies = (
+  policies: V2AppPolicyRow[],
+  syncStatus: AppPolicy["sync_status"],
+): AppPolicy[] =>
+  policies.map((policy) => ({
+    id: policy.id,
+    child_id: policy.child_id,
+    package_name: policy.package_name,
+    app_name: policy.app_name,
+    is_blocked: policy.policy_status === "blocked",
+    blocked_at: policy.policy_status === "blocked" ? policy.updated_at : null,
+    blocked_by: policy.policy_status === "blocked" ? policy.updated_by : null,
+    policy_status:
+      policy.policy_status === "blocked" ? "blocked" : "approved",
+    always_allowed: policy.always_allowed,
+    sync_status: syncStatus,
+  }));
 
 export function useChildControls(childId: string | undefined) {
   const { user } = useAuth();
@@ -291,19 +316,30 @@ export function useChildControls(childId: string | undefined) {
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
 
-      const [devicesResult, policiesResult, schedulesResult, bonusResult] =
+      const [
+        devicesResult,
+        policiesResult,
+        settingsResult,
+        schedulesResult,
+        bonusResult,
+      ] =
         await Promise.all([
           v2Supabase
             .from("v2_protected_devices")
             .select("*")
             .eq("child_id", childId)
-            .neq("status", "revoked")
+            .in("status", ["active", "degraded"])
             .order("last_seen_at", { ascending: false }),
           v2Supabase
             .from("v2_parental_app_policies")
             .select("*")
             .eq("child_id", childId)
             .order("app_name"),
+          v2Supabase
+            .from("v2_parental_settings")
+            .select("revision")
+            .eq("child_id", childId)
+            .maybeSingle(),
           v2Supabase
             .from("v2_parental_schedules")
             .select("*")
@@ -319,28 +355,11 @@ export function useChildControls(childId: string | undefined) {
       const baseError = [
         devicesResult.error,
         policiesResult.error,
+        settingsResult.error,
         schedulesResult.error,
         bonusResult.error,
       ].find(Boolean);
       if (baseError) throw baseError;
-
-      const policies: AppPolicy[] = (policiesResult.data || []).map(
-        (policy) => ({
-          id: policy.id,
-          child_id: policy.child_id,
-          package_name: policy.package_name,
-          app_name: policy.app_name,
-          is_blocked: policy.policy_status === "blocked",
-          blocked_at:
-            policy.policy_status === "blocked" ? policy.updated_at : null,
-          blocked_by:
-            policy.policy_status === "blocked" ? policy.updated_by : null,
-          policy_status:
-            policy.policy_status === "blocked" ? "blocked" : "approved",
-          always_allowed: policy.always_allowed,
-        }),
-      );
-      setAppPolicies(policies);
 
       setScheduleWindows(
         (schedulesResult.data || []).map((schedule) => ({
@@ -378,6 +397,9 @@ export function useChildControls(childId: string | undefined) {
       const primaryDevice = devices[0] ?? null;
 
       if (deviceIds.length === 0) {
+        setAppPolicies(
+          mapPolicies(policiesResult.data || [], "pending"),
+        );
         setBlockedAttempts([]);
         setInstalledApps([]);
         setDeviceHealth(null);
@@ -385,7 +407,7 @@ export function useChildControls(childId: string | undefined) {
         return;
       }
 
-      const [attemptsResult, installedResult, healthResult] =
+      const [attemptsResult, installedResult, healthResult, stateResult] =
         await Promise.all([
           v2Supabase
             .from("v2_parental_blocked_attempts")
@@ -394,10 +416,13 @@ export function useChildControls(childId: string | undefined) {
             .gte("attempted_at", todayStart.toISOString()),
           v2Supabase
             .from("v2_parental_installed_apps")
-            .select("*")
+            .select(
+              "device_id, package_name, app_name, is_system, is_launchable, install_source, first_seen_at, last_seen_at",
+            )
             .in("device_id", deviceIds)
             .eq("is_installed", true)
             .eq("is_system", false)
+            .eq("is_launchable", true)
             .order("app_name"),
           v2Supabase
             .from("v2_device_health_events")
@@ -406,14 +431,40 @@ export function useChildControls(childId: string | undefined) {
             .eq("affects_current_state", true)
             .order("observed_at", { ascending: false })
             .limit(1),
+          v2Supabase
+            .from("v2_parental_device_state")
+            .select("device_id, settings_revision_applied")
+            .in("device_id", deviceIds),
         ]);
 
       const deviceError = [
         attemptsResult.error,
         installedResult.error,
         healthResult.error,
+        stateResult.error,
       ].find(Boolean);
       if (deviceError) throw deviceError;
+
+      const requestedRevision = settingsResult.data?.revision ?? 0;
+      const appliedRevisionByDevice = new Map(
+        (stateResult.data || []).map((state) => [
+          state.device_id,
+          state.settings_revision_applied,
+        ]),
+      );
+      const settingsApplied =
+        requestedRevision === 0 ||
+        deviceIds.every(
+          (deviceId) =>
+            (appliedRevisionByDevice.get(deviceId) ?? -1) >=
+            requestedRevision,
+        );
+      setAppPolicies(
+        mapPolicies(
+          policiesResult.data || [],
+          settingsApplied ? "applied" : "pending",
+        ),
+      );
 
       const attemptsMap = new Map<
         string,
@@ -442,16 +493,20 @@ export function useChildControls(childId: string | undefined) {
       );
 
       setInstalledApps(
-        (installedResult.data || []).map((app) => ({
-          id: `${app.device_id}:${app.package_name}`,
-          child_id: childId,
-          package_name: app.package_name,
-          app_name: app.app_name,
-          is_system: app.is_system,
-          category: null,
-          first_seen_at: app.first_seen_at,
-          last_seen_at: app.last_seen_at,
-        })),
+        (installedResult.data || [])
+          .filter(isManageableInstalledApp)
+          .map((app) => ({
+            id: `${app.device_id}:${app.package_name}`,
+            child_id: childId,
+            package_name: app.package_name,
+            app_name: app.app_name,
+            is_system: app.is_system,
+            is_launchable: app.is_launchable,
+            install_source: app.install_source,
+            category: null,
+            first_seen_at: app.first_seen_at,
+            last_seen_at: app.last_seen_at,
+          })),
       );
 
       const health = healthResult.data?.[0] ?? null;
@@ -518,8 +573,48 @@ export function useChildControls(childId: string | undefined) {
   }, [childId, user]);
 
   useEffect(() => {
-    fetchData();
+    void fetchData();
   }, [fetchData]);
+
+  useEffect(() => {
+    if (!childId) return;
+
+    const channel = v2Supabase
+      .channel(`v2-child-app-controls-${childId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "v2_parental_app_policies",
+          filter: `child_id=eq.${childId}`,
+        },
+        () => void fetchData(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "v2_parental_installed_apps" },
+        () => void fetchData(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "v2_parental_settings" },
+        () => void fetchData(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "v2_parental_device_state" },
+        () => void fetchData(),
+      )
+      .subscribe();
+
+    const onFocus = () => void fetchData();
+    window.addEventListener("focus", onFocus);
+    return () => {
+      void v2Supabase.removeChannel(channel);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [childId, fetchData]);
 
   const toggleAppBlock = async (packageName: string, appName: string | null, currentlyBlocked: boolean) => {
     if (!childId || !user) return;
@@ -539,8 +634,12 @@ export function useChildControls(childId: string | undefined) {
       return;
     }
 
-    toast.success(newBlocked ? "האפליקציה נחסמה" : "האפליקציה שוחררה");
-    fetchData();
+    toast.success(
+      newBlocked
+        ? "בקשת החסימה נשלחה למכשיר"
+        : "בקשת השחרור נשלחה למכשיר",
+    );
+    void fetchData();
   };
 
   /** Approve a pending app — creates policy row with approved status */
@@ -560,8 +659,8 @@ export function useChildControls(childId: string | undefined) {
       return;
     }
 
-    toast.success("האפליקציה אושרה");
-    fetchData();
+    toast.success("בקשת האישור נשלחה למכשיר");
+    void fetchData();
   };
 
   /** Block a pending app — creates policy row with blocked status */
@@ -581,8 +680,8 @@ export function useChildControls(childId: string | undefined) {
       return;
     }
 
-    toast.success("האפליקציה נחסמה");
-    fetchData();
+    toast.success("בקשת החסימה נשלחה למכשיר");
+    void fetchData();
   };
 
   const updateDailyLimit = async (minutes: number | null) => {

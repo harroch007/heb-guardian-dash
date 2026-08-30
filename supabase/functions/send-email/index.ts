@@ -5,7 +5,7 @@ import { renderAsync } from 'npm:@react-email/components@0.0.22'
 import { AuthEmail } from './_templates/auth-email.tsx'
 
 const resend = new Resend(Deno.env.get('RESEND_API_KEY') as string)
-const hookSecret = Deno.env.get('SEND_EMAIL_HOOK_SECRET') as string
+const hookSecret = (Deno.env.get('SEND_EMAIL_HOOK_SECRET') as string).replace('v1,whsec_', '')
 
 const ACTION_SUBJECTS: Record<string, string> = {
   signup: 'ברוכים הבאים ל-KippyAI!',

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Kippy Creative Studio"
+  short_description: "Brief and produce on-brand Kippy creative assets"
+  default_prompt: "Use $kippy-produce-creative to create approved-format Kippy ad concepts."

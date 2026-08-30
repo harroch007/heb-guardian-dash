@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
+  AlertTriangle,
   BellRing,
   Check,
   FileText,
@@ -67,6 +68,7 @@ export default function SettingsV2Canonical() {
       setPhone(data.phone ?? "");
     } catch (error) {
       console.error("[settings-v2] Failed to load guardian portal", error);
+      setSnapshot(null);
       toast.error("לא ניתן לטעון את הגדרות החשבון");
     } finally {
       setLoading(false);
@@ -126,6 +128,29 @@ export default function SettingsV2Canonical() {
     );
   }
 
+  if (!snapshot) {
+    return (
+      <div className="v2-dark min-h-screen bg-background pb-24" dir="rtl">
+        <TopNavigationV2 />
+        <main className="mx-auto max-w-lg px-4 py-6">
+          <section className="space-y-4 rounded-2xl border border-destructive/40 bg-card p-5 text-center">
+            <AlertTriangle className="mx-auto h-8 w-8 text-destructive" />
+            <div className="space-y-1">
+              <h1 className="text-lg font-semibold text-foreground">
+                לא ניתן לטעון את הגדרות החשבון
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                הנתונים לא הוצגו כדי שלא להציג פרטי משפחה שגויים.
+              </p>
+            </div>
+            <Button onClick={() => void load()}>נסה שוב</Button>
+          </section>
+        </main>
+        <BottomNavigationV2 />
+      </div>
+    );
+  }
+
   return (
     <div className="v2-dark min-h-screen bg-background pb-24" dir="rtl">
       <TopNavigationV2 />
@@ -148,7 +173,7 @@ export default function SettingsV2Canonical() {
                   חשבון הורה
                 </h2>
                 <Badge variant="secondary" className="mt-1 text-[10px]">
-                  {snapshot?.role === "owner" ? "הורה ראשי" : "הורה שותף"}
+                  {snapshot.role === "owner" ? "הורה ראשי" : "הורה שותף"}
                 </Badge>
               </div>
             </div>
@@ -188,8 +213,8 @@ export default function SettingsV2Canonical() {
                   variant="outline"
                   disabled={saving}
                   onClick={() => {
-                    setName(snapshot?.displayName ?? "");
-                    setPhone(snapshot?.phone ?? "");
+                    setName(snapshot.displayName);
+                    setPhone(snapshot.phone ?? "");
                     setEditing(false);
                   }}
                 >
@@ -202,7 +227,7 @@ export default function SettingsV2Canonical() {
             <div className="space-y-2 text-sm">
               <div className="flex justify-between border-b border-border/30 py-2">
                 <span className="text-muted-foreground">שם</span>
-                <span className="font-medium">{snapshot?.displayName ?? "—"}</span>
+                <span className="font-medium">{snapshot.displayName || "—"}</span>
               </div>
               <div className="flex justify-between border-b border-border/30 py-2">
                 <span className="text-muted-foreground">אימייל</span>
@@ -210,7 +235,7 @@ export default function SettingsV2Canonical() {
               </div>
               <div className="flex justify-between py-2">
                 <span className="text-muted-foreground">טלפון</span>
-                <span dir="ltr" className="font-medium">{snapshot?.phone ?? "—"}</span>
+                <span dir="ltr" className="font-medium">{snapshot.phone ?? "—"}</span>
               </div>
             </div>
           )}
@@ -224,7 +249,7 @@ export default function SettingsV2Canonical() {
             <div>
               <h2 className="text-lg font-semibold">המשפחה</h2>
               <p className="text-xs text-muted-foreground">
-                {snapshot?.childCount ?? 0} ילדים · {snapshot?.guardianCount ?? 0} הורים
+                {snapshot.childCount} ילדים · {snapshot.guardianCount} הורים
               </p>
             </div>
           </div>

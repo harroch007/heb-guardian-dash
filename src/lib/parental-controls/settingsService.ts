@@ -2,6 +2,37 @@ import { v2Supabase } from "@/integrations/supabase/v2-client";
 
 const requestKey = (prefix: string) => `${prefix}:${crypto.randomUUID()}`;
 
+export type AppInstallSource = "store" | "sideload" | "unknown";
+
+export const KIPPY_CHILD_PACKAGE_NAME = "com.kippy.safety.core";
+
+const KIPPY_CHILD_PACKAGE_NAMES = new Set([
+  KIPPY_CHILD_PACKAGE_NAME,
+  `${KIPPY_CHILD_PACKAGE_NAME}.lab`,
+  `${KIPPY_CHILD_PACKAGE_NAME}.alpha`,
+]);
+
+export interface ManageableInstalledApp {
+  package_name: string;
+  is_launchable: boolean;
+  is_system: boolean;
+  install_source: string | null;
+}
+
+export const isManageableInstalledApp = (
+  app: Pick<
+    ManageableInstalledApp,
+    "package_name" | "is_launchable" | "is_system"
+  >,
+): boolean =>
+  !KIPPY_CHILD_PACKAGE_NAMES.has(app.package_name) &&
+  app.is_launchable &&
+  !app.is_system;
+
+export const isOutsideStoreInstall = (
+  installSource: string | null | undefined,
+): boolean => installSource === "sideload";
+
 export interface ScheduleInput {
   schedule_type: string;
   name: string;
@@ -68,8 +99,8 @@ export async function saveAppPolicy(input: {
   packageName: string;
   appName: string | null;
   blocked: boolean;
-}): Promise<void> {
-  const { error } = await v2Supabase.rpc("v2_set_parental_app_policy", {
+}): Promise<number> {
+  const { data, error } = await v2Supabase.rpc("v2_set_parental_app_policy", {
     target_child_id: input.childId,
     target_package_name: input.packageName,
     target_app_name: input.appName ?? "",
@@ -80,6 +111,10 @@ export async function saveAppPolicy(input: {
     target_request_key: requestKey("app-policy"),
   });
   if (error) throw error;
+  if (typeof data !== "number") {
+    throw new Error("app_policy_revision_missing");
+  }
+  return data;
 }
 
 export async function saveDailyScreenTimeLimit(input: {

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Kippy Web Conversion"
+  short_description: "Propose safe waitlist conversion improvements"
+  default_prompt: "Use $kippy-optimize-web-conversion to improve Kippy's waitlist funnel."

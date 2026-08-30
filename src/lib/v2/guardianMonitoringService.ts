@@ -12,10 +12,18 @@ type V2MonitoringState = Tables["v2_device_monitoring_state"]["Row"];
 
 export type GuardianMonitoringState =
   | "healthy"
+  | "degraded"
+  | "recovering"
   | "late"
   | "interrupted"
   | "needs_setup"
   | "unknown";
+
+export const hasCurrentDeviceReport = (state: GuardianMonitoringState) =>
+  state === "healthy" ||
+  state === "degraded" ||
+  state === "recovering" ||
+  state === "needs_setup";
 
 export interface GuardianMonitoringDevice {
   id: string;
@@ -88,15 +96,37 @@ const capabilitySatisfied = (capabilities: Json, key: string) => {
   );
 };
 
-const normalizeMonitoringState = (
-  state: string | null | undefined,
-  health: V2DeviceHealth | null,
+const deadlineReached = (value: string | null | undefined, nowMs: number) =>
+  Boolean(value && new Date(value).getTime() <= nowMs);
+
+export const normalizeMonitoringState = (
+  monitoring: V2MonitoringState | null | undefined,
+  nowMs = Date.now(),
 ): GuardianMonitoringState => {
-  if (state === "healthy" || state === "active") return "healthy";
-  if (state === "late") return "late";
+  const state = monitoring?.monitoring_state?.trim().toLowerCase();
+
+  if (state === "revoked") return "interrupted";
+  if (deadlineReached(monitoring?.interrupted_after_at, nowMs)) {
+    return "interrupted";
+  }
   if (state === "interrupted") return "interrupted";
-  if (health?.capture_ready && health.product_ready !== false) return "healthy";
-  if (health && !health.capture_ready) return "needs_setup";
+  if (
+    state === "heartbeat_late" ||
+    state === "late" ||
+    deadlineReached(monitoring?.late_after_at, nowMs)
+  ) {
+    return "late";
+  }
+  if (state === "recovering") return "recovering";
+  if (state === "degraded") return "degraded";
+  if (state === "action_required") return "needs_setup";
+  if (state === "protected" || state === "healthy" || state === "active") {
+    return "healthy";
+  }
+  if (state === "awaiting_first_heartbeat") return "unknown";
+
+  // The canonical monitoring row owns liveness. A historical health payload
+  // alone must never promote an unknown device to a current state.
   return "unknown";
 };
 
@@ -224,10 +254,7 @@ export async function getV2GuardianMonitoring(
             lastSeenAt: device.last_seen_at,
             healthObservedAt: health?.observed_at ?? null,
             batteryLevel: health?.battery_level_percent ?? null,
-            monitoringState: normalizeMonitoringState(
-              monitoring?.monitoring_state,
-              health,
-            ),
+            monitoringState: normalizeMonitoringState(monitoring),
             captureReady: health?.capture_ready ?? false,
             productReady: health?.product_ready ?? false,
             accessibilityEnabled: health?.accessibility_enabled ?? false,

@@ -21,6 +21,11 @@ export interface V2GuardianAlert {
   summary: string;
   reason: string;
   recommendedAction: string;
+  guidanceAgeBand: string | null;
+  guidanceCodes: string[];
+  parentOpening: string | null;
+  parentAvoid: string | null;
+  parentNextAction: string | null;
   state: V2GuardianIncidentState;
 }
 
@@ -119,6 +124,11 @@ export async function getV2GuardianAlerts(input: {
       summary: analysis.safe_summary,
       reason: analysis.safe_reason,
       recommendedAction: analysis.recommended_action,
+      guidanceAgeBand: analysis.guidance_age_band,
+      guidanceCodes: analysis.guidance_codes,
+      parentOpening: analysis.parent_opening,
+      parentAvoid: analysis.parent_avoid,
+      parentNextAction: analysis.parent_next_action,
       state:
         state === "saved" || state === "acknowledged" ? state : "new",
     });

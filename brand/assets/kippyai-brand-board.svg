@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" role="img" aria-labelledby="title desc">
+  <title id="title">KippyAI brand board concept</title>
+  <desc id="desc">Brand idea, Signal K logo, typography and calm premium color palette.</desc>
+  <rect width="1600" height="1000" rx="36" fill="#F7F9F7"/>
+
+  <g transform="translate(90 70) scale(.72)">
+    <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M66 48V208" stroke="#102A2E" stroke-width="28"/>
+      <path d="M79 128L150 57" stroke="#102A2E" stroke-width="28"/>
+      <path d="M79 128L157 204" stroke="#102A2E" stroke-width="28"/>
+      <path d="M180 88C204 100 219 120 221 146" stroke="#39CBB7" stroke-width="18"/>
+    </g>
+    <circle cx="181" cy="54" r="12" fill="#F26B65"/>
+  </g>
+  <text x="290" y="205" fill="#102A2E" font-family="Manrope, Arial, sans-serif" font-size="108" font-weight="800" letter-spacing="-6">Kippy</text>
+  <text x="585" y="205" fill="#39CBB7" font-family="Manrope, Arial, sans-serif" font-size="72" font-weight="800">AI</text>
+
+  <rect x="90" y="305" width="1420" height="300" rx="30" fill="#102A2E"/>
+  <text x="1450" y="410" text-anchor="end" direction="rtl" unicode-bidi="bidi-override" fill="#F7F9F7" font-family="Noto Sans Hebrew, Arial, sans-serif" font-size="62" font-weight="800">
+    הם לא צריכים שתראו הכול.
+  </text>
+  <text x="1450" y="492" text-anchor="end" direction="rtl" unicode-bidi="bidi-override" fill="#39CBB7" font-family="Noto Sans Hebrew, Arial, sans-serif" font-size="62" font-weight="800">
+    הם צריכים שתדעו מתי להיות שם.
+  </text>
+  <text x="1450" y="555" text-anchor="end" direction="rtl" unicode-bidi="bidi-override" fill="#DDF5F0" font-family="Noto Sans Hebrew, Arial, sans-serif" font-size="28" font-weight="500">
+    גבולות ברורים. אותות בזמן. יותר מקום לגדול.
+  </text>
+
+  <text x="1510" y="695" text-anchor="end" direction="rtl" unicode-bidi="bidi-override" fill="#102A2E" font-family="Noto Sans Hebrew, Arial, sans-serif" font-size="30" font-weight="700">
+    פלטת הליבה
+  </text>
+
+  <g font-family="Manrope, Arial, sans-serif" font-size="22" font-weight="700">
+    <rect x="90" y="735" width="250" height="170" rx="24" fill="#102A2E"/>
+    <text x="118" y="870" fill="#F7F9F7">Kippy Ink</text>
+    <text x="118" y="899" fill="#DDF5F0">#102A2E</text>
+
+    <rect x="365" y="735" width="250" height="170" rx="24" fill="#39CBB7"/>
+    <text x="393" y="870" fill="#102A2E">Kippy Mint</text>
+    <text x="393" y="899" fill="#102A2E">#39CBB7</text>
+
+    <rect x="640" y="735" width="250" height="170" rx="24" fill="#DDF5F0" stroke="#C6E8E1"/>
+    <text x="668" y="870" fill="#102A2E">Quiet Mint</text>
+    <text x="668" y="899" fill="#102A2E">#DDF5F0</text>
+
+    <rect x="915" y="735" width="250" height="170" rx="24" fill="#F26B65"/>
+    <text x="943" y="870" fill="#102A2E">Human Coral</text>
+    <text x="943" y="899" fill="#102A2E">#F26B65</text>
+
+    <rect x="1190" y="735" width="250" height="170" rx="24" fill="#F3C866"/>
+    <text x="1218" y="870" fill="#102A2E">Warm Gold</text>
+    <text x="1218" y="899" fill="#102A2E">#F3C866</text>
+  </g>
+</svg>

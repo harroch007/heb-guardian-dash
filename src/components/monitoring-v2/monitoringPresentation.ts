@@ -27,6 +27,20 @@ export const monitoringStateCopy = (
         description: "Kippy מקבלת דיווחים ממכשיר הילד.",
         tone: "safe",
       };
+    case "degraded":
+      return {
+        label: "פעיל, נדרשת בדיקה",
+        description:
+          "ניטור WhatsApp פעיל, אך יכולת אחרת במכשיר דורשת בדיקה.",
+        tone: "warning",
+      };
+    case "recovering":
+      return {
+        label: "החיבור מתאושש",
+        description:
+          "התקבל דיווח תקין חדש; Kippy מוודאת שהחיבור נשאר יציב.",
+        tone: "warning",
+      };
     case "late":
       return {
         label: "הדיווח מתעכב",
@@ -42,7 +56,8 @@ export const monitoringStateCopy = (
     case "needs_setup":
       return {
         label: "נדרשת השלמת הרשאות",
-        description: "אחת מהרשאות הניטור החיוניות אינה פעילה.",
+        description:
+          "המכשיר מדווח, אך אחת מהרשאות הניטור החיוניות אינה פעילה.",
         tone: "warning",
       };
     default:

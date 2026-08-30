@@ -1,10 +1,10 @@
-import { Zap, Globe, Smartphone } from 'lucide-react';
+import { BellRing, Clock3, Sparkles } from 'lucide-react';
 
 export function TrustBar() {
   const items = [
-    { icon: Zap, label: 'התקנה ב-3 דקות' },
-    { icon: Globe, label: 'עברית מלאה ו-RTL' },
-    { icon: Smartphone, label: 'עובד על כל אנדרואיד' },
+    { icon: BellRing, label: 'מצטרפים לעדכונים' },
+    { icon: Sparkles, label: 'נבנית לקראת השקה' },
+    { icon: Clock3, label: 'הגישה עדיין אינה פתוחה' },
   ];
 
   return (

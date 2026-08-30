@@ -5,7 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getAppIconInfo } from "@/lib/appIcons";
-import { isSystemApp } from "@/lib/appUtils";
+import {
+  isManageableInstalledApp,
+  isOutsideStoreInstall,
+} from "@/lib/parental-controls/settingsService";
 import type { AppPolicy, BlockedAttemptSummary, InstalledApp } from "@/hooks/useChildControls";
 
 interface AppUsageEntry {
@@ -40,57 +43,40 @@ export function AppControlsList({
   const [togglingPkg, setTogglingPkg] = useState<string | null>(null);
   const [actionPkg, setActionPkg] = useState<string | null>(null);
 
-  const hasInventory = installedApps.length > 0;
-  const policyPackages = new Set(appPolicies.map((p) => p.package_name));
+  const policyByPackage = new Map(
+    appPolicies.map((policy) => [policy.package_name, policy]),
+  );
 
-  // Build apps map
-  const appsMap = new Map<string, { appName: string | null; isBlocked: boolean; usageMinutes: number; isPending: boolean }>();
+  // Current device inventory is the only source for rows. Historical usage or
+  // stale policy rows must never make system/non-launchable apps reappear.
+  const appsMap = new Map<
+    string,
+    {
+      appName: string | null;
+      isBlocked: boolean;
+      usageMinutes: number;
+      isPending: boolean;
+      installSource: string;
+      syncStatus: AppPolicy["sync_status"] | null;
+    }
+  >();
 
-  if (hasInventory) {
-    for (const app of installedApps) {
-      if (!isSystemApp(app.package_name)) {
-        const hasPolicyRow = policyPackages.has(app.package_name);
-        appsMap.set(app.package_name, {
-          appName: app.app_name,
-          isBlocked: false,
-          usageMinutes: 0,
-          isPending: !hasPolicyRow,
-        });
-      }
-    }
-  } else {
-    for (const app of appUsage) {
-      if (!isSystemApp(app.package_name)) {
-        appsMap.set(app.package_name, {
-          appName: app.app_name,
-          isBlocked: false,
-          usageMinutes: app.usage_minutes,
-          isPending: false,
-        });
-      }
-    }
+  for (const app of installedApps) {
+    if (!isManageableInstalledApp(app)) continue;
+    const policy = policyByPackage.get(app.package_name);
+    appsMap.set(app.package_name, {
+      appName: app.app_name ?? policy?.app_name ?? null,
+      isBlocked: policy?.is_blocked ?? true,
+      usageMinutes: 0,
+      isPending: !policy,
+      installSource: app.install_source,
+      syncStatus: policy?.sync_status ?? null,
+    });
   }
 
-  if (hasInventory) {
-    for (const app of appUsage) {
-      const existing = appsMap.get(app.package_name);
-      if (existing) existing.usageMinutes = app.usage_minutes;
-    }
-  }
-
-  for (const policy of appPolicies) {
-    const existing = appsMap.get(policy.package_name);
-    if (existing) {
-      existing.isBlocked = policy.is_blocked;
-      existing.isPending = false; // has a policy row = not pending
-    } else if (!isSystemApp(policy.package_name)) {
-      appsMap.set(policy.package_name, {
-        appName: policy.app_name,
-        isBlocked: policy.is_blocked,
-        usageMinutes: 0,
-        isPending: false,
-      });
-    }
+  for (const app of appUsage) {
+    const existing = appsMap.get(app.package_name);
+    if (existing) existing.usageMinutes = app.usage_minutes;
   }
 
   const attemptsMap = new Map(blockedAttempts.map((a) => [a.package_name, a]));
@@ -111,20 +97,29 @@ export function AppControlsList({
 
   const handleToggle = async (pkg: string, appName: string | null, currentlyBlocked: boolean) => {
     setTogglingPkg(pkg);
-    await onToggleBlock(pkg, appName, currentlyBlocked);
-    setTogglingPkg(null);
+    try {
+      await onToggleBlock(pkg, appName, currentlyBlocked);
+    } finally {
+      setTogglingPkg(null);
+    }
   };
 
   const handleApprove = async (pkg: string, appName: string | null) => {
     setActionPkg(pkg);
-    await onApproveApp(pkg, appName);
-    setActionPkg(null);
+    try {
+      await onApproveApp(pkg, appName);
+    } finally {
+      setActionPkg(null);
+    }
   };
 
   const handleBlock = async (pkg: string, appName: string | null) => {
     setActionPkg(pkg);
-    await onBlockApp(pkg, appName);
-    setActionPkg(null);
+    try {
+      await onBlockApp(pkg, appName);
+    } finally {
+      setActionPkg(null);
+    }
   };
 
   const formatTime = (date: string) =>
@@ -139,12 +134,12 @@ export function AppControlsList({
         <p className="text-sm font-medium text-foreground mb-1">
           {showPendingOnly
             ? "אין אפליקציות חדשות ממתינות לאישור"
-            : "המכשיר עדיין לא דיווח על אפליקציות מותקנות"}
+            : "אין אפליקציות שניתנות לניהול"}
         </p>
         <p className="text-xs text-muted-foreground max-w-xs">
           {showPendingOnly
             ? "כל האפליקציות אושרו או נחסמו"
-            : "לאחר חיבור המכשיר, רשימת האפליקציות תופיע כאן באופן אוטומטי"}
+            : "רק אפליקציות שניתן לפתוח ושאינן אפליקציות מערכת מופיעות כאן"}
         </p>
       </div>
     );
@@ -182,11 +177,32 @@ export function AppControlsList({
                 <p className="font-medium text-sm truncate">
                   {app.appName || pkg.split(".").pop()}
                 </p>
-                {app.isPending && (
-                  <Badge variant="outline" className="text-[10px] border-amber-500/30 text-warning px-1.5 py-0 h-4 mt-0.5">
-                    ממתינה לאישור
-                  </Badge>
-                )}
+                <div className="mt-0.5 flex flex-wrap items-center gap-1">
+                  {app.isPending && (
+                    <Badge
+                      variant="outline"
+                      className="h-4 border-amber-500/30 px-1.5 py-0 text-[10px] text-warning"
+                    >
+                      ממתינה לאישור · חסומה
+                    </Badge>
+                  )}
+                  {isOutsideStoreInstall(app.installSource) && (
+                    <Badge
+                      variant="outline"
+                      className="h-4 border-amber-500/30 px-1.5 py-0 text-[10px] text-amber-600"
+                    >
+                      הותקנה מחוץ לחנות
+                    </Badge>
+                  )}
+                  {app.syncStatus === "pending" && (
+                    <Badge
+                      variant="outline"
+                      className="h-4 border-primary/30 px-1.5 py-0 text-[10px] text-primary"
+                    >
+                      ממתין לעדכון במכשיר
+                    </Badge>
+                  )}
+                </div>
                 {attempts && attempts.attempts_today > 0 && (
                   <div className="flex items-center gap-1 mt-0.5">
                     <AlertTriangle className="w-3 h-3 text-warning" />
@@ -210,6 +226,7 @@ export function AppControlsList({
                       size="icon"
                       className="h-7 w-7 text-success hover:text-success hover:bg-success/10"
                       onClick={() => handleApprove(pkg, app.appName)}
+                      aria-label={`אישור ${app.appName || pkg}`}
                     >
                       <Check className="w-4 h-4" />
                     </Button>
@@ -218,6 +235,7 @@ export function AppControlsList({
                       size="icon"
                       className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
                       onClick={() => handleBlock(pkg, app.appName)}
+                      aria-label={`חסימת ${app.appName || pkg}`}
                     >
                       <X className="w-4 h-4" />
                     </Button>
@@ -225,7 +243,7 @@ export function AppControlsList({
                 )
               ) : (
                 <>
-                  {app.isBlocked && (
+                  {app.isBlocked && app.syncStatus === "applied" && (
                     <Badge variant="outline" className="text-xs border-destructive/30 text-destructive">
                       חסום
                     </Badge>
@@ -237,6 +255,8 @@ export function AppControlsList({
                       <Switch
                         checked={app.isBlocked}
                         onCheckedChange={() => handleToggle(pkg, app.appName, app.isBlocked)}
+                        disabled={app.syncStatus === "pending"}
+                        aria-label={`${app.isBlocked ? "שחרור" : "חסימת"} ${app.appName || pkg}`}
                       />
                     </div>
                   )}

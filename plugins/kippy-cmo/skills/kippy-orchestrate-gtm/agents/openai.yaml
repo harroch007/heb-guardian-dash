@@ -1,0 +1,4 @@
+interface:
+  display_name: "Kippy CMO Orchestrator"
+  short_description: "Coordinate Kippy go-to-market work and approvals"
+  default_prompt: "Use $kippy-orchestrate-gtm to prepare today's founder approval batch."

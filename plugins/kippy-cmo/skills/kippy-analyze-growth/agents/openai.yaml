@@ -1,0 +1,4 @@
+interface:
+  display_name: "Kippy Growth Analytics"
+  short_description: "Analyze aggregate Kippy marketing performance"
+  default_prompt: "Use $kippy-analyze-growth to prepare a weekly evidence-based growth review."
