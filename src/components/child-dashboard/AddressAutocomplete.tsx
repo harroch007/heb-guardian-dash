@@ -1,14 +1,13 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- Frozen legacy donor surface; migrate types before reactivation. */
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Loader2, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { loadGoogleMaps } from "@/lib/googleMaps";
 
 interface NormalizedResult {
   id: string;
-  lat: number;
-  lon: number;
   label: string;
+  prediction: google.maps.places.PlacePrediction;
 }
 
 interface AddressAutocompleteProps {
@@ -17,96 +16,6 @@ interface AddressAutocompleteProps {
   onFallback?: (query?: string) => void;
   placeholder?: string;
   className?: string;
-}
-
-// ---------- Photon (komoot) — primary engine ----------
-// Free, no API key, OSM-based with Elasticsearch — significantly better fuzzy
-// matching for Israeli addresses than vanilla Nominatim free text.
-async function searchPhoton(q: string): Promise<NormalizedResult[]> {
-  const url =
-    `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}` +
-    `&lang=he&limit=8&lat=32.08&lon=34.78&location_bias_scale=0.6`;
-  const res = await fetch(url);
-  if (!res.ok) return [];
-  const data = await res.json();
-  const features: any[] = Array.isArray(data?.features) ? data.features : [];
-  return features
-    .filter((f) => f?.properties?.countrycode === "IL" || f?.properties?.country === "ישראל" || f?.properties?.country === "Israel")
-    .map((f, i) => {
-      const p = f.properties || {};
-      const [lon, lat] = f.geometry?.coordinates || [];
-      const city = p.city || p.town || p.village || p.county || "";
-      const parts: string[] = [];
-      if (p.street) {
-        parts.push(p.housenumber ? `${p.street} ${p.housenumber}` : p.street);
-      } else if (p.name) {
-        parts.push(p.name);
-      }
-      if (city && !parts.includes(city)) parts.push(city);
-      const label = parts.length > 0 ? parts.join(", ") : (p.name || `${lat?.toFixed(5)}, ${lon?.toFixed(5)}`);
-      return {
-        id: `ph-${p.osm_id ?? i}-${i}`,
-        lat: Number(lat),
-        lon: Number(lon),
-        label,
-      };
-    })
-    .filter((r) => Number.isFinite(r.lat) && Number.isFinite(r.lon));
-}
-
-// ---------- Nominatim — structured fallback ----------
-// Splits the typed query into street + city. Common Israeli formats:
-//   "סוקולוב 75 הרצליה"  -> street="סוקולוב 75", city="הרצליה"
-//   "סוקולוב 75, הרצליה" -> same
-function splitIsraeliAddress(q: string): { street?: string; city?: string } {
-  const trimmed = q.trim();
-  if (!trimmed) return {};
-  if (trimmed.includes(",")) {
-    const [a, b] = trimmed.split(",", 2).map((s) => s.trim());
-    return { street: a || undefined, city: b || undefined };
-  }
-  const tokens = trimmed.split(/\s+/);
-  if (tokens.length < 2) return { street: trimmed };
-  // Last token = city when it's purely letters; otherwise treat whole thing as street
-  const last = tokens[tokens.length - 1];
-  if (/^[\u0590-\u05FFa-zA-Z'״"-]+$/.test(last) && tokens.length >= 2) {
-    return { street: tokens.slice(0, -1).join(" "), city: last };
-  }
-  return { street: trimmed };
-}
-
-async function searchNominatimStructured(q: string): Promise<NormalizedResult[]> {
-  const { street, city } = splitIsraeliAddress(q);
-  const params = new URLSearchParams({
-    format: "json",
-    countrycodes: "il",
-    limit: "8",
-    "accept-language": "he",
-    addressdetails: "1",
-    dedupe: "1",
-  });
-  if (street) params.set("street", street);
-  if (city) params.set("city", city);
-  // If we couldn't split, fall back to free-text q
-  if (!street && !city) params.set("q", q);
-
-  const res = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`);
-  if (!res.ok) return [];
-  const data: any[] = await res.json();
-  return (data || []).map((r, i) => {
-    const a = r.address || {};
-    const c = a.city || a.town || a.village || "";
-    const parts: string[] = [];
-    if (a.road) parts.push(a.house_number ? `${a.road} ${a.house_number}` : a.road);
-    if (c) parts.push(c);
-    const label = parts.length ? parts.join(", ") : (r.display_name?.split(",").slice(0, 3).join(",").trim() || `${r.lat}, ${r.lon}`);
-    return {
-      id: `nm-${r.place_id ?? i}-${i}`,
-      lat: Number(r.lat),
-      lon: Number(r.lon),
-      label,
-    };
-  }).filter((r) => Number.isFinite(r.lat) && Number.isFinite(r.lon));
 }
 
 export function AddressAutocomplete({
@@ -123,6 +32,17 @@ export function AddressAutocomplete({
   const timerRef = useRef<ReturnType<typeof setTimeout>>();
   const reqIdRef = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  // One token per typing session — bundles suggestions + the final place-details
+  // fetch into a single billed Places session instead of per-keystroke billing.
+  const sessionTokenRef = useRef<google.maps.places.AutocompleteSessionToken | null>(null);
+
+  const getSessionToken = useCallback(async () => {
+    const g = await loadGoogleMaps();
+    if (!sessionTokenRef.current) {
+      sessionTokenRef.current = new g.maps.places.AutocompleteSessionToken();
+    }
+    return sessionTokenRef.current;
+  }, []);
 
   const search = useCallback(async (q: string) => {
     if (q.trim().length < 3) {
@@ -134,20 +54,23 @@ export function AddressAutocomplete({
     const myReq = ++reqIdRef.current;
     setLoading(true);
     try {
-      // Tier 1: Photon
-      let merged = await searchPhoton(q);
-      // Tier 2: Nominatim structured fallback if Photon returned nothing
-      if (merged.length === 0) {
-        merged = await searchNominatimStructured(q);
-      }
-      // Drop near-duplicates
-      const seen = new Set<string>();
-      const unique = merged.filter((r) => {
-        const key = `${r.label}|${r.lat.toFixed(4)}|${r.lon.toFixed(4)}`;
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
+      const g = await loadGoogleMaps();
+      const sessionToken = await getSessionToken();
+      const { suggestions } = await g.maps.places.AutocompleteSuggestion.fetchAutocompleteSuggestions({
+        input: q,
+        includedRegionCodes: ["il"],
+        language: "he",
+        sessionToken,
       });
+
+      const unique = (suggestions ?? [])
+        .filter((s): s is google.maps.places.AutocompleteSuggestion & { placePrediction: google.maps.places.PlacePrediction } =>
+          Boolean(s.placePrediction))
+        .map((s, i) => ({
+          id: s.placePrediction.placeId ?? `gp-${i}`,
+          label: s.placePrediction.text?.text ?? "",
+          prediction: s.placePrediction,
+        }));
 
       if (myReq !== reqIdRef.current) return; // stale
       setResults(unique);
@@ -161,18 +84,38 @@ export function AddressAutocomplete({
     } finally {
       if (myReq === reqIdRef.current) setLoading(false);
     }
-  }, []);
+  }, [getSessionToken]);
 
   const handleChange = (value: string) => {
     setQuery(value);
+    if (!value.trim()) {
+      // Cleared input starts a fresh autocomplete session.
+      sessionTokenRef.current = null;
+    }
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => search(value), 300);
   };
 
-  const handleSelect = (r: NormalizedResult) => {
+  const handleSelect = async (r: NormalizedResult) => {
     setQuery(r.label);
     setOpen(false);
-    onSelect({ latitude: r.lat, longitude: r.lon, address: r.label });
+    setLoading(true);
+    try {
+      const place = r.prediction.toPlace();
+      await place.fetchFields({ fields: ["location", "formattedAddress"] });
+      const location = place.location;
+      if (location) {
+        onSelect({
+          latitude: location.lat(),
+          longitude: location.lng(),
+          address: place.formattedAddress ?? r.label,
+        });
+      }
+    } finally {
+      setLoading(false);
+      // Selection ends this autocomplete session — next keystroke starts a new one.
+      sessionTokenRef.current = null;
+    }
   };
 
   useEffect(() => {

@@ -1,17 +1,7 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- Frozen legacy donor surface; migrate types before reactivation. */
 import { useState, useCallback, useEffect, useRef } from "react";
-import L from "leaflet";
 import { Button } from "@/components/ui/button";
 import { Loader2, MapPin } from "lucide-react";
-import "leaflet/dist/leaflet.css";
-
-// Fix default marker icon
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-});
+import { loadGoogleMaps } from "@/lib/googleMaps";
 
 interface MapPinPickerProps {
   initialLat?: number | null;
@@ -23,8 +13,9 @@ interface MapPinPickerProps {
 }
 
 export function MapPinPicker({ initialLat, initialLng, fallbackLabel, onConfirm, onCancel }: MapPinPickerProps) {
-  const mapRef = useRef<L.Map | null>(null);
-  const markerRef = useRef<L.Marker | null>(null);
+  const mapRef = useRef<google.maps.Map | null>(null);
+  const markerRef = useRef<google.maps.Marker | null>(null);
+  const geocoderRef = useRef<google.maps.Geocoder | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const [pin, setPin] = useState<{ lat: number; lng: number } | null>(
@@ -36,24 +27,24 @@ export function MapPinPicker({ initialLat, initialLng, fallbackLabel, onConfirm,
   const reverseGeocode = useCallback(async (lat: number, lng: number) => {
     setLoading(true);
     try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=he&addressdetails=1`
-      );
-      const data = await res.json();
-      const a = data.address;
-      if (a) {
-        const city = a.city || a.town || a.village || "";
-        const parts: string[] = [];
-        if (a.road) parts.push(a.house_number ? `${a.road} ${a.house_number}` : a.road);
-        if (city) parts.push(city);
-        if (parts.length > 0) {
-          setAddress(parts.join(", "));
-          setLoading(false);
-          return;
-        }
+      const g = await loadGoogleMaps();
+      if (!geocoderRef.current) geocoderRef.current = new g.maps.Geocoder();
+      const { results } = await geocoderRef.current.geocode({ location: { lat, lng }, language: "he" });
+      const first = results?.[0];
+      const comps = first?.address_components ?? [];
+      const get = (type: string) => comps.find((c) => c.types.includes(type))?.long_name;
+      const road = get("route");
+      const houseNumber = get("street_number");
+      const city = get("locality") || get("postal_town") || get("administrative_area_level_2");
+      const parts: string[] = [];
+      if (road) parts.push(houseNumber ? `${road} ${houseNumber}` : road);
+      if (city) parts.push(city);
+
+      if (parts.length > 0) {
+        setAddress(parts.join(", "));
+      } else {
+        setAddress(first?.formatted_address || fallbackLabel?.trim() || `${lat.toFixed(5)}, ${lng.toFixed(5)}`);
       }
-      const fromDisplay = data.display_name?.split(",").slice(0, 3).join(",").trim();
-      setAddress(fromDisplay || fallbackLabel?.trim() || `${lat.toFixed(5)}, ${lng.toFixed(5)}`);
     } catch {
       setAddress(fallbackLabel?.trim() || `${lat.toFixed(5)}, ${lng.toFixed(5)}`);
     } finally {
@@ -66,9 +57,9 @@ export function MapPinPicker({ initialLat, initialLng, fallbackLabel, onConfirm,
     if (!map) return;
 
     if (markerRef.current) {
-      markerRef.current.setLatLng([lat, lng]);
+      markerRef.current.setPosition({ lat, lng });
     } else {
-      markerRef.current = L.marker([lat, lng]).addTo(map);
+      markerRef.current = new google.maps.Marker({ map, position: { lat, lng } });
     }
 
     setPin({ lat, lng });
@@ -78,25 +69,37 @@ export function MapPinPicker({ initialLat, initialLng, fallbackLabel, onConfirm,
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
+    let cancelled = false;
 
-    const center: [number, number] = [initialLat ?? 32.08, initialLng ?? 34.78];
-    const zoom = initialLat != null ? 15 : 8;
+    (async () => {
+      const g = await loadGoogleMaps();
+      if (cancelled || !containerRef.current || mapRef.current) return;
 
-    const map = L.map(containerRef.current, { attributionControl: false }).setView(center, zoom);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
-    mapRef.current = map;
+      const center = { lat: initialLat ?? 32.08, lng: initialLng ?? 34.78 };
+      const zoom = initialLat != null ? 15 : 8;
 
-    if (initialLat != null && initialLng != null) {
-      markerRef.current = L.marker([initialLat, initialLng]).addTo(map);
-      reverseGeocode(initialLat, initialLng);
-    }
+      const map = new g.maps.Map(containerRef.current, {
+        center,
+        zoom,
+        disableDefaultUI: true,
+        zoomControl: true,
+        clickableIcons: false,
+      });
+      mapRef.current = map;
 
-    map.on("click", (e: L.LeafletMouseEvent) => {
-      placeMarker(e.latlng.lat, e.latlng.lng);
-    });
+      if (initialLat != null && initialLng != null) {
+        markerRef.current = new g.maps.Marker({ map, position: center });
+        reverseGeocode(initialLat, initialLng);
+      }
+
+      map.addListener("click", (e: google.maps.MapMouseEvent) => {
+        if (e.latLng) placeMarker(e.latLng.lat(), e.latLng.lng());
+      });
+    })();
 
     return () => {
-      map.remove();
+      cancelled = true;
+      markerRef.current?.setMap(null);
       mapRef.current = null;
       markerRef.current = null;
     };
