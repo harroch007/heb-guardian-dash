@@ -1,0 +1,195 @@
+{
+  "schema_version": 1,
+  "project_ref": "gscclrgcmvtbyquveoze",
+  "captured_at": "2026-08-31T14:54:38+03:00",
+  "capture_method": "supabase functions download --use-api",
+  "source_model": "per_function_immutable_bundle_snapshot",
+  "shared_path_variants": [
+    { "path": "_shared/auth.ts", "variant_count": 3 },
+    { "path": "_shared/http.ts", "variant_count": 2 },
+    { "path": "_shared/incident_private_key.ts", "variant_count": 2 },
+    { "path": "_shared/incident_retention_policy.ts", "variant_count": 2 },
+    { "path": "_shared/web_cors.ts", "variant_count": 2 }
+  ],
+  "included_function_count": 21,
+  "excluded_functions": [
+    {
+      "slug": "check-device-health",
+      "version": 1,
+      "status": "ACTIVE",
+      "verify_jwt": false,
+      "ezbr_sha256": "2f48125f03571f802136452f4e065f6b70397115502321aa7beac5ab21e8b391",
+      "reason": "legacy_v1_explicitly_excluded"
+    }
+  ],
+  "functions": [
+    {
+      "slug": "send-email",
+      "version": 14,
+      "status": "ACTIVE",
+      "verify_jwt": false,
+      "ezbr_sha256": "aa85eb38c05683080718f5966a18e08617b241b55a6cadf2878d8692e590fe14",
+      "snapshot": "functions/send-email/v14/supabase"
+    },
+    {
+      "slug": "v2-activate-child-install",
+      "version": 40,
+      "status": "ACTIVE",
+      "verify_jwt": false,
+      "ezbr_sha256": "6ca3bdd05423216c731f645d1517115a8f9033c1bdf4d4cdf0345d19d4ca1f18",
+      "snapshot": "functions/v2-activate-child-install/v40/supabase"
+    },
+    {
+      "slug": "v2-analyze-safety-incident",
+      "version": 51,
+      "status": "ACTIVE",
+      "verify_jwt": false,
+      "ezbr_sha256": "b7510b3cc8ed541ddfebd6fa81e464aba8a64abb9c22b58b04a30ef038419a6f",
+      "snapshot": "functions/v2-analyze-safety-incident/v51/supabase"
+    },
+    {
+      "slug": "v2-complete-child-install",
+      "version": 44,
+      "status": "ACTIVE",
+      "verify_jwt": false,
+      "ezbr_sha256": "d573a61085b6b2b6bdda9e20f6c562e7bd16c7b48b072db874b50b600aa79cce",
+      "snapshot": "functions/v2-complete-child-install/v44/supabase"
+    },
+    {
+      "slug": "v2-complete-pairing",
+      "version": 38,
+      "status": "ACTIVE",
+      "verify_jwt": false,
+      "ezbr_sha256": "b6489cb269466af38b2e577e672da9097512708b33ad23d4089125e66886994e",
+      "snapshot": "functions/v2-complete-pairing/v38/supabase"
+    },
+    {
+      "slug": "v2-control-tower-live-lab",
+      "version": 30,
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "ezbr_sha256": "aee92eefa36296a73f87ac49912d03d53c91c0a44b10f459a87dd1136967f0e5",
+      "snapshot": "functions/v2-control-tower-live-lab/v30/supabase"
+    },
+    {
+      "slug": "v2-create-child-install",
+      "version": 39,
+      "status": "ACTIVE",
+      "verify_jwt": false,
+      "ezbr_sha256": "1949e87affe08f734e2db1a0356fe891d941988b17c0f9908f8791ce00b84d9f",
+      "snapshot": "functions/v2-create-child-install/v39/supabase"
+    },
+    {
+      "slug": "v2-create-pairing-session",
+      "version": 38,
+      "status": "ACTIVE",
+      "verify_jwt": false,
+      "ezbr_sha256": "af95cbe5d9af3e0c081886173ccc734b3f6ee70f9b736b395a2517a91537e950",
+      "snapshot": "functions/v2-create-pairing-session/v38/supabase"
+    },
+    {
+      "slug": "v2-deliver-parent-push",
+      "version": 36,
+      "status": "ACTIVE",
+      "verify_jwt": false,
+      "ezbr_sha256": "b37ac8047ffa126293a6fa1ce69d6292e265626def89224050889344d78877a5",
+      "snapshot": "functions/v2-deliver-parent-push/v36/supabase"
+    },
+    {
+      "slug": "v2-finish-device-command",
+      "version": 39,
+      "status": "ACTIVE",
+      "verify_jwt": false,
+      "ezbr_sha256": "5d6264b36c855a2e49d2aa168562b7c94050b7e0b527cc9ce134b321e9134471",
+      "snapshot": "functions/v2-finish-device-command/v39/supabase"
+    },
+    {
+      "slug": "v2-get-incident-encryption-key",
+      "version": 40,
+      "status": "ACTIVE",
+      "verify_jwt": false,
+      "ezbr_sha256": "c3a80249463cd424c99bd16b05faee8cae80ef103da93eea821757945e5ff369",
+      "snapshot": "functions/v2-get-incident-encryption-key/v40/supabase"
+    },
+    {
+      "slug": "v2-get-parental-settings",
+      "version": 37,
+      "status": "ACTIVE",
+      "verify_jwt": false,
+      "ezbr_sha256": "fb87944f0bb34c3cce7d5110940e437515e1260a666ae2529f08e6460849be57",
+      "snapshot": "functions/v2-get-parental-settings/v37/supabase"
+    },
+    {
+      "slug": "v2-get-push-config",
+      "version": 36,
+      "status": "ACTIVE",
+      "verify_jwt": false,
+      "ezbr_sha256": "e5af2488993a01e9b840acd289418328fb88d993c2f6dd9e3f68829cb33fa9cd",
+      "snapshot": "functions/v2-get-push-config/v36/supabase"
+    },
+    {
+      "slug": "v2-poll-device-commands",
+      "version": 39,
+      "status": "ACTIVE",
+      "verify_jwt": false,
+      "ezbr_sha256": "06c0750b85c0af1ed3421d7e8dc29f4abad4fd6541473036c281910b624c381a",
+      "snapshot": "functions/v2-poll-device-commands/v39/supabase"
+    },
+    {
+      "slug": "v2-register-device",
+      "version": 39,
+      "status": "ACTIVE",
+      "verify_jwt": false,
+      "ezbr_sha256": "ec2727018effecd4c2caecf5af072f664d821873e061a05042c50cf7aea17fff",
+      "snapshot": "functions/v2-register-device/v39/supabase"
+    },
+    {
+      "slug": "v2-report-device-health",
+      "version": 40,
+      "status": "ACTIVE",
+      "verify_jwt": false,
+      "ezbr_sha256": "d8a4157717ac5b704032a18b20ed47d191ccaababb0ed7edb6d96abb0e21efc6",
+      "snapshot": "functions/v2-report-device-health/v40/supabase"
+    },
+    {
+      "slug": "v2-report-parental-state",
+      "version": 37,
+      "status": "ACTIVE",
+      "verify_jwt": false,
+      "ezbr_sha256": "1f37f7181dc44e50b74d045a024495384289dcabb0d668bba5084ada021ff1e8",
+      "snapshot": "functions/v2-report-parental-state/v37/supabase"
+    },
+    {
+      "slug": "v2-request-extra-time",
+      "version": 37,
+      "status": "ACTIVE",
+      "verify_jwt": false,
+      "ezbr_sha256": "79364c9c519aec70856acb9816ebabcc4dcebc8eca2a744e07d26e8eef0d6463",
+      "snapshot": "functions/v2-request-extra-time/v37/supabase"
+    },
+    {
+      "slug": "v2-submit-safety-incident",
+      "version": 47,
+      "status": "ACTIVE",
+      "verify_jwt": false,
+      "ezbr_sha256": "9b59fdd1fadbf4430e7b8b12672e77937d0cf8c2706ba99b199be786e83c7d1c",
+      "snapshot": "functions/v2-submit-safety-incident/v47/supabase"
+    },
+    {
+      "slug": "v2-transcribe-voice",
+      "version": 25,
+      "status": "ACTIVE",
+      "verify_jwt": false,
+      "ezbr_sha256": "1254eeec0998fcbe8ead9656bd6645bc738fd84356cf290b996093d12bec5fd5",
+      "snapshot": "functions/v2-transcribe-voice/v25/supabase"
+    },
+    {
+      "slug": "v2-whatsapp-support-webhook",
+      "version": 33,
+      "status": "ACTIVE",
+      "verify_jwt": false,
+      "ezbr_sha256": "e62f16cc69f6effeae0811c650fa606049839dbc4928b666b0e67f7afd5047b2",
+      "snapshot": "functions/v2-whatsapp-support-webhook/v33/supabase"
+    }
+  ]
+}

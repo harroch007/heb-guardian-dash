@@ -11,6 +11,7 @@ export default tseslint.config(
       ".npm-cache",
       "playwright-report",
       "test-results",
+      "supabase-v2/supabase/deployed-sources/**",
     ],
   },
   {
