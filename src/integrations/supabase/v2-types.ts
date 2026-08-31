@@ -3194,49 +3194,73 @@ export type Database = {
         Row: {
           acknowledged_at: string | null
           alert_type: string
+          attempt_count: number
           attempted_at: string | null
           created_at: string
           delivered_at: string | null
+          expires_at: string
           failure_code: string | null
           guardian_user_id: string
           id: string
           idempotency_key: string
+          lease_expires_at: string | null
+          lease_owner: string | null
+          lease_token_hash: string | null
+          next_attempt_at: string | null
           opened_at: string | null
           provider_message_id: string | null
           severity: string
           status: string
+          suppressed_at: string | null
+          suppression_reason: string | null
           transition_id: string
         }
         Insert: {
           acknowledged_at?: string | null
           alert_type: string
+          attempt_count?: number
           attempted_at?: string | null
           created_at?: string
           delivered_at?: string | null
+          expires_at: string
           failure_code?: string | null
           guardian_user_id: string
           id?: string
           idempotency_key: string
+          lease_expires_at?: string | null
+          lease_owner?: string | null
+          lease_token_hash?: string | null
+          next_attempt_at?: string | null
           opened_at?: string | null
           provider_message_id?: string | null
           severity: string
           status?: string
+          suppressed_at?: string | null
+          suppression_reason?: string | null
           transition_id: string
         }
         Update: {
           acknowledged_at?: string | null
           alert_type?: string
+          attempt_count?: number
           attempted_at?: string | null
           created_at?: string
           delivered_at?: string | null
+          expires_at?: string
           failure_code?: string | null
           guardian_user_id?: string
           id?: string
           idempotency_key?: string
+          lease_expires_at?: string | null
+          lease_owner?: string | null
+          lease_token_hash?: string | null
+          next_attempt_at?: string | null
           opened_at?: string | null
           provider_message_id?: string | null
           severity?: string
           status?: string
+          suppressed_at?: string | null
+          suppression_reason?: string | null
           transition_id?: string
         }
         Relationships: [
@@ -3248,6 +3272,105 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      v2_monitoring_push_activation_epochs: {
+        Row: {
+          activation_cutoff: string
+          created_at: string
+          singleton: boolean
+        }
+        Insert: {
+          activation_cutoff: string
+          created_at?: string
+          singleton?: boolean
+        }
+        Update: {
+          activation_cutoff?: string
+          created_at?: string
+          singleton?: boolean
+        }
+        Relationships: []
+      }
+      v2_monitoring_push_endpoint_attempts: {
+        Row: {
+          attempt_count: number
+          created_at: string
+          delivery_id: string
+          endpoint_id: string
+          last_attempt_at: string | null
+          last_error_code: string | null
+          last_http_status: number | null
+          provider_accepted_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempt_count?: number
+          created_at?: string
+          delivery_id: string
+          endpoint_id: string
+          last_attempt_at?: string | null
+          last_error_code?: string | null
+          last_http_status?: number | null
+          provider_accepted_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempt_count?: number
+          created_at?: string
+          delivery_id?: string
+          endpoint_id?: string
+          last_attempt_at?: string | null
+          last_error_code?: string | null
+          last_http_status?: number | null
+          provider_accepted_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_monitoring_push_endpoint_attempts_delivery_id_fkey"
+            columns: ["delivery_id"]
+            isOneToOne: false
+            referencedRelation: "v2_monitoring_alert_deliveries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_monitoring_push_endpoint_attempts_endpoint_id_fkey"
+            columns: ["endpoint_id"]
+            isOneToOne: false
+            referencedRelation: "v2_guardian_push_endpoints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_monitoring_push_worker_capabilities: {
+        Row: {
+          created_at: string
+          expires_at: string
+          label: string
+          revoked_at: string | null
+          status: string
+          token_hash: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          label: string
+          revoked_at?: string | null
+          status?: string
+          token_hash: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          label?: string
+          revoked_at?: string | null
+          status?: string
+          token_hash?: string
+        }
+        Relationships: []
       }
       v2_pairing_sessions: {
         Row: {
@@ -5275,6 +5398,27 @@ export type Database = {
           severity: string
         }[]
       }
+      v2_claim_monitoring_delivery_service: {
+        Args: {
+          target_capability_token: string
+          target_lease_seconds?: number
+          target_worker_id: string
+        }
+        Returns: {
+          alert_type: string
+          attempt_number: number
+          child_id: string
+          delivery_id: string
+          device_id: string
+          episode_id: string
+          expires_at: string
+          lease_token: string
+          severity: string
+          targets: Json
+          transition_id: string
+          transition_state_version: number
+        }[]
+      }
       v2_claim_push_delivery_service: {
         Args: {
           target_capability_token: string
@@ -5411,6 +5555,22 @@ export type Database = {
           device_id: string
         }[]
       }
+      v2_complete_monitoring_delivery_service: {
+        Args: {
+          target_capability_token: string
+          target_delivery_id: string
+          target_lease_token: string
+          target_results: Json
+          target_worker_id: string
+        }
+        Returns: {
+          delivery_status: string
+          invalid_target_count: number
+          provider_accepted_count: number
+          retry_scheduled: boolean
+          suppression_reason: string
+        }[]
+      }
       v2_complete_pairing_service: {
         Args: {
           credential_expires_at: string
@@ -5444,6 +5604,10 @@ export type Database = {
           retry_scheduled: boolean
           sent_target_count: number
         }[]
+      }
+      v2_constant_time_digest_equal_internal: {
+        Args: { left_digest: string; right_digest: string }
+        Returns: boolean
       }
       v2_create_child_install_session_service: {
         Args: {
@@ -5692,6 +5856,10 @@ export type Database = {
       }
       v2_marketing_touch_is_valid: {
         Args: { target_touch: Json }
+        Returns: boolean
+      }
+      v2_monitoring_push_capability_is_valid: {
+        Args: { target_capability_token: string }
         Returns: boolean
       }
       v2_parent_action_template: {
@@ -6006,6 +6174,18 @@ export type Database = {
           created: boolean
           incident_id: string
         }[]
+      }
+      v2_suppress_monitoring_delivery_backlog_internal: {
+        Args: { target_cutoff?: string }
+        Returns: Json
+      }
+      v2_suppress_monitoring_delivery_internal: {
+        Args: {
+          target_actor_type?: string
+          target_delivery_id: string
+          target_reason: string
+        }
+        Returns: boolean
       }
       v2_sweep_monitoring_liveness_service: {
         Args: { target_now?: string }

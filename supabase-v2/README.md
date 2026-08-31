@@ -9,6 +9,9 @@ V2 history. V2 migrations, service RPCs and Edge Functions are owned here.
 
 - `20260727150000` through `20260828100000`: all 59 migration versions recorded
   by linked `kippy-v2-staging` are represented locally.
+- `20260831160000` and `20260831161000` are the pending, unapplied monitoring
+  push contract and runtime-cutoff backlog-suppression migrations. They are
+  local review artifacts only; no linked target has received them.
 - The six `20260816*` through `20260826170000` sources were reconciled from the
   published `codex/supabase-v2-publication` lineage.
 - `20260828100000_v2_ephemeral_privacy_v3.sql` was recovered from the immutable
@@ -24,8 +27,9 @@ V2 history. V2 migrations, service RPCs and Edge Functions are owned here.
   provenance remains a separate reconciliation item; do not rewrite historical
   migration blobs to absorb it.
 
-The 59 migration files in `supabase-v2/supabase/migrations/` are the source of
-truth for V2. Do not run V2 migration commands from the repository-root
+The 61 migration files in `supabase-v2/supabase/migrations/` are the current
+local source of truth for V2: 59 form the deployed staging baseline and two are
+pending review. Do not run V2 migration commands from the repository-root
 `supabase/` directory, and do not use `migration repair` or `db pull` to bridge
 the two histories.
 
@@ -61,12 +65,12 @@ supabase migration list --linked --workdir supabase-v2
 supabase db push --linked --dry-run --workdir supabase-v2
 ```
 
-Expected linked state:
+Expected linked state before any separately approved monitoring deployment:
 
 - 59 matched migrations;
 - 0 remote-only migrations;
-- 0 local-only migrations;
-- dry-run reports no pending migrations.
+- 2 local-only migrations: `20260831160000` and `20260831161000`;
+- dry-run reports exactly those two pending migrations and nothing else.
 
 The 2026-08-31 source-reconciliation pass ran `migration list` only. It did not
 run `db push`, `db pull`, `migration repair`, deploy a function, or mutate the
@@ -75,8 +79,8 @@ linked project.
 ## Disposable runtime contract
 
 Contract files under `supabase/tests/` are destructive tests for a disposable
-database only. They use synthetic principals and remove their fixtures. Apply
-the full 59-migration baseline first, then execute SQL contracts with
+database only. They use synthetic principals and remove or roll back their
+fixtures. Apply the full 61-migration local history first, then execute SQL contracts with
 `psql -v ON_ERROR_STOP=1`.
 
 The real two-connection publication-intent and lease race contracts require
@@ -92,6 +96,9 @@ try {
     --port 54322 `
     --confirm-disposable-local
   python -B supabase-v2/supabase/tests/v2_ephemeral_lease_race_contract.py `
+    --port 54322 `
+    --confirm-disposable-local
+  python -B supabase-v2/supabase/tests/v2_monitoring_push_device_lease_race_contract.py `
     --port 54322 `
     --confirm-disposable-local
 } finally {
