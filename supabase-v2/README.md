@@ -7,35 +7,49 @@ V2 history. V2 migrations, service RPCs and Edge Functions are owned here.
 
 ## Migration history
 
-- `20260727150000` through `20260810211000`: all 52 migrations are recorded by
-  linked `kippy-v2-staging`.
-- `20260816090000` and `20260816103000` are deployed historical migrations
-  reconciled byte-for-byte from `codex/phase2-whatsapp-text`; their stored
-  statement sequences match linked staging.
-- `20260816110000` is a forward-only local repair for the admin audit helper.
-  It is pending and has not been applied to linked staging; its audit snapshot
-  includes only active, scope-applicable permissions.
-- `20260816120000` is a forward-only privacy hardening for the shadow-result
-  and edge-gated waitlist boundaries. It is pending and has not been applied
-  to linked staging.
-- `20260816130000` is a forward-only atomic idempotency repair for concurrent
-  publication-intent calls. It is pending and has not been applied to linked
-  staging.
-- `20260826170000` adds the default-off, service-owned and per-device private
-  text P0 activation contract. It is pending and has not been applied.
+- `20260727150000` through `20260828100000`: all 59 migration versions recorded
+  by linked `kippy-v2-staging` are represented locally.
+- The six `20260816*` through `20260826170000` sources were reconciled from the
+  published `codex/supabase-v2-publication` lineage.
+- `20260828100000_v2_ephemeral_privacy_v3.sql` was recovered from the immutable
+  source introduced by KippySafetyCore commit `b896ed9`; the file is unchanged
+  in the remote-verified recovery branch and represents the linked migration's
+  stored statement sequence.
 - The 43 formerly remote-only files were reconciled against the remote migration
   ledger. Stored statements matched in order; zero-statement ledger entries were
   corroborated against the live schema and matching local source copies.
 - Linked staging also exposes 11 WhatsApp-canary objects whose DDL is not present
-  in this 58-file history. The checked-in `v2-types.ts` preserves that linked
+  in this 59-file history. The checked-in `v2-types.ts` preserves that linked
   surface while adding the locally validated pending schema. Their migration
   provenance remains a separate reconciliation item; do not rewrite historical
   migration blobs to absorb it.
 
-The 58 migration files in `supabase-v2/supabase/migrations/` are the source of
+The 59 migration files in `supabase-v2/supabase/migrations/` are the source of
 truth for V2. Do not run V2 migration commands from the repository-root
 `supabase/` directory, and do not use `migration repair` or `db pull` to bridge
 the two histories.
+
+## Deployed Edge Function sources
+
+The exact current source bundles for the 21 active non-legacy functions are
+captured under:
+
+```text
+supabase/deployed-sources/gscclrgcmvtbyquveoze/
+```
+
+The project currently contains multiple deployed versions of five `_shared`
+paths. The snapshots therefore remain isolated per function and version instead
+of being flattened into a synthetic shared tree. `manifest.json` records each
+provider bundle hash and JWT setting.
+
+The active legacy `check-device-health` deployment is recorded as an explicit
+exclusion. Its source is not part of the canonical V2 backend and must not be
+modified, promoted, or redeployed from this workdir.
+
+The snapshots are immutable deployment evidence. New or intentionally changed
+function source belongs in `supabase/functions/` and must be reviewed against
+the matching snapshot before deployment.
 
 ## Safe verification
 
@@ -49,17 +63,20 @@ supabase db push --linked --dry-run --workdir supabase-v2
 
 Expected linked state:
 
-- 54 matched migrations;
+- 59 matched migrations;
 - 0 remote-only migrations;
-- 4 local-only migrations (`20260816110000`, `20260816120000`,
-  `20260816130000`, `20260826170000`);
-- dry-run reports exactly those four migrations as pending.
+- 0 local-only migrations;
+- dry-run reports no pending migrations.
+
+The 2026-08-31 source-reconciliation pass ran `migration list` only. It did not
+run `db push`, `db pull`, `migration repair`, deploy a function, or mutate the
+linked project.
 
 ## Disposable runtime contract
 
 Contract files under `supabase/tests/` are destructive tests for a disposable
 database only. They use synthetic principals and remove their fixtures. Apply
-the full 58-migration baseline first, then execute SQL contracts with
+the full 59-migration baseline first, then execute SQL contracts with
 `psql -v ON_ERROR_STOP=1`.
 
 The real two-connection publication-intent and lease race contracts require
