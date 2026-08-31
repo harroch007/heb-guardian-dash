@@ -42,7 +42,7 @@ interface ProtectionArea {
 }
 
 const statusCopy: Record<DeviceStatus, string> = {
-  connected: "המכשיר מחובר והבקרה פעילה",
+  connected: "המכשיר מחובר ומדווח",
   inactive: "המכשיר לא דיווח לאחרונה",
   not_connected: "עדיין לא חובר מכשיר",
 };

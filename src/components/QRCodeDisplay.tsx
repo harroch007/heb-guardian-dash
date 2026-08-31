@@ -74,8 +74,9 @@ export function QRCodeDisplay({
         if (current.status === "consumed") {
           stopPolling();
           toast({
-            title: "🎉 המכשיר חובר בהצלחה!",
-            description: "Kippy פעילה כעת במכשיר הילד/ה.",
+            title: "המכשיר שויך בהצלחה",
+            description:
+              "כעת יש להשלים את ההרשאות במכשיר. Kippy תציג שהניטור פעיל רק לאחר דיווח תקינות אמיתי.",
           });
           onConnected?.();
           onFinish();

@@ -3,6 +3,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { MapPin } from "lucide-react";
 import type { ChildWithData } from "@/pages/HomeV2";
+import { hasCurrentDeviceReport } from "@/lib/v2/guardianMonitoringService";
 
 interface Props {
   children: ChildWithData[];
@@ -16,11 +17,6 @@ const formatLastSeen = (ts: string | null): string => {
   const h = Math.floor(diff / 60);
   if (h < 24) return `לפני ${h} שעות`;
   return `לפני ${Math.floor(h / 24)} ימים`;
-};
-
-const isConnected = (lastSeen: string | null) => {
-  if (!lastSeen) return false;
-  return Date.now() - new Date(lastSeen).getTime() < 24 * 60 * 60 * 1000;
 };
 
 const makePin = (initial: string, connected: boolean) => {
@@ -73,7 +69,7 @@ export const FamilyLocationsMap = ({ children }: Props) => {
   const locatedKey = children
     .map(
       (c) =>
-        `${c.id}|${c.device?.lat ?? ""}|${c.device?.lon ?? ""}|${c.device?.last_seen ?? ""}|${c.name}|${c.device?.address ?? ""}`,
+        `${c.id}|${c.device?.lat ?? ""}|${c.device?.lon ?? ""}|${c.device?.last_seen ?? ""}|${c.device?.monitoring_state ?? ""}|${c.name}|${c.device?.address ?? ""}`,
     )
     .join(",");
 
@@ -87,7 +83,7 @@ export const FamilyLocationsMap = ({ children }: Props) => {
         lon: c.device!.lon!,
         address: c.device!.address ?? null,
         lastSeen: c.device!.last_seen,
-        connected: isConnected(c.device!.last_seen),
+        connected: hasCurrentDeviceReport(c.device!.monitoring_state),
       }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [locatedKey]);

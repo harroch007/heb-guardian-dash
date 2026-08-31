@@ -7,7 +7,8 @@ import { useChildControls } from "@/hooks/useChildControls";
 import { useRingCommand } from "@/hooks/useRingCommand";
 import { useV2GuardianMonitoring } from "@/hooks/useV2GuardianMonitoring";
 import type { RingPhase } from "@/hooks/useRingCommand";
-import { getDeviceStatus, getStatusLabel, formatLastSeen } from "@/lib/deviceStatus";
+import { getStatusLabel, formatLastSeen } from "@/lib/deviceStatus";
+import { hasCurrentDeviceReport } from "@/lib/v2/guardianMonitoringService";
 import { DeviceHealthBanner } from "@/components/controls/DeviceHealthBanner";
 import { cn, getIsraelDate } from "@/lib/utils";
 import {
@@ -152,11 +153,16 @@ export default function ChildControlV2() {
     refresh: refreshMonitoring,
   } = useV2GuardianMonitoring();
 
-  const status = getDeviceStatus(device !== null, device?.last_seen);
   const monitoringChild = monitoringChildren.find(
     (candidate) => candidate.id === childId,
   );
   const monitoringDevice = monitoringChild?.device ?? null;
+  const status = !device
+    ? "not_connected"
+    : monitoringDevice &&
+        hasCurrentDeviceReport(monitoringDevice.monitoringState)
+      ? "connected"
+      : "inactive";
 
   // ---------- Active schedule helper (1-7 mapping) ----------
   const getActiveScheduleName = useCallback((): string | null => {

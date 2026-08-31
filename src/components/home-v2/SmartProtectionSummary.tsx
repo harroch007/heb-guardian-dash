@@ -1,6 +1,7 @@
 import { Bell, Shield } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { ChildWithData } from "@/pages/HomeV2";
+import { hasCurrentDeviceReport } from "@/lib/v2/guardianMonitoringService";
 
 interface Props {
   childrenData: ChildWithData[];
@@ -9,13 +10,32 @@ interface Props {
 /** Guardian-safe V2 monitoring summary; no legacy subscription assumptions. */
 export const SmartProtectionSummary = ({ childrenData }: Props) => {
   const navigate = useNavigate();
-  const monitoringActive = childrenData.some((child) => {
-    if (!child.device?.last_seen) return false;
-    return (
-      Date.now() - new Date(child.device.last_seen).getTime() <
-      24 * 60 * 60 * 1000
+  const monitoringHealthy =
+    childrenData.length > 0 &&
+    childrenData.every(
+      (child) => child.device?.monitoring_state === "healthy",
     );
-  });
+  const hasUnavailableDevice = childrenData.some(
+    (child) =>
+      !child.device || !hasCurrentDeviceReport(child.device.monitoring_state),
+  );
+  const hasSetupIssue = childrenData.some(
+    (child) => child.device?.monitoring_state === "needs_setup",
+  );
+  const hasRecoveringDevice = childrenData.some(
+    (child) => child.device?.monitoring_state === "recovering",
+  );
+  const status = childrenData.length === 0
+    ? { text: "טרם חובר מכשיר", tone: "text-muted-foreground" }
+    : monitoringHealthy
+      ? { text: "פעיל", tone: "text-success" }
+    : hasUnavailableDevice
+      ? { text: "לא התקבל דיווח עדכני", tone: "text-muted-foreground" }
+      : hasSetupIssue
+        ? { text: "נדרשת השלמת הרשאות", tone: "text-warning" }
+        : hasRecoveringDevice
+          ? { text: "החיבור מתאושש", tone: "text-warning" }
+          : { text: "פעיל, נדרשת בדיקה נוספת", tone: "text-warning" };
   const newAlerts = childrenData.reduce(
     (total, child) => total + child.unacknowledgedAlerts,
     0,
@@ -28,17 +48,13 @@ export const SmartProtectionSummary = ({ childrenData }: Props) => {
         <div className="flex items-center gap-2">
           <Shield
             className={`h-4 w-4 ${
-              monitoringActive ? "text-success" : "text-muted-foreground"
+              monitoringHealthy ? "text-success" : "text-warning"
             }`}
           />
           <span className="text-xs font-medium text-foreground/80">
-            ניטור WhatsApp: {" "}
-            <span
-              className={
-                monitoringActive ? "text-success" : "text-muted-foreground"
-              }
-            >
-              {monitoringActive ? "פעיל" : "לא התקבל דיווח עדכני"}
+            הגנת המכשיר: {" "}
+            <span className={status.tone}>
+              {status.text}
             </span>
           </span>
         </div>

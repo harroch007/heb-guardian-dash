@@ -24,6 +24,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { getIsraelDate } from "@/lib/utils";
 import { getV2GuardianHome } from "@/lib/v2/guardianHomeService";
+import {
+  hasCurrentDeviceReport,
+  type GuardianMonitoringState,
+} from "@/lib/v2/guardianMonitoringService";
 
 export interface ActiveRestriction {
   type: "schedule" | "shabbat";
@@ -42,6 +46,7 @@ export interface ChildWithData {
     address: string | null;
     lat: number | null;
     lon: number | null;
+    monitoring_state: GuardianMonitoringState;
   } | null;
   snapshot?: {
     total_usage_minutes: number | null;
@@ -106,14 +111,14 @@ const HomeV2 = () => {
   const [addChildOpen, setAddChildOpen] = useState(false);
   const [childrenData, setChildrenData] = useState<ChildWithData[]>([]);
 
-  const fetchAllData = useCallback(async () => {
+  const fetchAllData = useCallback(async (silent = false) => {
     if (!familyId) {
       setChildrenData([]);
       setLoading(false);
       return;
     }
 
-    setLoading(true);
+    if (!silent) setLoading(true);
     setLoadError(false);
     try {
       const children = await getV2GuardianHome(familyId, getIsraelDate());
@@ -138,6 +143,7 @@ const HomeV2 = () => {
                   address: child.device.address,
                   lat: child.device.latitude,
                   lon: child.device.longitude,
+                  monitoring_state: child.device.monitoringState,
                 }
               : null,
             snapshot: {
@@ -164,15 +170,27 @@ const HomeV2 = () => {
       );
     } catch (error) {
       console.error("[HomeV2] Error fetching V2 guardian home:", error);
-      setChildrenData([]);
+      if (!silent) setChildrenData([]);
       setLoadError(true);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [familyId]);
 
   useEffect(() => {
     void fetchAllData();
+
+    const refresh = () => void fetchAllData(true);
+    const intervalId = window.setInterval(refresh, 30_000);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [fetchAllData]);
 
   if (loading) {
@@ -190,22 +208,20 @@ const HomeV2 = () => {
     );
   }
 
-  const connectedCount = childrenData.filter((child) => {
-    if (!child.device?.last_seen) return false;
-    return (
-      Date.now() - new Date(child.device.last_seen).getTime() <
-      24 * 60 * 60 * 1000
-    );
-  }).length;
+  const connectedCount = childrenData.filter(
+    (child) =>
+      child.device && hasCurrentDeviceReport(child.device.monitoring_state),
+  ).length;
   const totalAlerts = childrenData.reduce(
     (total, child) => total + child.unacknowledgedAlerts,
     0,
   );
-  const permissionIssueCount = childrenData.filter(
-    (child) => child.permissionIssues.length > 0,
+  const childrenRequiringAttention = childrenData.filter(
+    (child) =>
+      child.permissionIssues.length > 0 ||
+      child.device?.monitoring_state !== "healthy",
   ).length;
-  const disconnectedCount = childrenData.length - connectedCount;
-  const openIssues = totalAlerts + permissionIssueCount + disconnectedCount;
+  const openIssues = totalAlerts + childrenRequiringAttention;
 
   return (
     <div className="v2-dark min-h-screen pb-24" dir="rtl">
