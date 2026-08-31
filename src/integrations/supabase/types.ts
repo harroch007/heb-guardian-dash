@@ -10,1422 +10,3712 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.1"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
-      admin_activity_log: {
+      v2_admin_action_requests: {
         Row: {
-          action_details: Json
-          action_type: string
-          admin_user_id: string
+          action_hash: string
+          action_key: string
+          case_id: string
           created_at: string
+          environment: string
+          expected_revision: string | null
+          expires_at: string
           id: string
-          target_parent_id: string
-        }
-        Insert: {
-          action_details?: Json
-          action_type: string
-          admin_user_id: string
-          created_at?: string
-          id?: string
-          target_parent_id: string
-        }
-        Update: {
-          action_details?: Json
-          action_type?: string
-          admin_user_id?: string
-          created_at?: string
-          id?: string
-          target_parent_id?: string
-        }
-        Relationships: []
-      }
-      admin_notes: {
-        Row: {
-          admin_user_id: string
-          created_at: string
-          id: string
-          note_text: string
-          note_type: string
-          parent_id: string
-        }
-        Insert: {
-          admin_user_id: string
-          created_at?: string
-          id?: string
-          note_text: string
-          note_type?: string
-          parent_id: string
-        }
-        Update: {
-          admin_user_id?: string
-          created_at?: string
-          id?: string
-          note_text?: string
-          note_type?: string
-          parent_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "admin_notes_parent_id_fkey"
-            columns: ["parent_id"]
-            isOneToOne: false
-            referencedRelation: "parents"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      ai_engine_health: {
-        Row: {
-          child_id: string | null
-          device_id: string
-          id: string
-          last_failure_reason: string | null
-          last_slm_latency_ms: number | null
-          last_voice_latency_ms: number | null
-          selected_slm_engine: string | null
-          selected_voice_engine: string | null
-          slm_engine_status: string | null
-          slm_failure_count: number | null
-          updated_at: string | null
-          voice_engine_status: string | null
-          voice_failure_count: number | null
-        }
-        Insert: {
-          child_id?: string | null
-          device_id: string
-          id?: string
-          last_failure_reason?: string | null
-          last_slm_latency_ms?: number | null
-          last_voice_latency_ms?: number | null
-          selected_slm_engine?: string | null
-          selected_voice_engine?: string | null
-          slm_engine_status?: string | null
-          slm_failure_count?: number | null
-          updated_at?: string | null
-          voice_engine_status?: string | null
-          voice_failure_count?: number | null
-        }
-        Update: {
-          child_id?: string | null
-          device_id?: string
-          id?: string
-          last_failure_reason?: string | null
-          last_slm_latency_ms?: number | null
-          last_voice_latency_ms?: number | null
-          selected_slm_engine?: string | null
-          selected_voice_engine?: string | null
-          slm_engine_status?: string | null
-          slm_failure_count?: number | null
-          updated_at?: string | null
-          voice_engine_status?: string | null
-          voice_failure_count?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ai_engine_health_child_id_fkey"
-            columns: ["child_id"]
-            isOneToOne: false
-            referencedRelation: "children"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ai_engine_health_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: true
-            referencedRelation: "devices"
-            referencedColumns: ["device_id"]
-          },
-          {
-            foreignKeyName: "ai_engine_health_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: true
-            referencedRelation: "parent_daily_report"
-            referencedColumns: ["device_id"]
-          },
-          {
-            foreignKeyName: "ai_engine_health_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: true
-            referencedRelation: "parent_daily_report_for_parent"
-            referencedColumns: ["device_id"]
-          },
-          {
-            foreignKeyName: "ai_engine_health_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: true
-            referencedRelation: "parent_home_snapshot"
-            referencedColumns: ["device_id"]
-          },
-        ]
-      }
-      ai_incident_summaries: {
-        Row: {
-          chat_id: string
-          chat_type: string
-          child_id: string | null
-          child_role: string | null
-          confidence: number | null
-          created_at: string | null
-          device_id: string
-          evidence_message_ids: Json | null
-          evidence_snippets: Json | null
-          id: string
-          incident_action: string
-          is_open: boolean | null
-          last_seen_at: string | null
-          risk_type: string
-          severity: string
-          updated_at: string | null
-          why_short: string | null
-        }
-        Insert: {
-          chat_id: string
-          chat_type: string
-          child_id?: string | null
-          child_role?: string | null
-          confidence?: number | null
-          created_at?: string | null
-          device_id: string
-          evidence_message_ids?: Json | null
-          evidence_snippets?: Json | null
-          id?: string
-          incident_action: string
-          is_open?: boolean | null
-          last_seen_at?: string | null
-          risk_type: string
-          severity: string
-          updated_at?: string | null
-          why_short?: string | null
-        }
-        Update: {
-          chat_id?: string
-          chat_type?: string
-          child_id?: string | null
-          child_role?: string | null
-          confidence?: number | null
-          created_at?: string | null
-          device_id?: string
-          evidence_message_ids?: Json | null
-          evidence_snippets?: Json | null
-          id?: string
-          incident_action?: string
-          is_open?: boolean | null
-          last_seen_at?: string | null
-          risk_type?: string
-          severity?: string
-          updated_at?: string | null
-          why_short?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ai_incident_summaries_child_id_fkey"
-            columns: ["child_id"]
-            isOneToOne: false
-            referencedRelation: "children"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ai_incident_summaries_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: false
-            referencedRelation: "devices"
-            referencedColumns: ["device_id"]
-          },
-          {
-            foreignKeyName: "ai_incident_summaries_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: false
-            referencedRelation: "parent_daily_report"
-            referencedColumns: ["device_id"]
-          },
-          {
-            foreignKeyName: "ai_incident_summaries_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: false
-            referencedRelation: "parent_daily_report_for_parent"
-            referencedColumns: ["device_id"]
-          },
-          {
-            foreignKeyName: "ai_incident_summaries_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: false
-            referencedRelation: "parent_home_snapshot"
-            referencedColumns: ["device_id"]
-          },
-        ]
-      }
-      ai_model_config: {
-        Row: {
-          created_at: string | null
-          description: string | null
-          id: string
-          is_default: boolean
-          model_name: string
-          updated_at: string | null
-          weight: number
-        }
-        Insert: {
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          is_default?: boolean
-          model_name: string
-          updated_at?: string | null
-          weight?: number
-        }
-        Update: {
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          is_default?: boolean
-          model_name?: string
-          updated_at?: string | null
-          weight?: number
-        }
-        Relationships: []
-      }
-      ai_policy_config: {
-        Row: {
-          active_policy_version: string
-          context_window_size: number | null
-          created_at: string | null
-          escalation_thresholds: Json | null
-          feature_flags: Json | null
-          id: string
-          is_active: boolean | null
-          model_metadata: Json | null
-          preferred_slm_engine_order: Json | null
-          preferred_voice_engine_order: Json | null
-          suppression_minutes: number | null
-          updated_at: string | null
-        }
-        Insert: {
-          active_policy_version: string
-          context_window_size?: number | null
-          created_at?: string | null
-          escalation_thresholds?: Json | null
-          feature_flags?: Json | null
-          id?: string
-          is_active?: boolean | null
-          model_metadata?: Json | null
-          preferred_slm_engine_order?: Json | null
-          preferred_voice_engine_order?: Json | null
-          suppression_minutes?: number | null
-          updated_at?: string | null
-        }
-        Update: {
-          active_policy_version?: string
-          context_window_size?: number | null
-          created_at?: string | null
-          escalation_thresholds?: Json | null
-          feature_flags?: Json | null
-          id?: string
-          is_active?: boolean | null
-          model_metadata?: Json | null
-          preferred_slm_engine_order?: Json | null
-          preferred_voice_engine_order?: Json | null
-          suppression_minutes?: number | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      ai_rollout_flags: {
-        Row: {
-          created_at: string | null
-          disable_slm_on_low_end: boolean | null
-          disable_voice_on_low_end: boolean | null
-          enable_local_slm: boolean | null
-          enable_voice_transcription: boolean | null
-          force_heuristic_mode: boolean | null
-          id: string
-          is_active: boolean | null
-          notes: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          disable_slm_on_low_end?: boolean | null
-          disable_voice_on_low_end?: boolean | null
-          enable_local_slm?: boolean | null
-          enable_voice_transcription?: boolean | null
-          force_heuristic_mode?: boolean | null
-          id?: string
-          is_active?: boolean | null
-          notes?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          disable_slm_on_low_end?: boolean | null
-          disable_voice_on_low_end?: boolean | null
-          enable_local_slm?: boolean | null
-          enable_voice_transcription?: boolean | null
-          force_heuristic_mode?: boolean | null
-          id?: string
-          is_active?: boolean | null
-          notes?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      ai_runtime_telemetry: {
-        Row: {
-          child_id: string | null
-          created_at: string | null
-          device_id: string
-          engine_type: string
-          event_type: string
-          failure_reason: string | null
-          fallback_triggered: boolean | null
-          id: string
-          latency_ms: number | null
-          model_version: string | null
-          success: boolean | null
-        }
-        Insert: {
-          child_id?: string | null
-          created_at?: string | null
-          device_id: string
-          engine_type: string
-          event_type: string
-          failure_reason?: string | null
-          fallback_triggered?: boolean | null
-          id?: string
-          latency_ms?: number | null
-          model_version?: string | null
-          success?: boolean | null
-        }
-        Update: {
-          child_id?: string | null
-          created_at?: string | null
-          device_id?: string
-          engine_type?: string
-          event_type?: string
-          failure_reason?: string | null
-          fallback_triggered?: boolean | null
-          id?: string
-          latency_ms?: number | null
-          model_version?: string | null
-          success?: boolean | null
-        }
-        Relationships: []
-      }
-      ai_stack_requests: {
-        Row: {
-          chat_hash: string | null
-          chat_type: string
-          child_id: string | null
-          created_at: string
-          device_id: string
-          id: string
-          platform: string
-          stack_size: number
-          trigger_reason: string | null
-        }
-        Insert: {
-          chat_hash?: string | null
-          chat_type?: string
-          child_id?: string | null
-          created_at?: string
-          device_id: string
-          id?: string
-          platform?: string
-          stack_size: number
-          trigger_reason?: string | null
-        }
-        Update: {
-          chat_hash?: string | null
-          chat_type?: string
-          child_id?: string | null
-          created_at?: string
-          device_id?: string
-          id?: string
-          platform?: string
-          stack_size?: number
-          trigger_reason?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ai_stack_requests_child_id_fkey"
-            columns: ["child_id"]
-            isOneToOne: false
-            referencedRelation: "children"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ai_stack_requests_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: false
-            referencedRelation: "devices"
-            referencedColumns: ["device_id"]
-          },
-          {
-            foreignKeyName: "ai_stack_requests_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: false
-            referencedRelation: "parent_daily_report"
-            referencedColumns: ["device_id"]
-          },
-          {
-            foreignKeyName: "ai_stack_requests_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: false
-            referencedRelation: "parent_daily_report_for_parent"
-            referencedColumns: ["device_id"]
-          },
-          {
-            foreignKeyName: "ai_stack_requests_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: false
-            referencedRelation: "parent_home_snapshot"
-            referencedColumns: ["device_id"]
-          },
-        ]
-      }
-      ai_suppression_audit: {
-        Row: {
-          chat_id: string
-          child_id: string | null
-          created_at: string | null
-          current_severity: string | null
-          device_id: string
-          id: string
-          last_alert_sent_at: string | null
-          previous_severity: string | null
-          risk_type: string
-          suppression_reason: string
-        }
-        Insert: {
-          chat_id: string
-          child_id?: string | null
-          created_at?: string | null
-          current_severity?: string | null
-          device_id: string
-          id?: string
-          last_alert_sent_at?: string | null
-          previous_severity?: string | null
-          risk_type: string
-          suppression_reason: string
-        }
-        Update: {
-          chat_id?: string
-          child_id?: string | null
-          created_at?: string | null
-          current_severity?: string | null
-          device_id?: string
-          id?: string
-          last_alert_sent_at?: string | null
-          previous_severity?: string | null
-          risk_type?: string
-          suppression_reason?: string
-        }
-        Relationships: []
-      }
-      alert_events_queue: {
-        Row: {
-          alert_id: number
-          attempt: number
-          created_at: string
-          event_type: string
-          id: string
-          last_error: string | null
-          max_attempts: number
+          idempotency_key: string
+          policy_version: string
+          purpose_code: string
+          request_payload_sanitized: Json
+          request_schema_version: number
+          requested_by_principal_id: string
+          resource_id: string | null
+          resource_type: string
+          risk_class: string
+          sponsor_principal_id: string | null
           status: string
           updated_at: string
-          visible_at: string
         }
         Insert: {
-          alert_id: number
-          attempt?: number
+          action_hash: string
+          action_key: string
+          case_id: string
           created_at?: string
-          event_type: string
+          environment: string
+          expected_revision?: string | null
+          expires_at: string
           id?: string
-          last_error?: string | null
-          max_attempts?: number
+          idempotency_key: string
+          policy_version: string
+          purpose_code: string
+          request_payload_sanitized?: Json
+          request_schema_version?: number
+          requested_by_principal_id: string
+          resource_id?: string | null
+          resource_type: string
+          risk_class: string
+          sponsor_principal_id?: string | null
+          status: string
+          updated_at?: string
+        }
+        Update: {
+          action_hash?: string
+          action_key?: string
+          case_id?: string
+          created_at?: string
+          environment?: string
+          expected_revision?: string | null
+          expires_at?: string
+          id?: string
+          idempotency_key?: string
+          policy_version?: string
+          purpose_code?: string
+          request_payload_sanitized?: Json
+          request_schema_version?: number
+          requested_by_principal_id?: string
+          resource_id?: string | null
+          resource_type?: string
+          risk_class?: string
+          sponsor_principal_id?: string | null
           status?: string
           updated_at?: string
-          visible_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_admin_action_requests_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_admin_action_requests_requested_by_principal_id_fkey"
+            columns: ["requested_by_principal_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_admin_action_requests_sponsor_principal_id_fkey"
+            columns: ["sponsor_principal_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_admin_agent_evaluations: {
+        Row: {
+          created_at: string
+          environment: string
+          evaluator_version: string
+          id: string
+          invariant_results: Json
+          outcome: string
+          reason_code: string
+          run_id: string
+        }
+        Insert: {
+          created_at?: string
+          environment: string
+          evaluator_version: string
+          id?: string
+          invariant_results: Json
+          outcome: string
+          reason_code: string
+          run_id: string
         }
         Update: {
-          alert_id?: number
-          attempt?: number
           created_at?: string
-          event_type?: string
+          environment?: string
+          evaluator_version?: string
           id?: string
-          last_error?: string | null
-          max_attempts?: number
+          invariant_results?: Json
+          outcome?: string
+          reason_code?: string
+          run_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_admin_agent_evaluations_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "v2_admin_agent_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_admin_agent_handoffs: {
+        Row: {
+          case_id: string
+          created_at: string
+          delivery_status: string
+          destination_key: string
+          destination_kind: string
+          effect_mode: string
+          environment: string
+          handoff_key: string
+          handoff_kind: string
+          handoff_payload: Json
+          id: string
+          reason_code: string
+          run_id: string
+        }
+        Insert: {
+          case_id: string
+          created_at?: string
+          delivery_status: string
+          destination_key: string
+          destination_kind: string
+          effect_mode: string
+          environment: string
+          handoff_key: string
+          handoff_kind: string
+          handoff_payload: Json
+          id?: string
+          reason_code: string
+          run_id: string
+        }
+        Update: {
+          case_id?: string
+          created_at?: string
+          delivery_status?: string
+          destination_key?: string
+          destination_kind?: string
+          effect_mode?: string
+          environment?: string
+          handoff_key?: string
+          handoff_kind?: string
+          handoff_payload?: Json
+          id?: string
+          reason_code?: string
+          run_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_admin_agent_handoffs_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_admin_agent_handoffs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_agent_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_admin_agent_runs: {
+        Row: {
+          agent_version_id: string
+          case_id: string
+          completed_at: string
+          contract_version: string
+          correlation_id: string
+          created_at: string
+          decision_code: string
+          environment: string
+          id: string
+          input_state: string
+          job_id: string
+          model_used: boolean
+          mutations_applied: number
+          network_used: boolean
+          orchestrator_version: string
+          outbound_messages_sent: number
+          registry_version: string
+          result_payload: Json
+          routing_payload: Json
+          run_key: string
+          status: string
+          tools_executed: number
+        }
+        Insert: {
+          agent_version_id: string
+          case_id: string
+          completed_at?: string
+          contract_version: string
+          correlation_id: string
+          created_at?: string
+          decision_code: string
+          environment: string
+          id?: string
+          input_state: string
+          job_id: string
+          model_used: boolean
+          mutations_applied: number
+          network_used: boolean
+          orchestrator_version: string
+          outbound_messages_sent: number
+          registry_version: string
+          result_payload: Json
+          routing_payload: Json
+          run_key: string
+          status: string
+          tools_executed: number
+        }
+        Update: {
+          agent_version_id?: string
+          case_id?: string
+          completed_at?: string
+          contract_version?: string
+          correlation_id?: string
+          created_at?: string
+          decision_code?: string
+          environment?: string
+          id?: string
+          input_state?: string
+          job_id?: string
+          model_used?: boolean
+          mutations_applied?: number
+          network_used?: boolean
+          orchestrator_version?: string
+          outbound_messages_sent?: number
+          registry_version?: string
+          result_payload?: Json
+          routing_payload?: Json
+          run_key?: string
           status?: string
-          updated_at?: string
-          visible_at?: string
+          tools_executed?: number
         }
         Relationships: [
           {
-            foreignKeyName: "alert_events_queue_alert_id_fkey"
-            columns: ["alert_id"]
+            foreignKeyName: "v2_admin_agent_runs_agent_version_id_fkey"
+            columns: ["agent_version_id"]
             isOneToOne: false
-            referencedRelation: "alerts"
+            referencedRelation: "v2_admin_agent_versions"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "alert_events_queue_alert_id_fkey"
-            columns: ["alert_id"]
+            foreignKeyName: "v2_admin_agent_runs_case_id_fkey"
+            columns: ["case_id"]
             isOneToOne: false
-            referencedRelation: "parent_alerts_effective"
+            referencedRelation: "v2_admin_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_admin_agent_runs_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "v2_admin_shadow_jobs"
             referencedColumns: ["id"]
           },
         ]
       }
-      alert_feedback: {
+      v2_admin_agent_versions: {
         Row: {
-          alert_id: number
+          agent_id: string
+          agent_version: string
+          contract_version: string
           created_at: string
-          feedback_type: string
+          effect_mode: string
+          environment: string
+          execution_mode: string
           id: string
-          parent_id: string
+          implementation_digest: string
+          orchestrator_version: string
+          registry_version: string
         }
         Insert: {
-          alert_id: number
+          agent_id: string
+          agent_version: string
+          contract_version: string
           created_at?: string
-          feedback_type: string
+          effect_mode: string
+          environment: string
+          execution_mode: string
           id?: string
-          parent_id: string
+          implementation_digest: string
+          orchestrator_version: string
+          registry_version: string
         }
         Update: {
-          alert_id?: number
+          agent_id?: string
+          agent_version?: string
+          contract_version?: string
           created_at?: string
-          feedback_type?: string
+          effect_mode?: string
+          environment?: string
+          execution_mode?: string
           id?: string
-          parent_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "alert_feedback_alert_id_fkey"
-            columns: ["alert_id"]
-            isOneToOne: false
-            referencedRelation: "alerts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "alert_feedback_alert_id_fkey"
-            columns: ["alert_id"]
-            isOneToOne: false
-            referencedRelation: "parent_alerts_effective"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "alert_feedback_parent_id_fkey"
-            columns: ["parent_id"]
-            isOneToOne: false
-            referencedRelation: "parents"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      alerts: {
-        Row: {
-          acknowledged_at: string | null
-          ai_analysis: Json | null
-          ai_classification: Json | null
-          ai_confidence: number | null
-          ai_context: string | null
-          ai_error: string | null
-          ai_explanation: string | null
-          ai_explanation_short: string | null
-          ai_meaning: string | null
-          ai_patterns: string[] | null
-          ai_recommendation: string | null
-          ai_recommendation_short: string | null
-          ai_risk_score: number | null
-          ai_social_context: Json | null
-          ai_status: string | null
-          ai_summary: string | null
-          ai_title: string | null
-          ai_verdict: string | null
-          alert_type: string
-          analyzed_at: string | null
-          author_type: string | null
-          category: string | null
-          chat_name: string | null
-          chat_type: string | null
-          child_id: string | null
-          child_role: string | null
-          client_event_id: string | null
-          content: string | null
-          created_at: string
-          device_id: string | null
-          escalate: boolean | null
-          expert_type: string | null
-          id: number
-          is_processed: boolean | null
-          last_attempt_at: string | null
-          last_error: string | null
-          message_count: number | null
-          parent_message: string | null
-          platform: string
-          processing_status: string | null
-          remind_at: string | null
-          retry_count: number | null
-          risk_score: number | null
-          saved_at: string | null
-          sender: string | null
-          sender_display: string | null
-          should_alert: boolean | null
-          should_store: boolean | null
-          source: string | null
-          suggested_action: string | null
-        }
-        Insert: {
-          acknowledged_at?: string | null
-          ai_analysis?: Json | null
-          ai_classification?: Json | null
-          ai_confidence?: number | null
-          ai_context?: string | null
-          ai_error?: string | null
-          ai_explanation?: string | null
-          ai_explanation_short?: string | null
-          ai_meaning?: string | null
-          ai_patterns?: string[] | null
-          ai_recommendation?: string | null
-          ai_recommendation_short?: string | null
-          ai_risk_score?: number | null
-          ai_social_context?: Json | null
-          ai_status?: string | null
-          ai_summary?: string | null
-          ai_title?: string | null
-          ai_verdict?: string | null
-          alert_type?: string
-          analyzed_at?: string | null
-          author_type?: string | null
-          category?: string | null
-          chat_name?: string | null
-          chat_type?: string | null
-          child_id?: string | null
-          child_role?: string | null
-          client_event_id?: string | null
-          content?: string | null
-          created_at?: string
-          device_id?: string | null
-          escalate?: boolean | null
-          expert_type?: string | null
-          id?: number
-          is_processed?: boolean | null
-          last_attempt_at?: string | null
-          last_error?: string | null
-          message_count?: number | null
-          parent_message?: string | null
-          platform?: string
-          processing_status?: string | null
-          remind_at?: string | null
-          retry_count?: number | null
-          risk_score?: number | null
-          saved_at?: string | null
-          sender?: string | null
-          sender_display?: string | null
-          should_alert?: boolean | null
-          should_store?: boolean | null
-          source?: string | null
-          suggested_action?: string | null
-        }
-        Update: {
-          acknowledged_at?: string | null
-          ai_analysis?: Json | null
-          ai_classification?: Json | null
-          ai_confidence?: number | null
-          ai_context?: string | null
-          ai_error?: string | null
-          ai_explanation?: string | null
-          ai_explanation_short?: string | null
-          ai_meaning?: string | null
-          ai_patterns?: string[] | null
-          ai_recommendation?: string | null
-          ai_recommendation_short?: string | null
-          ai_risk_score?: number | null
-          ai_social_context?: Json | null
-          ai_status?: string | null
-          ai_summary?: string | null
-          ai_title?: string | null
-          ai_verdict?: string | null
-          alert_type?: string
-          analyzed_at?: string | null
-          author_type?: string | null
-          category?: string | null
-          chat_name?: string | null
-          chat_type?: string | null
-          child_id?: string | null
-          child_role?: string | null
-          client_event_id?: string | null
-          content?: string | null
-          created_at?: string
-          device_id?: string | null
-          escalate?: boolean | null
-          expert_type?: string | null
-          id?: number
-          is_processed?: boolean | null
-          last_attempt_at?: string | null
-          last_error?: string | null
-          message_count?: number | null
-          parent_message?: string | null
-          platform?: string
-          processing_status?: string | null
-          remind_at?: string | null
-          retry_count?: number | null
-          risk_score?: number | null
-          saved_at?: string | null
-          sender?: string | null
-          sender_display?: string | null
-          should_alert?: boolean | null
-          should_store?: boolean | null
-          source?: string | null
-          suggested_action?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "alerts_child_id_fkey"
-            columns: ["child_id"]
-            isOneToOne: false
-            referencedRelation: "children"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "alerts_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: false
-            referencedRelation: "devices"
-            referencedColumns: ["device_id"]
-          },
-          {
-            foreignKeyName: "alerts_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: false
-            referencedRelation: "parent_daily_report"
-            referencedColumns: ["device_id"]
-          },
-          {
-            foreignKeyName: "alerts_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: false
-            referencedRelation: "parent_daily_report_for_parent"
-            referencedColumns: ["device_id"]
-          },
-          {
-            foreignKeyName: "alerts_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: false
-            referencedRelation: "parent_home_snapshot"
-            referencedColumns: ["device_id"]
-          },
-        ]
-      }
-      allowed_emails: {
-        Row: {
-          added_by: string | null
-          created_at: string | null
-          email: string
-          id: string
-          notes: string | null
-        }
-        Insert: {
-          added_by?: string | null
-          created_at?: string | null
-          email: string
-          id?: string
-          notes?: string | null
-        }
-        Update: {
-          added_by?: string | null
-          created_at?: string | null
-          email?: string
-          id?: string
-          notes?: string | null
+          implementation_digest?: string
+          orchestrator_version?: string
+          registry_version?: string
         }
         Relationships: []
       }
-      app_alerts: {
+      v2_admin_approvals: {
         Row: {
-          app_name: string | null
-          child_id: string | null
+          action_hash: string
+          action_request_id: string
+          approval_kind: string
+          approver_principal_id: string | null
+          assurance_level: string | null
           created_at: string
-          device_id: string
+          decided_at: string
+          decision: string
+          evidence_ref: string
+          expires_at: string
+          guardian_user_id: string | null
           id: string
-          package_name: string
         }
         Insert: {
-          app_name?: string | null
-          child_id?: string | null
+          action_hash: string
+          action_request_id: string
+          approval_kind: string
+          approver_principal_id?: string | null
+          assurance_level?: string | null
           created_at?: string
-          device_id: string
+          decided_at?: string
+          decision: string
+          evidence_ref: string
+          expires_at: string
+          guardian_user_id?: string | null
           id?: string
-          package_name: string
         }
         Update: {
-          app_name?: string | null
-          child_id?: string | null
+          action_hash?: string
+          action_request_id?: string
+          approval_kind?: string
+          approver_principal_id?: string | null
+          assurance_level?: string | null
           created_at?: string
-          device_id?: string
+          decided_at?: string
+          decision?: string
+          evidence_ref?: string
+          expires_at?: string
+          guardian_user_id?: string | null
           id?: string
-          package_name?: string
         }
         Relationships: [
           {
-            foreignKeyName: "app_alerts_device_id_fkey"
-            columns: ["device_id"]
+            foreignKeyName: "v2_admin_approvals_action_request_id_fkey"
+            columns: ["action_request_id"]
             isOneToOne: false
-            referencedRelation: "devices"
-            referencedColumns: ["device_id"]
+            referencedRelation: "v2_admin_action_requests"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "app_alerts_device_id_fkey"
-            columns: ["device_id"]
+            foreignKeyName: "v2_admin_approvals_approver_principal_id_fkey"
+            columns: ["approver_principal_id"]
             isOneToOne: false
-            referencedRelation: "parent_daily_report"
-            referencedColumns: ["device_id"]
-          },
-          {
-            foreignKeyName: "app_alerts_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: false
-            referencedRelation: "parent_daily_report_for_parent"
-            referencedColumns: ["device_id"]
-          },
-          {
-            foreignKeyName: "app_alerts_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: false
-            referencedRelation: "parent_home_snapshot"
-            referencedColumns: ["device_id"]
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
           },
         ]
       }
-      app_policies: {
+      v2_admin_audit_events: {
+        Row: {
+          action_request_id: string | null
+          actor_principal_id: string | null
+          after_digest: string | null
+          approval_id: string | null
+          before_digest: string | null
+          case_id: string | null
+          client_device_hash: string | null
+          client_ip_hash: string | null
+          conversation_id: string | null
+          correlation_id: string
+          created_at: string
+          deny_reason_code: string | null
+          environment: string
+          event_id: string
+          event_type: string
+          executed_action: string | null
+          field_keys: string[]
+          id: number
+          idempotency_key: string | null
+          object_id: string | null
+          object_type: string
+          outcome: string
+          permission_snapshot: Json
+          policy_decision: string | null
+          policy_version: string | null
+          purpose_code: string
+          requested_action: string | null
+          safe_metadata: Json
+          sensitivity: string
+          session_id: string | null
+          sponsor_principal_id: string | null
+          step_up_assurance: string | null
+          trace_id: string | null
+          version_snapshot: Json
+        }
+        Insert: {
+          action_request_id?: string | null
+          actor_principal_id?: string | null
+          after_digest?: string | null
+          approval_id?: string | null
+          before_digest?: string | null
+          case_id?: string | null
+          client_device_hash?: string | null
+          client_ip_hash?: string | null
+          conversation_id?: string | null
+          correlation_id?: string
+          created_at?: string
+          deny_reason_code?: string | null
+          environment: string
+          event_id?: string
+          event_type: string
+          executed_action?: string | null
+          field_keys?: string[]
+          id?: never
+          idempotency_key?: string | null
+          object_id?: string | null
+          object_type: string
+          outcome: string
+          permission_snapshot?: Json
+          policy_decision?: string | null
+          policy_version?: string | null
+          purpose_code: string
+          requested_action?: string | null
+          safe_metadata?: Json
+          sensitivity: string
+          session_id?: string | null
+          sponsor_principal_id?: string | null
+          step_up_assurance?: string | null
+          trace_id?: string | null
+          version_snapshot?: Json
+        }
+        Update: {
+          action_request_id?: string | null
+          actor_principal_id?: string | null
+          after_digest?: string | null
+          approval_id?: string | null
+          before_digest?: string | null
+          case_id?: string | null
+          client_device_hash?: string | null
+          client_ip_hash?: string | null
+          conversation_id?: string | null
+          correlation_id?: string
+          created_at?: string
+          deny_reason_code?: string | null
+          environment?: string
+          event_id?: string
+          event_type?: string
+          executed_action?: string | null
+          field_keys?: string[]
+          id?: never
+          idempotency_key?: string | null
+          object_id?: string | null
+          object_type?: string
+          outcome?: string
+          permission_snapshot?: Json
+          policy_decision?: string | null
+          policy_version?: string | null
+          purpose_code?: string
+          requested_action?: string | null
+          safe_metadata?: Json
+          sensitivity?: string
+          session_id?: string | null
+          sponsor_principal_id?: string | null
+          step_up_assurance?: string | null
+          trace_id?: string | null
+          version_snapshot?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_admin_audit_events_action_request_id_fkey"
+            columns: ["action_request_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_action_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_admin_audit_events_actor_principal_id_fkey"
+            columns: ["actor_principal_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_admin_audit_events_approval_id_fkey"
+            columns: ["approval_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_approvals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_admin_audit_events_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_admin_audit_events_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "v2_support_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_admin_audit_events_sponsor_principal_id_fkey"
+            columns: ["sponsor_principal_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_admin_case_conversations: {
+        Row: {
+          case_id: string
+          conversation_id: string
+          is_primary: boolean
+          linked_at: string
+        }
+        Insert: {
+          case_id: string
+          conversation_id: string
+          is_primary?: boolean
+          linked_at?: string
+        }
+        Update: {
+          case_id?: string
+          conversation_id?: string
+          is_primary?: boolean
+          linked_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_admin_case_conversations_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_admin_case_conversations_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "v2_support_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_admin_case_events: {
+        Row: {
+          actor_principal_id: string | null
+          case_id: string
+          created_at: string
+          event_id: string
+          event_type: string
+          id: number
+          new_status: string | null
+          occurred_at: string
+          previous_status: string | null
+          reason_code: string
+          safe_metadata: Json
+        }
+        Insert: {
+          actor_principal_id?: string | null
+          case_id: string
+          created_at?: string
+          event_id?: string
+          event_type: string
+          id?: never
+          new_status?: string | null
+          occurred_at?: string
+          previous_status?: string | null
+          reason_code: string
+          safe_metadata?: Json
+        }
+        Update: {
+          actor_principal_id?: string | null
+          case_id?: string
+          created_at?: string
+          event_id?: string
+          event_type?: string
+          id?: never
+          new_status?: string | null
+          occurred_at?: string
+          previous_status?: string | null
+          reason_code?: string
+          safe_metadata?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_admin_case_events_actor_principal_id_fkey"
+            columns: ["actor_principal_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_admin_case_events_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_admin_case_participants: {
+        Row: {
+          assigned_at: string
+          case_id: string
+          participant_role: string
+          principal_id: string
+          removed_at: string | null
+        }
+        Insert: {
+          assigned_at?: string
+          case_id: string
+          participant_role: string
+          principal_id: string
+          removed_at?: string | null
+        }
+        Update: {
+          assigned_at?: string
+          case_id?: string
+          participant_role?: string
+          principal_id?: string
+          removed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_admin_case_participants_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_admin_case_participants_principal_id_fkey"
+            columns: ["principal_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_admin_cases: {
+        Row: {
+          accountable_owner_principal_id: string | null
+          case_number: number
+          category_key: string
+          child_id: string | null
+          closed_at: string | null
+          closure_reason: string | null
+          created_at: string
+          device_id: string | null
+          domain_key: string
+          environment: string
+          family_id: string | null
+          fixture_key: string | null
+          human_supervisor_principal_id: string | null
+          id: string
+          incident_id: string | null
+          intent_key: string
+          last_activity_at: string
+          priority: string
+          privacy_class: string
+          purpose_code: string
+          queue_key: string
+          reopen_count: number
+          resolution_code: string | null
+          resolver_principal_id: string | null
+          resume_status: string | null
+          root_cause_code: string | null
+          sensitivity: string
+          sla_deadline_at: string | null
+          source_mode: string
+          status: string
+          substatus: string | null
+          updated_at: string
+          verification_level: string
+          wait_deadline_at: string | null
+          wake_condition: string | null
+        }
+        Insert: {
+          accountable_owner_principal_id?: string | null
+          case_number?: never
+          category_key: string
+          child_id?: string | null
+          closed_at?: string | null
+          closure_reason?: string | null
+          created_at?: string
+          device_id?: string | null
+          domain_key: string
+          environment: string
+          family_id?: string | null
+          fixture_key?: string | null
+          human_supervisor_principal_id?: string | null
+          id?: string
+          incident_id?: string | null
+          intent_key: string
+          last_activity_at?: string
+          priority: string
+          privacy_class: string
+          purpose_code: string
+          queue_key: string
+          reopen_count?: number
+          resolution_code?: string | null
+          resolver_principal_id?: string | null
+          resume_status?: string | null
+          root_cause_code?: string | null
+          sensitivity: string
+          sla_deadline_at?: string | null
+          source_mode: string
+          status?: string
+          substatus?: string | null
+          updated_at?: string
+          verification_level: string
+          wait_deadline_at?: string | null
+          wake_condition?: string | null
+        }
+        Update: {
+          accountable_owner_principal_id?: string | null
+          case_number?: never
+          category_key?: string
+          child_id?: string | null
+          closed_at?: string | null
+          closure_reason?: string | null
+          created_at?: string
+          device_id?: string | null
+          domain_key?: string
+          environment?: string
+          family_id?: string | null
+          fixture_key?: string | null
+          human_supervisor_principal_id?: string | null
+          id?: string
+          incident_id?: string | null
+          intent_key?: string
+          last_activity_at?: string
+          priority?: string
+          privacy_class?: string
+          purpose_code?: string
+          queue_key?: string
+          reopen_count?: number
+          resolution_code?: string | null
+          resolver_principal_id?: string | null
+          resume_status?: string | null
+          root_cause_code?: string | null
+          sensitivity?: string
+          sla_deadline_at?: string | null
+          source_mode?: string
+          status?: string
+          substatus?: string | null
+          updated_at?: string
+          verification_level?: string
+          wait_deadline_at?: string | null
+          wake_condition?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_admin_cases_accountable_owner_principal_id_fkey"
+            columns: ["accountable_owner_principal_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_admin_cases_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "v2_children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_admin_cases_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "v2_protected_devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_admin_cases_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "v2_families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_admin_cases_fixture_key_fkey"
+            columns: ["fixture_key"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_fixture_snapshots"
+            referencedColumns: ["fixture_key"]
+          },
+          {
+            foreignKeyName: "v2_admin_cases_human_supervisor_principal_id_fkey"
+            columns: ["human_supervisor_principal_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_admin_cases_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "v2_safety_incidents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_admin_cases_resolver_principal_id_fkey"
+            columns: ["resolver_principal_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_admin_ceo_change_tasks: {
+        Row: {
+          aggregate_context_refs: string[]
+          allowed_path_scopes: string[]
+          approved_at: string | null
+          approved_by_principal_id: string | null
+          claimed_at: string | null
+          claimed_by_runner_key: string | null
+          contains_raw_child_content: boolean
+          created_at: string
+          direct_deployment: boolean
+          direct_merge: boolean
+          direct_repository_write: boolean
+          environment: string
+          execution_path: string
+          finished_at: string | null
+          human_approval_required: boolean
+          id: string
+          idempotency_key: string
+          isolated_worktree_required: boolean
+          objective_summary: string
+          owner_principal_id: string
+          pull_request_required: boolean
+          repository_key: string
+          request_fingerprint: string
+          required_check_codes: string[]
+          runner_state: string
+          safe_result_code: string | null
+          started_at: string | null
+          status: string
+          tests_required: boolean
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          aggregate_context_refs?: string[]
+          allowed_path_scopes: string[]
+          approved_at?: string | null
+          approved_by_principal_id?: string | null
+          claimed_at?: string | null
+          claimed_by_runner_key?: string | null
+          contains_raw_child_content?: boolean
+          created_at?: string
+          direct_deployment?: boolean
+          direct_merge?: boolean
+          direct_repository_write?: boolean
+          environment: string
+          execution_path?: string
+          finished_at?: string | null
+          human_approval_required?: boolean
+          id?: string
+          idempotency_key: string
+          isolated_worktree_required?: boolean
+          objective_summary: string
+          owner_principal_id: string
+          pull_request_required?: boolean
+          repository_key: string
+          request_fingerprint: string
+          required_check_codes?: string[]
+          runner_state?: string
+          safe_result_code?: string | null
+          started_at?: string | null
+          status?: string
+          tests_required?: boolean
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          aggregate_context_refs?: string[]
+          allowed_path_scopes?: string[]
+          approved_at?: string | null
+          approved_by_principal_id?: string | null
+          claimed_at?: string | null
+          claimed_by_runner_key?: string | null
+          contains_raw_child_content?: boolean
+          created_at?: string
+          direct_deployment?: boolean
+          direct_merge?: boolean
+          direct_repository_write?: boolean
+          environment?: string
+          execution_path?: string
+          finished_at?: string | null
+          human_approval_required?: boolean
+          id?: string
+          idempotency_key?: string
+          isolated_worktree_required?: boolean
+          objective_summary?: string
+          owner_principal_id?: string
+          pull_request_required?: boolean
+          repository_key?: string
+          request_fingerprint?: string
+          required_check_codes?: string[]
+          runner_state?: string
+          safe_result_code?: string | null
+          started_at?: string | null
+          status?: string
+          tests_required?: boolean
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_admin_ceo_change_tasks_approved_by_principal_id_fkey"
+            columns: ["approved_by_principal_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_admin_ceo_change_tasks_owner_principal_id_fkey"
+            columns: ["owner_principal_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_admin_fixture_snapshots: {
+        Row: {
+          created_at: string
+          fixture_key: string
+          is_synthetic: boolean
+          schema_version: number
+          service360_document: Json
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          fixture_key: string
+          is_synthetic?: boolean
+          schema_version?: number
+          service360_document: Json
+          title: string
+        }
+        Update: {
+          created_at?: string
+          fixture_key?: string
+          is_synthetic?: boolean
+          schema_version?: number
+          service360_document?: Json
+          title?: string
+        }
+        Relationships: []
+      }
+      v2_admin_outbox: {
+        Row: {
+          acknowledged_at: string | null
+          action_request_id: string
+          attempt_count: number
+          created_at: string
+          destination_kind: string
+          dispatch_envelope: Json
+          dispatched_at: string | null
+          effect_key: string
+          id: string
+          idempotency_key: string
+          last_failure_code: string | null
+          lease_expires_at: string | null
+          leased_by: string | null
+          not_before: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          action_request_id: string
+          attempt_count?: number
+          created_at?: string
+          destination_kind: string
+          dispatch_envelope?: Json
+          dispatched_at?: string | null
+          effect_key: string
+          id?: string
+          idempotency_key: string
+          last_failure_code?: string | null
+          lease_expires_at?: string | null
+          leased_by?: string | null
+          not_before?: string
+          status: string
+          updated_at?: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          action_request_id?: string
+          attempt_count?: number
+          created_at?: string
+          destination_kind?: string
+          dispatch_envelope?: Json
+          dispatched_at?: string | null
+          effect_key?: string
+          id?: string
+          idempotency_key?: string
+          last_failure_code?: string | null
+          lease_expires_at?: string | null
+          leased_by?: string | null
+          not_before?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_admin_outbox_action_request_id_fkey"
+            columns: ["action_request_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_action_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_admin_principals: {
+        Row: {
+          created_at: string
+          display_name: string
+          environment: string
+          id: string
+          principal_key: string
+          principal_type: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          environment: string
+          id?: string
+          principal_key: string
+          principal_type: string
+          status: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          environment?: string
+          id?: string
+          principal_key?: string
+          principal_type?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      v2_admin_shadow_jobs: {
+        Row: {
+          attempt_count: number
+          case_id: string
+          channel_mode: string
+          completed_at: string | null
+          created_at: string
+          dead_lettered_at: string | null
+          environment: string
+          id: string
+          job_kind: string
+          last_failed_at: string | null
+          last_failure_code: string | null
+          lease_expires_at: string | null
+          lease_token: string | null
+          leased_at: string | null
+          leased_by: string | null
+          max_attempts: number
+          message_id: string
+          not_before: string
+          safe_input_attached_at: string | null
+          safe_input_envelope: Json | null
+          safe_input_idempotency_key: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempt_count?: number
+          case_id: string
+          channel_mode: string
+          completed_at?: string | null
+          created_at?: string
+          dead_lettered_at?: string | null
+          environment: string
+          id?: string
+          job_kind?: string
+          last_failed_at?: string | null
+          last_failure_code?: string | null
+          lease_expires_at?: string | null
+          lease_token?: string | null
+          leased_at?: string | null
+          leased_by?: string | null
+          max_attempts?: number
+          message_id: string
+          not_before?: string
+          safe_input_attached_at?: string | null
+          safe_input_envelope?: Json | null
+          safe_input_idempotency_key?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempt_count?: number
+          case_id?: string
+          channel_mode?: string
+          completed_at?: string | null
+          created_at?: string
+          dead_lettered_at?: string | null
+          environment?: string
+          id?: string
+          job_kind?: string
+          last_failed_at?: string | null
+          last_failure_code?: string | null
+          lease_expires_at?: string | null
+          lease_token?: string | null
+          leased_at?: string | null
+          leased_by?: string | null
+          max_attempts?: number
+          message_id?: string
+          not_before?: string
+          safe_input_attached_at?: string | null
+          safe_input_envelope?: Json | null
+          safe_input_idempotency_key?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_admin_shadow_jobs_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_admin_shadow_jobs_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "v2_support_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_admin_whatsapp_ceo_canary_runs: {
+        Row: {
+          case_id: string
+          ceo_principal_id: string
+          ceo_sender_binding_id: string
+          consulted_agent_id: string | null
+          conversation_id: string
+          environment: string
+          failure_code: string | null
+          id: string
+          inbound_message_id: string
+          inbound_provider_message_hmac: string
+          input_tokens: number | null
+          intent_key: string | null
+          lease_expires_at: string | null
+          model_key: string | null
+          outbound_message_id: string | null
+          outbound_provider_message_hmac: string | null
+          output_tokens: number | null
+          provider_account_hmac: string
+          provider_phone_scope_hmac: string
+          reconciled_at: string | null
+          reserved_at: string
+          safe_metadata: Json
+          send_started_at: string | null
+          sender_lookup_hmac: string
+          status: string
+          status_correlation_expires_at: string | null
+          terminal_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          case_id: string
+          ceo_principal_id: string
+          ceo_sender_binding_id: string
+          consulted_agent_id?: string | null
+          conversation_id: string
+          environment?: string
+          failure_code?: string | null
+          id?: string
+          inbound_message_id: string
+          inbound_provider_message_hmac: string
+          input_tokens?: number | null
+          intent_key?: string | null
+          lease_expires_at?: string | null
+          model_key?: string | null
+          outbound_message_id?: string | null
+          outbound_provider_message_hmac?: string | null
+          output_tokens?: number | null
+          provider_account_hmac: string
+          provider_phone_scope_hmac: string
+          reconciled_at?: string | null
+          reserved_at?: string
+          safe_metadata?: Json
+          send_started_at?: string | null
+          sender_lookup_hmac: string
+          status: string
+          status_correlation_expires_at?: string | null
+          terminal_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          case_id?: string
+          ceo_principal_id?: string
+          ceo_sender_binding_id?: string
+          consulted_agent_id?: string | null
+          conversation_id?: string
+          environment?: string
+          failure_code?: string | null
+          id?: string
+          inbound_message_id?: string
+          inbound_provider_message_hmac?: string
+          input_tokens?: number | null
+          intent_key?: string | null
+          lease_expires_at?: string | null
+          model_key?: string | null
+          outbound_message_id?: string | null
+          outbound_provider_message_hmac?: string | null
+          output_tokens?: number | null
+          provider_account_hmac?: string
+          provider_phone_scope_hmac?: string
+          reconciled_at?: string | null
+          reserved_at?: string
+          safe_metadata?: Json
+          send_started_at?: string | null
+          sender_lookup_hmac?: string
+          status?: string
+          status_correlation_expires_at?: string | null
+          terminal_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_admin_whatsapp_ceo_canary_runs_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_admin_whatsapp_ceo_canary_runs_ceo_principal_id_fkey"
+            columns: ["ceo_principal_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_admin_whatsapp_ceo_canary_runs_ceo_sender_binding_id_fkey"
+            columns: ["ceo_sender_binding_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_whatsapp_ceo_sender_bindings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_admin_whatsapp_ceo_canary_runs_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "v2_support_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_admin_whatsapp_ceo_canary_runs_inbound_message_id_fkey"
+            columns: ["inbound_message_id"]
+            isOneToOne: true
+            referencedRelation: "v2_support_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_admin_whatsapp_ceo_canary_runs_outbound_message_id_fkey"
+            columns: ["outbound_message_id"]
+            isOneToOne: true
+            referencedRelation: "v2_support_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_admin_whatsapp_ceo_sender_bindings: {
+        Row: {
+          binding_status: string
+          ceo_principal_id: string
+          created_at: string
+          environment: string
+          expires_at: string
+          id: string
+          provider_account_hmac: string
+          provider_phone_scope_hmac: string
+          revoked_at: string | null
+          safe_metadata: Json
+          sender_lookup_hmac: string
+          valid_from: string
+        }
+        Insert: {
+          binding_status?: string
+          ceo_principal_id: string
+          created_at?: string
+          environment?: string
+          expires_at: string
+          id?: string
+          provider_account_hmac: string
+          provider_phone_scope_hmac: string
+          revoked_at?: string | null
+          safe_metadata?: Json
+          sender_lookup_hmac: string
+          valid_from?: string
+        }
+        Update: {
+          binding_status?: string
+          ceo_principal_id?: string
+          created_at?: string
+          environment?: string
+          expires_at?: string
+          id?: string
+          provider_account_hmac?: string
+          provider_phone_scope_hmac?: string
+          revoked_at?: string | null
+          safe_metadata?: Json
+          sender_lookup_hmac?: string
+          valid_from?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_admin_whatsapp_ceo_sender_bindings_ceo_principal_id_fkey"
+            columns: ["ceo_principal_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_agent_delegations: {
+        Row: {
+          agent_principal_id: string
+          case_id: string
+          correlation_id: string
+          created_at: string
+          expires_at: string
+          id: string
+          permission_keys: string[]
+          purpose_code: string
+          sponsor_principal_id: string
+          status: string
+          tool_keys: string[]
+          valid_from: string
+        }
+        Insert: {
+          agent_principal_id: string
+          case_id: string
+          correlation_id?: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          permission_keys?: string[]
+          purpose_code: string
+          sponsor_principal_id: string
+          status: string
+          tool_keys?: string[]
+          valid_from?: string
+        }
+        Update: {
+          agent_principal_id?: string
+          case_id?: string
+          correlation_id?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          permission_keys?: string[]
+          purpose_code?: string
+          sponsor_principal_id?: string
+          status?: string
+          tool_keys?: string[]
+          valid_from?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_agent_delegations_agent_principal_id_fkey"
+            columns: ["agent_principal_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_agent_delegations_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_agent_delegations_sponsor_principal_id_fkey"
+            columns: ["sponsor_principal_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_agent_identities: {
+        Row: {
+          agent_kind: string
+          agent_version: string
+          created_at: string
+          domain_key: string
+          principal_id: string
+          sponsor_required: boolean
+          tool_allowlist: string[]
+          updated_at: string
+        }
+        Insert: {
+          agent_kind: string
+          agent_version: string
+          created_at?: string
+          domain_key: string
+          principal_id: string
+          sponsor_required?: boolean
+          tool_allowlist?: string[]
+          updated_at?: string
+        }
+        Update: {
+          agent_kind?: string
+          agent_version?: string
+          created_at?: string
+          domain_key?: string
+          principal_id?: string
+          sponsor_required?: boolean
+          tool_allowlist?: string[]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_agent_identities_principal_id_fkey"
+            columns: ["principal_id"]
+            isOneToOne: true
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_alert_deliveries: {
+        Row: {
+          attempt_count: number
+          attempted_at: string | null
+          channel: string
+          created_at: string
+          delivered_at: string | null
+          failure_code: string | null
+          guardian_user_id: string
+          id: string
+          idempotency_key: string
+          incident_id: string
+          lease_expires_at: string | null
+          lease_owner: string | null
+          lease_token_hash: string | null
+          next_attempt_at: string | null
+          provider_message_id: string | null
+          status: string
+        }
+        Insert: {
+          attempt_count?: number
+          attempted_at?: string | null
+          channel: string
+          created_at?: string
+          delivered_at?: string | null
+          failure_code?: string | null
+          guardian_user_id: string
+          id?: string
+          idempotency_key: string
+          incident_id: string
+          lease_expires_at?: string | null
+          lease_owner?: string | null
+          lease_token_hash?: string | null
+          next_attempt_at?: string | null
+          provider_message_id?: string | null
+          status?: string
+        }
+        Update: {
+          attempt_count?: number
+          attempted_at?: string | null
+          channel?: string
+          created_at?: string
+          delivered_at?: string | null
+          failure_code?: string | null
+          guardian_user_id?: string
+          id?: string
+          idempotency_key?: string
+          incident_id?: string
+          lease_expires_at?: string | null
+          lease_owner?: string | null
+          lease_token_hash?: string | null
+          next_attempt_at?: string | null
+          provider_message_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_alert_deliveries_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "v2_safety_incidents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_analyzer_capabilities: {
+        Row: {
+          capability_name: string
+          created_at: string
+          expires_at: string
+          id: string
+          not_before: string
+          revoked_at: string | null
+          status: string
+          token_hash: string
+          token_version: number
+        }
+        Insert: {
+          capability_name: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          not_before?: string
+          revoked_at?: string | null
+          status?: string
+          token_hash: string
+          token_version: number
+        }
+        Update: {
+          capability_name?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          not_before?: string
+          revoked_at?: string | null
+          status?: string
+          token_hash?: string
+          token_version?: number
+        }
+        Relationships: []
+      }
+      v2_audit_events: {
+        Row: {
+          action: string
+          actor_type: string
+          actor_user_id: string | null
+          created_at: string
+          id: number
+          metadata: Json
+          object_id: string | null
+          object_type: string
+          outcome: string
+        }
+        Insert: {
+          action: string
+          actor_type: string
+          actor_user_id?: string | null
+          created_at?: string
+          id?: never
+          metadata?: Json
+          object_id?: string | null
+          object_type: string
+          outcome: string
+        }
+        Update: {
+          action?: string
+          actor_type?: string
+          actor_user_id?: string | null
+          created_at?: string
+          id?: never
+          metadata?: Json
+          object_id?: string | null
+          object_type?: string
+          outcome?: string
+        }
+        Relationships: []
+      }
+      v2_child_install_sessions: {
+        Row: {
+          activated_at: string | null
+          activation_token_hash: string
+          child_id: string
+          consumed_at: string | null
+          created_at: string
+          created_by: string
+          expires_at: string
+          id: string
+          otp_request_count: number
+          otp_requested_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          activated_at?: string | null
+          activation_token_hash: string
+          child_id: string
+          consumed_at?: string | null
+          created_at?: string
+          created_by: string
+          expires_at: string
+          id: string
+          otp_request_count?: number
+          otp_requested_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          activated_at?: string | null
+          activation_token_hash?: string
+          child_id?: string
+          consumed_at?: string | null
+          created_at?: string
+          created_by?: string
+          expires_at?: string
+          id?: string
+          otp_request_count?: number
+          otp_requested_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_child_install_sessions_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "v2_children"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_children: {
+        Row: {
+          birth_year: number | null
+          created_at: string
+          display_name: string
+          family_id: string
+          gender: string
+          id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          birth_year?: number | null
+          created_at?: string
+          display_name: string
+          family_id: string
+          gender?: string
+          id?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          birth_year?: number | null
+          created_at?: string
+          display_name?: string
+          family_id?: string
+          gender?: string
+          id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_children_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "v2_families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_cmo_approval_requests: {
+        Row: {
+          claim_review_result: string
+          content_hash: string
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_note: string | null
+          expires_at: string
+          id: string
+          launch_stage: string
+          preview: Json
+          requested_at: string
+          requested_by: string
+          resource_id: string
+          resource_type: string
+          risk: string
+          source_versions: Json
+          status: Database["public"]["Enums"]["v2_cmo_approval_status"]
+          unresolved_risks: Json
+          updated_at: string
+        }
+        Insert: {
+          claim_review_result: string
+          content_hash: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          expires_at: string
+          id?: string
+          launch_stage: string
+          preview?: Json
+          requested_at?: string
+          requested_by: string
+          resource_id: string
+          resource_type: string
+          risk: string
+          source_versions?: Json
+          status?: Database["public"]["Enums"]["v2_cmo_approval_status"]
+          unresolved_risks?: Json
+          updated_at?: string
+        }
+        Update: {
+          claim_review_result?: string
+          content_hash?: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          expires_at?: string
+          id?: string
+          launch_stage?: string
+          preview?: Json
+          requested_at?: string
+          requested_by?: string
+          resource_id?: string
+          resource_type?: string
+          risk?: string
+          source_versions?: Json
+          status?: Database["public"]["Enums"]["v2_cmo_approval_status"]
+          unresolved_risks?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_cmo_approval_requests_decided_by_fkey"
+            columns: ["decided_by"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_cmo_approval_requests_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_cmo_audit_events: {
+        Row: {
+          actor_agent: string | null
+          actor_principal_id: string | null
+          created_at: string
+          event_type: string
+          id: number
+          payload: Json
+          resource_id: string | null
+          resource_type: string
+        }
+        Insert: {
+          actor_agent?: string | null
+          actor_principal_id?: string | null
+          created_at?: string
+          event_type: string
+          id?: never
+          payload?: Json
+          resource_id?: string | null
+          resource_type: string
+        }
+        Update: {
+          actor_agent?: string | null
+          actor_principal_id?: string | null
+          created_at?: string
+          event_type?: string
+          id?: never
+          payload?: Json
+          resource_id?: string | null
+          resource_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_cmo_audit_events_actor_principal_id_fkey"
+            columns: ["actor_principal_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_cmo_campaign_briefs: {
+        Row: {
+          audience: string
+          channel: string
+          constraints_json: Json
+          created_at: string
+          hypothesis: string
+          id: string
+          launch_stage: string
+          objective: string
+          owner_principal_id: string
+          single_cta: string
+          source_versions: Json
+          status: Database["public"]["Enums"]["v2_cmo_workflow_status"]
+          success_signals: Json
+          updated_at: string
+        }
+        Insert: {
+          audience: string
+          channel: string
+          constraints_json?: Json
+          created_at?: string
+          hypothesis: string
+          id?: string
+          launch_stage: string
+          objective: string
+          owner_principal_id: string
+          single_cta: string
+          source_versions?: Json
+          status?: Database["public"]["Enums"]["v2_cmo_workflow_status"]
+          success_signals?: Json
+          updated_at?: string
+        }
+        Update: {
+          audience?: string
+          channel?: string
+          constraints_json?: Json
+          created_at?: string
+          hypothesis?: string
+          id?: string
+          launch_stage?: string
+          objective?: string
+          owner_principal_id?: string
+          single_cta?: string
+          source_versions?: Json
+          status?: Database["public"]["Enums"]["v2_cmo_workflow_status"]
+          success_signals?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_cmo_campaign_briefs_owner_principal_id_fkey"
+            columns: ["owner_principal_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_cmo_content_items: {
+        Row: {
+          brief_id: string
+          claim_gate_result: string
+          claim_refs: Json
+          claim_reviewed_at: string | null
+          claim_reviewed_by: string | null
+          content_hash: string
+          copy_json: Json
+          created_at: string
+          creative_refs: Json
+          format: string
+          id: string
+          owner_principal_id: string
+          status: Database["public"]["Enums"]["v2_cmo_workflow_status"]
+          updated_at: string
+          utm: Json
+        }
+        Insert: {
+          brief_id: string
+          claim_gate_result?: string
+          claim_refs?: Json
+          claim_reviewed_at?: string | null
+          claim_reviewed_by?: string | null
+          content_hash: string
+          copy_json: Json
+          created_at?: string
+          creative_refs?: Json
+          format: string
+          id?: string
+          owner_principal_id: string
+          status?: Database["public"]["Enums"]["v2_cmo_workflow_status"]
+          updated_at?: string
+          utm?: Json
+        }
+        Update: {
+          brief_id?: string
+          claim_gate_result?: string
+          claim_refs?: Json
+          claim_reviewed_at?: string | null
+          claim_reviewed_by?: string | null
+          content_hash?: string
+          copy_json?: Json
+          created_at?: string
+          creative_refs?: Json
+          format?: string
+          id?: string
+          owner_principal_id?: string
+          status?: Database["public"]["Enums"]["v2_cmo_workflow_status"]
+          updated_at?: string
+          utm?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_cmo_content_items_brief_id_fkey"
+            columns: ["brief_id"]
+            isOneToOne: false
+            referencedRelation: "v2_cmo_campaign_briefs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_cmo_content_items_claim_reviewed_by_fkey"
+            columns: ["claim_reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_cmo_content_items_owner_principal_id_fkey"
+            columns: ["owner_principal_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_cmo_creative_assets: {
+        Row: {
+          asset_type: string
+          claim_gate_result: string
+          content_hash: string
+          content_item_id: string | null
+          created_at: string
+          id: string
+          metadata: Json
+          owner_principal_id: string
+          status: Database["public"]["Enums"]["v2_cmo_workflow_status"]
+          storage_ref: string
+          updated_at: string
+        }
+        Insert: {
+          asset_type: string
+          claim_gate_result?: string
+          content_hash: string
+          content_item_id?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json
+          owner_principal_id: string
+          status?: Database["public"]["Enums"]["v2_cmo_workflow_status"]
+          storage_ref: string
+          updated_at?: string
+        }
+        Update: {
+          asset_type?: string
+          claim_gate_result?: string
+          content_hash?: string
+          content_item_id?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json
+          owner_principal_id?: string
+          status?: Database["public"]["Enums"]["v2_cmo_workflow_status"]
+          storage_ref?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_cmo_creative_assets_content_item_id_fkey"
+            columns: ["content_item_id"]
+            isOneToOne: false
+            referencedRelation: "v2_cmo_content_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_cmo_creative_assets_owner_principal_id_fkey"
+            columns: ["owner_principal_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_cmo_experiments: {
+        Row: {
+          brief_id: string
+          created_at: string
+          ends_at: string | null
+          hypothesis: string
+          id: string
+          name: string
+          owner_principal_id: string
+          starts_at: string | null
+          status: string
+          success_metric: string
+          updated_at: string
+          variants: Json
+        }
+        Insert: {
+          brief_id: string
+          created_at?: string
+          ends_at?: string | null
+          hypothesis: string
+          id?: string
+          name: string
+          owner_principal_id: string
+          starts_at?: string | null
+          status?: string
+          success_metric: string
+          updated_at?: string
+          variants: Json
+        }
+        Update: {
+          brief_id?: string
+          created_at?: string
+          ends_at?: string | null
+          hypothesis?: string
+          id?: string
+          name?: string
+          owner_principal_id?: string
+          starts_at?: string | null
+          status?: string
+          success_metric?: string
+          updated_at?: string
+          variants?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_cmo_experiments_brief_id_fkey"
+            columns: ["brief_id"]
+            isOneToOne: false
+            referencedRelation: "v2_cmo_campaign_briefs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_cmo_experiments_owner_principal_id_fkey"
+            columns: ["owner_principal_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_cmo_metric_snapshots: {
+        Row: {
+          brief_id: string
+          collected_at: string
+          collected_by: string | null
+          data_quality: string
+          dimensions: Json
+          id: number
+          metrics: Json
+          period_end: string
+          period_start: string
+          source: string
+        }
+        Insert: {
+          brief_id: string
+          collected_at?: string
+          collected_by?: string | null
+          data_quality: string
+          dimensions?: Json
+          id?: never
+          metrics: Json
+          period_end: string
+          period_start: string
+          source: string
+        }
+        Update: {
+          brief_id?: string
+          collected_at?: string
+          collected_by?: string | null
+          data_quality?: string
+          dimensions?: Json
+          id?: never
+          metrics?: Json
+          period_end?: string
+          period_start?: string
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_cmo_metric_snapshots_brief_id_fkey"
+            columns: ["brief_id"]
+            isOneToOne: false
+            referencedRelation: "v2_cmo_campaign_briefs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_cmo_metric_snapshots_collected_by_fkey"
+            columns: ["collected_by"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_cmo_publication_jobs: {
+        Row: {
+          approval_id: string
+          channel: string
+          content_hash: string
+          created_at: string
+          failure_code: string | null
+          id: string
+          idempotency_key: string
+          provider_ref: string | null
+          published_at: string | null
+          requested_by: string
+          resource_id: string
+          resource_type: string
+          scheduled_for: string | null
+          status: Database["public"]["Enums"]["v2_cmo_workflow_status"]
+          updated_at: string
+          verification_evidence: Json | null
+          verified_at: string | null
+        }
+        Insert: {
+          approval_id: string
+          channel: string
+          content_hash: string
+          created_at?: string
+          failure_code?: string | null
+          id?: string
+          idempotency_key: string
+          provider_ref?: string | null
+          published_at?: string | null
+          requested_by: string
+          resource_id: string
+          resource_type: string
+          scheduled_for?: string | null
+          status: Database["public"]["Enums"]["v2_cmo_workflow_status"]
+          updated_at?: string
+          verification_evidence?: Json | null
+          verified_at?: string | null
+        }
+        Update: {
+          approval_id?: string
+          channel?: string
+          content_hash?: string
+          created_at?: string
+          failure_code?: string | null
+          id?: string
+          idempotency_key?: string
+          provider_ref?: string | null
+          published_at?: string | null
+          requested_by?: string
+          resource_id?: string
+          resource_type?: string
+          scheduled_for?: string | null
+          status?: Database["public"]["Enums"]["v2_cmo_workflow_status"]
+          updated_at?: string
+          verification_evidence?: Json | null
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_cmo_publication_jobs_approval_id_fkey"
+            columns: ["approval_id"]
+            isOneToOne: false
+            referencedRelation: "v2_cmo_approval_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_cmo_publication_jobs_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_device_commands: {
+        Row: {
+          claimed_at: string | null
+          command_type: string
+          completed_at: string | null
+          created_at: string
+          device_id: string
+          expires_at: string
+          failure_code: string | null
+          id: string
+          idempotency_key: string
+          not_before: string
+          payload: Json
+          requested_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          claimed_at?: string | null
+          command_type: string
+          completed_at?: string | null
+          created_at?: string
+          device_id: string
+          expires_at: string
+          failure_code?: string | null
+          id?: string
+          idempotency_key: string
+          not_before?: string
+          payload?: Json
+          requested_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          claimed_at?: string | null
+          command_type?: string
+          completed_at?: string | null
+          created_at?: string
+          device_id?: string
+          expires_at?: string
+          failure_code?: string | null
+          id?: string
+          idempotency_key?: string
+          not_before?: string
+          payload?: Json
+          requested_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_device_commands_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "v2_protected_devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_device_credentials: {
+        Row: {
+          created_at: string
+          credential_hash: string
+          device_id: string
+          expires_at: string
+          id: string
+          key_version: number
+          revoked_at: string | null
+          valid_from: string
+        }
+        Insert: {
+          created_at?: string
+          credential_hash: string
+          device_id: string
+          expires_at: string
+          id?: string
+          key_version: number
+          revoked_at?: string | null
+          valid_from?: string
+        }
+        Update: {
+          created_at?: string
+          credential_hash?: string
+          device_id?: string
+          expires_at?: string
+          id?: string
+          key_version?: number
+          revoked_at?: string | null
+          valid_from?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_device_credentials_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "v2_protected_devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_device_health_events: {
+        Row: {
+          accessibility_enabled: boolean
+          affects_current_state: boolean
+          app_version: string | null
+          battery_level_percent: number | null
+          battery_optimization_exempt: boolean
+          boot_session_id: string | null
+          capabilities: Json
+          capture_ready: boolean
+          contract_version: number
+          degraded_reasons: string[]
+          device_id: string
+          event_key: string
+          expected_interval_seconds: number
+          id: string
+          notification_listener_enabled: boolean
+          observed_at: string
+          oem_autostart_state: string
+          payload_hash: string | null
+          product_ready: boolean | null
+          received_at: string
+          report_reason: string
+          sequence_no: number | null
+        }
+        Insert: {
+          accessibility_enabled: boolean
+          affects_current_state?: boolean
+          app_version?: string | null
+          battery_level_percent?: number | null
+          battery_optimization_exempt: boolean
+          boot_session_id?: string | null
+          capabilities?: Json
+          capture_ready: boolean
+          contract_version?: number
+          degraded_reasons?: string[]
+          device_id: string
+          event_key: string
+          expected_interval_seconds?: number
+          id?: string
+          notification_listener_enabled: boolean
+          observed_at: string
+          oem_autostart_state: string
+          payload_hash?: string | null
+          product_ready?: boolean | null
+          received_at?: string
+          report_reason?: string
+          sequence_no?: number | null
+        }
+        Update: {
+          accessibility_enabled?: boolean
+          affects_current_state?: boolean
+          app_version?: string | null
+          battery_level_percent?: number | null
+          battery_optimization_exempt?: boolean
+          boot_session_id?: string | null
+          capabilities?: Json
+          capture_ready?: boolean
+          contract_version?: number
+          degraded_reasons?: string[]
+          device_id?: string
+          event_key?: string
+          expected_interval_seconds?: number
+          id?: string
+          notification_listener_enabled?: boolean
+          observed_at?: string
+          oem_autostart_state?: string
+          payload_hash?: string | null
+          product_ready?: boolean | null
+          received_at?: string
+          report_reason?: string
+          sequence_no?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_device_health_events_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "v2_protected_devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_device_monitoring_state: {
+        Row: {
+          created_at: string
+          device_id: string
+          episode_id: string | null
+          expected_interval_seconds: number
+          healthy_streak: number
+          interrupted_after_at: string | null
+          interruption_started_at: string | null
+          last_boot_session_id: string | null
+          last_event_key: string | null
+          last_health_event_id: string | null
+          last_observed_at: string | null
+          last_received_at: string | null
+          last_sequence_no: number | null
+          late_after_at: string | null
+          monitoring_state: string
+          reason_codes: string[]
+          state_version: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          device_id: string
+          episode_id?: string | null
+          expected_interval_seconds?: number
+          healthy_streak?: number
+          interrupted_after_at?: string | null
+          interruption_started_at?: string | null
+          last_boot_session_id?: string | null
+          last_event_key?: string | null
+          last_health_event_id?: string | null
+          last_observed_at?: string | null
+          last_received_at?: string | null
+          last_sequence_no?: number | null
+          late_after_at?: string | null
+          monitoring_state?: string
+          reason_codes?: string[]
+          state_version?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          device_id?: string
+          episode_id?: string | null
+          expected_interval_seconds?: number
+          healthy_streak?: number
+          interrupted_after_at?: string | null
+          interruption_started_at?: string | null
+          last_boot_session_id?: string | null
+          last_event_key?: string | null
+          last_health_event_id?: string | null
+          last_observed_at?: string | null
+          last_received_at?: string | null
+          last_sequence_no?: number | null
+          late_after_at?: string | null
+          monitoring_state?: string
+          reason_codes?: string[]
+          state_version?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_device_monitoring_state_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: true
+            referencedRelation: "v2_protected_devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_device_monitoring_state_last_health_event_id_fkey"
+            columns: ["last_health_event_id"]
+            isOneToOne: false
+            referencedRelation: "v2_device_health_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_device_monitoring_transitions: {
+        Row: {
+          created_at: string
+          device_id: string
+          episode_id: string | null
+          health_event_id: string | null
+          id: string
+          new_state: string
+          occurred_at: string
+          previous_state: string | null
+          reason_codes: string[]
+          source: string
+          state_version: number
+        }
+        Insert: {
+          created_at?: string
+          device_id: string
+          episode_id?: string | null
+          health_event_id?: string | null
+          id?: string
+          new_state: string
+          occurred_at?: string
+          previous_state?: string | null
+          reason_codes?: string[]
+          source: string
+          state_version: number
+        }
+        Update: {
+          created_at?: string
+          device_id?: string
+          episode_id?: string | null
+          health_event_id?: string | null
+          id?: string
+          new_state?: string
+          occurred_at?: string
+          previous_state?: string | null
+          reason_codes?: string[]
+          source?: string
+          state_version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_device_monitoring_transitions_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "v2_protected_devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_device_monitoring_transitions_health_event_id_fkey"
+            columns: ["health_event_id"]
+            isOneToOne: false
+            referencedRelation: "v2_device_health_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_ephemeral_incident_receipts: {
+        Row: {
+          completed_at: string | null
+          completion_analysis_outcome: string | null
+          completion_delivery_count: number | null
+          completion_incident_status: string | null
+          completion_lease_token_hash: string | null
+          completion_request_hash: string | null
+          context_expires_at: string
+          created_at: string
+          incident_id: string
+          key_version: number
+          lease_expires_at: string | null
+          lease_token_hash: string | null
+          message_count: number
+          privacy_identity_version: number
+          state: string
+          submission_hash: string
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          completion_analysis_outcome?: string | null
+          completion_delivery_count?: number | null
+          completion_incident_status?: string | null
+          completion_lease_token_hash?: string | null
+          completion_request_hash?: string | null
+          context_expires_at: string
+          created_at?: string
+          incident_id: string
+          key_version: number
+          lease_expires_at?: string | null
+          lease_token_hash?: string | null
+          message_count: number
+          privacy_identity_version: number
+          state?: string
+          submission_hash: string
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          completion_analysis_outcome?: string | null
+          completion_delivery_count?: number | null
+          completion_incident_status?: string | null
+          completion_lease_token_hash?: string | null
+          completion_request_hash?: string | null
+          context_expires_at?: string
+          created_at?: string
+          incident_id?: string
+          key_version?: number
+          lease_expires_at?: string | null
+          lease_token_hash?: string | null
+          message_count?: number
+          privacy_identity_version?: number
+          state?: string
+          submission_hash?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_ephemeral_incident_receipts_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: true
+            referencedRelation: "v2_safety_incidents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_families: {
+        Row: {
+          created_at: string
+          display_name: string
+          id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          id?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      v2_guardian_incident_states: {
+        Row: {
+          acknowledged_at: string | null
+          created_at: string
+          guardian_user_id: string
+          incident_id: string
+          saved_at: string | null
+          state: string
+          updated_at: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          created_at?: string
+          guardian_user_id: string
+          incident_id: string
+          saved_at?: string | null
+          state?: string
+          updated_at?: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          created_at?: string
+          guardian_user_id?: string
+          incident_id?: string
+          saved_at?: string | null
+          state?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_guardian_incident_states_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "v2_safety_incidents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_guardian_memberships: {
+        Row: {
+          created_at: string
+          family_id: string
+          guardian_user_id: string
+          id: string
+          role: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          family_id: string
+          guardian_user_id: string
+          id?: string
+          role: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          family_id?: string
+          guardian_user_id?: string
+          id?: string
+          role?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_guardian_memberships_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "v2_families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_guardian_profiles: {
+        Row: {
+          created_at: string
+          display_name: string
+          phone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          phone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      v2_guardian_push_endpoints: {
+        Row: {
+          auth_secret: string
+          created_at: string
+          endpoint: string
+          endpoint_hash: string
+          guardian_user_id: string
+          id: string
+          installation_id: string
+          invalidated_at: string | null
+          last_error_code: string | null
+          last_seen_at: string
+          last_success_at: string | null
+          locale: string | null
+          p256dh: string
+          permission_state: string
+          status: string
+          updated_at: string
+          user_agent: string | null
+        }
+        Insert: {
+          auth_secret: string
+          created_at?: string
+          endpoint: string
+          endpoint_hash: string
+          guardian_user_id: string
+          id?: string
+          installation_id: string
+          invalidated_at?: string | null
+          last_error_code?: string | null
+          last_seen_at?: string
+          last_success_at?: string | null
+          locale?: string | null
+          p256dh: string
+          permission_state?: string
+          status?: string
+          updated_at?: string
+          user_agent?: string | null
+        }
+        Update: {
+          auth_secret?: string
+          created_at?: string
+          endpoint?: string
+          endpoint_hash?: string
+          guardian_user_id?: string
+          id?: string
+          installation_id?: string
+          invalidated_at?: string | null
+          last_error_code?: string | null
+          last_seen_at?: string
+          last_success_at?: string | null
+          locale?: string | null
+          p256dh?: string
+          permission_state?: string
+          status?: string
+          updated_at?: string
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
+      v2_incident_analysis: {
+        Row: {
+          action_code: string
+          analysis_contract_version: number
+          analyzed_at: string
+          created_at: string
+          guidance_age_band: string | null
+          guidance_codes: string[]
+          incident_id: string
+          model_name: string
+          model_provider: string
+          model_version: string
+          outcome: string
+          parent_avoid: string | null
+          parent_next_action: string | null
+          parent_opening: string | null
+          prompt_version: string
+          reason_code: string
+          recommended_action: string | null
+          safe_reason: string | null
+          safe_summary: string | null
+        }
+        Insert: {
+          action_code: string
+          analysis_contract_version: number
+          analyzed_at?: string
+          created_at?: string
+          guidance_age_band?: string | null
+          guidance_codes?: string[]
+          incident_id: string
+          model_name: string
+          model_provider: string
+          model_version: string
+          outcome: string
+          parent_avoid?: string | null
+          parent_next_action?: string | null
+          parent_opening?: string | null
+          prompt_version: string
+          reason_code: string
+          recommended_action?: string | null
+          safe_reason?: string | null
+          safe_summary?: string | null
+        }
+        Update: {
+          action_code?: string
+          analysis_contract_version?: number
+          analyzed_at?: string
+          created_at?: string
+          guidance_age_band?: string | null
+          guidance_codes?: string[]
+          incident_id?: string
+          model_name?: string
+          model_provider?: string
+          model_version?: string
+          outcome?: string
+          parent_avoid?: string | null
+          parent_next_action?: string | null
+          parent_opening?: string | null
+          prompt_version?: string
+          reason_code?: string
+          recommended_action?: string | null
+          safe_reason?: string | null
+          safe_summary?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_incident_analysis_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: true
+            referencedRelation: "v2_safety_incidents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_incident_analysis_details: {
+        Row: {
+          created_at: string
+          evidence_segment_refs: string[]
+          expert_category: string | null
+          expert_child_role: string
+          expert_confidence: number
+          expert_pattern: string | null
+          expert_severity: string | null
+          expert_urgency: string | null
+          incident_id: string
+          inference_contract_version: number
+          policy_channels: string[] | null
+          secondary_categories: string[] | null
+        }
+        Insert: {
+          created_at?: string
+          evidence_segment_refs: string[]
+          expert_category?: string | null
+          expert_child_role: string
+          expert_confidence: number
+          expert_pattern?: string | null
+          expert_severity?: string | null
+          expert_urgency?: string | null
+          incident_id: string
+          inference_contract_version?: number
+          policy_channels?: string[] | null
+          secondary_categories?: string[] | null
+        }
+        Update: {
+          created_at?: string
+          evidence_segment_refs?: string[]
+          expert_category?: string | null
+          expert_child_role?: string
+          expert_confidence?: number
+          expert_pattern?: string | null
+          expert_severity?: string | null
+          expert_urgency?: string | null
+          incident_id?: string
+          inference_contract_version?: number
+          policy_channels?: string[] | null
+          secondary_categories?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_incident_analysis_details_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: true
+            referencedRelation: "v2_incident_analysis"
+            referencedColumns: ["incident_id"]
+          },
+        ]
+      }
+      v2_incident_analysis_jobs: {
+        Row: {
+          attempt_count: number
+          completed_at: string | null
+          completion_analysis_outcome: string | null
+          completion_delivery_count: number | null
+          completion_incident_status: string | null
+          completion_lease_token_hash: string | null
+          completion_request_hash: string | null
+          created_at: string
+          incident_id: string
+          last_error_class: string | null
+          last_error_code: string | null
+          lease_expires_at: string | null
+          lease_owner: string | null
+          lease_token_hash: string | null
+          max_attempts: number
+          next_attempt_at: string
+          outage_count: number
+          state: string
+          terminal_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          attempt_count?: number
+          completed_at?: string | null
+          completion_analysis_outcome?: string | null
+          completion_delivery_count?: number | null
+          completion_incident_status?: string | null
+          completion_lease_token_hash?: string | null
+          completion_request_hash?: string | null
+          created_at?: string
+          incident_id: string
+          last_error_class?: string | null
+          last_error_code?: string | null
+          lease_expires_at?: string | null
+          lease_owner?: string | null
+          lease_token_hash?: string | null
+          max_attempts?: number
+          next_attempt_at?: string
+          outage_count?: number
+          state?: string
+          terminal_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          attempt_count?: number
+          completed_at?: string | null
+          completion_analysis_outcome?: string | null
+          completion_delivery_count?: number | null
+          completion_incident_status?: string | null
+          completion_lease_token_hash?: string | null
+          completion_request_hash?: string | null
+          created_at?: string
+          incident_id?: string
+          last_error_class?: string | null
+          last_error_code?: string | null
+          lease_expires_at?: string | null
+          lease_owner?: string | null
+          lease_token_hash?: string | null
+          max_attempts?: number
+          next_attempt_at?: string
+          outage_count?: number
+          state?: string
+          terminal_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_incident_analysis_jobs_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: true
+            referencedRelation: "v2_incident_context"
+            referencedColumns: ["incident_id"]
+          },
+        ]
+      }
+      v2_incident_context: {
+        Row: {
+          aad_version: number
+          created_at: string
+          encrypted_payload: string
+          encryption_algorithm: string
+          expires_at: string
+          incident_id: string
+          key_version: number
+          message_count: number
+          privacy_identity_version: number
+        }
+        Insert: {
+          aad_version?: number
+          created_at?: string
+          encrypted_payload: string
+          encryption_algorithm: string
+          expires_at: string
+          incident_id: string
+          key_version: number
+          message_count: number
+          privacy_identity_version?: number
+        }
+        Update: {
+          aad_version?: number
+          created_at?: string
+          encrypted_payload?: string
+          encryption_algorithm?: string
+          expires_at?: string
+          incident_id?: string
+          key_version?: number
+          message_count?: number
+          privacy_identity_version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_incident_context_encryption_key_fk"
+            columns: ["key_version", "encryption_algorithm"]
+            isOneToOne: false
+            referencedRelation: "v2_incident_encryption_keys"
+            referencedColumns: ["key_version", "algorithm"]
+          },
+          {
+            foreignKeyName: "v2_incident_context_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: true
+            referencedRelation: "v2_safety_incidents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_incident_encryption_keys: {
+        Row: {
+          activates_at: string
+          algorithm: string
+          created_at: string
+          key_version: number
+          public_key_pem: string
+          retires_at: string | null
+          status: string
+        }
+        Insert: {
+          activates_at?: string
+          algorithm: string
+          created_at?: string
+          key_version: number
+          public_key_pem: string
+          retires_at?: string | null
+          status: string
+        }
+        Update: {
+          activates_at?: string
+          algorithm?: string
+          created_at?: string
+          key_version?: number
+          public_key_pem?: string
+          retires_at?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
+      v2_marketing_waitlist_rate_limits: {
+        Row: {
+          rate_key: string
+          submission_count: number
+          updated_at: string
+          window_started_at: string
+        }
+        Insert: {
+          rate_key: string
+          submission_count: number
+          updated_at?: string
+          window_started_at: string
+        }
+        Update: {
+          rate_key?: string
+          submission_count?: number
+          updated_at?: string
+          window_started_at?: string
+        }
+        Relationships: []
+      }
+      v2_marketing_waitlist_signups: {
+        Row: {
+          child_age: number
+          consented_at: string
+          created_at: string
+          device_os: string
+          email: string
+          first_touch: Json
+          id: string
+          landing_path: string
+          marketing_notice_version: string
+          parent_name: string
+          phone: string
+          referral_other: string | null
+          referral_source: string | null
+          referrer_host: string | null
+          region: string | null
+          status: string
+          submission_touch: Json
+          updated_at: string
+        }
+        Insert: {
+          child_age: number
+          consented_at?: string
+          created_at?: string
+          device_os: string
+          email: string
+          first_touch: Json
+          id?: string
+          landing_path: string
+          marketing_notice_version: string
+          parent_name: string
+          phone: string
+          referral_other?: string | null
+          referral_source?: string | null
+          referrer_host?: string | null
+          region?: string | null
+          status?: string
+          submission_touch: Json
+          updated_at?: string
+        }
+        Update: {
+          child_age?: number
+          consented_at?: string
+          created_at?: string
+          device_os?: string
+          email?: string
+          first_touch?: Json
+          id?: string
+          landing_path?: string
+          marketing_notice_version?: string
+          parent_name?: string
+          phone?: string
+          referral_other?: string | null
+          referral_source?: string | null
+          referrer_host?: string | null
+          region?: string | null
+          status?: string
+          submission_touch?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      v2_monitoring_alert_deliveries: {
+        Row: {
+          acknowledged_at: string | null
+          alert_type: string
+          attempt_count: number
+          attempted_at: string | null
+          created_at: string
+          delivered_at: string | null
+          expires_at: string
+          failure_code: string | null
+          guardian_user_id: string
+          id: string
+          idempotency_key: string
+          lease_expires_at: string | null
+          lease_owner: string | null
+          lease_token_hash: string | null
+          next_attempt_at: string | null
+          opened_at: string | null
+          provider_message_id: string | null
+          severity: string
+          status: string
+          suppressed_at: string | null
+          suppression_reason: string | null
+          transition_id: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          alert_type: string
+          attempt_count?: number
+          attempted_at?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          expires_at: string
+          failure_code?: string | null
+          guardian_user_id: string
+          id?: string
+          idempotency_key: string
+          lease_expires_at?: string | null
+          lease_owner?: string | null
+          lease_token_hash?: string | null
+          next_attempt_at?: string | null
+          opened_at?: string | null
+          provider_message_id?: string | null
+          severity: string
+          status?: string
+          suppressed_at?: string | null
+          suppression_reason?: string | null
+          transition_id: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          alert_type?: string
+          attempt_count?: number
+          attempted_at?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          expires_at?: string
+          failure_code?: string | null
+          guardian_user_id?: string
+          id?: string
+          idempotency_key?: string
+          lease_expires_at?: string | null
+          lease_owner?: string | null
+          lease_token_hash?: string | null
+          next_attempt_at?: string | null
+          opened_at?: string | null
+          provider_message_id?: string | null
+          severity?: string
+          status?: string
+          suppressed_at?: string | null
+          suppression_reason?: string | null
+          transition_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_monitoring_alert_deliveries_transition_id_fkey"
+            columns: ["transition_id"]
+            isOneToOne: false
+            referencedRelation: "v2_device_monitoring_transitions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_monitoring_push_activation_epochs: {
+        Row: {
+          activation_cutoff: string
+          created_at: string
+          singleton: boolean
+        }
+        Insert: {
+          activation_cutoff: string
+          created_at?: string
+          singleton?: boolean
+        }
+        Update: {
+          activation_cutoff?: string
+          created_at?: string
+          singleton?: boolean
+        }
+        Relationships: []
+      }
+      v2_monitoring_push_endpoint_attempts: {
+        Row: {
+          attempt_count: number
+          created_at: string
+          delivery_id: string
+          endpoint_id: string
+          last_attempt_at: string | null
+          last_error_code: string | null
+          last_http_status: number | null
+          provider_accepted_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempt_count?: number
+          created_at?: string
+          delivery_id: string
+          endpoint_id: string
+          last_attempt_at?: string | null
+          last_error_code?: string | null
+          last_http_status?: number | null
+          provider_accepted_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempt_count?: number
+          created_at?: string
+          delivery_id?: string
+          endpoint_id?: string
+          last_attempt_at?: string | null
+          last_error_code?: string | null
+          last_http_status?: number | null
+          provider_accepted_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_monitoring_push_endpoint_attempts_delivery_id_fkey"
+            columns: ["delivery_id"]
+            isOneToOne: false
+            referencedRelation: "v2_monitoring_alert_deliveries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_monitoring_push_endpoint_attempts_endpoint_id_fkey"
+            columns: ["endpoint_id"]
+            isOneToOne: false
+            referencedRelation: "v2_guardian_push_endpoints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_monitoring_push_worker_capabilities: {
+        Row: {
+          created_at: string
+          expires_at: string
+          label: string
+          revoked_at: string | null
+          status: string
+          token_hash: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          label: string
+          revoked_at?: string | null
+          status?: string
+          token_hash: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          label?: string
+          revoked_at?: string | null
+          status?: string
+          token_hash?: string
+        }
+        Relationships: []
+      }
+      v2_p0_private_text_activation_grants: {
+        Row: {
+          child_id: string
+          contract_version: number
+          created_at: string
+          device_id: string
+          enabled: boolean
+          settings_revision: number
+          updated_at: string
+          valid_until: string
+        }
+        Insert: {
+          child_id: string
+          contract_version?: number
+          created_at?: string
+          device_id: string
+          enabled?: boolean
+          settings_revision: number
+          updated_at?: string
+          valid_until: string
+        }
+        Update: {
+          child_id?: string
+          contract_version?: number
+          created_at?: string
+          device_id?: string
+          enabled?: boolean
+          settings_revision?: number
+          updated_at?: string
+          valid_until?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_p0_private_text_activation_grants_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "v2_children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_p0_private_text_activation_grants_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: true
+            referencedRelation: "v2_protected_devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_pairing_sessions: {
+        Row: {
+          attempts: number
+          child_id: string
+          code_hash: string
+          consumed_at: string | null
+          created_at: string
+          created_by: string
+          expires_at: string
+          id: string
+          max_attempts: number
+        }
+        Insert: {
+          attempts?: number
+          child_id: string
+          code_hash: string
+          consumed_at?: string | null
+          created_at?: string
+          created_by: string
+          expires_at: string
+          id?: string
+          max_attempts?: number
+        }
+        Update: {
+          attempts?: number
+          child_id?: string
+          code_hash?: string
+          consumed_at?: string | null
+          created_at?: string
+          created_by?: string
+          expires_at?: string
+          id?: string
+          max_attempts?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_pairing_sessions_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "v2_children"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_parental_app_policies: {
         Row: {
           always_allowed: boolean
           app_name: string | null
-          blocked_at: string | null
-          blocked_by: string | null
           child_id: string
           created_at: string
+          daily_limit_minutes: number | null
           id: string
-          is_blocked: boolean
           package_name: string
           policy_status: string
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           always_allowed?: boolean
           app_name?: string | null
-          blocked_at?: string | null
-          blocked_by?: string | null
           child_id: string
           created_at?: string
+          daily_limit_minutes?: number | null
           id?: string
-          is_blocked?: boolean
           package_name: string
-          policy_status?: string
+          policy_status: string
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           always_allowed?: boolean
           app_name?: string | null
-          blocked_at?: string | null
-          blocked_by?: string | null
           child_id?: string
           created_at?: string
+          daily_limit_minutes?: number | null
           id?: string
-          is_blocked?: boolean
           package_name?: string
           policy_status?: string
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "app_policies_child_id_fkey"
+            foreignKeyName: "v2_parental_app_policies_child_id_fkey"
             columns: ["child_id"]
             isOneToOne: false
-            referencedRelation: "children"
+            referencedRelation: "v2_children"
             referencedColumns: ["id"]
           },
         ]
       }
-      app_usage: {
+      v2_parental_app_usage_daily: {
         Row: {
           app_name: string | null
-          child_id: string | null
-          created_at: string | null
-          device_id: string | null
-          id: number
+          device_id: string
+          observed_at: string
           package_name: string
-          updated_at: string | null
+          updated_at: string
           usage_date: string
-          usage_minutes: number | null
+          usage_minutes: number
         }
         Insert: {
           app_name?: string | null
-          child_id?: string | null
-          created_at?: string | null
-          device_id?: string | null
-          id?: number
+          device_id: string
+          observed_at: string
           package_name: string
-          updated_at?: string | null
-          usage_date?: string
-          usage_minutes?: number | null
+          updated_at?: string
+          usage_date: string
+          usage_minutes: number
         }
         Update: {
           app_name?: string | null
-          child_id?: string | null
-          created_at?: string | null
-          device_id?: string | null
-          id?: number
+          device_id?: string
+          observed_at?: string
           package_name?: string
-          updated_at?: string | null
+          updated_at?: string
           usage_date?: string
-          usage_minutes?: number | null
+          usage_minutes?: number
         }
         Relationships: [
           {
-            foreignKeyName: "app_usage_child_id_fkey"
-            columns: ["child_id"]
+            foreignKeyName: "v2_parental_app_usage_daily_device_id_fkey"
+            columns: ["device_id"]
             isOneToOne: false
-            referencedRelation: "children"
+            referencedRelation: "v2_protected_devices"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "app_usage_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: false
-            referencedRelation: "devices"
-            referencedColumns: ["device_id"]
-          },
-          {
-            foreignKeyName: "app_usage_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: false
-            referencedRelation: "parent_daily_report"
-            referencedColumns: ["device_id"]
-          },
-          {
-            foreignKeyName: "app_usage_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: false
-            referencedRelation: "parent_daily_report_for_parent"
-            referencedColumns: ["device_id"]
-          },
-          {
-            foreignKeyName: "app_usage_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: false
-            referencedRelation: "parent_home_snapshot"
-            referencedColumns: ["device_id"]
           },
         ]
       }
-      blocked_app_attempts: {
+      v2_parental_blocked_attempts: {
         Row: {
           app_name: string | null
           attempted_at: string
-          child_id: string
           device_id: string
+          event_key: string
           id: string
           package_name: string
+          received_at: string
         }
         Insert: {
           app_name?: string | null
-          attempted_at?: string
-          child_id: string
+          attempted_at: string
           device_id: string
+          event_key: string
           id?: string
           package_name: string
+          received_at?: string
         }
         Update: {
           app_name?: string | null
           attempted_at?: string
-          child_id?: string
           device_id?: string
+          event_key?: string
           id?: string
           package_name?: string
+          received_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "blocked_app_attempts_child_id_fkey"
-            columns: ["child_id"]
+            foreignKeyName: "v2_parental_blocked_attempts_device_id_fkey"
+            columns: ["device_id"]
             isOneToOne: false
-            referencedRelation: "children"
+            referencedRelation: "v2_protected_devices"
             referencedColumns: ["id"]
           },
         ]
       }
-      bonus_time_grants: {
+      v2_parental_bonus_grants: {
         Row: {
           bonus_minutes: number
           child_id: string
           created_at: string
           grant_date: string
-          granted_by: string | null
+          granted_by: string
           id: string
+          request_key: string
         }
         Insert: {
           bonus_minutes: number
           child_id: string
           created_at?: string
           grant_date?: string
-          granted_by?: string | null
+          granted_by: string
           id?: string
+          request_key: string
         }
         Update: {
           bonus_minutes?: number
           child_id?: string
           created_at?: string
           grant_date?: string
-          granted_by?: string | null
+          granted_by?: string
           id?: string
+          request_key?: string
         }
         Relationships: [
           {
-            foreignKeyName: "bonus_time_grants_child_id_fkey"
+            foreignKeyName: "v2_parental_bonus_grants_child_id_fkey"
             columns: ["child_id"]
             isOneToOne: false
-            referencedRelation: "children"
+            referencedRelation: "v2_children"
             referencedColumns: ["id"]
           },
         ]
       }
-      chat_invites: {
+      v2_parental_device_state: {
         Row: {
-          accepted_at: string | null
-          accepted_by_id: string | null
-          created_at: string
-          expires_at: string
-          friendship_id: string | null
-          id: string
-          inviter_display_name: string | null
-          inviter_id: string
-          inviter_kippy_tag: string | null
-          token: string
-        }
-        Insert: {
-          accepted_at?: string | null
-          accepted_by_id?: string | null
-          created_at?: string
-          expires_at?: string
-          friendship_id?: string | null
-          id?: string
-          inviter_display_name?: string | null
-          inviter_id: string
-          inviter_kippy_tag?: string | null
-          token: string
-        }
-        Update: {
-          accepted_at?: string | null
-          accepted_by_id?: string | null
-          created_at?: string
-          expires_at?: string
-          friendship_id?: string | null
-          id?: string
-          inviter_display_name?: string | null
-          inviter_id?: string
-          inviter_kippy_tag?: string | null
-          token?: string
-        }
-        Relationships: []
-      }
-      chat_messages: {
-        Row: {
-          content: string
-          created_at: string
-          friendship_id: string
-          id: string
-          is_view_once: boolean
-          message_type: string
-          sender_id: string
-        }
-        Insert: {
-          content: string
-          created_at?: string
-          friendship_id: string
-          id?: string
-          is_view_once?: boolean
-          message_type: string
-          sender_id: string
-        }
-        Update: {
-          content?: string
-          created_at?: string
-          friendship_id?: string
-          id?: string
-          is_view_once?: boolean
-          message_type?: string
-          sender_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "chat_messages_friendship_id_fkey"
-            columns: ["friendship_id"]
-            isOneToOne: false
-            referencedRelation: "friendships"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "chat_messages_friendship_id_fkey"
-            columns: ["friendship_id"]
-            isOneToOne: false
-            referencedRelation: "view_child_active_chats"
-            referencedColumns: ["friendship_id"]
-          },
-        ]
-      }
-      chat_read_receipts: {
-        Row: {
-          friendship_id: string
-          id: string
-          last_read_at: string
-          participant_id: string
-        }
-        Insert: {
-          friendship_id: string
-          id?: string
-          last_read_at?: string
-          participant_id: string
-        }
-        Update: {
-          friendship_id?: string
-          id?: string
-          last_read_at?: string
-          participant_id?: string
-        }
-        Relationships: []
-      }
-      chat_thread_hides: {
-        Row: {
-          friendship_id: string
-          hidden_at: string
-          participant_id: string
-        }
-        Insert: {
-          friendship_id: string
-          hidden_at?: string
-          participant_id: string
-        }
-        Update: {
-          friendship_id?: string
-          hidden_at?: string
-          participant_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "chat_thread_hides_friendship_id_fkey"
-            columns: ["friendship_id"]
-            isOneToOne: false
-            referencedRelation: "friendships"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "chat_thread_hides_friendship_id_fkey"
-            columns: ["friendship_id"]
-            isOneToOne: false
-            referencedRelation: "view_child_active_chats"
-            referencedColumns: ["friendship_id"]
-          },
-        ]
-      }
-      child_daily_insights: {
-        Row: {
-          child_id: string
-          created_at: string | null
-          data_quality: string
-          day_of_week: number
-          headline: string
-          id: string
-          insight_date: string
-          insights: string[]
-          is_conclusive: boolean
-          severity_band: string
-          suggested_action: string | null
-        }
-        Insert: {
-          child_id: string
-          created_at?: string | null
-          data_quality: string
-          day_of_week: number
-          headline: string
-          id?: string
-          insight_date: string
-          insights: string[]
-          is_conclusive?: boolean
-          severity_band: string
-          suggested_action?: string | null
-        }
-        Update: {
-          child_id?: string
-          created_at?: string | null
-          data_quality?: string
-          day_of_week?: number
-          headline?: string
-          id?: string
-          insight_date?: string
-          insights?: string[]
-          is_conclusive?: boolean
-          severity_band?: string
-          suggested_action?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "child_daily_insights_child_id_fkey"
-            columns: ["child_id"]
-            isOneToOne: false
-            referencedRelation: "children"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      child_geofence_settings: {
-        Row: {
-          child_id: string
-          created_at: string
-          exit_debounce_seconds: number
-          home_exit_alert_enabled: boolean
-          id: string
-          school_exit_alert_enabled: boolean
+          device_id: string
+          event_key: string
+          latitude: number | null
+          location_accuracy_meters: number | null
+          location_address: string | null
+          location_observed_at: string | null
+          longitude: number | null
+          observed_at: string
+          received_at: string
+          settings_revision_applied: number
+          total_screen_minutes: number | null
           updated_at: string
+          usage_date: string | null
         }
         Insert: {
-          child_id: string
-          created_at?: string
-          exit_debounce_seconds?: number
-          home_exit_alert_enabled?: boolean
-          id?: string
-          school_exit_alert_enabled?: boolean
+          device_id: string
+          event_key: string
+          latitude?: number | null
+          location_accuracy_meters?: number | null
+          location_address?: string | null
+          location_observed_at?: string | null
+          longitude?: number | null
+          observed_at: string
+          received_at?: string
+          settings_revision_applied?: number
+          total_screen_minutes?: number | null
           updated_at?: string
+          usage_date?: string | null
         }
         Update: {
-          child_id?: string
-          created_at?: string
-          exit_debounce_seconds?: number
-          home_exit_alert_enabled?: boolean
-          id?: string
-          school_exit_alert_enabled?: boolean
+          device_id?: string
+          event_key?: string
+          latitude?: number | null
+          location_accuracy_meters?: number | null
+          location_address?: string | null
+          location_observed_at?: string | null
+          longitude?: number | null
+          observed_at?: string
+          received_at?: string
+          settings_revision_applied?: number
+          total_screen_minutes?: number | null
           updated_at?: string
+          usage_date?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "child_geofence_settings_child_id_fkey"
-            columns: ["child_id"]
+            foreignKeyName: "v2_parental_device_state_device_id_fkey"
+            columns: ["device_id"]
             isOneToOne: true
-            referencedRelation: "children"
+            referencedRelation: "v2_protected_devices"
             referencedColumns: ["id"]
           },
         ]
       }
-      child_model_override: {
+      v2_parental_geofence_events: {
         Row: {
-          child_id: string
-          created_at: string | null
+          device_id: string
+          event_key: string
+          geofence_id: string
           id: string
-          model_name: string
+          latitude: number | null
+          location_accuracy_meters: number | null
+          longitude: number | null
+          occurred_at: string
+          received_at: string
+          transition: string
         }
         Insert: {
-          child_id: string
-          created_at?: string | null
+          device_id: string
+          event_key: string
+          geofence_id: string
           id?: string
-          model_name: string
+          latitude?: number | null
+          location_accuracy_meters?: number | null
+          longitude?: number | null
+          occurred_at: string
+          received_at?: string
+          transition: string
         }
         Update: {
-          child_id?: string
-          created_at?: string | null
+          device_id?: string
+          event_key?: string
+          geofence_id?: string
           id?: string
-          model_name?: string
+          latitude?: number | null
+          location_accuracy_meters?: number | null
+          longitude?: number | null
+          occurred_at?: string
+          received_at?: string
+          transition?: string
         }
         Relationships: [
           {
-            foreignKeyName: "child_model_override_child_id_fkey"
-            columns: ["child_id"]
-            isOneToOne: true
-            referencedRelation: "children"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      child_periodic_summaries: {
-        Row: {
-          child_id: string
-          created_at: string
-          data_quality: string | null
-          headline: string
-          id: string
-          insights: string[]
-          period_end: string
-          period_start: string
-          period_type: string
-          positive_highlights: string[] | null
-          severity_summary: string | null
-          stats_snapshot: Json | null
-          suggested_action: string | null
-        }
-        Insert: {
-          child_id: string
-          created_at?: string
-          data_quality?: string | null
-          headline: string
-          id?: string
-          insights?: string[]
-          period_end: string
-          period_start: string
-          period_type: string
-          positive_highlights?: string[] | null
-          severity_summary?: string | null
-          stats_snapshot?: Json | null
-          suggested_action?: string | null
-        }
-        Update: {
-          child_id?: string
-          created_at?: string
-          data_quality?: string | null
-          headline?: string
-          id?: string
-          insights?: string[]
-          period_end?: string
-          period_start?: string
-          period_type?: string
-          positive_highlights?: string[] | null
-          severity_summary?: string | null
-          stats_snapshot?: Json | null
-          suggested_action?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "child_periodic_summaries_child_id_fkey"
-            columns: ["child_id"]
+            foreignKeyName: "v2_parental_geofence_events_device_id_fkey"
+            columns: ["device_id"]
             isOneToOne: false
-            referencedRelation: "children"
+            referencedRelation: "v2_protected_devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_parental_geofence_events_geofence_id_fkey"
+            columns: ["geofence_id"]
+            isOneToOne: false
+            referencedRelation: "v2_parental_geofences"
             referencedColumns: ["id"]
           },
         ]
       }
-      child_place_state: {
-        Row: {
-          child_id: string
-          is_inside: boolean
-          last_alert_at: string | null
-          last_transition_at: string
-          place_id: string
-        }
-        Insert: {
-          child_id: string
-          is_inside: boolean
-          last_alert_at?: string | null
-          last_transition_at?: string
-          place_id: string
-        }
-        Update: {
-          child_id?: string
-          is_inside?: boolean
-          last_alert_at?: string | null
-          last_transition_at?: string
-          place_id?: string
-        }
-        Relationships: []
-      }
-      child_places: {
+      v2_parental_geofences: {
         Row: {
           alert_on_enter: boolean
           alert_on_exit: boolean
@@ -1443,6 +3733,7 @@ export type Database = {
           schedule_mode: string
           start_time: string | null
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           alert_on_enter?: boolean
@@ -1451,16 +3742,17 @@ export type Database = {
           created_at?: string
           days_of_week?: number[] | null
           end_time?: string | null
-          id?: string
+          id: string
           is_active?: boolean
           label?: string | null
           latitude: number
           longitude: number
-          place_type: string
+          place_type?: string
           radius_meters: number
           schedule_mode?: string
           start_time?: string | null
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           alert_on_enter?: boolean
@@ -1479,1201 +3771,66 @@ export type Database = {
           schedule_mode?: string
           start_time?: string | null
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "child_places_child_id_fkey"
+            foreignKeyName: "v2_parental_geofences_child_id_fkey"
             columns: ["child_id"]
             isOneToOne: false
-            referencedRelation: "children"
+            referencedRelation: "v2_children"
             referencedColumns: ["id"]
           },
         ]
       }
-      children: {
-        Row: {
-          city: string | null
-          created_at: string
-          date_of_birth: string
-          gender: string
-          id: string
-          kippy_tag: string | null
-          name: string
-          pairing_code: string | null
-          pairing_code_expires_at: string | null
-          parent_id: string
-          phone_number: string
-          school: string | null
-          subscription_expires_at: string | null
-          subscription_tier: string | null
-        }
-        Insert: {
-          city?: string | null
-          created_at?: string
-          date_of_birth: string
-          gender: string
-          id?: string
-          kippy_tag?: string | null
-          name: string
-          pairing_code?: string | null
-          pairing_code_expires_at?: string | null
-          parent_id: string
-          phone_number: string
-          school?: string | null
-          subscription_expires_at?: string | null
-          subscription_tier?: string | null
-        }
-        Update: {
-          city?: string | null
-          created_at?: string
-          date_of_birth?: string
-          gender?: string
-          id?: string
-          kippy_tag?: string | null
-          name?: string
-          pairing_code?: string | null
-          pairing_code_expires_at?: string | null
-          parent_id?: string
-          phone_number?: string
-          school?: string | null
-          subscription_expires_at?: string | null
-          subscription_tier?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "children_parent_id_fkey"
-            columns: ["parent_id"]
-            isOneToOne: false
-            referencedRelation: "parents"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      chores: {
-        Row: {
-          approved_at: string | null
-          child_id: string
-          completed_at: string | null
-          created_at: string
-          id: string
-          is_recurring: boolean
-          parent_id: string
-          proof_photo_base64: string | null
-          recurrence_days: number[] | null
-          reward_minutes: number
-          status: string
-          title: string
-        }
-        Insert: {
-          approved_at?: string | null
-          child_id: string
-          completed_at?: string | null
-          created_at?: string
-          id?: string
-          is_recurring?: boolean
-          parent_id: string
-          proof_photo_base64?: string | null
-          recurrence_days?: number[] | null
-          reward_minutes?: number
-          status?: string
-          title: string
-        }
-        Update: {
-          approved_at?: string | null
-          child_id?: string
-          completed_at?: string | null
-          created_at?: string
-          id?: string
-          is_recurring?: boolean
-          parent_id?: string
-          proof_photo_base64?: string | null
-          recurrence_days?: number[] | null
-          reward_minutes?: number
-          status?: string
-          title?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "chores_child_id_fkey"
-            columns: ["child_id"]
-            isOneToOne: false
-            referencedRelation: "children"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "chores_parent_id_fkey"
-            columns: ["parent_id"]
-            isOneToOne: false
-            referencedRelation: "parents"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      customer_groups: {
-        Row: {
-          color: string | null
-          created_at: string | null
-          description: string | null
-          id: string
-          is_default: boolean
-          model_name: string | null
-          name: string
-        }
-        Insert: {
-          color?: string | null
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          is_default?: boolean
-          model_name?: string | null
-          name: string
-        }
-        Update: {
-          color?: string | null
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          is_default?: boolean
-          model_name?: string | null
-          name?: string
-        }
-        Relationships: []
-      }
-      daily_chat_stats: {
-        Row: {
-          chat_name: string
-          chat_type: string
-          child_id: string | null
-          device_id: string
-          id: string
-          message_count: number
-          platform: string
-          stat_date: string
-          updated_at: string
-        }
-        Insert: {
-          chat_name: string
-          chat_type?: string
-          child_id?: string | null
-          device_id: string
-          id?: string
-          message_count?: number
-          platform?: string
-          stat_date: string
-          updated_at?: string
-        }
-        Update: {
-          chat_name?: string
-          chat_type?: string
-          child_id?: string | null
-          device_id?: string
-          id?: string
-          message_count?: number
-          platform?: string
-          stat_date?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      device_ai_profiles: {
-        Row: {
-          child_id: string | null
-          created_at: string | null
-          device_id: string
-          device_tier: string | null
-          id: string
-          last_failure_reason: string | null
-          last_health_check_at: string | null
-          selected_slm_engine: string | null
-          selected_voice_engine: string | null
-          slm_supported: boolean | null
-          supports_aicore: boolean | null
-          updated_at: string | null
-          voice_supported: boolean | null
-        }
-        Insert: {
-          child_id?: string | null
-          created_at?: string | null
-          device_id: string
-          device_tier?: string | null
-          id?: string
-          last_failure_reason?: string | null
-          last_health_check_at?: string | null
-          selected_slm_engine?: string | null
-          selected_voice_engine?: string | null
-          slm_supported?: boolean | null
-          supports_aicore?: boolean | null
-          updated_at?: string | null
-          voice_supported?: boolean | null
-        }
-        Update: {
-          child_id?: string | null
-          created_at?: string | null
-          device_id?: string
-          device_tier?: string | null
-          id?: string
-          last_failure_reason?: string | null
-          last_health_check_at?: string | null
-          selected_slm_engine?: string | null
-          selected_voice_engine?: string | null
-          slm_supported?: boolean | null
-          supports_aicore?: boolean | null
-          updated_at?: string | null
-          voice_supported?: boolean | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "device_ai_profiles_child_id_fkey"
-            columns: ["child_id"]
-            isOneToOne: false
-            referencedRelation: "children"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "device_ai_profiles_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: true
-            referencedRelation: "devices"
-            referencedColumns: ["device_id"]
-          },
-          {
-            foreignKeyName: "device_ai_profiles_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: true
-            referencedRelation: "parent_daily_report"
-            referencedColumns: ["device_id"]
-          },
-          {
-            foreignKeyName: "device_ai_profiles_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: true
-            referencedRelation: "parent_daily_report_for_parent"
-            referencedColumns: ["device_id"]
-          },
-          {
-            foreignKeyName: "device_ai_profiles_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: true
-            referencedRelation: "parent_home_snapshot"
-            referencedColumns: ["device_id"]
-          },
-        ]
-      }
-      device_commands: {
-        Row: {
-          acknowledged_at: string | null
-          command_type: string
-          completed_at: string | null
-          created_at: string
-          device_id: string
-          error_code: string | null
-          expires_at: string | null
-          id: string
-          payload: Json
-          request_key: string | null
-          requested_by: string | null
-          result: string | null
-          status: string
-          updated_at: string
-        }
-        Insert: {
-          acknowledged_at?: string | null
-          command_type: string
-          completed_at?: string | null
-          created_at?: string
-          device_id: string
-          error_code?: string | null
-          expires_at?: string | null
-          id?: string
-          payload?: Json
-          request_key?: string | null
-          requested_by?: string | null
-          result?: string | null
-          status?: string
-          updated_at?: string
-        }
-        Update: {
-          acknowledged_at?: string | null
-          command_type?: string
-          completed_at?: string | null
-          created_at?: string
-          device_id?: string
-          error_code?: string | null
-          expires_at?: string | null
-          id?: string
-          payload?: Json
-          request_key?: string | null
-          requested_by?: string | null
-          result?: string | null
-          status?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "device_commands_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: false
-            referencedRelation: "devices"
-            referencedColumns: ["device_id"]
-          },
-          {
-            foreignKeyName: "device_commands_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: false
-            referencedRelation: "parent_daily_report"
-            referencedColumns: ["device_id"]
-          },
-          {
-            foreignKeyName: "device_commands_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: false
-            referencedRelation: "parent_daily_report_for_parent"
-            referencedColumns: ["device_id"]
-          },
-          {
-            foreignKeyName: "device_commands_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: false
-            referencedRelation: "parent_home_snapshot"
-            referencedColumns: ["device_id"]
-          },
-        ]
-      }
-      device_daily_health: {
-        Row: {
-          check_date: string | null
-          checks_responded: number | null
-          checks_sent: number | null
-          created_at: string | null
-          device_id: string | null
-          id: string
-          last_lat: number | null
-          last_lon: number | null
-          last_response_at: string | null
-        }
-        Insert: {
-          check_date?: string | null
-          checks_responded?: number | null
-          checks_sent?: number | null
-          created_at?: string | null
-          device_id?: string | null
-          id?: string
-          last_lat?: number | null
-          last_lon?: number | null
-          last_response_at?: string | null
-        }
-        Update: {
-          check_date?: string | null
-          checks_responded?: number | null
-          checks_sent?: number | null
-          created_at?: string | null
-          device_id?: string | null
-          id?: string
-          last_lat?: number | null
-          last_lon?: number | null
-          last_response_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "device_daily_health_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: false
-            referencedRelation: "devices"
-            referencedColumns: ["device_id"]
-          },
-          {
-            foreignKeyName: "device_daily_health_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: false
-            referencedRelation: "parent_daily_report"
-            referencedColumns: ["device_id"]
-          },
-          {
-            foreignKeyName: "device_daily_health_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: false
-            referencedRelation: "parent_daily_report_for_parent"
-            referencedColumns: ["device_id"]
-          },
-          {
-            foreignKeyName: "device_daily_health_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: false
-            referencedRelation: "parent_home_snapshot"
-            referencedColumns: ["device_id"]
-          },
-        ]
-      }
-      device_daily_metrics: {
-        Row: {
-          alerts_sent: number
-          created_at: string
-          device_id: string
-          id: string
-          messages_scanned: number
-          metric_date: string
-          stacks_sent_to_ai: number
-          updated_at: string
-        }
-        Insert: {
-          alerts_sent?: number
-          created_at?: string
-          device_id: string
-          id?: string
-          messages_scanned?: number
-          metric_date?: string
-          stacks_sent_to_ai?: number
-          updated_at?: string
-        }
-        Update: {
-          alerts_sent?: number
-          created_at?: string
-          device_id?: string
-          id?: string
-          messages_scanned?: number
-          metric_date?: string
-          stacks_sent_to_ai?: number
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "device_daily_metrics_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: false
-            referencedRelation: "devices"
-            referencedColumns: ["device_id"]
-          },
-          {
-            foreignKeyName: "device_daily_metrics_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: false
-            referencedRelation: "parent_daily_report"
-            referencedColumns: ["device_id"]
-          },
-          {
-            foreignKeyName: "device_daily_metrics_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: false
-            referencedRelation: "parent_daily_report_for_parent"
-            referencedColumns: ["device_id"]
-          },
-          {
-            foreignKeyName: "device_daily_metrics_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: false
-            referencedRelation: "parent_home_snapshot"
-            referencedColumns: ["device_id"]
-          },
-        ]
-      }
-      device_events: {
-        Row: {
-          child_id: string | null
-          created_at: string | null
-          device_id: string
-          event_data: Json | null
-          event_type: string
-          id: string
-          is_notified: boolean | null
-        }
-        Insert: {
-          child_id?: string | null
-          created_at?: string | null
-          device_id: string
-          event_data?: Json | null
-          event_type: string
-          id?: string
-          is_notified?: boolean | null
-        }
-        Update: {
-          child_id?: string | null
-          created_at?: string | null
-          device_id?: string
-          event_data?: Json | null
-          event_type?: string
-          id?: string
-          is_notified?: boolean | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "device_events_child_id_fkey"
-            columns: ["child_id"]
-            isOneToOne: false
-            referencedRelation: "children"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "device_events_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: false
-            referencedRelation: "devices"
-            referencedColumns: ["device_id"]
-          },
-          {
-            foreignKeyName: "device_events_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: false
-            referencedRelation: "parent_daily_report"
-            referencedColumns: ["device_id"]
-          },
-          {
-            foreignKeyName: "device_events_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: false
-            referencedRelation: "parent_daily_report_for_parent"
-            referencedColumns: ["device_id"]
-          },
-          {
-            foreignKeyName: "device_events_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: false
-            referencedRelation: "parent_home_snapshot"
-            referencedColumns: ["device_id"]
-          },
-        ]
-      }
-      device_heartbeats_raw: {
-        Row: {
-          child_id: string | null
-          device: Json
-          device_id: string
-          id: number
-          permissions: Json
-          reported_at: string
-        }
-        Insert: {
-          child_id?: string | null
-          device: Json
-          device_id: string
-          id?: number
-          permissions: Json
-          reported_at?: string
-        }
-        Update: {
-          child_id?: string | null
-          device?: Json
-          device_id?: string
-          id?: number
-          permissions?: Json
-          reported_at?: string
-        }
-        Relationships: []
-      }
-      device_lock_state: {
-        Row: {
-          child_id: string
-          contact_name: string | null
-          contact_phone: string | null
-          created_at: string
-          id: string
-          is_locked: boolean
-          locked_at: string | null
-          locked_by: string | null
-          message: string | null
-          unlocked_at: string | null
-          unlocked_by: string | null
-          updated_at: string
-        }
-        Insert: {
-          child_id: string
-          contact_name?: string | null
-          contact_phone?: string | null
-          created_at?: string
-          id?: string
-          is_locked?: boolean
-          locked_at?: string | null
-          locked_by?: string | null
-          message?: string | null
-          unlocked_at?: string | null
-          unlocked_by?: string | null
-          updated_at?: string
-        }
-        Update: {
-          child_id?: string
-          contact_name?: string | null
-          contact_phone?: string | null
-          created_at?: string
-          id?: string
-          is_locked?: boolean
-          locked_at?: string | null
-          locked_by?: string | null
-          message?: string | null
-          unlocked_at?: string | null
-          unlocked_by?: string | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      devices: {
-        Row: {
-          address: string | null
-          auth_user_id: string | null
-          battery_level: number | null
-          child_id: string | null
-          created_at: string | null
-          device_id: string
-          device_manufacturer: string | null
-          device_model: string | null
-          first_seen_at: string | null
-          last_seen: string | null
-          latitude: number | null
-          longitude: number | null
-          previous_child_id: string | null
-        }
-        Insert: {
-          address?: string | null
-          auth_user_id?: string | null
-          battery_level?: number | null
-          child_id?: string | null
-          created_at?: string | null
-          device_id: string
-          device_manufacturer?: string | null
-          device_model?: string | null
-          first_seen_at?: string | null
-          last_seen?: string | null
-          latitude?: number | null
-          longitude?: number | null
-          previous_child_id?: string | null
-        }
-        Update: {
-          address?: string | null
-          auth_user_id?: string | null
-          battery_level?: number | null
-          child_id?: string | null
-          created_at?: string | null
-          device_id?: string
-          device_manufacturer?: string | null
-          device_model?: string | null
-          first_seen_at?: string | null
-          last_seen?: string | null
-          latitude?: number | null
-          longitude?: number | null
-          previous_child_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "devices_child_id_fkey"
-            columns: ["child_id"]
-            isOneToOne: false
-            referencedRelation: "children"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      family_members: {
-        Row: {
-          accepted_at: string | null
-          id: string
-          invited_at: string
-          invited_email: string
-          invited_name: string | null
-          member_id: string | null
-          owner_id: string
-          pairing_code: string | null
-          pairing_code_expires_at: string | null
-          receive_alerts: boolean
-          revoked_at: string | null
-          role: string
-          status: string
-        }
-        Insert: {
-          accepted_at?: string | null
-          id?: string
-          invited_at?: string
-          invited_email: string
-          invited_name?: string | null
-          member_id?: string | null
-          owner_id: string
-          pairing_code?: string | null
-          pairing_code_expires_at?: string | null
-          receive_alerts?: boolean
-          revoked_at?: string | null
-          role?: string
-          status?: string
-        }
-        Update: {
-          accepted_at?: string | null
-          id?: string
-          invited_at?: string
-          invited_email?: string
-          invited_name?: string | null
-          member_id?: string | null
-          owner_id?: string
-          pairing_code?: string | null
-          pairing_code_expires_at?: string | null
-          receive_alerts?: boolean
-          revoked_at?: string | null
-          role?: string
-          status?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "family_members_member_id_fkey"
-            columns: ["member_id"]
-            isOneToOne: false
-            referencedRelation: "parents"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "family_members_owner_id_fkey"
-            columns: ["owner_id"]
-            isOneToOne: false
-            referencedRelation: "parents"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      friendships: {
-        Row: {
-          created_at: string
-          id: string
-          receiver_id: string
-          requester_id: string
-          responded_at: string | null
-          status: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          receiver_id: string
-          requester_id: string
-          responded_at?: string | null
-          status?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          receiver_id?: string
-          requester_id?: string
-          responded_at?: string | null
-          status?: string
-        }
-        Relationships: []
-      }
-      insight_logs: {
-        Row: {
-          child_id: string
-          created_at: string
-          id: string
-          insight_date: string
-          is_today: boolean
-          request_type: string
-        }
-        Insert: {
-          child_id: string
-          created_at?: string
-          id?: string
-          insight_date: string
-          is_today?: boolean
-          request_type: string
-        }
-        Update: {
-          child_id?: string
-          created_at?: string
-          id?: string
-          insight_date?: string
-          is_today?: boolean
-          request_type?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "insight_logs_child_id_fkey"
-            columns: ["child_id"]
-            isOneToOne: false
-            referencedRelation: "children"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      installed_apps: {
+      v2_parental_installed_apps: {
         Row: {
           app_name: string | null
-          category: string | null
-          child_id: string
+          device_id: string
           first_seen_at: string
-          id: string
+          install_source: Database["public"]["Enums"]["v2_app_install_source"]
+          installer_package_name: string | null
+          is_installed: boolean
+          is_launchable: boolean
           is_system: boolean
           last_seen_at: string
           package_name: string
         }
         Insert: {
           app_name?: string | null
-          category?: string | null
-          child_id: string
+          device_id: string
           first_seen_at?: string
-          id?: string
+          install_source?: Database["public"]["Enums"]["v2_app_install_source"]
+          installer_package_name?: string | null
+          is_installed?: boolean
+          is_launchable?: boolean
           is_system?: boolean
           last_seen_at?: string
           package_name: string
         }
         Update: {
           app_name?: string | null
-          category?: string | null
-          child_id?: string
+          device_id?: string
           first_seen_at?: string
-          id?: string
+          install_source?: Database["public"]["Enums"]["v2_app_install_source"]
+          installer_package_name?: string | null
+          is_installed?: boolean
+          is_launchable?: boolean
           is_system?: boolean
           last_seen_at?: string
           package_name?: string
         }
         Relationships: [
           {
-            foreignKeyName: "installed_apps_child_id_fkey"
-            columns: ["child_id"]
-            isOneToOne: false
-            referencedRelation: "children"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      issur_melacha_windows: {
-        Row: {
-          child_id: string
-          computed_at: string
-          end_epoch_ms: number
-          event_key: string
-          event_name: string
-          id: string
-          is_active: boolean
-          latitude: number
-          lock_type: string
-          longitude: number
-          source: string
-          start_epoch_ms: number
-          timezone: string
-          valid_for_date: string
-        }
-        Insert: {
-          child_id: string
-          computed_at?: string
-          end_epoch_ms: number
-          event_key: string
-          event_name: string
-          id?: string
-          is_active?: boolean
-          latitude: number
-          lock_type: string
-          longitude: number
-          source?: string
-          start_epoch_ms: number
-          timezone?: string
-          valid_for_date: string
-        }
-        Update: {
-          child_id?: string
-          computed_at?: string
-          end_epoch_ms?: number
-          event_key?: string
-          event_name?: string
-          id?: string
-          is_active?: boolean
-          latitude?: number
-          lock_type?: string
-          longitude?: number
-          source?: string
-          start_epoch_ms?: number
-          timezone?: string
-          valid_for_date?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "issur_melacha_windows_child_id_fkey"
-            columns: ["child_id"]
-            isOneToOne: false
-            referencedRelation: "children"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      media_views: {
-        Row: {
-          id: string
-          message_id: string
-          viewed_at: string
-          viewer_id: string
-        }
-        Insert: {
-          id?: string
-          message_id: string
-          viewed_at?: string
-          viewer_id: string
-        }
-        Update: {
-          id?: string
-          message_id?: string
-          viewed_at?: string
-          viewer_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "media_views_message_id_fkey"
-            columns: ["message_id"]
-            isOneToOne: false
-            referencedRelation: "chat_messages"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "media_views_viewer_id_fkey"
-            columns: ["viewer_id"]
-            isOneToOne: false
-            referencedRelation: "children"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      nightly_usage_reports: {
-        Row: {
-          child_id: string | null
-          created_at: string
-          device_id: string
-          id: string
-          report_date: string
-          top_app_minutes: number | null
-          top_app_name: string | null
-          top_app_package: string | null
-          total_minutes: number
-        }
-        Insert: {
-          child_id?: string | null
-          created_at?: string
-          device_id: string
-          id?: string
-          report_date: string
-          top_app_minutes?: number | null
-          top_app_name?: string | null
-          top_app_package?: string | null
-          total_minutes: number
-        }
-        Update: {
-          child_id?: string | null
-          created_at?: string
-          device_id?: string
-          id?: string
-          report_date?: string
-          top_app_minutes?: number | null
-          top_app_name?: string | null
-          top_app_package?: string | null
-          total_minutes?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "nightly_usage_reports_device_id_fkey"
+            foreignKeyName: "v2_parental_installed_apps_device_id_fkey"
             columns: ["device_id"]
             isOneToOne: false
-            referencedRelation: "devices"
-            referencedColumns: ["device_id"]
-          },
-          {
-            foreignKeyName: "nightly_usage_reports_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: false
-            referencedRelation: "parent_daily_report"
-            referencedColumns: ["device_id"]
-          },
-          {
-            foreignKeyName: "nightly_usage_reports_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: false
-            referencedRelation: "parent_daily_report_for_parent"
-            referencedColumns: ["device_id"]
-          },
-          {
-            foreignKeyName: "nightly_usage_reports_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: false
-            referencedRelation: "parent_home_snapshot"
-            referencedColumns: ["device_id"]
-          },
-        ]
-      }
-      parents: {
-        Row: {
-          created_at: string
-          email: string | null
-          full_name: string
-          group_id: string | null
-          id: string
-          is_locked: boolean
-          kippy_tag: string | null
-          phone: string | null
-        }
-        Insert: {
-          created_at?: string
-          email?: string | null
-          full_name: string
-          group_id?: string | null
-          id: string
-          is_locked?: boolean
-          kippy_tag?: string | null
-          phone?: string | null
-        }
-        Update: {
-          created_at?: string
-          email?: string | null
-          full_name?: string
-          group_id?: string | null
-          id?: string
-          is_locked?: boolean
-          kippy_tag?: string | null
-          phone?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "parents_group_id_fkey"
-            columns: ["group_id"]
-            isOneToOne: false
-            referencedRelation: "customer_groups"
+            referencedRelation: "v2_protected_devices"
             referencedColumns: ["id"]
           },
         ]
       }
-      promo_codes: {
-        Row: {
-          code: string
-          created_at: string
-          current_uses: number
-          discount_type: string
-          discount_value: number
-          expires_at: string | null
-          id: string
-          is_active: boolean
-          max_uses: number | null
-        }
-        Insert: {
-          code: string
-          created_at?: string
-          current_uses?: number
-          discount_type: string
-          discount_value: number
-          expires_at?: string | null
-          id?: string
-          is_active?: boolean
-          max_uses?: number | null
-        }
-        Update: {
-          code?: string
-          created_at?: string
-          current_uses?: number
-          discount_type?: string
-          discount_value?: number
-          expires_at?: string | null
-          id?: string
-          is_active?: boolean
-          max_uses?: number | null
-        }
-        Relationships: []
-      }
-      push_subscriptions: {
-        Row: {
-          auth: string
-          created_at: string | null
-          endpoint: string
-          id: string
-          p256dh: string
-          parent_id: string
-          updated_at: string | null
-          user_agent: string | null
-        }
-        Insert: {
-          auth: string
-          created_at?: string | null
-          endpoint: string
-          id?: string
-          p256dh: string
-          parent_id: string
-          updated_at?: string | null
-          user_agent?: string | null
-        }
-        Update: {
-          auth?: string
-          created_at?: string | null
-          endpoint?: string
-          id?: string
-          p256dh?: string
-          parent_id?: string
-          updated_at?: string | null
-          user_agent?: string | null
-        }
-        Relationships: []
-      }
-      reward_bank: {
-        Row: {
-          balance_minutes: number
-          child_id: string
-          current_streak: number
-          id: string
-          last_streak_date: string | null
-          updated_at: string
-        }
-        Insert: {
-          balance_minutes?: number
-          child_id: string
-          current_streak?: number
-          id?: string
-          last_streak_date?: string | null
-          updated_at?: string
-        }
-        Update: {
-          balance_minutes?: number
-          child_id?: string
-          current_streak?: number
-          id?: string
-          last_streak_date?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "reward_bank_child_id_fkey"
-            columns: ["child_id"]
-            isOneToOne: true
-            referencedRelation: "children"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      reward_transactions: {
-        Row: {
-          amount_minutes: number
-          child_id: string
-          chore_id: string | null
-          created_at: string
-          id: string
-          source: string
-        }
-        Insert: {
-          amount_minutes: number
-          child_id: string
-          chore_id?: string | null
-          created_at?: string
-          id?: string
-          source: string
-        }
-        Update: {
-          amount_minutes?: number
-          child_id?: string
-          chore_id?: string | null
-          created_at?: string
-          id?: string
-          source?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "reward_transactions_child_id_fkey"
-            columns: ["child_id"]
-            isOneToOne: false
-            referencedRelation: "children"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reward_transactions_chore_id_fkey"
-            columns: ["chore_id"]
-            isOneToOne: false
-            referencedRelation: "chores"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      schedule_windows: {
+      v2_parental_schedules: {
         Row: {
           child_id: string
           created_at: string
@@ -2681,28 +3838,26 @@ export type Database = {
           end_time: string | null
           id: string
           is_active: boolean
-          manual_end_time: string | null
-          manual_start_time: string | null
           mode: string
           name: string
           schedule_type: string
           start_time: string | null
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           child_id: string
           created_at?: string
           days_of_week?: number[] | null
           end_time?: string | null
-          id?: string
+          id: string
           is_active?: boolean
-          manual_end_time?: string | null
-          manual_start_time?: string | null
           mode?: string
           name: string
           schedule_type: string
           start_time?: string | null
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           child_id?: string
@@ -2711,1180 +3866,2501 @@ export type Database = {
           end_time?: string | null
           id?: string
           is_active?: boolean
-          manual_end_time?: string | null
-          manual_start_time?: string | null
           mode?: string
           name?: string
           schedule_type?: string
           start_time?: string | null
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "schedule_windows_child_id_fkey"
+            foreignKeyName: "v2_parental_schedules_child_id_fkey"
             columns: ["child_id"]
             isOneToOne: false
-            referencedRelation: "children"
+            referencedRelation: "v2_children"
             referencedColumns: ["id"]
           },
         ]
       }
-      settings: {
+      v2_parental_settings: {
         Row: {
-          accessibility_service_enabled: boolean | null
-          alert_on_trigger_words: boolean | null
-          alert_on_unknown_contacts: boolean | null
-          alert_threshold: number | null
-          blocked_apps: Json | null
-          child_id: string | null
-          created_at: string | null
-          custom_trigger_words: Json | null
+          app_approval_baseline_completed: boolean
+          child_id: string
+          created_at: string
           daily_screen_time_limit_minutes: number | null
-          device_id: string | null
-          id: string
-          local_llm_enabled: boolean | null
-          location_tracking_enabled: boolean | null
-          location_update_interval_minutes: number | null
-          monitoring_enabled: boolean | null
-          notification_listener_enabled: boolean | null
-          parent_id: string | null
-          redaction_mode: string | null
-          remote_llm_enabled: boolean | null
-          screen_time_tracking_enabled: boolean | null
-          updated_at: string | null
-          version: number | null
+          exit_debounce_seconds: number
+          home_exit_alert_enabled: boolean
+          location_tracking_enabled: boolean
+          location_update_interval_minutes: number
+          lost_mode_enabled: boolean
+          lost_mode_message: string | null
+          revision: number
+          school_exit_alert_enabled: boolean
+          updated_at: string
+          updated_by: string | null
         }
         Insert: {
-          accessibility_service_enabled?: boolean | null
-          alert_on_trigger_words?: boolean | null
-          alert_on_unknown_contacts?: boolean | null
-          alert_threshold?: number | null
-          blocked_apps?: Json | null
-          child_id?: string | null
-          created_at?: string | null
-          custom_trigger_words?: Json | null
+          app_approval_baseline_completed?: boolean
+          child_id: string
+          created_at?: string
           daily_screen_time_limit_minutes?: number | null
-          device_id?: string | null
-          id?: string
-          local_llm_enabled?: boolean | null
-          location_tracking_enabled?: boolean | null
-          location_update_interval_minutes?: number | null
-          monitoring_enabled?: boolean | null
-          notification_listener_enabled?: boolean | null
-          parent_id?: string | null
-          redaction_mode?: string | null
-          remote_llm_enabled?: boolean | null
-          screen_time_tracking_enabled?: boolean | null
-          updated_at?: string | null
-          version?: number | null
+          exit_debounce_seconds?: number
+          home_exit_alert_enabled?: boolean
+          location_tracking_enabled?: boolean
+          location_update_interval_minutes?: number
+          lost_mode_enabled?: boolean
+          lost_mode_message?: string | null
+          revision?: number
+          school_exit_alert_enabled?: boolean
+          updated_at?: string
+          updated_by?: string | null
         }
         Update: {
-          accessibility_service_enabled?: boolean | null
-          alert_on_trigger_words?: boolean | null
-          alert_on_unknown_contacts?: boolean | null
-          alert_threshold?: number | null
-          blocked_apps?: Json | null
-          child_id?: string | null
-          created_at?: string | null
-          custom_trigger_words?: Json | null
-          daily_screen_time_limit_minutes?: number | null
-          device_id?: string | null
-          id?: string
-          local_llm_enabled?: boolean | null
-          location_tracking_enabled?: boolean | null
-          location_update_interval_minutes?: number | null
-          monitoring_enabled?: boolean | null
-          notification_listener_enabled?: boolean | null
-          parent_id?: string | null
-          redaction_mode?: string | null
-          remote_llm_enabled?: boolean | null
-          screen_time_tracking_enabled?: boolean | null
-          updated_at?: string | null
-          version?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "settings_child_id_fkey"
-            columns: ["child_id"]
-            isOneToOne: false
-            referencedRelation: "children"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "settings_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: false
-            referencedRelation: "devices"
-            referencedColumns: ["device_id"]
-          },
-          {
-            foreignKeyName: "settings_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: false
-            referencedRelation: "parent_daily_report"
-            referencedColumns: ["device_id"]
-          },
-          {
-            foreignKeyName: "settings_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: false
-            referencedRelation: "parent_daily_report_for_parent"
-            referencedColumns: ["device_id"]
-          },
-          {
-            foreignKeyName: "settings_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: false
-            referencedRelation: "parent_home_snapshot"
-            referencedColumns: ["device_id"]
-          },
-          {
-            foreignKeyName: "settings_parent_id_fkey"
-            columns: ["parent_id"]
-            isOneToOne: false
-            referencedRelation: "parents"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      shabbat_times_computed: {
-        Row: {
-          child_id: string
-          computed_at: string
-          end_epoch_ms: number
-          friday_date: string
-          id: string
-          latitude: number
-          longitude: number
-          start_epoch_ms: number
-        }
-        Insert: {
-          child_id: string
-          computed_at?: string
-          end_epoch_ms: number
-          friday_date: string
-          id?: string
-          latitude: number
-          longitude: number
-          start_epoch_ms: number
-        }
-        Update: {
+          app_approval_baseline_completed?: boolean
           child_id?: string
-          computed_at?: string
-          end_epoch_ms?: number
-          friday_date?: string
-          id?: string
-          latitude?: number
-          longitude?: number
-          start_epoch_ms?: number
+          created_at?: string
+          daily_screen_time_limit_minutes?: number | null
+          exit_debounce_seconds?: number
+          home_exit_alert_enabled?: boolean
+          location_tracking_enabled?: boolean
+          location_update_interval_minutes?: number
+          lost_mode_enabled?: boolean
+          lost_mode_message?: string | null
+          revision?: number
+          school_exit_alert_enabled?: boolean
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "shabbat_times_computed_child_id_fkey"
+            foreignKeyName: "v2_parental_settings_child_id_fkey"
             columns: ["child_id"]
-            isOneToOne: false
-            referencedRelation: "children"
+            isOneToOne: true
+            referencedRelation: "v2_children"
             referencedColumns: ["id"]
           },
         ]
       }
-      shabbat_zmanim: {
-        Row: {
-          candle_lighting: string
-          friday_date: string
-          havdalah: string
-        }
-        Insert: {
-          candle_lighting: string
-          friday_date: string
-          havdalah: string
-        }
-        Update: {
-          candle_lighting?: string
-          friday_date?: string
-          havdalah?: string
-        }
-        Relationships: []
-      }
-      time_extension_requests: {
+      v2_parental_time_requests: {
         Row: {
           approved_minutes: number | null
           child_id: string
           created_at: string
+          device_id: string
+          expires_at: string
           id: string
-          parent_id: string
           reason: string | null
           requested_minutes: number
           responded_at: string | null
+          responded_by: string | null
           status: string
         }
         Insert: {
           approved_minutes?: number | null
           child_id: string
           created_at?: string
-          id?: string
-          parent_id: string
+          device_id: string
+          expires_at: string
+          id: string
           reason?: string | null
-          requested_minutes?: number
+          requested_minutes: number
           responded_at?: string | null
+          responded_by?: string | null
           status?: string
         }
         Update: {
           approved_minutes?: number | null
           child_id?: string
           created_at?: string
+          device_id?: string
+          expires_at?: string
           id?: string
-          parent_id?: string
           reason?: string | null
           requested_minutes?: number
           responded_at?: string | null
+          responded_by?: string | null
           status?: string
         }
         Relationships: [
           {
-            foreignKeyName: "time_extension_requests_child_id_fkey"
+            foreignKeyName: "v2_parental_time_requests_child_id_fkey"
             columns: ["child_id"]
             isOneToOne: false
-            referencedRelation: "children"
+            referencedRelation: "v2_children"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "time_extension_requests_parent_id_fkey"
-            columns: ["parent_id"]
+            foreignKeyName: "v2_parental_time_requests_device_id_fkey"
+            columns: ["device_id"]
             isOneToOne: false
-            referencedRelation: "parents"
+            referencedRelation: "v2_protected_devices"
             referencedColumns: ["id"]
           },
         ]
       }
-      training_dataset: {
+      v2_protected_devices: {
         Row: {
-          age_at_incident: number | null
-          ai_verdict: Json | null
-          alert_id: number | null
+          app_approval_baseline_completed: boolean
+          app_version: string
+          capture_contract_version: number
+          child_id: string
           created_at: string
-          gender: string | null
           id: string
+          installation_id: string
+          last_seen_at: string | null
+          manufacturer: string | null
+          model: string | null
           platform: string
-          raw_text: string
+          registered_at: string
+          status: string
+          updated_at: string
         }
         Insert: {
-          age_at_incident?: number | null
-          ai_verdict?: Json | null
-          alert_id?: number | null
+          app_approval_baseline_completed?: boolean
+          app_version: string
+          capture_contract_version?: number
+          child_id: string
           created_at?: string
-          gender?: string | null
           id?: string
+          installation_id: string
+          last_seen_at?: string | null
+          manufacturer?: string | null
+          model?: string | null
           platform?: string
-          raw_text: string
+          registered_at?: string
+          status?: string
+          updated_at?: string
         }
         Update: {
-          age_at_incident?: number | null
-          ai_verdict?: Json | null
-          alert_id?: number | null
+          app_approval_baseline_completed?: boolean
+          app_version?: string
+          capture_contract_version?: number
+          child_id?: string
           created_at?: string
-          gender?: string | null
           id?: string
+          installation_id?: string
+          last_seen_at?: string | null
+          manufacturer?: string | null
+          model?: string | null
           platform?: string
-          raw_text?: string
+          registered_at?: string
+          status?: string
+          updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "training_dataset_alert_id_fkey"
-            columns: ["alert_id"]
+            foreignKeyName: "v2_protected_devices_child_id_fkey"
+            columns: ["child_id"]
             isOneToOne: false
-            referencedRelation: "alerts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "training_dataset_alert_id_fkey"
-            columns: ["alert_id"]
-            isOneToOne: false
-            referencedRelation: "parent_alerts_effective"
+            referencedRelation: "v2_children"
             referencedColumns: ["id"]
           },
         ]
       }
-      user_roles: {
+      v2_push_delivery_endpoint_attempts: {
         Row: {
-          created_at: string | null
-          id: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
+          attempt_count: number
+          created_at: string
+          delivery_id: string
+          endpoint_id: string
+          last_attempt_at: string | null
+          last_error_code: string | null
+          last_http_status: number | null
+          sent_at: string | null
+          status: string
+          updated_at: string
         }
         Insert: {
-          created_at?: string | null
-          id?: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
+          attempt_count?: number
+          created_at?: string
+          delivery_id: string
+          endpoint_id: string
+          last_attempt_at?: string | null
+          last_error_code?: string | null
+          last_http_status?: number | null
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
         }
         Update: {
-          created_at?: string | null
-          id?: string
-          role?: Database["public"]["Enums"]["app_role"]
-          user_id?: string
+          attempt_count?: number
+          created_at?: string
+          delivery_id?: string
+          endpoint_id?: string
+          last_attempt_at?: string | null
+          last_error_code?: string | null
+          last_http_status?: number | null
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_push_delivery_endpoint_attempts_delivery_id_fkey"
+            columns: ["delivery_id"]
+            isOneToOne: false
+            referencedRelation: "v2_alert_deliveries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_push_delivery_endpoint_attempts_endpoint_id_fkey"
+            columns: ["endpoint_id"]
+            isOneToOne: false
+            referencedRelation: "v2_guardian_push_endpoints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_push_worker_capabilities: {
+        Row: {
+          created_at: string
+          expires_at: string
+          label: string
+          revoked_at: string | null
+          status: string
+          token_hash: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          label: string
+          revoked_at?: string | null
+          status?: string
+          token_hash: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          label?: string
+          revoked_at?: string | null
+          status?: string
+          token_hash?: string
         }
         Relationships: []
       }
-      waitlist_signups: {
+      v2_safety_incidents: {
         Row: {
-          child_age: number
-          created_at: string | null
-          device_os: string
-          email: string
+          capture_quality: number
+          category: string
+          child_id: string
+          child_role: string
+          client_incident_id: string
+          confidence: number
+          device_id: string
           id: string
-          parent_name: string
-          phone: string
-          referral_other: string | null
-          referral_source: string | null
-          region: string | null
-          status: string | null
+          model_contract_version: number
+          occurred_at: string
+          privacy_contract_version: number
+          received_at: string
+          severity: string
+          source_platform: string
+          status: string
         }
         Insert: {
-          child_age: number
-          created_at?: string | null
-          device_os: string
-          email: string
+          capture_quality: number
+          category: string
+          child_id: string
+          child_role: string
+          client_incident_id: string
+          confidence: number
+          device_id: string
           id?: string
-          parent_name: string
-          phone: string
-          referral_other?: string | null
-          referral_source?: string | null
-          region?: string | null
-          status?: string | null
+          model_contract_version?: number
+          occurred_at: string
+          privacy_contract_version?: number
+          received_at?: string
+          severity: string
+          source_platform?: string
+          status?: string
         }
         Update: {
-          child_age?: number
-          created_at?: string | null
-          device_os?: string
-          email?: string
+          capture_quality?: number
+          category?: string
+          child_id?: string
+          child_role?: string
+          client_incident_id?: string
+          confidence?: number
+          device_id?: string
           id?: string
-          parent_name?: string
-          phone?: string
-          referral_other?: string | null
-          referral_source?: string | null
-          region?: string | null
-          status?: string | null
+          model_contract_version?: number
+          occurred_at?: string
+          privacy_contract_version?: number
+          received_at?: string
+          severity?: string
+          source_platform?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_safety_incidents_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "v2_children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_safety_incidents_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "v2_protected_devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_staff_permissions: {
+        Row: {
+          created_at: string
+          description: string
+          permission_key: string
+          risk_class: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          permission_key: string
+          risk_class: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          permission_key?: string
+          risk_class?: string
         }
         Relationships: []
+      }
+      v2_staff_profiles: {
+        Row: {
+          auth_user_id: string
+          created_at: string
+          locale: string
+          principal_id: string
+          updated_at: string
+        }
+        Insert: {
+          auth_user_id: string
+          created_at?: string
+          locale?: string
+          principal_id: string
+          updated_at?: string
+        }
+        Update: {
+          auth_user_id?: string
+          created_at?: string
+          locale?: string
+          principal_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_staff_profiles_principal_id_fkey"
+            columns: ["principal_id"]
+            isOneToOne: true
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_staff_role_assignments: {
+        Row: {
+          created_at: string
+          environment: string
+          expires_at: string | null
+          granted_by_principal_id: string
+          id: string
+          reason_code: string
+          role_key: string
+          scope_key: string | null
+          scope_type: string
+          staff_principal_id: string
+          valid_from: string
+        }
+        Insert: {
+          created_at?: string
+          environment: string
+          expires_at?: string | null
+          granted_by_principal_id: string
+          id?: string
+          reason_code: string
+          role_key: string
+          scope_key?: string | null
+          scope_type?: string
+          staff_principal_id: string
+          valid_from?: string
+        }
+        Update: {
+          created_at?: string
+          environment?: string
+          expires_at?: string | null
+          granted_by_principal_id?: string
+          id?: string
+          reason_code?: string
+          role_key?: string
+          scope_key?: string | null
+          scope_type?: string
+          staff_principal_id?: string
+          valid_from?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_staff_role_assignments_granted_by_principal_id_fkey"
+            columns: ["granted_by_principal_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_staff_role_assignments_role_key_fkey"
+            columns: ["role_key"]
+            isOneToOne: false
+            referencedRelation: "v2_staff_roles"
+            referencedColumns: ["role_key"]
+          },
+          {
+            foreignKeyName: "v2_staff_role_assignments_staff_principal_id_fkey"
+            columns: ["staff_principal_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_staff_role_permissions: {
+        Row: {
+          created_at: string
+          permission_key: string
+          role_key: string
+        }
+        Insert: {
+          created_at?: string
+          permission_key: string
+          role_key: string
+        }
+        Update: {
+          created_at?: string
+          permission_key?: string
+          role_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_staff_role_permissions_permission_key_fkey"
+            columns: ["permission_key"]
+            isOneToOne: false
+            referencedRelation: "v2_staff_permissions"
+            referencedColumns: ["permission_key"]
+          },
+          {
+            foreignKeyName: "v2_staff_role_permissions_role_key_fkey"
+            columns: ["role_key"]
+            isOneToOne: false
+            referencedRelation: "v2_staff_roles"
+            referencedColumns: ["role_key"]
+          },
+        ]
+      }
+      v2_staff_roles: {
+        Row: {
+          created_at: string
+          display_name: string
+          is_active: boolean
+          role_key: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          is_active?: boolean
+          role_key: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          is_active?: boolean
+          role_key?: string
+        }
+        Relationships: []
+      }
+      v2_support_channel_identities: {
+        Row: {
+          channel: string
+          contact_id: string
+          created_at: string
+          display_identity_redacted: string
+          environment: string
+          id: string
+          provider_account_key: string
+          provider_identity_hash: string
+          updated_at: string
+        }
+        Insert: {
+          channel: string
+          contact_id: string
+          created_at?: string
+          display_identity_redacted: string
+          environment: string
+          id?: string
+          provider_account_key: string
+          provider_identity_hash: string
+          updated_at?: string
+        }
+        Update: {
+          channel?: string
+          contact_id?: string
+          created_at?: string
+          display_identity_redacted?: string
+          environment?: string
+          id?: string
+          provider_account_key?: string
+          provider_identity_hash?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_support_channel_identities_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v2_support_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_support_contacts: {
+        Row: {
+          contact_hash: string
+          contact_kind: string
+          created_at: string
+          display_label_redacted: string
+          environment: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          contact_hash: string
+          contact_kind: string
+          created_at?: string
+          display_label_redacted: string
+          environment: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          contact_hash?: string
+          contact_kind?: string
+          created_at?: string
+          display_label_redacted?: string
+          environment?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      v2_support_conversations: {
+        Row: {
+          channel: string
+          channel_identity_id: string
+          closed_at: string | null
+          created_at: string
+          environment: string
+          id: string
+          last_activity_at: string
+          responder_lease_expires_at: string | null
+          responder_lease_id: string | null
+          responder_principal_id: string | null
+          source_mode: string
+          status: string
+          updated_at: string
+          verification_evidence_ref: string | null
+          verification_expires_at: string | null
+          verification_level: string
+          verified_family_id: string | null
+          verified_guardian_user_id: string | null
+        }
+        Insert: {
+          channel: string
+          channel_identity_id: string
+          closed_at?: string | null
+          created_at?: string
+          environment: string
+          id?: string
+          last_activity_at?: string
+          responder_lease_expires_at?: string | null
+          responder_lease_id?: string | null
+          responder_principal_id?: string | null
+          source_mode: string
+          status?: string
+          updated_at?: string
+          verification_evidence_ref?: string | null
+          verification_expires_at?: string | null
+          verification_level?: string
+          verified_family_id?: string | null
+          verified_guardian_user_id?: string | null
+        }
+        Update: {
+          channel?: string
+          channel_identity_id?: string
+          closed_at?: string | null
+          created_at?: string
+          environment?: string
+          id?: string
+          last_activity_at?: string
+          responder_lease_expires_at?: string | null
+          responder_lease_id?: string | null
+          responder_principal_id?: string | null
+          source_mode?: string
+          status?: string
+          updated_at?: string
+          verification_evidence_ref?: string | null
+          verification_expires_at?: string | null
+          verification_level?: string
+          verified_family_id?: string | null
+          verified_guardian_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_support_conversations_channel_identity_id_fkey"
+            columns: ["channel_identity_id"]
+            isOneToOne: false
+            referencedRelation: "v2_support_channel_identities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_support_conversations_responder_principal_id_fkey"
+            columns: ["responder_principal_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_principals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_support_conversations_verified_family_id_fkey"
+            columns: ["verified_family_id"]
+            isOneToOne: false
+            referencedRelation: "v2_families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_support_message_status_events: {
+        Row: {
+          content_digest_hmac: string
+          created_at: string
+          delivery_status: string
+          environment: string
+          error_fingerprint_hmac: string | null
+          event_hmac: string
+          id: string
+          message_id: string
+          provider_account_hmac: string
+          provider_occurred_at: string
+          received_at: string
+          safe_error_code: string | null
+        }
+        Insert: {
+          content_digest_hmac: string
+          created_at?: string
+          delivery_status: string
+          environment: string
+          error_fingerprint_hmac?: string | null
+          event_hmac: string
+          id?: string
+          message_id: string
+          provider_account_hmac: string
+          provider_occurred_at: string
+          received_at: string
+          safe_error_code?: string | null
+        }
+        Update: {
+          content_digest_hmac?: string
+          created_at?: string
+          delivery_status?: string
+          environment?: string
+          error_fingerprint_hmac?: string | null
+          event_hmac?: string
+          id?: string
+          message_id?: string
+          provider_account_hmac?: string
+          provider_occurred_at?: string
+          received_at?: string
+          safe_error_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_support_message_status_events_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "v2_support_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_support_messages: {
+        Row: {
+          conversation_id: string
+          created_at: string
+          delivery_status: string
+          direction: string
+          environment: string
+          failure_code: string | null
+          id: string
+          ingest_status: string
+          media_mime_type: string | null
+          media_provider_sha256: string | null
+          media_scan_state: string | null
+          message_type: string
+          protected_content_ref: string | null
+          provider_account_hmac: string | null
+          provider_media_hmac: string | null
+          provider_message_hmac: string | null
+          provider_occurred_at: string | null
+          provider_phone_scope_hmac: string | null
+          redacted_text: string | null
+          reply_to_message_id: string | null
+          retention_class: string
+          sensitivity: string
+          server_received_at: string
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string
+          delivery_status?: string
+          direction: string
+          environment: string
+          failure_code?: string | null
+          id?: string
+          ingest_status: string
+          media_mime_type?: string | null
+          media_provider_sha256?: string | null
+          media_scan_state?: string | null
+          message_type: string
+          protected_content_ref?: string | null
+          provider_account_hmac?: string | null
+          provider_media_hmac?: string | null
+          provider_message_hmac?: string | null
+          provider_occurred_at?: string | null
+          provider_phone_scope_hmac?: string | null
+          redacted_text?: string | null
+          reply_to_message_id?: string | null
+          retention_class?: string
+          sensitivity?: string
+          server_received_at?: string
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string
+          delivery_status?: string
+          direction?: string
+          environment?: string
+          failure_code?: string | null
+          id?: string
+          ingest_status?: string
+          media_mime_type?: string | null
+          media_provider_sha256?: string | null
+          media_scan_state?: string | null
+          message_type?: string
+          protected_content_ref?: string | null
+          provider_account_hmac?: string | null
+          provider_media_hmac?: string | null
+          provider_message_hmac?: string | null
+          provider_occurred_at?: string | null
+          provider_phone_scope_hmac?: string | null
+          redacted_text?: string | null
+          reply_to_message_id?: string | null
+          retention_class?: string
+          sensitivity?: string
+          server_received_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_support_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "v2_support_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_support_messages_reply_to_message_id_fkey"
+            columns: ["reply_to_message_id"]
+            isOneToOne: false
+            referencedRelation: "v2_support_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_support_pending_whatsapp_statuses: {
+        Row: {
+          consumed_at: string | null
+          content_digest_hmac: string
+          created_at: string
+          delivery_status: string
+          environment: string
+          error_fingerprint_hmac: string | null
+          event_hmac: string
+          expired_at: string | null
+          expires_at: string
+          id: string
+          message_id: string | null
+          provider_account_hmac: string
+          provider_message_hmac: string
+          provider_occurred_at: string
+          provider_phone_scope_hmac: string
+          received_at: string
+          resolution: string
+          safe_error_code: string | null
+        }
+        Insert: {
+          consumed_at?: string | null
+          content_digest_hmac: string
+          created_at?: string
+          delivery_status: string
+          environment: string
+          error_fingerprint_hmac?: string | null
+          event_hmac: string
+          expired_at?: string | null
+          expires_at: string
+          id?: string
+          message_id?: string | null
+          provider_account_hmac: string
+          provider_message_hmac: string
+          provider_occurred_at: string
+          provider_phone_scope_hmac: string
+          received_at: string
+          resolution?: string
+          safe_error_code?: string | null
+        }
+        Update: {
+          consumed_at?: string | null
+          content_digest_hmac?: string
+          created_at?: string
+          delivery_status?: string
+          environment?: string
+          error_fingerprint_hmac?: string | null
+          event_hmac?: string
+          expired_at?: string | null
+          expires_at?: string
+          id?: string
+          message_id?: string | null
+          provider_account_hmac?: string
+          provider_message_hmac?: string
+          provider_occurred_at?: string
+          provider_phone_scope_hmac?: string
+          received_at?: string
+          resolution?: string
+          safe_error_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_support_pending_whatsapp_statuses_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "v2_support_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_support_protected_content: {
+        Row: {
+          aad_sha256: string
+          algorithm: string
+          ciphertext_b64: string
+          contact_lookup_hmac_key_id: number
+          content_digest_hmac: string
+          content_digest_hmac_key_id: number
+          content_encryption_key_id: number
+          content_kind: string
+          created_at: string
+          environment: string
+          id: string
+          item_hmac: string
+          key_ref: string
+          message_id: string | null
+          nonce_b64: string
+          provider_account_hmac: string
+          provider_id_hmac_key_id: number
+        }
+        Insert: {
+          aad_sha256: string
+          algorithm: string
+          ciphertext_b64: string
+          contact_lookup_hmac_key_id: number
+          content_digest_hmac: string
+          content_digest_hmac_key_id: number
+          content_encryption_key_id: number
+          content_kind: string
+          created_at?: string
+          environment: string
+          id?: string
+          item_hmac: string
+          key_ref: string
+          message_id?: string | null
+          nonce_b64: string
+          provider_account_hmac: string
+          provider_id_hmac_key_id: number
+        }
+        Update: {
+          aad_sha256?: string
+          algorithm?: string
+          ciphertext_b64?: string
+          contact_lookup_hmac_key_id?: number
+          content_digest_hmac?: string
+          content_digest_hmac_key_id?: number
+          content_encryption_key_id?: number
+          content_kind?: string
+          created_at?: string
+          environment?: string
+          id?: string
+          item_hmac?: string
+          key_ref?: string
+          message_id?: string | null
+          nonce_b64?: string
+          provider_account_hmac?: string
+          provider_id_hmac_key_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_support_protected_content_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: true
+            referencedRelation: "v2_support_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_support_webhook_envelopes: {
+        Row: {
+          accepted_items: number
+          case_ids: string[]
+          channel_mode: string
+          conversation_ids: string[]
+          created_at: string
+          duplicate_items: number
+          envelope_sha256: string
+          environment: string
+          id: string
+          item_count: number
+          processed_at: string | null
+          processing_status: string
+          provider_account_hmac: string
+          received_at: string
+          rejected_items: number
+          shadow_job_ids: string[]
+        }
+        Insert: {
+          accepted_items?: number
+          case_ids?: string[]
+          channel_mode: string
+          conversation_ids?: string[]
+          created_at?: string
+          duplicate_items?: number
+          envelope_sha256: string
+          environment: string
+          id?: string
+          item_count: number
+          processed_at?: string | null
+          processing_status?: string
+          provider_account_hmac: string
+          received_at: string
+          rejected_items?: number
+          shadow_job_ids?: string[]
+        }
+        Update: {
+          accepted_items?: number
+          case_ids?: string[]
+          channel_mode?: string
+          conversation_ids?: string[]
+          created_at?: string
+          duplicate_items?: number
+          envelope_sha256?: string
+          environment?: string
+          id?: string
+          item_count?: number
+          processed_at?: string | null
+          processing_status?: string
+          provider_account_hmac?: string
+          received_at?: string
+          rejected_items?: number
+          shadow_job_ids?: string[]
+        }
+        Relationships: []
+      }
+      v2_support_webhook_items: {
+        Row: {
+          accepted: boolean
+          case_id: string | null
+          conversation_id: string | null
+          created_at: string
+          envelope_id: string
+          environment: string
+          error_fingerprint_hmac: string | null
+          id: string
+          item_hmac: string
+          item_type: string
+          message_id: string | null
+          provider_account_hmac: string
+          rejection_code: string | null
+          safe_error_code: string | null
+          shadow_job_id: string | null
+        }
+        Insert: {
+          accepted: boolean
+          case_id?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          envelope_id: string
+          environment: string
+          error_fingerprint_hmac?: string | null
+          id?: string
+          item_hmac: string
+          item_type: string
+          message_id?: string | null
+          provider_account_hmac: string
+          rejection_code?: string | null
+          safe_error_code?: string | null
+          shadow_job_id?: string | null
+        }
+        Update: {
+          accepted?: boolean
+          case_id?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          envelope_id?: string
+          environment?: string
+          error_fingerprint_hmac?: string | null
+          id?: string
+          item_hmac?: string
+          item_type?: string
+          message_id?: string | null
+          provider_account_hmac?: string
+          rejection_code?: string | null
+          safe_error_code?: string | null
+          shadow_job_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_support_webhook_items_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_support_webhook_items_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "v2_support_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_support_webhook_items_envelope_id_fkey"
+            columns: ["envelope_id"]
+            isOneToOne: false
+            referencedRelation: "v2_support_webhook_envelopes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_support_webhook_items_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "v2_support_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_support_webhook_items_shadow_job_id_fkey"
+            columns: ["shadow_job_id"]
+            isOneToOne: false
+            referencedRelation: "v2_admin_shadow_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
-      chat_participants: {
-        Row: {
-          display_name: string | null
-          owner_parent_id: string | null
-          participant_id: string | null
-          participant_type: string | null
-        }
-        Relationships: []
-      }
-      parent_alerts_effective: {
-        Row: {
-          acknowledged_at: string | null
-          ai_analysis: Json | null
-          ai_classification: Json | null
-          ai_confidence: number | null
-          ai_explanation: string | null
-          ai_explanation_short: string | null
-          ai_patterns: string[] | null
-          ai_recommendation: string | null
-          ai_recommendation_short: string | null
-          ai_risk_score: number | null
-          ai_summary: string | null
-          ai_verdict: string | null
-          alert_type: string | null
-          analyzed_at: string | null
-          author_type: string | null
-          category: string | null
-          chat_name: string | null
-          chat_type: string | null
-          child_id: string | null
-          child_role: string | null
-          content: string | null
-          created_at: string | null
-          device_id: string | null
-          effective_threshold: number | null
-          escalate: boolean | null
-          expert_type: string | null
-          id: number | null
-          is_in_warmup: boolean | null
-          is_processed: boolean | null
-          message_count: number | null
-          parent_message: string | null
-          remind_at: string | null
-          risk_score: number | null
-          saved_at: string | null
-          sender: string | null
-          sender_display: string | null
-          should_alert: boolean | null
-          should_store: boolean | null
-          source: string | null
-          suggested_action: string | null
-          warmup_start: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "alerts_child_id_fkey"
-            columns: ["child_id"]
-            isOneToOne: false
-            referencedRelation: "children"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "alerts_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: false
-            referencedRelation: "devices"
-            referencedColumns: ["device_id"]
-          },
-          {
-            foreignKeyName: "alerts_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: false
-            referencedRelation: "parent_daily_report"
-            referencedColumns: ["device_id"]
-          },
-          {
-            foreignKeyName: "alerts_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: false
-            referencedRelation: "parent_daily_report_for_parent"
-            referencedColumns: ["device_id"]
-          },
-          {
-            foreignKeyName: "alerts_device_id_fkey"
-            columns: ["device_id"]
-            isOneToOne: false
-            referencedRelation: "parent_home_snapshot"
-            referencedColumns: ["device_id"]
-          },
-        ]
-      }
-      parent_daily_report: {
-        Row: {
-          checks_responded: number | null
-          checks_sent: number | null
-          child_id: string | null
-          cnt_notify: number | null
-          cnt_notify_effective: number | null
-          cnt_review: number | null
-          cnt_safe: number | null
-          device_id: string | null
-          effective_threshold: number | null
-          is_in_warmup: boolean | null
-          last_response_at: string | null
-          report_date: string | null
-          top_apps: Json | null
-          total_usage_minutes: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "devices_child_id_fkey"
-            columns: ["child_id"]
-            isOneToOne: false
-            referencedRelation: "children"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      parent_daily_report_for_parent: {
-        Row: {
-          checks_responded: number | null
-          checks_sent: number | null
-          child_id: string | null
-          cnt_notify: number | null
-          cnt_notify_effective: number | null
-          cnt_review: number | null
-          cnt_safe: number | null
-          device_id: string | null
-          effective_threshold: number | null
-          is_in_warmup: boolean | null
-          last_response_at: string | null
-          report_date: string | null
-          top_apps: Json | null
-          total_usage_minutes: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "devices_child_id_fkey"
-            columns: ["child_id"]
-            isOneToOne: false
-            referencedRelation: "children"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      parent_home_snapshot: {
-        Row: {
-          address: string | null
-          alerts_sent: number | null
-          battery_level: number | null
-          child_id: string | null
-          child_name: string | null
-          device_id: string | null
-          last_seen: string | null
-          max_notify_score: number | null
-          messages_scanned: number | null
-          notify_effective_today: number | null
-          stacks_sent_to_ai: number | null
-          top_apps: Json | null
-          top_chats: Json | null
-          total_usage_minutes: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "devices_child_id_fkey"
-            columns: ["child_id"]
-            isOneToOne: false
-            referencedRelation: "children"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      parent_top_chats_today: {
-        Row: {
-          device_id: string | null
-          stat_date: string | null
-          top_chats: Json | null
-        }
-        Relationships: []
-      }
-      view_child_active_chats: {
-        Row: {
-          created_at: string | null
-          friendship_id: string | null
-          peer_id: string | null
-          peer_name: string | null
-          peer_type: string | null
-          receiver_id: string | null
-          requester_id: string | null
-          status: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
-      _generate_family_pairing_code: { Args: never; Returns: string }
-      accept_family_invite: { Args: { p_invite_id: string }; Returns: Json }
-      add_daily_metrics: {
+      v2_action_matches_severity: {
         Args: {
-          p_ai_delta?: number
-          p_alerts_delta?: number
-          p_device_id: string
-          p_messages_delta?: number
-          p_metric_date?: string
+          target_action_code: string
+          target_outcome: string
+          target_severity: string
+        }
+        Returns: boolean
+      }
+      v2_activate_child_install_session_service: {
+        Args: { supplied_activation_token_hash: string }
+        Returns: {
+          expires_at: string
+          guardian_user_id: string
+          install_session_id: string
+          otp_reservation_at: string
+          should_send_otp: boolean
+        }[]
+      }
+      v2_admin_approve_ceo_change_task: {
+        Args: { target_task_id: string }
+        Returns: Json
+      }
+      v2_admin_begin_whatsapp_ceo_canary_send_service: {
+        Args: {
+          target_consulted_agent_id: string
+          target_input_tokens: number
+          target_intent_key: string
+          target_model_key: string
+          target_output_tokens: number
+          target_run_id: string
         }
         Returns: Json
       }
-      approve_chore: { Args: { p_chore_id: string }; Returns: Json }
-      authorize_device_call: { Args: { p_device_id: string }; Returns: string }
-      calc_sunset_utc: {
-        Args: { p_date: string; p_lat: number; p_lon: number }
+      v2_admin_can_read_case: {
+        Args: { target_case_id: string; target_permission_key: string }
+        Returns: boolean
+      }
+      v2_admin_cancel_ceo_change_task: {
+        Args: { target_task_id: string }
+        Returns: Json
+      }
+      v2_admin_ceo_path_array_is_safe: {
+        Args: { target_max_items?: number; target_value: string[] }
+        Returns: boolean
+      }
+      v2_admin_claim_shadow_jobs_service: {
+        Args: {
+          target_batch_size?: number
+          target_environment: string
+          target_lease_seconds?: number
+          target_worker_id: string
+        }
+        Returns: Json
+      }
+      v2_admin_complete_shadow_job_service: {
+        Args: {
+          target_job_id: string
+          target_lease_token: string
+          target_result: Json
+        }
+        Returns: Json
+      }
+      v2_admin_complete_whatsapp_ceo_canary_service: {
+        Args: {
+          target_consulted_agent_id: string
+          target_input_tokens: number
+          target_intent_key: string
+          target_model_key: string
+          target_outbound_provider_message_hmac: string
+          target_output_tokens: number
+          target_run_id: string
+        }
+        Returns: Json
+      }
+      v2_admin_create_ceo_change_task: {
+        Args: {
+          target_aggregate_context_refs: string[]
+          target_allowed_path_scopes: string[]
+          target_contains_raw_child_content?: boolean
+          target_idempotency_key: string
+          target_objective_summary: string
+          target_repository_key: string
+          target_required_check_codes: string[]
+          target_title: string
+        }
+        Returns: Json
+      }
+      v2_admin_current_staff_principal: { Args: never; Returns: string }
+      v2_admin_denied_response: {
+        Args: {
+          target_case_id: string
+          target_conversation_id: string
+          target_field_keys?: string[]
+          target_object_id: string
+          target_object_type: string
+          target_purpose_code: string
+          target_reason_code: string
+        }
+        Returns: Json
+      }
+      v2_admin_fail_shadow_job_service: {
+        Args: {
+          target_failure_code: string
+          target_job_id: string
+          target_lease_token: string
+          target_retryable?: boolean
+        }
+        Returns: Json
+      }
+      v2_admin_fail_whatsapp_ceo_canary_service: {
+        Args: {
+          target_delivery_state: string
+          target_failure_code: string
+          target_run_id: string
+        }
+        Returns: Json
+      }
+      v2_admin_field_envelope: {
+        Args: {
+          target_availability: string
+          target_effective_at: string
+          target_freshness_status: string
+          target_observed_at: string
+          target_received_at: string
+          target_redaction: string
+          target_revision_or_etag: string
+          target_sensitivity: string
+          target_source: string
+          target_value: Json
+        }
+        Returns: Json
+      }
+      v2_admin_get_case: { Args: { target_case_id: string }; Returns: Json }
+      v2_admin_get_conversation: {
+        Args: { target_conversation_id: string }
+        Returns: Json
+      }
+      v2_admin_get_executive_operational_summary: { Args: never; Returns: Json }
+      v2_admin_get_parent_safe_incident: {
+        Args: { target_case_id: string }
+        Returns: Json
+      }
+      v2_admin_get_parental_controls_projection: {
+        Args: { target_case_id: string }
+        Returns: Json
+      }
+      v2_admin_get_service360: {
+        Args: { target_case_id: string }
+        Returns: Json
+      }
+      v2_admin_get_session: { Args: never; Returns: Json }
+      v2_admin_has_permission: {
+        Args: { target_case_id?: string; target_permission_key: string }
+        Returns: boolean
+      }
+      v2_admin_ingest_whatsapp_webhook_foundation_private: {
+        Args: {
+          target_channel_mode: string
+          target_envelope_sha256: string
+          target_environment: string
+          target_items: Json
+          target_received_at: string
+        }
+        Returns: Json
+      }
+      v2_admin_ingest_whatsapp_webhook_service: {
+        Args: {
+          target_channel_mode: string
+          target_envelope_sha256: string
+          target_environment: string
+          target_items: Json
+          target_received_at: string
+        }
+        Returns: Json
+      }
+      v2_admin_is_current_ceo: { Args: never; Returns: boolean }
+      v2_admin_json_is_safe: {
+        Args: { target_max_bytes?: number; target_value: Json }
+        Returns: boolean
+      }
+      v2_admin_list_audit_events: {
+        Args: {
+          target_before_created_at?: string
+          target_before_event_id?: number
+          target_case_id?: string
+          target_limit?: number
+        }
+        Returns: Json
+      }
+      v2_admin_list_case_actions: {
+        Args: { target_case_id: string }
+        Returns: Json
+      }
+      v2_admin_list_case_messages: {
+        Args: {
+          target_before_message_id?: string
+          target_before_server_received_at?: string
+          target_case_id: string
+          target_limit?: number
+        }
+        Returns: Json
+      }
+      v2_admin_list_case_timeline: {
+        Args: {
+          target_before_event_id?: number
+          target_before_occurred_at?: string
+          target_case_id: string
+          target_limit?: number
+        }
+        Returns: Json
+      }
+      v2_admin_list_ceo_change_tasks: {
+        Args: { target_limit?: number }
+        Returns: Json
+      }
+      v2_admin_list_fixture_scenarios: { Args: never; Returns: Json }
+      v2_admin_list_inbox: {
+        Args: {
+          target_before_conversation_id?: string
+          target_before_last_activity_at?: string
+          target_case_status?: string
+          target_limit?: number
+          target_queue_key?: string
+          target_source_mode: string
+        }
+        Returns: Json
+      }
+      v2_admin_manage_whatsapp_ceo_sender_binding_service: {
+        Args: {
+          target_binding_id: string
+          target_ceo_principal_id: string
+          target_expires_at: string
+          target_operation: string
+          target_source_inbound_message_id: string
+        }
+        Returns: Json
+      }
+      v2_admin_provision_staff_service: {
+        Args: {
+          target_display_name: string
+          target_reason: string
+          target_role_keys: string[]
+          target_user_id: string
+        }
         Returns: string
       }
-      can_access_child_row: { Args: { p_parent_id: string }; Returns: boolean }
-      check_unresponsive_devices: { Args: never; Returns: undefined }
-      claim_alert_events: {
-        Args: { _event_type: string; _lease_seconds?: number; _limit?: number }
-        Returns: {
-          alert_id: number
-          attempt: number
-          created_at: string
-          event_type: string
-          id: string
-          last_error: string | null
-          max_attempts: number
-          status: string
-          updated_at: string
-          visible_at: string
-        }[]
-        SetofOptions: {
-          from: "*"
-          to: "alert_events_queue"
-          isOneToOne: false
-          isSetofReturn: true
-        }
-      }
-      claim_family_invite_by_code: {
-        Args: { p_code: string; p_email: string }
-        Returns: Json
-      }
-      cleanup_old_data: { Args: never; Returns: Json }
-      complete_chore: {
-        Args: {
-          p_chore_id: string
-          p_device_id?: string
-          p_photo_base64?: string
-        }
-        Returns: Json
-      }
-      connect_child_device: {
-        Args: {
-          p_device_id: string
-          p_pairing_code: string
-          p_parent_email: string
-        }
-        Returns: Json
-      }
-      create_alert: {
-        Args: {
-          p_ai_verdict?: string
-          p_author_type?: string
-          p_category?: string
-          p_chat_name?: string
-          p_chat_type?: string
-          p_client_event_id?: string
-          p_contact_hash?: string
-          p_device_id: string
-          p_is_processed?: boolean
-          p_message: string
-          p_message_count?: number
-          p_parent_message?: string
-          p_pii_redacted_count?: number
-          p_platform?: string
-          p_risk_level: number
-          p_sender_display?: string
-          p_source: string
-        }
-        Returns: number
-      }
-      create_app_alert: {
-        Args: {
-          p_app_name?: string
-          p_device_id: string
-          p_package_name: string
-        }
-        Returns: string
-      }
-      create_family_invite_with_code:
-        | { Args: { p_email: string }; Returns: Json }
-        | { Args: { p_email: string; p_name?: string }; Returns: Json }
-      current_chat_participant_id: { Args: never; Returns: string }
-      delete_all_my_data: { Args: never; Returns: Json }
-      delete_child_data: { Args: { p_child_id: string }; Returns: Json }
-      delete_friendship_chat: {
-        Args: { p_child_id: string; p_friendship_id: string }
-        Returns: Json
-      }
-      disconnect_device: { Args: { p_device_id: string }; Returns: Json }
-      evaluate_geofences: {
-        Args: {
-          p_child_id: string
-          p_device_id: string
-          p_lat: number
-          p_lon: number
-        }
-        Returns: undefined
-      }
-      export_my_data: { Args: never; Returns: Json }
-      generate_kippy_tag:
-        | { Args: never; Returns: string }
-        | { Args: { p_base: string }; Returns: string }
-      generate_new_pairing_code: { Args: { p_child_id: string }; Returns: Json }
-      generate_pairing_code: { Args: { p_child_id: string }; Returns: string }
-      get_active_ai_config: { Args: never; Returns: Json }
-      get_alert_recipients: { Args: { p_child_id: string }; Returns: string[] }
-      get_chat_peer_info: {
-        Args: { p_participant_id: string }
-        Returns: {
-          peer_name: string
-          peer_type: string
-        }[]
-      }
-      get_chat_thread: {
-        Args: {
-          p_before?: string
-          p_child_id: string
-          p_friendship_id: string
-          p_limit?: number
-        }
-        Returns: {
-          consumed: boolean
-          content: string
-          created_at: string
-          id: string
-          is_view_once: boolean
-          message_type: string
-          sender_id: string
-          signed_url: string
-        }[]
-      }
-      get_child_chores: {
-        Args: { p_child_id: string; p_device_id?: string }
-        Returns: {
-          approved_at: string | null
-          child_id: string
-          completed_at: string | null
-          created_at: string
-          id: string
-          is_recurring: boolean
-          parent_id: string
-          proof_photo_base64: string | null
-          recurrence_days: number[] | null
-          reward_minutes: number
-          status: string
-          title: string
-        }[]
-        SetofOptions: {
-          from: "*"
-          to: "chores"
-          isOneToOne: false
-          isSetofReturn: true
-        }
-      }
-      get_child_daily_metrics: {
-        Args: { p_child_id: string; p_date: string }
-        Returns: {
-          alerts_sent: number
-          messages_scanned: number
-          metric_date: string
-          stacks_sent_to_ai: number
-        }[]
-      }
-      get_child_device_health: { Args: { p_child_id: string }; Returns: Json }
-      get_child_friends: {
-        Args: { p_child_id: string }
-        Returns: {
-          created_at: string
-          friend_child_id: string
-          friend_id: string
-          friend_kippy_tag: string
-          friend_name: string
-          friendship_id: string
-          participant_type: string
-          status: string
-        }[]
-      }
-      get_child_siblings_status: {
-        Args: { p_child_id: string; p_device_id?: string }
-        Returns: {
-          gender: string
-          name: string
-          sibling_id: string
-          streak: number
-        }[]
-      }
-      get_child_top_apps: {
-        Args: { p_child_id: string; p_date: string; p_limit?: number }
-        Returns: {
-          app_name: string
-          package_name: string
-          usage_minutes: number
-        }[]
-      }
-      get_child_top_contacts: {
-        Args: { p_child_id: string; p_date: string; p_limit?: number }
-        Returns: {
-          chat_name: string
-          chat_type: string
-          message_count: number
-        }[]
-      }
-      get_device_id_from_jwt: { Args: never; Returns: string }
-      get_device_lock_state: {
-        Args: { p_child_id: string; p_device_id?: string }
-        Returns: {
-          child_id: string
-          contact_name: string | null
-          contact_phone: string | null
-          created_at: string
-          id: string
-          is_locked: boolean
-          locked_at: string | null
-          locked_by: string | null
-          message: string | null
-          unlocked_at: string | null
-          unlocked_by: string | null
-          updated_at: string
-        }[]
-        SetofOptions: {
-          from: "*"
-          to: "device_lock_state"
-          isOneToOne: false
-          isSetofReturn: true
-        }
-      }
-      get_device_settings: { Args: { p_device_id: string }; Returns: Json }
-      get_disconnected_devices: {
-        Args: { p_child_id: string }
-        Returns: {
-          device_id: string
-          device_manufacturer: string
-          device_model: string
-          last_seen: string
-        }[]
-      }
-      get_family_owner_id: { Args: never; Returns: string }
-      get_my_kippy_tag: { Args: { p_child_id: string }; Returns: string }
-      get_parent_daily_report_for_parent: {
-        Args: { p_report_date: string }
-        Returns: {
-          checks_responded: number
-          checks_sent: number
-          child_id: string
-          cnt_notify: number
-          cnt_notify_effective: number
-          cnt_review: number
-          cnt_safe: number
-          device_id: string
-          effective_threshold: number
-          is_in_warmup: boolean
-          last_response_at: string
-          report_date: string
-          top_apps: Json
-          total_usage_minutes: number
-        }[]
-      }
-      get_parent_daily_report_text: {
-        Args: { p_child_id: string }
-        Returns: string
-      }
-      has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
-        Returns: boolean
-      }
-      haversine_km: {
-        Args: { lat1: number; lat2: number; lon1: number; lon2: number }
-        Returns: number
-      }
-      hide_chat_thread: {
-        Args: { p_friendship_id: string }
-        Returns: undefined
-      }
-      increment_daily_chat_stat: {
-        Args: {
-          p_chat_name: string
-          p_chat_type: string
-          p_child_id: string
-          p_delta?: number
-          p_device_id: string
-          p_platform?: string
-          p_stat_date?: string
-        }
-        Returns: Json
-      }
-      invite_co_parent: {
-        Args: { p_email: string; p_receive_alerts?: boolean }
-        Returns: Json
-      }
-      is_admin: { Args: never; Returns: boolean }
-      is_caller_in_friendship: {
-        Args: { p_friendship_id: string }
-        Returns: boolean
-      }
-      is_calling_device_in_friendship: {
-        Args: { p_friendship_id: string }
-        Returns: boolean
-      }
-      is_calling_user_in_friendship: {
-        Args: { p_friendship_id: string }
-        Returns: boolean
-      }
-      is_calling_user_participant: {
-        Args: { p_participant_id: string }
-        Returns: boolean
-      }
-      is_child_in_friendship: {
-        Args: { p_child_id: string; p_friendship_id: string }
-        Returns: boolean
-      }
-      is_child_of_calling_device: {
-        Args: { p_child_id: string }
-        Returns: boolean
-      }
-      is_child_owner: { Args: { p_child_id: string }; Returns: boolean }
-      is_email_allowed: { Args: { p_email: string }; Returns: boolean }
-      is_family_parent: { Args: { p_child_id: string }; Returns: boolean }
-      is_family_parent_for_device: {
-        Args: { p_device_id: string }
-        Returns: boolean
-      }
-      is_paired_device: { Args: { p_device_id: string }; Returns: boolean }
-      is_participant_in_friendship: {
-        Args: { p_friendship_id: string; p_participant_id: string }
-        Returns: boolean
-      }
-      list_my_chats: {
+      v2_admin_reconcile_whatsapp_ceo_canary_statuses_service: {
         Args: never
-        Returns: {
-          friendship_id: string
-          last_message: string
-          last_message_at: string
-          last_message_type: string
-          peer_id: string
-          peer_name: string
-          peer_type: string
-          unread_count: number
-        }[]
+        Returns: Json
       }
-      lock_child_device: {
+      v2_admin_reserve_whatsapp_ceo_canary_service: {
         Args: {
-          p_child_id: string
-          p_contact_name: string
-          p_contact_phone: string
-          p_message?: string
+          target_ceo_principal_id: string
+          target_inbound_provider_message_hmac: string
+          target_provider_account_hmac: string
+          target_provider_phone_scope_hmac: string
+          target_sender_lookup_hmac: string
         }
         Returns: Json
       }
-      mark_media_viewed: {
-        Args: { p_message_id: string; p_viewer_id: string }
-        Returns: Json
-      }
-      maybe_recalc_nearest_issur_window: {
-        Args: { p_child_id: string; p_new_lat: number; p_new_lon: number }
-        Returns: undefined
-      }
-      pair_device: {
-        Args: { p_device_id: string; p_pairing_code: string }
-        Returns: {
-          child_gender: string
-          child_id: string
-          child_name: string
-          error_message: string
-          success: boolean
-        }[]
-      }
-      purge_expired_chat_messages: { Args: never; Returns: undefined }
-      reconnect_device: {
-        Args: { p_child_id: string; p_device_id: string }
-        Returns: Json
-      }
-      redeem_reward_minutes: {
-        Args: { p_child_id: string; p_minutes: number }
-        Returns: Json
-      }
-      refund_reward_minutes: {
-        Args: { p_child_id: string; p_minutes_to_refund: number }
-        Returns: Json
-      }
-      regenerate_family_invite_code: {
-        Args: { p_invite_id: string }
-        Returns: Json
-      }
-      reject_chore: { Args: { p_chore_id: string }; Returns: Json }
-      report_ai_incident_summary: {
+      v2_admin_set_shadow_job_input_service: {
         Args: {
-          p_chat_id: string
-          p_chat_type: string
-          p_child_id?: string
-          p_child_role?: string
-          p_confidence?: number
-          p_device_id: string
-          p_evidence_message_ids?: Json
-          p_evidence_snippets?: Json
-          p_incident_action: string
-          p_is_open?: boolean
-          p_risk_type: string
-          p_severity: string
-          p_why_short?: string
+          target_envelope: Json
+          target_idempotency_key: string
+          target_job_id: string
         }
         Returns: Json
       }
-      report_ai_suppression_event: {
-        Args: {
-          p_chat_id?: string
-          p_child_id?: string
-          p_current_severity?: string
-          p_device_id: string
-          p_last_alert_sent_at?: string
-          p_previous_severity?: string
-          p_risk_type?: string
-          p_suppression_reason?: string
-        }
-        Returns: Json
+      v2_admin_shadow_object_keys_are_allowed: {
+        Args: { target_allowed_keys: string[]; target_value: Json }
+        Returns: boolean
       }
-      report_ai_telemetry: {
-        Args: {
-          p_child_id?: string
-          p_device_id: string
-          p_engine_type?: string
-          p_event_type?: string
-          p_failure_reason?: string
-          p_fallback_triggered?: boolean
-          p_latency_ms?: number
-          p_model_version?: string
-          p_success?: boolean
-        }
-        Returns: Json
+      v2_admin_shadow_safe_code: {
+        Args: { target_max_length?: number; target_value: string }
+        Returns: boolean
       }
-      report_device_heartbeat: {
+      v2_admin_shadow_string_array_is_safe: {
         Args: {
-          p_child_id: string
-          p_device: Json
-          p_device_id: string
-          p_permissions: Json
-          p_timestamp: string
+          target_max_items: number
+          target_max_length: number
+          target_value: Json
         }
-        Returns: undefined
+        Returns: boolean
       }
-      report_installed_apps: {
-        Args: { p_apps: Json; p_device_id: string }
-        Returns: undefined
+      v2_admin_valid_ciphertext_envelope: {
+        Args: { target_value: Json }
+        Returns: boolean
       }
-      report_nightly_usage: {
+      v2_admin_valid_crypto_key_ids: {
+        Args: { target_value: Json }
+        Returns: boolean
+      }
+      v2_admin_valid_shadow_envelope: {
         Args: {
-          p_device_id: string
-          p_report_date?: string
-          p_top_app_minutes?: number
-          p_top_app_name?: string
-          p_top_app_package?: string
-          p_total_minutes: number
+          target_case_id: string
+          target_job_id: string
+          target_message_id: string
+          target_value: Json
         }
+        Returns: boolean
+      }
+      v2_admin_valid_shadow_result: {
+        Args: {
+          target_case_id: string
+          target_job_id: string
+          target_value: Json
+        }
+        Returns: boolean
+      }
+      v2_admin_whatsapp_ceo_agent_for_intent: {
+        Args: { target_intent_key: string }
         Returns: string
       }
-      report_pending_app: {
+      v2_admin_write_audit_event: {
         Args: {
-          p_app_name?: string
-          p_device_id: string
-          p_package_name: string
-          p_was_blocked_attempt?: boolean
+          target_case_id: string
+          target_conversation_id: string
+          target_correlation_id: string
+          target_event_type: string
+          target_field_keys: string[]
+          target_object_id: string
+          target_object_type: string
+          target_outcome: string
+          target_purpose_code: string
+          target_reason_code: string
+          target_safe_metadata: Json
         }
-        Returns: Json
+        Returns: number
       }
-      request_extra_time: {
-        Args: { p_child_id: string; p_device_id?: string; p_reason: string }
-        Returns: Json
+      v2_analyzer_capability_is_valid: {
+        Args: { target_capability_token: string }
+        Returns: boolean
       }
-      request_parental_control_command_v2: {
+      v2_begin_ephemeral_incident_analysis_service: {
         Args: {
-          p_command_type: string
-          p_device_id: string
-          p_payload?: Json
-          p_request_key?: string
-          p_ttl_seconds?: number
+          target_capture_quality: number
+          target_category: string
+          target_child_role: string
+          target_client_incident_id: string
+          target_confidence: number
+          target_context_expires_at: string
+          target_device_id: string
+          target_key_version: number
+          target_lease_seconds?: number
+          target_message_count: number
+          target_model_contract_version: number
+          target_occurred_at: string
+          target_privacy_contract_version: number
+          target_privacy_identity_version: number
+          target_severity: string
+          target_submission_hash_hex: string
         }
         Returns: {
-          acknowledged_at: string | null
+          analysis_outcome: string
+          analysis_state: string
+          created: boolean
+          delivery_count: number
+          incident_id: string
+          incident_status: string
+          lease_token: string
+        }[]
+      }
+      v2_bootstrap_guardian: {
+        Args: {
+          target_display_name: string
+          target_family_id: string
+          target_phone: string
+          target_request_key: string
+        }
+        Returns: {
+          created: boolean
+          family_id: string
+        }[]
+      }
+      v2_bump_parental_revision_service: {
+        Args: { target_actor: string; target_child_id: string }
+        Returns: number
+      }
+      v2_child_age_band: {
+        Args: { target_birth_year: number; target_year?: number }
+        Returns: string
+      }
+      v2_claim_device_commands_service: {
+        Args: { requested_limit?: number; target_device_id: string }
+        Returns: {
           command_type: string
-          completed_at: string | null
-          created_at: string
-          device_id: string
-          error_code: string | null
-          expires_at: string | null
+          expires_at: string
           id: string
           payload: Json
-          request_key: string | null
-          requested_by: string | null
-          result: string | null
+        }[]
+      }
+      v2_claim_incident_analysis_service: {
+        Args: {
+          target_capability_token: string
+          target_lease_seconds: number
+          target_worker_id: string
+        }
+        Returns: {
+          aad_version: number
+          capture_quality_canonical: string
+          category: string
+          child_id: string
+          child_role: string
+          client_incident_id: string
+          confidence_canonical: string
+          context_expires_at_canonical: string
+          device_id: string
+          encrypted_payload_base64: string
+          encryption_algorithm: string
+          incident_id: string
+          key_version: number
+          lease_expires_at_canonical: string
+          lease_token: string
+          message_count: number
+          model_contract_version: number
+          occurred_at_canonical: string
+          privacy_contract_version: number
+          privacy_identity_version: number
+          severity: string
+        }[]
+      }
+      v2_claim_incident_analysis_uncanonicalized_internal: {
+        Args: {
+          target_capability_token: string
+          target_lease_seconds: number
+          target_worker_id: string
+        }
+        Returns: {
+          aad_version: number
+          capture_quality_canonical: string
+          category: string
+          child_id: string
+          child_role: string
+          client_incident_id: string
+          confidence_canonical: string
+          context_expires_at_canonical: string
+          device_id: string
+          encrypted_payload_base64: string
+          encryption_algorithm: string
+          incident_id: string
+          key_version: number
+          lease_expires_at_canonical: string
+          lease_token: string
+          message_count: number
+          model_contract_version: number
+          occurred_at_canonical: string
+          privacy_contract_version: number
+          privacy_identity_version: number
+          severity: string
+        }[]
+      }
+      v2_claim_monitoring_delivery_service: {
+        Args: {
+          target_capability_token: string
+          target_lease_seconds?: number
+          target_worker_id: string
+        }
+        Returns: {
+          alert_type: string
+          attempt_number: number
+          child_id: string
+          delivery_id: string
+          device_id: string
+          episode_id: string
+          expires_at: string
+          lease_token: string
+          severity: string
+          targets: Json
+          transition_id: string
+          transition_state_version: number
+        }[]
+      }
+      v2_claim_push_delivery_service: {
+        Args: {
+          target_capability_token: string
+          target_lease_seconds?: number
+          target_worker_id: string
+        }
+        Returns: {
+          attempt_number: number
+          delivery_id: string
+          incident_id: string
+          lease_token: string
+          targets: Json
+        }[]
+      }
+      v2_cmo_can_transition: {
+        Args: {
+          from_status: Database["public"]["Enums"]["v2_cmo_workflow_status"]
+          to_status: Database["public"]["Enums"]["v2_cmo_workflow_status"]
+        }
+        Returns: boolean
+      }
+      v2_cmo_create_campaign_brief: {
+        Args: {
+          target_audience: string
+          target_channel: string
+          target_constraints?: Json
+          target_hypothesis: string
+          target_launch_stage: string
+          target_objective: string
+          target_single_cta: string
+          target_source_versions?: Json
+          target_success_signals?: Json
+        }
+        Returns: string
+      }
+      v2_cmo_create_content_item: {
+        Args: {
+          target_brief_id: string
+          target_claim_refs?: Json
+          target_content_hash: string
+          target_copy: Json
+          target_creative_refs?: Json
+          target_format: string
+          target_utm?: Json
+        }
+        Returns: string
+      }
+      v2_cmo_create_publication_intent: {
+        Args: {
+          target_approval_id: string
+          target_channel: string
+          target_content_hash: string
+          target_idempotency_key: string
+          target_resource_id: string
+          target_resource_type: string
+          target_scheduled_for?: string
+        }
+        Returns: string
+      }
+      v2_cmo_decide_content_approval: {
+        Args: {
+          target_approval_id: string
+          target_content_hash: string
+          target_decision: string
+          target_decision_note?: string
+        }
+        Returns: string
+      }
+      v2_cmo_list_pending_approvals: {
+        Args: { target_limit?: number }
+        Returns: {
+          approval_id: string
+          content_hash: string
+          expires_at: string
+          launch_stage: string
+          preview: Json
+          requested_at: string
+          resource_id: string
+          resource_type: string
+          risk: string
+          unresolved_risks: Json
+        }[]
+      }
+      v2_cmo_record_claim_review: {
+        Args: {
+          target_claim_gate_result: string
+          target_claim_refs?: Json
+          target_content_hash: string
+          target_content_id: string
+        }
+        Returns: string
+      }
+      v2_cmo_request_content_approval: {
+        Args: {
+          target_content_hash: string
+          target_content_id: string
+          target_expires_at?: string
+          target_preview: Json
+          target_risk: string
+          target_source_versions: Json
+          target_unresolved_risks?: Json
+        }
+        Returns: string
+      }
+      v2_cmo_require_permission: {
+        Args: { target_permission_key: string }
+        Returns: string
+      }
+      v2_cmo_write_audit_internal: {
+        Args: {
+          target_actor_principal_id: string
+          target_event_type: string
+          target_payload?: Json
+          target_resource_id: string
+          target_resource_type: string
+        }
+        Returns: undefined
+      }
+      v2_complete_child_install_service: {
+        Args: {
+          actor_user_id: string
+          credential_expires_at: string
+          new_credential_hash: string
+          target_app_version: string
+          target_capture_contract_version: number
+          target_installation_id: string
+          target_manufacturer: string
+          target_model: string
+        }
+        Returns: {
+          child_id: string
+          credential_expiry: string
+          credential_key_version: number
+          device_id: string
+        }[]
+      }
+      v2_complete_monitoring_delivery_service: {
+        Args: {
+          target_capability_token: string
+          target_delivery_id: string
+          target_lease_token: string
+          target_results: Json
+          target_worker_id: string
+        }
+        Returns: {
+          delivery_status: string
+          invalid_target_count: number
+          provider_accepted_count: number
+          retry_scheduled: boolean
+          suppression_reason: string
+        }[]
+      }
+      v2_complete_pairing_service: {
+        Args: {
+          credential_expires_at: string
+          new_credential_hash: string
+          supplied_code_hash: string
+          target_app_version: string
+          target_capture_contract_version: number
+          target_installation_id: string
+          target_manufacturer: string
+          target_model: string
+          target_pairing_id: string
+        }
+        Returns: {
+          child_id: string
+          credential_expiry: string
+          credential_key_version: number
+          device_id: string
+        }[]
+      }
+      v2_complete_push_delivery_service: {
+        Args: {
+          target_capability_token: string
+          target_delivery_id: string
+          target_lease_token: string
+          target_results: Json
+          target_worker_id: string
+        }
+        Returns: {
+          delivery_status: string
+          invalid_target_count: number
+          retry_scheduled: boolean
+          sent_target_count: number
+        }[]
+      }
+      v2_constant_time_digest_equal_internal: {
+        Args: { left_digest: string; right_digest: string }
+        Returns: boolean
+      }
+      v2_create_child_install_session_service: {
+        Args: {
+          actor_user_id: string
+          new_activation_token_hash: string
+          target_child_id: string
+          target_expires_at: string
+          target_session_id: string
+        }
+        Returns: {
+          expires_at: string
+          install_session_id: string
+        }[]
+      }
+      v2_create_guardian_child:
+        | {
+            Args: {
+              target_birth_year: number
+              target_child_id: string
+              target_display_name: string
+              target_family_id: string
+              target_gender: string
+              target_request_key: string
+            }
+            Returns: {
+              birth_year: number
+              child_id: string
+              created: boolean
+              display_name: string
+              family_id: string
+              gender: string
+              status: string
+            }[]
+          }
+        | {
+            Args: {
+              target_birth_year: number
+              target_child_id: string
+              target_display_name: string
+              target_family_id: string
+              target_request_key: string
+            }
+            Returns: {
+              birth_year: number
+              child_id: string
+              created: boolean
+              display_name: string
+              family_id: string
+              status: string
+            }[]
+          }
+      v2_create_pairing_session_service: {
+        Args: {
+          actor_user_id: string
+          new_code_hash: string
+          target_child_id: string
+          target_expires_at: string
+          target_pairing_id: string
+        }
+        Returns: {
+          expires_at: string
+          pairing_id: string
+        }[]
+      }
+      v2_create_parental_time_request_service: {
+        Args: {
+          requested_minutes: number
+          target_device_id: string
+          target_expires_at: string
+          target_reason: string
+          target_request_id: string
+        }
+        Returns: boolean
+      }
+      v2_delete_expired_incident_context_service: {
+        Args: { requested_limit?: number }
+        Returns: number
+      }
+      v2_delete_parental_geofence: {
+        Args: {
+          target_child_id: string
+          target_geofence_id: string
+          target_request_key: string
+        }
+        Returns: number
+      }
+      v2_delete_parental_schedule: {
+        Args: {
+          target_child_id: string
+          target_request_key: string
+          target_schedule_id: string
+        }
+        Returns: number
+      }
+      v2_dispatch_expert_analyzer_internal: {
+        Args: { target_max_requests?: number }
+        Returns: number
+      }
+      v2_dispatch_push_worker_internal: {
+        Args: { target_max_requests?: number }
+        Returns: number
+      }
+      v2_enqueue_monitoring_alerts_service: {
+        Args: { target_transition_id: string }
+        Returns: undefined
+      }
+      v2_enqueue_refresh_for_child_service: {
+        Args: {
+          target_actor: string
+          target_child_id: string
+          target_request_key: string
+          target_revision: number
+        }
+        Returns: number
+      }
+      v2_finalize_ephemeral_incident_analysis_service:
+        | {
+            Args: {
+              target_action_code: string
+              target_evidence_segment_refs: string[]
+              target_expert_category: string
+              target_expert_child_role: string
+              target_expert_confidence: number
+              target_expert_pattern: string
+              target_expert_severity: string
+              target_expert_urgency: string
+              target_incident_id: string
+              target_lease_token: string
+              target_model_version: string
+              target_outcome: string
+              target_policy_channels: string[]
+              target_reason_code: string
+              target_secondary_categories: string[]
+            }
+            Returns: {
+              analysis_outcome: string
+              delivery_count: number
+              incident_status: string
+            }[]
+          }
+        | {
+            Args: {
+              target_action_code: string
+              target_evidence_segment_refs: string[]
+              target_expert_category: string
+              target_expert_child_role: string
+              target_expert_confidence: number
+              target_expert_pattern: string
+              target_expert_severity: string
+              target_expert_urgency: string
+              target_incident_id: string
+              target_lease_token: string
+              target_model_version: string
+              target_outcome: string
+              target_policy_channels: string[]
+              target_prompt_version: string
+              target_reason_code: string
+              target_secondary_categories: string[]
+            }
+            Returns: {
+              analysis_outcome: string
+              delivery_count: number
+              incident_status: string
+            }[]
+          }
+      v2_finalize_incident_analysis_internal: {
+        Args: {
+          target_action_code: string
+          target_analysis_contract_version: number
+          target_expert_category: string
+          target_incident_id: string
+          target_model_name: string
+          target_model_provider: string
+          target_model_version: string
+          target_outcome: string
+          target_prompt_version: string
+          target_reason_code: string
+        }
+        Returns: {
+          analysis_outcome: string
+          delivery_count: number
+          incident_status: string
+        }[]
+      }
+      v2_finalize_incident_analysis_service: {
+        Args: {
+          target_action_code: string
+          target_capability_token: string
+          target_evidence_segment_refs: string[]
+          target_expert_category: string
+          target_expert_child_role: string
+          target_expert_confidence: number
+          target_expert_pattern: string
+          target_expert_severity: string
+          target_expert_urgency: string
+          target_incident_id: string
+          target_lease_token: string
+          target_model_version: string
+          target_outcome: string
+          target_policy_channels: string[]
+          target_reason_code: string
+          target_secondary_categories: string[]
+          target_worker_id: string
+        }
+        Returns: {
+          analysis_outcome: string
+          delivery_count: number
+          incident_status: string
+        }[]
+      }
+      v2_finish_device_command_service: {
+        Args: {
+          target_command_id: string
+          target_device_id: string
+          target_failure_code?: string
+          target_status: string
+        }
+        Returns: boolean
+      }
+      v2_get_active_incident_encryption_key_service: {
+        Args: never
+        Returns: {
+          accepts_until: string
+          algorithm: string
+          key_version: number
+          public_key_pem: string
+        }[]
+      }
+      v2_get_child_install_session_status: {
+        Args: { target_session_id: string }
+        Returns: {
+          expires_at: string
           status: string
+        }[]
+      }
+      v2_get_guardian_push_state: {
+        Args: { target_installation_id: string }
+        Returns: {
+          endpoint_status: string
+          is_subscribed: boolean
+          last_seen_at: string
+          permission_state: string
+        }[]
+      }
+      v2_grant_parent_bonus_time: {
+        Args: {
+          requested_minutes: number
+          target_child_id: string
+          target_request_key: string
+        }
+        Returns: {
+          created: boolean
+          grant_id: string
+          settings_revision: number
+        }[]
+      }
+      v2_guardian_can_read_confirmed_incident: {
+        Args: { target_incident_id: string }
+        Returns: boolean
+      }
+      v2_is_child_guardian: {
+        Args: { target_child_id: string }
+        Returns: boolean
+      }
+      v2_is_device_guardian: {
+        Args: { target_device_id: string }
+        Returns: boolean
+      }
+      v2_is_family_guardian: {
+        Args: { target_family_id: string }
+        Returns: boolean
+      }
+      v2_marketing_touch_is_valid: {
+        Args: { target_touch: Json }
+        Returns: boolean
+      }
+      v2_monitoring_push_capability_is_valid: {
+        Args: { target_capability_token: string }
+        Returns: boolean
+      }
+      v2_p0_private_text_activation_snapshot_service: {
+        Args: { target_device_id: string; target_settings_revision: number }
+        Returns: Json
+      }
+      v2_parent_action_template: {
+        Args: { target_action_code: string }
+        Returns: string
+      }
+      v2_parent_avoid_template: {
+        Args: { target_category: string }
+        Returns: string
+      }
+      v2_parent_guidance_codes: {
+        Args: {
+          target_action_code: string
+          target_category: string
+          target_severity: string
+        }
+        Returns: string[]
+      }
+      v2_parent_next_action_template: {
+        Args: {
+          target_action_code: string
+          target_category: string
+          target_severity: string
+        }
+        Returns: string
+      }
+      v2_parent_opening_template: {
+        Args: { target_age_band: string; target_category: string }
+        Returns: string
+      }
+      v2_parent_reason_template: {
+        Args: { target_reason_code: string }
+        Returns: string
+      }
+      v2_parent_summary_template: {
+        Args: { target_category: string }
+        Returns: string
+      }
+      v2_parental_settings_snapshot_service: {
+        Args: { target_device_id: string }
+        Returns: Json
+      }
+      v2_push_worker_capability_is_valid: {
+        Args: { target_capability_token: string }
+        Returns: boolean
+      }
+      v2_reap_incident_analysis_jobs_internal: { Args: never; Returns: number }
+      v2_reason_matches_category: {
+        Args: {
+          target_category: string
+          target_outcome: string
+          target_reason_code: string
+        }
+        Returns: boolean
+      }
+      v2_record_incident_analysis_failure_service: {
+        Args: {
+          target_capability_token: string
+          target_error_code: string
+          target_failure_class: string
+          target_incident_id: string
+          target_lease_token: string
+          target_retryable: boolean
+          target_worker_id: string
+        }
+        Returns: {
+          attempt_count: number
+          job_state: string
+        }[]
+      }
+      v2_register_device_service: {
+        Args: {
+          actor_user_id: string
+          credential_expires_at: string
+          new_credential_hash: string
+          target_app_version: string
+          target_capture_contract_version: number
+          target_child_id: string
+          target_installation_id: string
+          target_manufacturer: string
+          target_model: string
+        }
+        Returns: {
+          credential_expiry: string
+          credential_key_version: number
+          device_id: string
+        }[]
+      }
+      v2_register_guardian_push_endpoint: {
+        Args: {
+          target_auth_secret: string
+          target_endpoint: string
+          target_installation_id: string
+          target_locale: string
+          target_p256dh: string
+          target_user_agent: string
+        }
+        Returns: {
+          endpoint_id: string
+          endpoint_last_seen_at: string
+          endpoint_status: string
+        }[]
+      }
+      v2_release_child_install_otp_reservation_service: {
+        Args: {
+          expected_otp_reservation_at: string
+          target_install_session_id: string
+        }
+        Returns: boolean
+      }
+      v2_release_ephemeral_incident_analysis_service: {
+        Args: { target_incident_id: string; target_lease_token: string }
+        Returns: boolean
+      }
+      v2_report_device_health_service: {
+        Args: {
+          target_accessibility_enabled: boolean
+          target_battery_optimization_exempt: boolean
+          target_capture_ready: boolean
+          target_degraded_reasons: string[]
+          target_device_id: string
+          target_event_key: string
+          target_notification_listener_enabled: boolean
+          target_observed_at: string
+          target_oem_autostart_state: string
+        }
+        Returns: boolean
+      }
+      v2_report_device_health_v2_service: {
+        Args: {
+          target_accessibility_enabled: boolean
+          target_app_version: string
+          target_battery_level_percent: number
+          target_battery_optimization_exempt: boolean
+          target_boot_session_id: string
+          target_capabilities: Json
+          target_capture_ready: boolean
+          target_contract_version: number
+          target_degraded_reasons: string[]
+          target_device_id: string
+          target_event_key: string
+          target_expected_interval_seconds: number
+          target_notification_listener_enabled: boolean
+          target_observed_at: string
+          target_oem_autostart_state: string
+          target_product_ready: boolean
+          target_report_reason: string
+          target_sequence_no: number
+        }
+        Returns: {
+          accepted: boolean
+          affects_current_state: boolean
+          duplicate: boolean
+          monitoring_state: string
+          state_version: number
+        }[]
+      }
+      v2_report_geofence_events_service: {
+        Args: { target_device_id: string; target_events: Json }
+        Returns: number
+      }
+      v2_report_parental_state_service: {
+        Args: {
+          target_app_usage: Json
+          target_blocked_attempts: Json
+          target_device_id: string
+          target_event_key: string
+          target_installed_apps: Json
+          target_latitude: number
+          target_location_accuracy_meters: number
+          target_location_address: string
+          target_location_observed_at: string
+          target_longitude: number
+          target_observed_at: string
+          target_settings_revision: number
+          target_total_screen_minutes: number
+          target_usage_date: string
+        }
+        Returns: {
+          accepted: boolean
+          affects_current_state: boolean
+        }[]
+      }
+      v2_request_parental_command: {
+        Args: {
+          requested_ttl_seconds?: number
+          target_command_type: string
+          target_device_id: string
+          target_payload: Json
+          target_request_key: string
+        }
+        Returns: {
+          command_type: string
+          created_at: string
+          expires_at: string
+          id: string
+          status: string
+        }[]
+      }
+      v2_require_parental_request_key_service: {
+        Args: { target_request_key: string }
+        Returns: undefined
+      }
+      v2_respond_parental_time_request: {
+        Args: {
+          target_approved: boolean
+          target_approved_minutes: number
+          target_request_id: string
+          target_request_key: string
+        }
+        Returns: number
+      }
+      v2_revoke_guardian_push_endpoint: {
+        Args: {
+          target_installation_id: string
+          target_permission_state?: string
+        }
+        Returns: boolean
+      }
+      v2_set_geofence_preferences: {
+        Args: {
+          target_child_id: string
+          target_exit_debounce_seconds: number
+          target_home_exit_alert_enabled: boolean
+          target_request_key: string
+          target_school_exit_alert_enabled: boolean
+        }
+        Returns: number
+      }
+      v2_set_guardian_incident_state: {
+        Args: {
+          target_incident_id: string
+          target_request_key: string
+          target_state: string
+        }
+        Returns: {
+          acknowledged_at: string
+          guardian_user_id: string
+          incident_id: string
+          saved_at: string
+          state: string
           updated_at: string
-        }
+        }[]
       }
-      respond_friend_request: {
+      v2_set_lost_mode: {
         Args: {
-          p_accept: boolean
-          p_friendship_id: string
-          p_receiver_child_id: string
+          target_child_id: string
+          target_enabled: boolean
+          target_message: string
+          target_request_key: string
         }
-        Returns: Json
+        Returns: number
       }
-      respond_time_request: {
-        Args: { p_approved: boolean; p_minutes: number; p_request_id: string }
-        Returns: Json
-      }
-      retry_failed_queue_items: { Args: never; Returns: Json }
-      revoke_co_parent: { Args: { p_membership_id: string }; Returns: Json }
-      send_chat_message:
-        | {
-            Args: {
-              p_content: string
-              p_friendship_id: string
-              p_is_view_once?: boolean
-              p_message_type?: string
-            }
-            Returns: string
-          }
-        | {
-            Args: {
-              p_content: string
-              p_friendship_id: string
-              p_is_view_once?: boolean
-              p_message_type: string
-              p_sender_id: string
-            }
-            Returns: Json
-          }
-      send_friend_request: {
-        Args: { p_requester_child_id: string; p_target_kippy_tag: string }
-        Returns: Json
-      }
-      send_locate_to_all_devices: { Args: never; Returns: undefined }
-      unlock_child_device: { Args: { p_child_id: string }; Returns: Json }
-      update_device_location: {
+      v2_set_p0_private_text_activation_service: {
         Args: {
-          p_address?: string
-          p_device_id: string
-          p_lat: number
-          p_lon: number
+          target_device_id: string
+          target_enabled: boolean
+          target_expected_settings_revision: number
+          target_valid_until: string
         }
-        Returns: undefined
-      }
-      update_device_settings: {
-        Args: { p_device_id: string; p_settings: Json }
         Returns: Json
       }
-      update_device_status: {
+      v2_set_parental_app_policy: {
         Args: {
-          p_battery?: number
-          p_device_id: string
-          p_device_manufacturer?: string
-          p_device_model?: string
-          p_lat?: number
-          p_lon?: number
+          target_always_allowed: boolean
+          target_app_name: string
+          target_child_id: string
+          target_daily_limit_minutes: number
+          target_package_name: string
+          target_policy_status: string
+          target_request_key: string
         }
-        Returns: Json
+        Returns: number
       }
-      upsert_ai_engine_health: {
+      v2_set_screen_time_limit: {
         Args: {
-          p_child_id?: string
-          p_device_id: string
-          p_last_failure_reason?: string
-          p_last_slm_latency_ms?: number
-          p_last_voice_latency_ms?: number
-          p_selected_slm_engine?: string
-          p_selected_voice_engine?: string
-          p_slm_engine_status?: string
-          p_slm_failure_count?: number
-          p_voice_engine_status?: string
-          p_voice_failure_count?: number
+          requested_minutes: number
+          target_child_id: string
+          target_request_key: string
         }
-        Returns: Json
+        Returns: number
       }
-      upsert_app_usage: {
+      v2_submit_marketing_waitlist: {
         Args: {
-          p_app_name: string
-          p_device_id: string
-          p_package_name: string
-          p_usage_date?: string
-          p_usage_minutes: number
+          target_child_age: number
+          target_device_os: string
+          target_email: string
+          target_first_touch?: Json
+          target_landing_path?: string
+          target_marketing_notice_version?: string
+          target_parent_name: string
+          target_phone: string
+          target_referral_other?: string
+          target_referral_source?: string
+          target_referrer_host?: string
+          target_region?: string
+          target_submission_touch?: Json
         }
-        Returns: undefined
+        Returns: string
       }
-      upsert_device_ai_profile: {
+      v2_submit_safety_incident_service: {
         Args: {
-          p_child_id?: string
-          p_device_id: string
-          p_device_tier?: string
-          p_last_failure_reason?: string
-          p_selected_slm_engine?: string
-          p_selected_voice_engine?: string
-          p_slm_supported?: boolean
-          p_supports_aicore?: boolean
-          p_voice_supported?: boolean
+          target_capture_quality: number
+          target_category: string
+          target_child_role: string
+          target_client_incident_id: string
+          target_confidence: number
+          target_context_expires_at: string
+          target_device_id: string
+          target_encrypted_payload_base64: string
+          target_encryption_algorithm: string
+          target_key_version: number
+          target_message_count: number
+          target_model_contract_version: number
+          target_occurred_at: string
+          target_privacy_contract_version: number
+          target_privacy_identity_version: number
+          target_severity: string
         }
+        Returns: {
+          created: boolean
+          incident_id: string
+        }[]
+      }
+      v2_suppress_monitoring_delivery_backlog_internal: {
+        Args: { target_cutoff?: string }
         Returns: Json
       }
-      verify_parent_code: {
-        Args: { p_code: string; p_email: string }
-        Returns: Json
+      v2_suppress_monitoring_delivery_internal: {
+        Args: {
+          target_actor_type?: string
+          target_delivery_id: string
+          target_reason: string
+        }
+        Returns: boolean
+      }
+      v2_sweep_monitoring_liveness_service: {
+        Args: { target_now?: string }
+        Returns: number
+      }
+      v2_update_guardian_profile: {
+        Args: {
+          target_display_name: string
+          target_phone: string
+          target_request_key: string
+        }
+        Returns: {
+          display_name: string
+          phone: string
+          updated_at: string
+        }[]
+      }
+      v2_upsert_parental_geofence: {
+        Args: {
+          target_alert_on_enter: boolean
+          target_alert_on_exit: boolean
+          target_child_id: string
+          target_days_of_week: number[]
+          target_end_time: string
+          target_geofence_id: string
+          target_is_active: boolean
+          target_label: string
+          target_latitude: number
+          target_longitude: number
+          target_place_type: string
+          target_radius_meters: number
+          target_request_key: string
+          target_schedule_mode: string
+          target_start_time: string
+        }
+        Returns: number
+      }
+      v2_upsert_parental_schedule: {
+        Args: {
+          target_child_id: string
+          target_days_of_week: number[]
+          target_end_time: string
+          target_is_active: boolean
+          target_mode: string
+          target_name: string
+          target_request_key: string
+          target_schedule_id: string
+          target_schedule_type: string
+          target_start_time: string
+        }
+        Returns: number
+      }
+      v2_v3_action_for_inference: {
+        Args: {
+          target_outcome: string
+          target_primary_category: string
+          target_severity: string
+          target_urgency: string
+        }
+        Returns: string
+      }
+      v2_v3_channels_for_inference: {
+        Args: {
+          target_outcome: string
+          target_severity: string
+          target_urgency: string
+        }
+        Returns: string[]
+      }
+      v2_v3_reason_for_inference: {
+        Args: { target_outcome: string; target_primary_category: string }
+        Returns: string
+      }
+      v2_valid_expert_secondary_categories: {
+        Args: {
+          target_primary_category: string
+          target_secondary_categories: string[]
+        }
+        Returns: boolean
+      }
+      v2_valid_segment_refs: {
+        Args: { target_refs: string[] }
+        Returns: boolean
+      }
+      v2_valid_web_push_endpoint: {
+        Args: { target_endpoint: string }
+        Returns: boolean
       }
     }
     Enums: {
-      app_role: "admin" | "user"
+      v2_app_install_source: "store" | "sideload" | "unknown"
+      v2_cmo_approval_status:
+        | "PENDING"
+        | "APPROVED"
+        | "REJECTED"
+        | "EXPIRED"
+        | "CANCELLED"
+      v2_cmo_workflow_status:
+        | "DRAFT"
+        | "POLICY_REVIEW"
+        | "AWAITING_APPROVAL"
+        | "APPROVED"
+        | "SCHEDULED"
+        | "PUBLISHED"
+        | "VERIFIED"
+        | "REJECTED"
+        | "FAILED"
+        | "CANCELLED"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -4012,7 +6488,26 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "user"],
+      v2_app_install_source: ["store", "sideload", "unknown"],
+      v2_cmo_approval_status: [
+        "PENDING",
+        "APPROVED",
+        "REJECTED",
+        "EXPIRED",
+        "CANCELLED",
+      ],
+      v2_cmo_workflow_status: [
+        "DRAFT",
+        "POLICY_REVIEW",
+        "AWAITING_APPROVAL",
+        "APPROVED",
+        "SCHEDULED",
+        "PUBLISHED",
+        "VERIFIED",
+        "REJECTED",
+        "FAILED",
+        "CANCELLED",
+      ],
     },
   },
 } as const
