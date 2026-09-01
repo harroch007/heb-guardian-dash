@@ -3277,16 +3277,22 @@ export type Database = {
         Row: {
           activation_cutoff: string
           created_at: string
+          dormant_deployment_cutoff: string | null
+          enablement_prepared_at: string | null
           singleton: boolean
         }
         Insert: {
           activation_cutoff: string
           created_at?: string
+          dormant_deployment_cutoff?: string | null
+          enablement_prepared_at?: string | null
           singleton?: boolean
         }
         Update: {
           activation_cutoff?: string
           created_at?: string
+          dormant_deployment_cutoff?: string | null
+          enablement_prepared_at?: string | null
           singleton?: boolean
         }
         Relationships: []
@@ -5706,6 +5712,10 @@ export type Database = {
         Args: { target_max_requests?: number }
         Returns: number
       }
+      v2_dispatch_monitoring_push_worker_internal: {
+        Args: { target_max_requests?: number }
+        Returns: number
+      }
       v2_dispatch_push_worker_internal: {
         Args: { target_max_requests?: number }
         Returns: number
@@ -5862,6 +5872,10 @@ export type Database = {
         Args: { target_capability_token: string }
         Returns: boolean
       }
+      v2_monitoring_push_due_dispatch_count_internal: {
+        Args: { target_max_requests?: number }
+        Returns: number
+      }
       v2_parent_action_template: {
         Args: { target_action_code: string }
         Returns: string
@@ -5893,6 +5907,10 @@ export type Database = {
       v2_parent_reason_template: {
         Args: { target_reason_code: string }
         Returns: string
+      }
+      v2_prepare_monitoring_push_activation_internal: {
+        Args: never
+        Returns: Json
       }
       v2_parent_summary_template: {
         Args: { target_category: string }

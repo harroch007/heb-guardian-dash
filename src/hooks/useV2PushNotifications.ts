@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { v2Supabase } from "@/integrations/supabase/v2-client";
+import {
+  applicationServerKeysMatch,
+  decodeVapidApplicationServerKey,
+  normalizeV2PushRuntimeConfig,
+} from "@/lib/v2/pushConfigContract";
 
 const INSTALLATION_KEY = "kippy:v2:guardian-push-installation-id";
-const FALLBACK_VAPID_PUBLIC_KEY =
-  "BLdW9MSDQbFmXFQpJ_2SXzvs9dUnQk4MawPpwoymbclk6kdfcz8jn3A_tIpfr2QPvxZRFjdDznln8Me_owX9efA";
-
-const vapidPublicKey =
-  import.meta.env.VITE_V2_VAPID_PUBLIC_KEY || FALLBACK_VAPID_PUBLIC_KEY;
 
 const installationId = () => {
   const existing = localStorage.getItem(INSTALLATION_KEY);
@@ -17,10 +17,13 @@ const installationId = () => {
   return created;
 };
 
-const decodeApplicationServerKey = (value: string): Uint8Array => {
-  const padding = "=".repeat((4 - (value.length % 4)) % 4);
-  const decoded = atob((value + padding).replace(/-/g, "+").replace(/_/g, "/"));
-  return Uint8Array.from(decoded, (character) => character.charCodeAt(0));
+const loadPushRuntimeConfig = async () => {
+  const { data, error } = await v2Supabase.functions.invoke(
+    "v2-get-push-config",
+    { body: {} },
+  );
+  if (error) throw error;
+  return normalizeV2PushRuntimeConfig(data);
 };
 
 export function useV2PushNotifications() {
@@ -48,15 +51,26 @@ export function useV2PushNotifications() {
     setIsLoading(true);
     try {
       const registration = await navigator.serviceWorker.ready;
-      const browserSubscription =
-        await registration.pushManager.getSubscription();
+      const browserSubscription = await registration.pushManager
+        .getSubscription();
+      const runtimeConfig = await loadPushRuntimeConfig();
+      const applicationServerKey = decodeVapidApplicationServerKey(
+        runtimeConfig.application_server_key,
+      );
       const { data, error } = await v2Supabase.rpc(
         "v2_get_guardian_push_state",
         { target_installation_id: installationId() },
       );
       if (error) throw error;
       setIsSubscribed(
-        Boolean(browserSubscription && data?.[0]?.is_subscribed),
+        Boolean(
+          browserSubscription &&
+            applicationServerKeysMatch(
+              browserSubscription.options.applicationServerKey,
+              applicationServerKey,
+            ) &&
+            data?.[0]?.is_subscribed,
+        ),
       );
       setPermission(Notification.permission);
     } catch (error) {
@@ -75,17 +89,40 @@ export function useV2PushNotifications() {
     if (!supported || !user) return false;
     setIsLoading(true);
     try {
+      const runtimeConfig = await loadPushRuntimeConfig();
+      const applicationServerKey = decodeVapidApplicationServerKey(
+        runtimeConfig.application_server_key,
+      );
       const permissionResult = await Notification.requestPermission();
       setPermission(permissionResult);
       if (permissionResult !== "granted") return false;
 
       const registration = await navigator.serviceWorker.ready;
       let subscription = await registration.pushManager.getSubscription();
+      if (
+        subscription &&
+        !applicationServerKeysMatch(
+          subscription.options.applicationServerKey,
+          applicationServerKey,
+        )
+      ) {
+        const { error } = await v2Supabase.rpc(
+          "v2_revoke_guardian_push_endpoint",
+          {
+            target_installation_id: installationId(),
+            target_permission_state: "prompt",
+          },
+        );
+        if (error) throw error;
+        if (!await subscription.unsubscribe()) {
+          throw new Error("push_subscription_rotation_failed");
+        }
+        subscription = null;
+      }
       if (!subscription) {
-        const key = decodeApplicationServerKey(vapidPublicKey);
         subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: key.buffer as ArrayBuffer,
+          applicationServerKey: applicationServerKey.buffer as ArrayBuffer,
         });
       }
 
@@ -122,8 +159,9 @@ export function useV2PushNotifications() {
         "v2_revoke_guardian_push_endpoint",
         {
           target_installation_id: installationId(),
-          target_permission_state:
-            Notification.permission === "denied" ? "denied" : "prompt",
+          target_permission_state: Notification.permission === "denied"
+            ? "denied"
+            : "prompt",
         },
       );
       if (error) throw error;

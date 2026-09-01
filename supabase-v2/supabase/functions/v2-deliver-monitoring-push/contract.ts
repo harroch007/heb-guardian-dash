@@ -214,36 +214,10 @@ export async function callProviderIfMonitoringDeliveryAlive<T>(
   };
 }
 
-export function constantTimeEqual(left: string, right: string): boolean {
-  const encoder = new TextEncoder();
-  const leftBytes = encoder.encode(left);
-  const rightBytes = encoder.encode(right);
-  const length = Math.max(leftBytes.length, rightBytes.length);
-  let difference = leftBytes.length ^ rightBytes.length;
-  for (let index = 0; index < length; index += 1) {
-    difference |= (leftBytes[index] ?? 0) ^ (rightBytes[index] ?? 0);
-  }
-  leftBytes.fill(0);
-  rightBytes.fill(0);
-  return difference === 0;
-}
-
 export function monitoringPushDeliveryEnabled(
   value: string | undefined,
 ): boolean {
   return value === "true";
-}
-
-export function validPushContact(value: string): boolean {
-  if (value.length < 8 || value.length > 320) return false;
-  if (value.startsWith("mailto:")) {
-    return /^[^\s@]+@[^\s@]+[.][^\s@]+$/.test(value.slice(7));
-  }
-  try {
-    return new URL(value).protocol === "https:";
-  } catch {
-    return false;
-  }
 }
 
 function isMonitoringAlertType(

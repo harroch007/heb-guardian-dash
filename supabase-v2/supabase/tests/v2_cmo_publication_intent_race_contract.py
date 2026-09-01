@@ -18,9 +18,9 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
-EXPECTED_MIGRATION_COUNT = 61
+EXPECTED_MIGRATION_COUNT = 62
 EXPECTED_FIRST_MIGRATION = "20260727150000"
-EXPECTED_LAST_MIGRATION = "20260831161000"
+EXPECTED_LAST_MIGRATION = "20260831230000"
 CONTENT_HASH = "a" * 64
 RESULT_PATTERN = re.compile(r"^RESULT\|")
 
@@ -137,7 +137,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "Run two real caller connections against a disposable local "
-            "61-migration Kippy V2 database."
+            "62-migration Kippy V2 database."
         )
     )
     parser.add_argument("--host", default="127.0.0.1")

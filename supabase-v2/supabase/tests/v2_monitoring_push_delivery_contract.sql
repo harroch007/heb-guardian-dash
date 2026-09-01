@@ -13,6 +13,18 @@ begin
 end;
 $$;
 
+-- The production migration intentionally leaves operational enablement closed.
+-- This rolled-back disposable contract prepares the gate before claim tests.
+select public.v2_prepare_monitoring_push_activation_internal();
+
+-- This pre-existing claim contract creates every fixture in one long
+-- transaction, so now() predates the lock-time cutoff. Move only the rolled-
+-- back fixture boundary to the transaction timestamp; the dedicated activation
+-- readiness contract verifies the real server-clock boundary.
+update public.v2_monitoring_push_activation_epochs epoch
+   set activation_cutoff = transaction_timestamp()
+ where epoch.singleton;
+
 insert into auth.users (id)
 values
     ('21000000-0000-4000-8000-000000000001'),

@@ -7,13 +7,15 @@ import {
   type PushTargetResult,
 } from "../_shared/push_delivery.ts";
 import {
+  constantTimeEqual,
+  importVerifiedVapidRuntimeConfiguration,
+} from "../_shared/vapid_config.ts";
+import {
   buildMonitoringPushPayload,
   calculateMonitoringProviderTtl,
   callProviderIfMonitoringDeliveryAlive,
-  constantTimeEqual,
   monitoringPushDeliveryEnabled,
   normalizeMonitoringPushClaim,
-  validPushContact,
 } from "./contract.ts";
 
 Deno.serve(async (request) => {
@@ -157,24 +159,14 @@ async function readApplicationServer(): Promise<webpush.ApplicationServer> {
   const rawKeys = Deno.env.get("KIPPY_WEB_PUSH_VAPID_KEYS_JWK") ?? "";
   const configuredPublicKey = Deno.env.get("KIPPY_WEB_PUSH_PUBLIC_KEY") ?? "";
   const contactInformation = Deno.env.get("KIPPY_WEB_PUSH_CONTACT") ?? "";
-  if (
-    rawKeys.length < 80 ||
-    rawKeys.length > 8192 ||
-    !/^[A-Za-z0-9_-]{80,120}$/.test(configuredPublicKey) ||
-    !validPushContact(contactInformation)
-  ) {
-    throw new Error("invalid_push_configuration");
-  }
-
-  const exportedKeys = JSON.parse(rawKeys);
-  const vapidKeys = await webpush.importVapidKeys(exportedKeys);
-  const actualPublicKey = await webpush.exportApplicationServerKey(vapidKeys);
-  if (!constantTimeEqual(configuredPublicKey, actualPublicKey)) {
-    throw new Error("vapid_public_key_mismatch");
-  }
-  return await webpush.ApplicationServer.new({
+  const configuration = await importVerifiedVapidRuntimeConfiguration(
+    rawKeys,
+    configuredPublicKey,
     contactInformation,
-    vapidKeys,
+  );
+  return await webpush.ApplicationServer.new({
+    contactInformation: configuration.contactInformation,
+    vapidKeys: configuration.vapidKeys,
   });
 }
 

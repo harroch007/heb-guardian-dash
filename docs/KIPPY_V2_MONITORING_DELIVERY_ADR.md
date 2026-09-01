@@ -2,7 +2,7 @@
 
 ## Status
 
-PROPOSED
+ACCEPTED — DORMANT STAGING DEPLOYED; ACTIVATION NOT APPROVED
 
 ## Date and Owner
 
@@ -193,6 +193,35 @@ third-party Web Push providers can still delay or reorder delivery after
 acceptance, so visible text remains generic and the authenticated route always
 loads canonical current state.
 
+## Activation-readiness amendment (version 1)
+
+The approved dormant deployment established a deployment-time cutoff but did
+not authorize delivery. A second, explicit enablement boundary is required:
+
+1. `dormant_deployment_cutoff` preserves the cutoff recorded by the dormant
+   deployment. `enablement_prepared_at` remains null until an owner explicitly
+   prepares a controlled activation.
+2. A monitoring capability is invalid while `enablement_prepared_at` is null,
+   even if an active capability row exists and its token is correct.
+3. The owner-only preparation function locks the monitoring outbox against
+   concurrent inserts, captures its effective cutoff from the server clock only
+   after acquiring that lock, suppresses every pending row created before the
+   cutoff, advances the claim boundary, records aggregate audit evidence, and
+   can succeed only once. A caller cannot supply a stale cutoff. Rows are
+   retained, never replayed or deleted.
+4. The owner-only dispatcher is deliberately unscheduled, accepts a bound of
+   one through eight HTTP requests, returns zero when work or either exact
+   monitoring Vault value is absent, and cannot be executed by `public`, `anon`,
+   `authenticated`, or `service_role`.
+5. `KIPPY_WEB_PUSH_VAPID_KEYS_JWK` is the cryptographic source of truth. Both
+   push workers and the authenticated `v2-get-push-config` path import it and
+   verify that its exported application-server key exactly matches
+   `KIPPY_WEB_PUSH_PUBLIC_KEY`. A mismatch fails closed; the guardian frontend
+   has no hardcoded or build-time fallback.
+6. The readiness migration creates no capability, Vault value, endpoint, cron
+   job, secret, or feature activation. Operational steps and rollback order are
+   versioned in `KIPPY_V2_MONITORING_ACTIVATION_RUNBOOK.md`.
+
 ## Consequences
 
 - Monitoring and safety-incident queues retain independent schemas, permissions,
@@ -233,30 +262,33 @@ credentials, or endpoint secrets. Endpoint material remains service-role-only.
 
 ## Migration
 
-1. **Source gate:** require 59 matched migrations, zero remote-only, zero
-   local-only, and exact deployed-source snapshots under the canonical workdir.
+1. **Source gate:** before applying the readiness patch, require 61 matched
+   migrations, zero remote-only, exactly one reviewed local-only migration
+   (`20260831230000`), and a dry-run containing nothing else.
 2. **Contract migration:** add the delivery columns, monitoring capability,
    claim/complete functions, `v2_monitoring_push_endpoint_attempts`, indexes,
    grants, expiry policy, enqueue update, and disposable SQL contract tests. Do
    not schedule or enable delivery.
-3. **Historical suppression:** in the activation migration, define an explicit
-   reviewed UTC cutoff representing the start of the approved delivery era. In
-   one transaction, mark every still-queued row created before that cutoff or
-   linked to a revoked device as `suppressed`; set `suppressed_at` and a reason
-   code; write aggregate before/after counts and the cutoff to
-   `v2_audit_events`. The seven-day figure is audit evidence, not the cutoff:
-   every pre-activation row is suppressed even when it is newer than seven days
-   and belongs to a currently active device. Preserve rows rather than deleting
-   them.
+3. **Two-phase suppression:** the deployed backlog migration preserves its
+   deployment-time cutoff. At a later, separately approved activation, the
+   owner-only preparation function atomically suppresses the entire additional
+   dormant-to-enablement gap and advances the effective claim cutoff. Preserve
+   rows rather than deleting them.
 4. **Edge implementation:** add the monitoring claim/payload module and worker,
    importing the generic endpoint/status helpers from the exact incident-worker
    v36 source. Do not modify the incident worker in the first slice.
-5. **Dormant deployment:** deploy migration and function only after explicit
-   approval, with feature flag false, no cron, and no capability row.
-6. **Controlled staging activation:** configure dedicated tokens and Vault
-   endpoint, register one synthetic guardian endpoint, set the activation cutoff,
-   enable the cron, and test one interruption followed by one restoration.
-7. **Expansion:** enable additional staging guardians only after delivery,
+5. **Dormant deployment:** completed on staging with feature flag false, no
+   monitoring cron, no capability row, and no monitoring Vault values.
+6. **Activation-readiness deployment:** after independent review and separate
+   approval, apply only the forward migration and deploy only the reviewed
+   monitoring worker and push-config sources. Keep every activation input
+   absent or disabled.
+7. **Controlled staging activation:** under a new approval, configure dedicated
+   tokens and exact Vault references, use one explicitly approved real staging
+   test guardian/browser endpoint, prepare the activation cutoff, and validate
+   one real-device interruption followed by one restoration before scheduling
+   recurring dispatch.
+8. **Expansion:** enable additional staging guardians only after delivery,
    duplicate, retry, endpoint invalidation, and privacy evidence pass.
 
 The audited counts (534 total, 505 older than seven days, 390 associated with
@@ -287,8 +319,9 @@ reaches claim evaluation.
 
 Before any linked change:
 
-- `supabase migration list --linked --workdir supabase-v2` reports 59/0/0.
-- This 59/0/0 assertion proves migration-ledger parity only, not absolute live
+- `supabase migration list --linked --workdir supabase-v2` reports 61 matched,
+  zero remote-only, and only the reviewed readiness migration as local-only.
+- This ledger assertion proves migration parity only, not absolute live
   schema zero-drift. `supabase-v2/README.md` documents 11 WhatsApp-canary objects
   whose DDL provenance is outside the 59-file history; they remain an explicit,
   separate reconciliation item and are not part of this monitoring gate.
@@ -308,11 +341,11 @@ Before any linked change:
 Staging runtime acceptance requires explicit approval and then proves:
 
 - no pre-cutoff or revoked-device row is delivered;
-- a rapid synthetic `action_required -> interrupted` episode sends only the
+- a rapid real-device `action_required -> interrupted` episode sends only the
   winning interruption when action-required was not already accepted;
 - parallel workers never hold two simultaneous leases for one device, while
   different devices can still be processed concurrently;
-- one synthetic interruption produces one normal provider-accepted result;
+- one real-device interruption produces one normal provider-accepted result;
 - concurrent and post-completion duplicate claims do not resend, while the
   documented crash-after-provider-acceptance ambiguity is not claimed as an
   exactly-once guarantee;
