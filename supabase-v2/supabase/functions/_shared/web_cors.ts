@@ -1,6 +1,10 @@
 const ALLOWED_METHODS = "POST, OPTIONS";
 const ALLOWED_HEADERS =
   "authorization, apikey, content-type, x-client-info, x-supabase-api-version";
+const KIPPY_CANONICAL_WEB_ORIGINS = [
+  "https://kippyai.com",
+  "https://www.kippyai.com",
+] as const;
 
 /**
  * Exact-origin CORS for the guardian PWA. This deliberately never falls back
@@ -42,17 +46,47 @@ export function withWebCors(
 }
 
 function allowedOrigin(request: Request): string | null {
-  const requestOrigin = normalizeOrigin(request.headers.get("origin"));
+  return resolveAllowedWebOrigin(
+    request.headers.get("origin"),
+    Deno.env.get("KIPPY_PUBLIC_WEB_URL") ?? "",
+    Deno.env.get("KIPPY_ALLOWED_WEB_ORIGINS") ?? "",
+  );
+}
+
+/**
+ * The apex and www Kippy origins are one product surface. When either is the
+ * configured public URL, accept only that exact pair; additional configured
+ * origins remain exact matches and no wildcard fallback is ever introduced.
+ */
+export function resolveAllowedWebOrigin(
+  requestOriginValue: string | null,
+  publicWebUrlValue: string,
+  additionalOriginsValue: string,
+): string | null {
+  const requestOrigin = normalizeOrigin(requestOriginValue);
   if (!requestOrigin) return null;
 
-  const configured = [
-    Deno.env.get("KIPPY_PUBLIC_WEB_URL") ?? "",
-    ...(Deno.env.get("KIPPY_ALLOWED_WEB_ORIGINS") ?? "").split(","),
-  ]
-    .map(normalizeOrigin)
-    .filter((origin): origin is string => origin !== null);
+  const configured = new Set<string>();
+  const publicWebOrigin = normalizeOrigin(publicWebUrlValue);
+  if (publicWebOrigin) {
+    configured.add(publicWebOrigin);
+    if (
+      KIPPY_CANONICAL_WEB_ORIGINS.some(
+        (canonicalOrigin) => canonicalOrigin === publicWebOrigin,
+      )
+    ) {
+      for (const canonicalOrigin of KIPPY_CANONICAL_WEB_ORIGINS) {
+        configured.add(canonicalOrigin);
+      }
+    }
+  }
 
-  return configured.includes(requestOrigin) ? requestOrigin : null;
+  for (const candidate of additionalOriginsValue.split(",")) {
+    const origin = normalizeOrigin(candidate);
+    if (origin) configured.add(origin);
+  }
+
+  return configured.has(requestOrigin) ? requestOrigin : null;
 }
 
 function normalizeOrigin(value: string | null): string | null {
