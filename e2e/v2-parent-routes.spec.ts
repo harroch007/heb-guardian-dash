@@ -557,6 +557,20 @@ test.describe("V2 private parent routes", () => {
     await authenticateSyntheticParent(page);
   });
 
+  test("persists the guardian session across a full page reload", async ({
+    page,
+  }) => {
+    await page.reload({ waitUntil: "domcontentloaded" });
+
+    await expect(page).toHaveURL(/\/home-v2$/);
+    await expect(
+      page.getByText("ילד בדיקה", { exact: true }).first(),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "התחבר", exact: true }),
+    ).toHaveCount(0);
+  });
+
   test("render in Hebrew RTL with isolated synthetic data", async ({ page }, testInfo) => {
     const runtimeErrors: string[] = [];
     page.on("pageerror", (error) => runtimeErrors.push(error.message));

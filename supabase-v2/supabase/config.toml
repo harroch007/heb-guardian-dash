@@ -1,5 +1,10 @@
 project_id = "gscclrgcmvtbyquveoze"
 
+# Guardian sessions are persisted by the PWA and expire server-side only after
+# seven days without a successful Supabase Auth session refresh.
+[auth.sessions]
+inactivity_timeout = "168h"
+
 [functions.v2-create-child-install]
 verify_jwt = false
 

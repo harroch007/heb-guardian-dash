@@ -61,6 +61,23 @@ The snapshots are immutable deployment evidence. New or intentionally changed
 function source belongs in `supabase/functions/` and must be reviewed against
 the matching snapshot before deployment.
 
+## Guardian web origin and session policy
+
+- `https://www.kippyai.com` is the sole canonical guardian-PWA origin. The apex
+  origin `https://kippyai.com` must redirect to it before the application runs;
+  Edge Function CORS configuration must use the canonical origin.
+- The guardian Supabase client persists its session in browser `localStorage`
+  and refreshes it automatically. Supabase Auth enforces a seven-day inactivity
+  timeout through `[auth.sessions].inactivity_timeout = "168h"`; no client-side
+  idle timer or fixed session time-box is used.
+- An iOS Home Screen app has storage isolated from Safari. A guardian may need
+  to sign in once after installing the PWA, but subsequent launches of that
+  same installed app must reuse its persisted session until sign-out or the
+  server-side inactivity timeout.
+- Treat `supabase config push` as a remote configuration mutation: review the
+  exact config diff and obtain environment-specific deployment approval before
+  applying it. Never use a config push to activate monitoring delivery.
+
 ## Safe verification
 
 Link state lives in `supabase/.temp/` and is ignored by Git. After linking this
