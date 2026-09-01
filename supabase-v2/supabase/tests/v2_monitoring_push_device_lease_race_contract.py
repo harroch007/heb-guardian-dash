@@ -18,9 +18,9 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
-EXPECTED_MIGRATION_COUNT = 61
+EXPECTED_MIGRATION_COUNT = 62
 EXPECTED_FIRST_MIGRATION = "20260727150000"
-EXPECTED_LAST_MIGRATION = "20260831161000"
+EXPECTED_LAST_MIGRATION = "20260831230000"
 CLAIM_PATTERN = re.compile(
     r"^[0-9a-f-]{36}\|[0-9a-f-]{36}\|64\|1$",
     re.IGNORECASE,
@@ -135,7 +135,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "Race two monitoring claims against one device on a disposable "
-            "local 61-migration Kippy V2 database."
+            "local 62-migration Kippy V2 database."
         )
     )
     parser.add_argument("--host", default="127.0.0.1")
@@ -245,6 +245,11 @@ def verify_baseline(psql: Psql) -> None:
         "where status in ('queued','failed');"
     ) != "0":
         raise ContractError("race requires a clean disposable monitoring queue")
+    if psql.scalar(
+        "select count(*) from public.v2_monitoring_push_activation_epochs "
+        "where enablement_prepared_at is not null;"
+    ) != "0":
+        raise ContractError("race requires an unprepared monitoring activation gate")
     print(f"LOCAL_BASELINE={len(applied)}|{applied[0]}|{applied[-1]}")
 
 
@@ -260,6 +265,10 @@ def setup_fixture(psql: Psql, fixture: Fixture) -> None:
     psql.run(
         f"""
 begin;
+select public.v2_prepare_monitoring_push_activation_internal();
+update public.v2_monitoring_push_activation_epochs
+   set activation_cutoff = transaction_timestamp()
+ where singleton;
 insert into auth.users (id) values
     ('{fixture.guardian_one}'),
     ('{fixture.guardian_two}');
@@ -435,6 +444,8 @@ def cleanup_fixture(psql: Psql, fixture: Fixture) -> None:
 begin;
 delete from public.v2_audit_events
  where object_id in ('{fixture.delivery_one}', '{fixture.delivery_two}');
+delete from public.v2_audit_events
+ where action = 'v2.monitoring.push_activation.prepare';
 delete from public.v2_monitoring_push_worker_capabilities
  where token_hash = extensions.digest(
     convert_to('{fixture.capability_token}', 'UTF8'), 'sha256'
@@ -444,6 +455,10 @@ delete from public.v2_children where id = '{fixture.child_id}';
 delete from public.v2_guardian_memberships where family_id = '{fixture.family_id}';
 delete from public.v2_families where id = '{fixture.family_id}';
 delete from auth.users where id in ('{fixture.guardian_one}', '{fixture.guardian_two}');
+update public.v2_monitoring_push_activation_epochs
+   set activation_cutoff = dormant_deployment_cutoff,
+       enablement_prepared_at = null
+ where singleton;
 commit;
 """
     )

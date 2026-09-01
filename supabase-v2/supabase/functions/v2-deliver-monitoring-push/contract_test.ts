@@ -1,9 +1,15 @@
+import * as webpush from "jsr:@negrel/webpush@0.5.0";
 import { classifyPushHttpStatus } from "../_shared/push_delivery.ts";
+import {
+  assertVapidPublicKeyMatches,
+  constantTimeEqual,
+  importVerifiedVapidRuntimeConfiguration,
+  validateVapidRuntimeConfiguration,
+} from "../_shared/vapid_config.ts";
 import {
   buildMonitoringPushPayload,
   calculateMonitoringProviderTtl,
   callProviderIfMonitoringDeliveryAlive,
-  constantTimeEqual,
   monitoringPushDeliveryEnabled,
   normalizeMonitoringPushClaim,
 } from "./contract.ts";
@@ -183,6 +189,77 @@ Deno.test("trigger comparison and feature flag fail closed", () => {
   assertFalse(monitoringPushDeliveryEnabled("1"));
 });
 
+Deno.test("VAPID runtime configuration rejects incomplete values", () => {
+  const publicKey = "A".repeat(88);
+  const rawKeys = JSON.stringify({
+    kty: "EC",
+    crv: "P-256",
+    x: "B".repeat(43),
+    y: "C".repeat(43),
+    d: "D".repeat(43),
+  });
+
+  assertThrows(() =>
+    validateVapidRuntimeConfiguration("", publicKey, "mailto:ops@kippy.ai")
+  );
+  assertThrows(() =>
+    validateVapidRuntimeConfiguration(rawKeys, "short", "mailto:ops@kippy.ai")
+  );
+  assertThrows(() =>
+    validateVapidRuntimeConfiguration(rawKeys, publicKey, "not-a-contact")
+  );
+  assertEquals(
+    validateVapidRuntimeConfiguration(
+      rawKeys,
+      publicKey,
+      "mailto:ops@kippy.ai",
+    ),
+    {
+      rawKeysJwk: rawKeys,
+      publicKey,
+      contactInformation: "mailto:ops@kippy.ai",
+    },
+  );
+});
+
+Deno.test("VAPID public key mismatch fails closed", () => {
+  const configured = "A".repeat(88);
+  assertVapidPublicKeyMatches(configured, configured);
+  assertThrows(() =>
+    assertVapidPublicKeyMatches(configured, `${"A".repeat(87)}B`)
+  );
+  assertThrows(() => assertVapidPublicKeyMatches(configured, "short"));
+});
+
+Deno.test("VAPID JWK export is the authoritative public-key contract", async () => {
+  const generatedKeys = await webpush.generateVapidKeys({ extractable: true });
+  const exportedKeys = await webpush.exportVapidKeys(generatedKeys);
+  const configuredPublicKey = await webpush.exportApplicationServerKey(
+    generatedKeys,
+  );
+  const configuration = await importVerifiedVapidRuntimeConfiguration(
+    JSON.stringify(exportedKeys),
+    configuredPublicKey,
+    "mailto:ops@kippy.ai",
+  );
+  const importedPublicKey = await webpush.exportApplicationServerKey(
+    configuration.vapidKeys,
+  );
+
+  assertVapidPublicKeyMatches(
+    configuration.publicKey,
+    importedPublicKey,
+  );
+  const replacement = configuration.publicKey.endsWith("A") ? "B" : "A";
+  await assertRejects(() =>
+    importVerifiedVapidRuntimeConfiguration(
+      JSON.stringify(exportedKeys),
+      `${configuration.publicKey.slice(0, -1)}${replacement}`,
+      "mailto:ops@kippy.ai",
+    )
+  );
+});
+
 function validClaim(): Record<string, unknown> {
   return {
     delivery_id: DELIVERY_ID,
@@ -227,6 +304,16 @@ function assertThrows(callback: () => unknown): void {
     threw = true;
   }
   if (!threw) throw new Error("assertThrows failed");
+}
+
+async function assertRejects(callback: () => Promise<unknown>): Promise<void> {
+  let rejected = false;
+  try {
+    await callback();
+  } catch {
+    rejected = true;
+  }
+  if (!rejected) throw new Error("assertRejects failed");
 }
 
 function assertTrue(value: boolean): void {
