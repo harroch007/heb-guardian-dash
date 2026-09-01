@@ -89,7 +89,8 @@ database only. They use synthetic principals and remove or roll back their
 fixtures. Apply the full 62-migration local history first, then execute SQL
 contracts with `psql -v ON_ERROR_STOP=1`.
 
-The real two-connection publication-intent and lease race contracts require
+The real two-connection publication-intent, lease, and activation-cutoff race
+contracts require
 `psql` on `PATH` and a password supplied through the normal libpq environment.
 They refuse non-loopback hosts and sanitize their output; the lease contract
 also never prints the lease token. A loopback proxy or SSH tunnel does not make
@@ -105,6 +106,9 @@ try {
     --port 54322 `
     --confirm-disposable-local
   python -B supabase-v2/supabase/tests/v2_monitoring_push_device_lease_race_contract.py `
+    --port 54322 `
+    --confirm-disposable-local
+  python -B supabase-v2/supabase/tests/v2_monitoring_push_activation_cutoff_race_contract.py `
     --port 54322 `
     --confirm-disposable-local
 } finally {
