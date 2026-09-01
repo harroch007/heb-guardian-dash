@@ -7,10 +7,11 @@ V2 history. V2 migrations, service RPCs and Edge Functions are owned here.
 
 ## Migration history
 
-- `20260727150000` through `20260831161000`: all 61 migration versions recorded
-  by linked `kippy-v2-staging` are represented locally. The two monitoring push
-  migrations were applied during the approved dormant deployment on 2026-08-31.
-- `20260831230000_v2_monitoring_push_activation_readiness.sql` is the sole
+- `20260727150000` through `20260831230000`: all 62 migration versions recorded
+  by linked `kippy-v2-staging` are represented locally. The monitoring delivery
+  and activation-readiness migrations were applied through the separately
+  approved dormant/readiness gates.
+- `20260901180000_v2_monitoring_push_circuit_breaker.sql` is the sole
   forward-only local migration pending independent review. It adds no cron job,
   capability, Vault value, endpoint, secret, or feature activation.
 - The six `20260816*` through `20260826170000` sources were reconciled from the
@@ -29,8 +30,8 @@ V2 history. V2 migrations, service RPCs and Edge Functions are owned here.
   provenance remains a separate reconciliation item; do not rewrite historical
   migration blobs to absorb it.
 
-The 62 migration files in `supabase-v2/supabase/migrations/` are the current
-local source of truth for V2: 61 form the deployed staging baseline and one is
+The 63 migration files in `supabase-v2/supabase/migrations/` are the current
+local source of truth for V2: 62 form the deployed staging baseline and one is
 pending review. Do not run V2 migration commands from the repository-root
 `supabase/` directory, and do not use `migration repair` or `db pull` to bridge
 the two histories.
@@ -71,12 +72,12 @@ supabase migration list --linked --workdir supabase-v2
 supabase db push --linked --dry-run --workdir supabase-v2
 ```
 
-Expected linked state while this activation-readiness patch is under review:
+Expected linked state while this circuit-breaker patch is under review:
 
-- 61 matched migrations;
+- 62 matched migrations;
 - 0 remote-only migrations;
-- 1 local-only migration: `20260831230000`;
-- dry-run reports exactly that activation-readiness migration and nothing else.
+- 1 local-only migration: `20260901180000`;
+- dry-run reports exactly that circuit-breaker migration and nothing else.
 
 The 2026-08-31 source-reconciliation pass ran `migration list` only. It did not
 run `db push`, `db pull`, `migration repair`, deploy a function, or mutate the
@@ -86,7 +87,7 @@ linked project.
 
 Contract files under `supabase/tests/` are destructive tests for a disposable
 database only. They use synthetic principals and remove or roll back their
-fixtures. Apply the full 62-migration local history first, then execute SQL
+fixtures. Apply the full 63-migration local history first, then execute SQL
 contracts with `psql -v ON_ERROR_STOP=1`.
 
 The real two-connection publication-intent, lease, and activation-cutoff race

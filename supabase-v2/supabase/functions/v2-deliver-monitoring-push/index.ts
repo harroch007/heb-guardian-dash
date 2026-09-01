@@ -17,6 +17,11 @@ import {
   monitoringPushDeliveryEnabled,
   normalizeMonitoringPushClaim,
 } from "./contract.ts";
+import {
+  type MonitoringDispatchContext,
+  normalizeMonitoringDispatchContext,
+  summarizeMonitoringProviderResults,
+} from "./circuit_breaker.ts";
 
 Deno.serve(async (request) => {
   if (request.method !== "POST") {
@@ -44,6 +49,15 @@ Deno.serve(async (request) => {
     return jsonResponse(401, { error: "invalid_monitoring_push_trigger" });
   }
 
+  let dispatchContext: MonitoringDispatchContext;
+  try {
+    dispatchContext = normalizeMonitoringDispatchContext(await request.json());
+  } catch {
+    return jsonResponse(400, {
+      error: "invalid_monitoring_push_dispatch_context",
+    });
+  }
+
   const databaseCapabilityToken =
     Deno.env.get("KIPPY_MONITORING_PUSH_DB_CAPABILITY_TOKEN") ?? "";
   if (
@@ -55,16 +69,33 @@ Deno.serve(async (request) => {
     });
   }
 
-  let applicationServer: webpush.ApplicationServer;
+  let client: ReturnType<typeof serviceClient>;
   try {
-    applicationServer = await readApplicationServer();
+    client = serviceClient();
   } catch {
     return jsonResponse(503, {
       error: "monitoring_push_configuration_incomplete",
     });
   }
 
-  const client = serviceClient();
+  let applicationServer: webpush.ApplicationServer;
+  try {
+    applicationServer = await readApplicationServer();
+  } catch {
+    await reportMonitoringWorkerRun(
+      client,
+      databaseCapabilityToken,
+      dispatchContext,
+      false,
+      0,
+      0,
+      "vapid_configuration_incomplete",
+    );
+    return jsonResponse(503, {
+      error: "monitoring_push_configuration_incomplete",
+    });
+  }
+
   const workerId = crypto.randomUUID();
   const { data, error } = await client.rpc(
     "v2_claim_monitoring_delivery_service",
@@ -78,12 +109,30 @@ Deno.serve(async (request) => {
     console.error("monitoring_push_claim_failed", {
       code: "database_error",
     });
+    await reportMonitoringWorkerRun(
+      client,
+      databaseCapabilityToken,
+      dispatchContext,
+      false,
+      0,
+      0,
+      "claim_failed",
+    );
     return jsonResponse(503, {
       error: "monitoring_push_claim_failed",
       retryable: true,
     });
   }
   if (!Array.isArray(data) || data.length === 0) {
+    await reportMonitoringWorkerRun(
+      client,
+      databaseCapabilityToken,
+      dispatchContext,
+      true,
+      0,
+      0,
+      "no_work",
+    );
     return jsonResponse(200, {
       processed: false,
       reason: "no_work",
@@ -97,6 +146,15 @@ Deno.serve(async (request) => {
     console.error("monitoring_push_claim_failed", {
       code: "claim_contract_mismatch",
     });
+    await reportMonitoringWorkerRun(
+      client,
+      databaseCapabilityToken,
+      dispatchContext,
+      false,
+      0,
+      0,
+      "claim_contract_mismatch",
+    );
     return jsonResponse(503, {
       error: "monitoring_push_claim_contract_mismatch",
       retryable: true,
@@ -118,6 +176,8 @@ Deno.serve(async (request) => {
       ),
     );
 
+  const providerSummary = summarizeMonitoringProviderResults(results);
+
   const { data: completed, error: completionError } = await client.rpc(
     "v2_complete_monitoring_delivery_service",
     {
@@ -137,11 +197,30 @@ Deno.serve(async (request) => {
     console.error("monitoring_push_completion_failed", {
       code: completionError ? "database_error" : "completion_contract_mismatch",
     });
+    await reportMonitoringWorkerRun(
+      client,
+      databaseCapabilityToken,
+      dispatchContext,
+      false,
+      providerSummary.providerAttemptCount,
+      providerSummary.transientFailureCount,
+      "completion_failed",
+    );
     return jsonResponse(503, {
       error: "monitoring_push_completion_failed",
       retryable: true,
     });
   }
+
+  await reportMonitoringWorkerRun(
+    client,
+    databaseCapabilityToken,
+    dispatchContext,
+    true,
+    providerSummary.providerAttemptCount,
+    providerSummary.transientFailureCount,
+    completionResultCode(completed[0]),
+  );
 
   return jsonResponse(200, {
     processed: true,
@@ -154,6 +233,47 @@ Deno.serve(async (request) => {
     suppression_reason: completed[0].suppression_reason,
   });
 });
+
+async function reportMonitoringWorkerRun(
+  client: ReturnType<typeof serviceClient>,
+  capabilityToken: string,
+  dispatchContext: MonitoringDispatchContext,
+  workerSucceeded: boolean,
+  providerAttemptCount: number,
+  transientFailureCount: number,
+  resultCode: string,
+): Promise<void> {
+  const { error } = await client.rpc(
+    "v2_report_monitoring_push_worker_run_service",
+    {
+      target_capability_token: capabilityToken,
+      target_dispatch_id: dispatchContext.dispatch_id,
+      target_worker_succeeded: workerSucceeded,
+      target_provider_attempt_count: providerAttemptCount,
+      target_transient_failure_count: transientFailureCount,
+      target_result_code: resultCode,
+    },
+  );
+  if (error) {
+    // The dispatcher marks unreported runs failed after its bounded timeout.
+    // Never expose capability material or a raw database error in logs.
+    console.error("monitoring_push_circuit_report_failed", {
+      code: "database_error",
+    });
+  }
+}
+
+function completionResultCode(value: {
+  delivery_status: string;
+  retry_scheduled: boolean;
+}): string {
+  if (value.retry_scheduled) return "delivery_retry_scheduled";
+  if (value.delivery_status === "provider_accepted") {
+    return "delivery_provider_accepted";
+  }
+  if (value.delivery_status === "suppressed") return "delivery_suppressed";
+  return "delivery_completed";
+}
 
 async function readApplicationServer(): Promise<webpush.ApplicationServer> {
   const rawKeys = Deno.env.get("KIPPY_WEB_PUSH_VAPID_KEYS_JWK") ?? "";

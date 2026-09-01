@@ -18,9 +18,9 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
-EXPECTED_MIGRATION_COUNT = 62
+EXPECTED_MIGRATION_COUNT = 63
 EXPECTED_FIRST_MIGRATION = "20260727150000"
-EXPECTED_LAST_MIGRATION = "20260831230000"
+EXPECTED_LAST_MIGRATION = "20260901180000"
 CLAIM_PATTERN = re.compile(
     r"^[0-9a-f-]{36}\|[0-9a-f-]{36}\|64\|1$",
     re.IGNORECASE,
@@ -135,7 +135,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "Race two monitoring claims against one device on a disposable "
-            "local 62-migration Kippy V2 database."
+            "local 63-migration Kippy V2 database."
         )
     )
     parser.add_argument("--host", default="127.0.0.1")
