@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Two-connection per-device monitoring lease race on disposable localhost."""
+"""Two-connection half-open dispatcher race on disposable localhost."""
 
 from __future__ import annotations
 
@@ -21,10 +21,10 @@ from pathlib import Path
 EXPECTED_MIGRATION_COUNT = 63
 EXPECTED_FIRST_MIGRATION = "20260727150000"
 EXPECTED_LAST_MIGRATION = "20260901180000"
-CLAIM_PATTERN = re.compile(
-    r"^[0-9a-f-]{36}\|[0-9a-f-]{36}\|64\|1$",
-    re.IGNORECASE,
-)
+RESULT_PATTERN = re.compile(r"^RESULT\|([01])$")
+VISIBLE_PATTERN = re.compile(r"^VISIBLE\|([01])\|([01])$")
+CIRCUIT_LOCK_CLASS_ID = 20260901
+CIRCUIT_LOCK_OBJECT_ID = 180000
 
 
 class ContractError(RuntimeError):
@@ -33,22 +33,19 @@ class ContractError(RuntimeError):
 
 @dataclass(frozen=True)
 class Fixture:
-    guardian_one: uuid.UUID
-    guardian_two: uuid.UUID
+    guardian_id: uuid.UUID
     family_id: uuid.UUID
     child_id: uuid.UUID
     device_id: uuid.UUID
     installation_id: uuid.UUID
     transition_id: uuid.UUID
     episode_id: uuid.UUID
-    delivery_one: uuid.UUID
-    delivery_two: uuid.UUID
-    endpoint_one: uuid.UUID
-    endpoint_two: uuid.UUID
-    endpoint_installation_one: uuid.UUID
-    endpoint_installation_two: uuid.UUID
-    capability_token: str
-    advisory_key: int
+    delivery_id: uuid.UUID
+    endpoint_id: uuid.UUID
+    endpoint_installation_id: uuid.UUID
+    barrier_key: int
+    worker_endpoint: str
+    worker_trigger_token: str
 
 
 class Psql:
@@ -134,8 +131,8 @@ class Psql:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Race two monitoring claims against one device on a disposable "
-            "local 63-migration Kippy V2 database."
+            "Race two real owner connections through the half-open monitoring "
+            "dispatcher on a disposable local 63-migration database."
         )
     )
     parser.add_argument("--host", default="127.0.0.1")
@@ -144,7 +141,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--database", default="postgres")
     parser.add_argument("--psql", default="psql")
     parser.add_argument("--barrier-seconds", type=float, default=8)
-    parser.add_argument("--winner-hold-seconds", type=float, default=3)
+    parser.add_argument("--winner-hold-seconds", type=float, default=4)
     parser.add_argument(
         "--confirm-disposable-local",
         action="store_true",
@@ -155,8 +152,8 @@ def parse_args() -> argparse.Namespace:
         parser.error("--confirm-disposable-local is required")
     if args.barrier_seconds < 5:
         parser.error("--barrier-seconds must be at least 5")
-    if not 1 <= args.winner_hold_seconds <= 15:
-        parser.error("--winner-hold-seconds must be between 1 and 15")
+    if not 2 <= args.winner_hold_seconds <= 15:
+        parser.error("--winner-hold-seconds must be between 2 and 15")
     return args
 
 
@@ -182,23 +179,24 @@ def require_loopback(host: str) -> None:
 
 
 def new_fixture() -> Fixture:
+    endpoint_label = uuid.uuid4().hex
     return Fixture(
-        guardian_one=uuid.uuid4(),
-        guardian_two=uuid.uuid4(),
+        guardian_id=uuid.uuid4(),
         family_id=uuid.uuid4(),
         child_id=uuid.uuid4(),
         device_id=uuid.uuid4(),
         installation_id=uuid.uuid4(),
         transition_id=uuid.uuid4(),
         episode_id=uuid.uuid4(),
-        delivery_one=uuid.uuid4(),
-        delivery_two=uuid.uuid4(),
-        endpoint_one=uuid.uuid4(),
-        endpoint_two=uuid.uuid4(),
-        endpoint_installation_one=uuid.uuid4(),
-        endpoint_installation_two=uuid.uuid4(),
-        capability_token=secrets.token_urlsafe(32),
-        advisory_key=secrets.randbelow((1 << 62) - 1) + 1,
+        delivery_id=uuid.uuid4(),
+        endpoint_id=uuid.uuid4(),
+        endpoint_installation_id=uuid.uuid4(),
+        barrier_key=secrets.randbelow((1 << 62) - 1) + 1,
+        worker_endpoint=(
+            f"https://half-open-{endpoint_label}.invalid/functions/v1/"
+            "v2-deliver-monitoring-push"
+        ),
+        worker_trigger_token=secrets.token_urlsafe(48),
     )
 
 
@@ -228,64 +226,77 @@ def verify_baseline(psql: Psql) -> None:
         raise ContractError("local migration ledger differs from canonical migrations")
     if applied[0] != EXPECTED_FIRST_MIGRATION or applied[-1] != EXPECTED_LAST_MIGRATION:
         raise ContractError("canonical migration endpoints are unexpected")
-    rpc_state = psql.scalar(
+
+    extension_state = psql.scalar(
         "select "
-        "to_regprocedure('public.v2_claim_monitoring_delivery_service"
-        "(text,uuid,integer)') is not null,"
-        "to_regprocedure('public.v2_complete_monitoring_delivery_service"
-        "(text,uuid,text,uuid,jsonb)') is not null,"
-        "has_function_privilege('service_role',"
-        "'public.v2_claim_monitoring_delivery_service(text,uuid,integer)',"
+        "exists(select 1 from pg_extension where extname = 'pg_cron'),"
+        "exists(select 1 from pg_extension where extname = 'pg_net'),"
+        "exists(select 1 from pg_extension where extname = 'supabase_vault'),"
+        "to_regclass('cron.job') is not null,"
+        "to_regclass('net.http_request_queue') is not null,"
+        "to_regclass('vault.decrypted_secrets') is not null;"
+    )
+    if extension_state != "t|t|t|t|t|t":
+        raise ContractError(f"unexpected Supabase extension baseline: {extension_state}")
+
+    role_state = psql.scalar(
+        "select "
+        "exists(select 1 from pg_roles where rolname = 'anon'),"
+        "exists(select 1 from pg_roles where rolname = 'authenticated'),"
+        "exists(select 1 from pg_roles where rolname = 'service_role'),"
+        "not has_function_privilege('anon',"
+        "'public.v2_dispatch_monitoring_push_worker_internal(integer)',"
+        "'EXECUTE'),"
+        "not has_function_privilege('authenticated',"
+        "'public.v2_dispatch_monitoring_push_worker_internal(integer)',"
+        "'EXECUTE'),"
+        "not has_function_privilege('service_role',"
+        "'public.v2_dispatch_monitoring_push_worker_internal(integer)',"
         "'EXECUTE');"
     )
-    if rpc_state != "t|t|t":
-        raise ContractError(f"unexpected monitoring RPC baseline: {rpc_state}")
-    if psql.scalar(
-        "select count(*) from public.v2_monitoring_alert_deliveries "
-        "where status in ('queued','failed');"
-    ) != "0":
-        raise ContractError("race requires a clean disposable monitoring queue")
-    if psql.scalar(
-        "select count(*) from public.v2_monitoring_push_activation_epochs "
-        "where enablement_prepared_at is not null;"
-    ) != "0":
-        raise ContractError("race requires an unprepared monitoring activation gate")
+    if role_state != "t|t|t|t|t|t":
+        raise ContractError(f"unexpected Supabase role/ACL baseline: {role_state}")
+
+    state = psql.scalar(
+        "select "
+        "(select count(*) from public.v2_monitoring_alert_deliveries "
+        "where status in ('queued','failed')),"
+        "(select count(*) from public.v2_monitoring_push_dispatch_runs),"
+        "(select count(*) from public.v2_monitoring_push_activation_epochs "
+        "where enablement_prepared_at is not null),"
+        "(select count(*) from vault.secrets where name in ("
+        "'kippy_v2_monitoring_push_worker_endpoint',"
+        "'kippy_v2_monitoring_push_worker_trigger_token'));"
+    )
+    if state != "0|0|0|0":
+        raise ContractError(f"race requires a clean disposable baseline: {state}")
     print(f"LOCAL_BASELINE={len(applied)}|{applied[0]}|{applied[-1]}")
+    print("SUPABASE_EXTENSIONS=pg_cron|pg_net|supabase_vault")
+    print("SUPABASE_ROLES=anon|authenticated|service_role|dispatcher_denied")
 
 
 def setup_fixture(psql: Psql, fixture: Fixture) -> None:
-    endpoint_one = (
-        "https://fcm.googleapis.com/fcm/send/monitoring-race-endpoint-one-"
-        f"{fixture.endpoint_one.hex}"
-    )
-    endpoint_two = (
-        "https://fcm.googleapis.com/fcm/send/monitoring-race-endpoint-two-"
-        f"{fixture.endpoint_two.hex}"
+    push_endpoint = (
+        "https://fcm.googleapis.com/fcm/send/half-open-race-"
+        f"{fixture.endpoint_id.hex}"
     )
     psql.run(
         f"""
 begin;
 select public.v2_prepare_monitoring_push_activation_internal();
-update public.v2_monitoring_push_activation_epochs
-   set activation_cutoff = transaction_timestamp()
- where singleton;
-insert into auth.users (id) values
-    ('{fixture.guardian_one}'),
-    ('{fixture.guardian_two}');
+insert into auth.users (id) values ('{fixture.guardian_id}');
 insert into public.v2_families (id, display_name)
-values ('{fixture.family_id}', 'Monitoring lease race family');
+values ('{fixture.family_id}', 'Half-open dispatcher race family');
 insert into public.v2_guardian_memberships (
     family_id, guardian_user_id, role, status
-) values
-    ('{fixture.family_id}', '{fixture.guardian_one}', 'owner', 'active'),
-    ('{fixture.family_id}', '{fixture.guardian_two}', 'guardian', 'active');
+) values ('{fixture.family_id}', '{fixture.guardian_id}', 'owner', 'active');
 insert into public.v2_children (id, family_id, display_name)
-values ('{fixture.child_id}', '{fixture.family_id}', 'Monitoring lease race child');
+values ('{fixture.child_id}', '{fixture.family_id}', 'Half-open race child');
 insert into public.v2_protected_devices (
     id, child_id, installation_id, app_version, status
 ) values (
     '{fixture.device_id}', '{fixture.child_id}',
-    '{fixture.installation_id}', 'monitoring-race', 'active'
+    '{fixture.installation_id}', 'half-open-race', 'active'
 );
 update public.v2_device_monitoring_state
    set monitoring_state = 'interrupted',
@@ -302,62 +313,61 @@ insert into public.v2_device_monitoring_transitions (
 insert into public.v2_guardian_push_endpoints (
     id, guardian_user_id, installation_id, endpoint, endpoint_hash,
     p256dh, auth_secret, user_agent, locale, permission_state, status
-) values
-    (
-        '{fixture.endpoint_one}', '{fixture.guardian_one}',
-        '{fixture.endpoint_installation_one}', '{endpoint_one}',
-        encode(extensions.digest(convert_to('{endpoint_one}', 'UTF8'), 'sha256'), 'hex'),
-        repeat('A', 88), repeat('B', 24), 'race-contract', 'he-IL',
-        'granted', 'active'
-    ),
-    (
-        '{fixture.endpoint_two}', '{fixture.guardian_two}',
-        '{fixture.endpoint_installation_two}', '{endpoint_two}',
-        encode(extensions.digest(convert_to('{endpoint_two}', 'UTF8'), 'sha256'), 'hex'),
-        repeat('C', 88), repeat('D', 24), 'race-contract', 'he-IL',
-        'granted', 'active'
-    );
+) values (
+    '{fixture.endpoint_id}', '{fixture.guardian_id}',
+    '{fixture.endpoint_installation_id}', '{push_endpoint}',
+    encode(extensions.digest(convert_to('{push_endpoint}', 'UTF8'), 'sha256'), 'hex'),
+    repeat('A', 88), repeat('B', 24), 'half-open-race', 'he-IL',
+    'granted', 'active'
+);
 insert into public.v2_monitoring_alert_deliveries (
     id, transition_id, guardian_user_id, alert_type, severity,
     idempotency_key, next_attempt_at, expires_at
-) values
-    (
-        '{fixture.delivery_one}', '{fixture.transition_id}',
-        '{fixture.guardian_one}', 'monitoring_interrupted', 'critical',
-        'race:{fixture.delivery_one}', now() - interval '1 second',
-        now() + interval '6 hours'
-    ),
-    (
-        '{fixture.delivery_two}', '{fixture.transition_id}',
-        '{fixture.guardian_two}', 'monitoring_interrupted', 'critical',
-        'race:{fixture.delivery_two}', now() - interval '1 second',
-        now() + interval '6 hours'
-    );
-insert into public.v2_monitoring_push_worker_capabilities (
-    token_hash, label, expires_at
 ) values (
-    extensions.digest(convert_to('{fixture.capability_token}', 'UTF8'), 'sha256'),
-    'Disposable monitoring lease race', now() + interval '1 hour'
+    '{fixture.delivery_id}', '{fixture.transition_id}',
+    '{fixture.guardian_id}', 'monitoring_interrupted', 'critical',
+    'half-open-race:{fixture.delivery_id}', now() - interval '1 second',
+    now() + interval '6 hours'
 );
+select vault.create_secret(
+    '{fixture.worker_endpoint}',
+    'kippy_v2_monitoring_push_worker_endpoint',
+    'Disposable half-open dispatcher race endpoint'
+);
+select vault.create_secret(
+    '{fixture.worker_trigger_token}',
+    'kippy_v2_monitoring_push_worker_trigger_token',
+    'Disposable half-open dispatcher race token'
+);
+update public.v2_monitoring_push_circuit_breaker
+   set circuit_state = 'open',
+       consecutive_worker_failures = 3,
+       consecutive_cron_failures = 0,
+       open_reason = 'worker_failures',
+       opened_at = statement_timestamp() - interval '11 minutes',
+       cooldown_until = statement_timestamp() - interval '1 minute',
+       half_open_started_at = null,
+       half_open_probe_dispatched_at = null,
+       provider_window_started_at = statement_timestamp(),
+       last_observed_cron_run_id = 0
+ where singleton;
 commit;
 """
     )
 
 
-def worker_sql(fixture: Fixture, worker_id: uuid.UUID, hold_seconds: float) -> str:
+def worker_sql(fixture: Fixture, hold_seconds: float) -> str:
     return f"""
 begin;
-set local role service_role;
-select pg_advisory_xact_lock_shared({fixture.advisory_key}::bigint);
-select delivery_id::text,
-       device_id::text,
-       char_length(lease_token)::text,
-       attempt_number::text
-  from public.v2_claim_monitoring_delivery_service(
-    '{fixture.capability_token}',
-    '{worker_id}',
-    120
-  );
+select pg_advisory_xact_lock_shared({fixture.barrier_key}::bigint);
+select 'RESULT|' || public.v2_dispatch_monitoring_push_worker_internal(8)::text;
+select 'VISIBLE|' ||
+       (select count(*)::text
+          from public.v2_monitoring_push_dispatch_runs run
+         where run.is_half_open_probe) || '|' ||
+       (select count(*)::text
+          from net.http_request_queue request
+         where request.url = '{fixture.worker_endpoint}');
 select pg_sleep({hold_seconds});
 commit;
 """
@@ -399,65 +409,114 @@ def stop_processes(processes: list[subprocess.Popen[str]]) -> None:
                 process.wait(timeout=5)
 
 
-def assert_results(first_stdout: str, second_stdout: str) -> None:
-    result_counts = []
+def assert_process_results(first_stdout: str, second_stdout: str) -> None:
+    dispatch_results: list[int] = []
+    visible_states: list[tuple[int, int]] = []
     for stdout in (first_stdout, second_stdout):
-        result_counts.append(
-            sum(1 for line in stdout.splitlines() if CLAIM_PATTERN.fullmatch(line.strip()))
+        result_matches = [
+            RESULT_PATTERN.fullmatch(line.strip()) for line in stdout.splitlines()
+        ]
+        result_values = [
+            int(match.group(1)) for match in result_matches if match is not None
+        ]
+        visible_matches = [
+            VISIBLE_PATTERN.fullmatch(line.strip()) for line in stdout.splitlines()
+        ]
+        visible_values = [
+            (int(match.group(1)), int(match.group(2)))
+            for match in visible_matches
+            if match is not None
+        ]
+        if len(result_values) != 1 or len(visible_values) != 1:
+            raise ContractError("worker output did not match the sanitized race contract")
+        dispatch_results.extend(result_values)
+        visible_states.extend(visible_values)
+
+    if sorted(dispatch_results) != [0, 1]:
+        raise ContractError(f"expected dispatcher results [0,1]: {dispatch_results}")
+    if sorted(visible_states) != [(0, 0), (1, 1)]:
+        raise ContractError(
+            f"expected one transaction-local pg_net request/run: {visible_states}"
         )
-    if sorted(result_counts) != [0, 1]:
-        raise ContractError(f"expected one claim winner and one no-row loser: {result_counts}")
-    print(f"SANITIZED_CLAIM_ROW_COUNTS={sorted(result_counts)}")
+    print(f"SANITIZED_DISPATCH_RESULTS={sorted(dispatch_results)}")
+    print(f"TRANSACTION_VISIBLE_RUN_AND_PG_NET={sorted(visible_states)}")
 
 
 def assert_database_state(psql: Psql, fixture: Fixture) -> None:
     state = psql.scalar(
-        f"""
-select
-    count(*),
-    count(*) filter (where lease_expires_at > now()),
-    count(*) filter (where lease_owner is null),
-    count(*) filter (where attempt_count = 1),
-    count(*) filter (where attempt_count = 0)
-from public.v2_monitoring_alert_deliveries
-where id in ('{fixture.delivery_one}', '{fixture.delivery_two}');
-"""
+        "select "
+        "count(*),"
+        "count(*) filter (where request_id is not null),"
+        "count(*) filter (where is_half_open_probe),"
+        "count(distinct request_id) filter (where request_id is not null) "
+        "from public.v2_monitoring_push_dispatch_runs;"
     )
-    if state != "2|1|1|1|1":
-        raise ContractError(f"unexpected persisted device lease state: {state}")
-    audit_count = psql.scalar(
-        f"""
-select count(*)
-  from public.v2_audit_events
- where action = 'v2.monitoring.push_delivery.claim'
-   and object_id in ('{fixture.delivery_one}', '{fixture.delivery_two}');
-"""
+    if state != "1|1|1|1":
+        raise ContractError(f"unexpected persisted dispatch state: {state}")
+
+    circuit_state = psql.scalar(
+        "select circuit_state,"
+        "half_open_started_at is not null,"
+        "half_open_probe_dispatched_at is not null "
+        "from public.v2_monitoring_push_circuit_breaker where singleton;"
     )
-    if audit_count != "1":
-        raise ContractError(f"unexpected claim audit count: {audit_count}")
-    print(f"RACE_DB_STATE={state}|claim_audits={audit_count}")
+    if circuit_state != "half_open|t|t":
+        raise ContractError(f"unexpected persisted circuit state: {circuit_state}")
+
+    audit_state = psql.scalar(
+        "select "
+        "count(*) filter (where action = 'v2.monitoring.push_circuit.half_open'),"
+        "count(*) filter (where action = 'v2.monitoring.push_circuit.block' "
+        "and metadata->>'reason' = 'concurrent_dispatch') "
+        "from public.v2_audit_events;"
+    )
+    if audit_state != "1|1":
+        raise ContractError(f"unexpected circuit audit state: {audit_state}")
+    print(f"RACE_DB_STATE={state}|circuit={circuit_state}|audit={audit_state}")
 
 
 def cleanup_fixture(psql: Psql, fixture: Fixture) -> None:
     psql.run(
         f"""
 begin;
+delete from net.http_request_queue request
+ where request.url = '{fixture.worker_endpoint}';
+delete from public.v2_monitoring_push_dispatch_runs;
 delete from public.v2_audit_events
- where object_id in ('{fixture.delivery_one}', '{fixture.delivery_two}');
-delete from public.v2_audit_events
- where action = 'v2.monitoring.push_activation.prepare';
-delete from public.v2_monitoring_push_worker_capabilities
- where token_hash = extensions.digest(
-    convert_to('{fixture.capability_token}', 'UTF8'), 'sha256'
- );
+ where action like 'v2.monitoring.push_circuit.%'
+    or action = 'v2.monitoring.push_activation.prepare';
+delete from public.v2_monitoring_alert_deliveries
+ where id = '{fixture.delivery_id}';
+delete from public.v2_guardian_push_endpoints
+ where id = '{fixture.endpoint_id}';
+delete from public.v2_device_monitoring_transitions
+ where id = '{fixture.transition_id}';
 delete from public.v2_protected_devices where id = '{fixture.device_id}';
 delete from public.v2_children where id = '{fixture.child_id}';
-delete from public.v2_guardian_memberships where family_id = '{fixture.family_id}';
+delete from public.v2_guardian_memberships
+ where family_id = '{fixture.family_id}';
 delete from public.v2_families where id = '{fixture.family_id}';
-delete from auth.users where id in ('{fixture.guardian_one}', '{fixture.guardian_two}');
+delete from auth.users where id = '{fixture.guardian_id}';
+delete from vault.secrets secret
+ where secret.name in (
+    'kippy_v2_monitoring_push_worker_endpoint',
+    'kippy_v2_monitoring_push_worker_trigger_token'
+ );
 update public.v2_monitoring_push_activation_epochs
    set activation_cutoff = dormant_deployment_cutoff,
        enablement_prepared_at = null
+ where singleton;
+update public.v2_monitoring_push_circuit_breaker
+   set circuit_state = 'closed',
+       consecutive_worker_failures = 0,
+       consecutive_cron_failures = 0,
+       open_reason = null,
+       opened_at = null,
+       cooldown_until = null,
+       half_open_started_at = null,
+       half_open_probe_dispatched_at = null,
+       provider_window_started_at = statement_timestamp(),
+       last_observed_cron_run_id = 0
  where singleton;
 commit;
 """
@@ -465,22 +524,25 @@ commit;
     remaining = psql.scalar(
         f"""
 select
-    (select count(*) from auth.users
-      where id in ('{fixture.guardian_one}', '{fixture.guardian_two}')),
+    (select count(*) from auth.users where id = '{fixture.guardian_id}'),
     (select count(*) from public.v2_families where id = '{fixture.family_id}'),
-    (select count(*) from public.v2_protected_devices where id = '{fixture.device_id}'),
     (select count(*) from public.v2_monitoring_alert_deliveries
-      where id in ('{fixture.delivery_one}', '{fixture.delivery_two}'));
+      where id = '{fixture.delivery_id}'),
+    (select count(*) from public.v2_monitoring_push_dispatch_runs),
+    (select count(*) from vault.secrets where name in (
+        'kippy_v2_monitoring_push_worker_endpoint',
+        'kippy_v2_monitoring_push_worker_trigger_token'
+    ));
 """
     )
-    if remaining != "0|0|0|0":
-        raise ContractError(f"monitoring race cleanup incomplete: {remaining}")
+    if remaining != "0|0|0|0|0":
+        raise ContractError(f"half-open race cleanup incomplete: {remaining}")
     print(f"RACE_CLEANUP_STATE={remaining}")
 
 
 def run_contract(psql: Psql, barrier_seconds: float, hold_seconds: float) -> None:
     fixture = new_fixture()
-    label = f"kippy_monitoring_lease_race_{uuid.uuid4().hex[:8]}"
+    label = f"kippy_half_open_dispatch_race_{uuid.uuid4().hex[:8]}"
     controller_name = f"{label}_controller"
     worker_one_name = f"{label}_worker_1"
     worker_two_name = f"{label}_worker_2"
@@ -491,9 +553,9 @@ def run_contract(psql: Psql, barrier_seconds: float, hold_seconds: float) -> Non
         setup_complete = True
 
         controller = psql.popen(
-            f"select pg_advisory_lock({fixture.advisory_key}::bigint);"
+            f"select pg_advisory_lock({fixture.barrier_key}::bigint);"
             f"select pg_sleep({barrier_seconds});"
-            f"select pg_advisory_unlock({fixture.advisory_key}::bigint);",
+            f"select pg_advisory_unlock({fixture.barrier_key}::bigint);",
             application_name=controller_name,
         )
         processes.append(controller)
@@ -512,12 +574,10 @@ def run_contract(psql: Psql, barrier_seconds: float, hold_seconds: float) -> Non
         print("CONTROLLER_BARRIER=HELD")
 
         worker_one = psql.popen(
-            worker_sql(fixture, uuid.uuid4(), hold_seconds),
-            application_name=worker_one_name,
+            worker_sql(fixture, hold_seconds), application_name=worker_one_name
         )
         worker_two = psql.popen(
-            worker_sql(fixture, uuid.uuid4(), hold_seconds),
-            application_name=worker_two_name,
+            worker_sql(fixture, hold_seconds), application_name=worker_two_name
         )
         processes.extend((worker_one, worker_two))
 
@@ -531,32 +591,34 @@ def run_contract(psql: Psql, barrier_seconds: float, hold_seconds: float) -> Non
             )
             == "2",
             min(7, barrier_seconds - 1),
-            "both workers at barrier",
+            "both dispatchers at barrier",
         )
-        print("WORKERS_AT_BARRIER=2")
+        print("DISPATCHERS_AT_BARRIER=2")
 
         wait_until(
-            lambda: int(
-                psql.scalar(
-                    "select count(*) from pg_stat_activity "
-                    f"where application_name in ('{worker_one_name}',"
-                    f"'{worker_two_name}') and wait_event_type = 'Lock' "
-                    "and coalesce(wait_event, '') <> 'advisory';"
-                )
+            lambda: psql.scalar(
+                "select count(*) from pg_locks lock "
+                "join pg_stat_activity activity on activity.pid = lock.pid "
+                "where lock.locktype = 'advisory' and lock.granted "
+                "and lock.mode = 'ExclusiveLock' "
+                f"and lock.classid = {CIRCUIT_LOCK_CLASS_ID}::oid "
+                f"and lock.objid = {CIRCUIT_LOCK_OBJECT_ID}::oid "
+                f"and activity.application_name in ('{worker_one_name}',"
+                f"'{worker_two_name}');"
             )
-            >= 1,
+            == "1",
             barrier_seconds + hold_seconds + 5,
-            "post-barrier device-state lock wait",
+            "one dispatcher holding the circuit lock",
         )
-        print("POST_BARRIER_DEVICE_LOCK_WAIT=OBSERVED")
+        print("HALF_OPEN_CIRCUIT_LOCK_HOLDERS=1")
 
         deadline = time.monotonic() + barrier_seconds + (2 * hold_seconds) + 10
-        first_stdout = collect_process(worker_one, "worker 1", deadline)
-        second_stdout = collect_process(worker_two, "worker 2", deadline)
+        first_stdout = collect_process(worker_one, "dispatcher 1", deadline)
+        second_stdout = collect_process(worker_two, "dispatcher 2", deadline)
         collect_process(controller, "controller", deadline)
-        assert_results(first_stdout, second_stdout)
+        assert_process_results(first_stdout, second_stdout)
         assert_database_state(psql, fixture)
-        print("MONITORING_DEVICE_LEASE_RACE=PASS")
+        print("MONITORING_HALF_OPEN_DISPATCH_RACE=PASS")
     finally:
         stop_processes(processes)
         if setup_complete:
@@ -577,7 +639,7 @@ def main() -> int:
         verify_baseline(psql)
         run_contract(psql, args.barrier_seconds, args.winner_hold_seconds)
     except (ContractError, subprocess.TimeoutExpired) as error:
-        print(f"MONITORING_DEVICE_LEASE_RACE=FAIL: {error}", file=sys.stderr)
+        print(f"MONITORING_HALF_OPEN_DISPATCH_RACE=FAIL: {error}", file=sys.stderr)
         return 1
     return 0
 

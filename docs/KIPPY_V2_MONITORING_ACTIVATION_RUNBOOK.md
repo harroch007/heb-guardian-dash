@@ -2,27 +2,44 @@
 
 ## Document control
 
-- Version: 1.0
-- Date: 2026-08-31
+- Version: 2.0
+- Date: 2026-09-01
 - Status: REVIEW DRAFT — not activation approval
-- Applies to source baseline: `5adf6c9d14ea66cffa56f9ec7588a7f9ca98794a`
+- Applies to source baseline: `81adaa8f502e0d8002e69bfe5c651e8ce88c57ee`
 - Readiness migration: `20260831230000_v2_monitoring_push_activation_readiness.sql`
+- Circuit-breaker migration: `20260901180000_v2_monitoring_push_circuit_breaker.sql`
 - Staging project: `gscclrgcmvtbyquveoze`
 
 This runbook contains secret identifiers only. Never paste a token, Vault value,
-VAPID private JWK, or service-role key into this file, chat, shell history,
-screenshots, logs, SQL output, or evidence bundles.
+VAPID private JWK, service-role key, endpoint key material, or plaintext secret
+into this file, chat, shell history, screenshots, logs, SQL output, or evidence
+bundles.
 
 ## Scope and safety boundary
 
-The monitoring delivery lane remains separate from confirmed safety-incident
-delivery. This runbook never modifies `v2_alert_deliveries`,
-`v2-deliver-parent-push`, or `check-device-health`.
+Monitoring delivery remains separate from confirmed safety-incident delivery.
+This runbook never modifies `v2_alert_deliveries`, `v2-deliver-parent-push`, or
+`check-device-health`.
 
-Applying the readiness patch is not activation. Activation requires a new,
-explicit approval covering each mutation below. The database migration itself
-must not create secrets, Vault values, capability rows, endpoints, feature
-flags, or cron jobs.
+Applying the circuit-breaker migration and deploying its reviewed worker source
+would still not activate recurring delivery. The migration creates no cron job,
+capability, Vault value, endpoint, Edge secret, or feature flag. Every staging
+or production mutation requires its own explicit approval.
+
+## Current verified baseline
+
+- The two monitoring-delivery migrations and activation-readiness migration are
+  deployed on staging.
+- Gate B activation preparation completed once and established the two-stage
+  cutoff. It must not be reset or repeated.
+- Gate C proved one real `monitoring_interrupted` Web Push end to end for
+  `yariv@kippyai.com`; the notification was visibly received on the installed
+  iPhone PWA. No delivery to the other five guardians was observed.
+- Gate C did not validate a restoration notification. The currently pending
+  restoration row must not be replayed: leave it untouched until its normal TTL
+  expires, then verify that no provider attempt was made for it.
+- Recurring cron remains unapproved. This document and the Gate D patch are
+  review artifacts only.
 
 ## Required identities and configuration names
 
@@ -44,147 +61,193 @@ Database objects:
 
 - `v2_monitoring_push_worker_capabilities`
 - `v2_monitoring_push_activation_epochs`
+- `v2_monitoring_push_circuit_breaker`
+- `v2_monitoring_push_dispatch_runs`
 - `v2_prepare_monitoring_push_activation_internal()`
 - `v2_dispatch_monitoring_push_worker_internal(integer)`
+- `v2_report_monitoring_push_worker_run_service(...)`
 
 The trigger token in Edge configuration and the trigger token stored under the
-Vault identifier must be the same secret, transferred through an approved
-secret manager without displaying it. The database capability token and trigger
-token must be independently generated values. Store only the capability token's
-SHA-256 digest in PostgreSQL.
+Vault identifier are the same secret, transferred through an approved secret
+manager without displaying it. The database capability token and trigger token
+are independently generated. PostgreSQL stores only the capability token's
+SHA-256 digest.
 
 `KIPPY_WEB_PUSH_VAPID_KEYS_JWK` is the cryptographic source of truth. The public
 key setting must equal the application-server key exported from that exact JWK.
-`v2-get-push-config` verifies the equality at runtime and returns only the public
-key. It returns 503 on missing, malformed, or mismatched VAPID configuration.
-The frontend has no hardcoded or build-time fallback.
+`v2-get-push-config` verifies equality at runtime and returns only the public
+key. It returns 503 on missing, malformed, or mismatched configuration. The
+frontend has no hardcoded or build-time fallback.
 
 The VAPID configuration is shared with confirmed-incident Web Push. Do not
-rotate or remove an already approved shared keypair as part of monitoring-only
-rollback. Any shared-key rotation needs its own safety-incident regression gate.
+rotate or remove an approved shared keypair as part of monitoring-only rollback.
+Any shared-key rotation requires its own safety-incident regression gate.
 
-## Gate A — readiness deployment only
+## Automatic circuit breaker
 
-Required evidence before requesting deployment approval:
+The dispatcher remains owner-only and the worker report RPC remains available
+only to `service_role` after validating the dedicated monitoring capability.
+Circuit state and dispatch-run evidence are inaccessible to `public`, `anon`,
+`authenticated`, and `service_role` directly.
 
-1. Work from the independently reviewed commit, not an uncommitted or stale
-   tree.
-2. Linked ledger: 61 matched migrations, zero remote-only, and only
-   `20260831230000` local-only.
-3. Linked dry-run: exactly `20260831230000`, with no repair operation.
-4. Full disposable 62-migration history and all monitoring SQL/Deno contracts
-   pass.
-5. The migration source contains no `cron.schedule` call and no inserts into
-   capability, Vault, or endpoint tables.
-6. Record pre-deployment counts for monitoring cron jobs, active capabilities,
-   Vault-name presence, leases, due rows, and endpoint attempts. Read names and
-   counts only; never select decrypted Vault values or token hashes.
+The circuit opens only for technical delivery failures:
 
-After separately approved readiness deployment, deploy only the reviewed
-`v2-deliver-monitoring-push` and `v2-get-push-config` bundles. Keep
-`KIPPY_MONITORING_PUSH_DELIVERY_ENABLED` false and leave monitoring capability,
-Vault, endpoint, and cron state absent. Re-run the dormant fail-closed checks and
-stop.
+1. Three consecutive failed worker runs observed through capability-protected
+   reports or the 90-second unreported-run timeout.
+2. Three consecutive failed executions of the one future cron job named
+   `kippy-v2-monitoring-push`. A successful cron run resets only the cron streak.
+3. More than 50% transient provider failures among at least four real provider
+   attempts in the rolling five-minute window.
 
-## Gate B — controlled activation preparation
+Monitoring transition volume, many disconnected devices, due-queue size,
+delivery expiry, and `delivery_expired` results do not open the circuit. A mass
+disconnect may be a real safety event and must remain visible.
 
-This gate requires a new approval and one explicitly approved real staging test
-guardian/browser plus a real Kippy Android test device. Synthetic database rows
-or fabricated provider responses are not activation evidence.
+While open, the dispatcher returns zero before reading Vault or queuing HTTP. It
+does not delete, suppress, claim, lease, or reschedule monitoring deliveries. It
+writes an audit event for the open transition and every blocked dispatch.
 
-Perform these steps in order, recording timestamps and counts but no secret
-material:
+Cooldown is ten minutes. The first eligible dispatch after cooldown moves the
+circuit to half-open and admits exactly one worker request regardless of the
+requested bound. A technically successful probe closes a worker/cron circuit.
+A provider-rate circuit closes only after a probe that actually reaches a
+provider and has no transient result. A failed probe reopens the circuit with a
+fresh cooldown; a provider probe with no provider attempt is inconclusive and
+allows a later one-request probe. Successful close resets the provider sampling
+boundary so old failures cannot reopen the circuit immediately.
 
-1. Confirm the readiness migration and exact reviewed function versions are
-   deployed. Confirm the feature flag is false and no monitoring cron exists.
-2. Confirm there are no active monitoring leases and explain all queued/failed
-   rows. Stop on unexplained drift.
-3. Through the approved secret manager, configure the shared VAPID JWK, its
-   matching public key, and contact. Verify an authenticated guardian call to
-   `v2-get-push-config` returns contract version 1 and the expected public-key
-   fingerprint; never log the JWK.
-4. Register only the approved real staging guardian/browser endpoint. Confirm
-   its guardian, family, permission, and active status without returning endpoint
-   key material in evidence.
-5. Generate independent trigger and capability tokens through the approved
-   secret process. Configure the three dedicated Edge names. Store only the
-   capability digest in the capability table and store only the exact endpoint
-   and trigger-token entries under the two approved Vault names.
-6. Reconfirm that capability validation still returns false because
-   `enablement_prepared_at` is null. This proves credentials alone cannot open
-   the lane.
-7. At the approved activation moment, call the one-time preparation function as
-   database owner. It records the server clock only after acquiring the outbox
-   lock; callers cannot supply a stale cutoff. Capture its returned aggregate
-   counts and independently verify every pre-cutoff queued/failed row is retained
-   as `suppressed` with the expected reason. Stop on any count mismatch.
-8. Confirm the activation epoch now contains the immutable dormant cutoff, the
-   approved later effective cutoff, and a non-null preparation timestamp.
+`pg_cron` history is inspected by the dispatcher. If PostgreSQL is unavailable
+or the job fails before the function can run, the state table cannot update at
+that instant; the first later invocation that can read `cron.job_run_details`
+records the missed outcomes and opens the circuit when the threshold is met.
+Operational rollback therefore deactivates the named job but retains it and its
+history until diagnosis is complete.
 
-The preparation operation is irreversible by design. Do not call it early and
-do not retry it after success.
+## Future recurring job shape
 
-## Gate C — one-device runtime proof
+No migration schedules a job. After a separate approval, the database owner may
+create exactly one job with this reviewed shape:
 
-This gate requires another explicit approval because it enables and invokes
-external delivery.
+- name: `kippy-v2-monitoring-push`
+- schedule: once per minute (`* * * * *`)
+- database/user: the reviewed staging database and database owner
+- command during initial rollout:
+  `select public.v2_dispatch_monitoring_push_worker_internal(2);`
+- steady-state command after evidence review:
+  `select public.v2_dispatch_monitoring_push_worker_internal(4);`
+- initial state: inactive
 
-1. Limit active endpoint and capability scope to the approved staging guardian.
-2. Set `KIPPY_MONITORING_PUSH_DELIVERY_ENABLED` true.
-3. Invoke one bounded owner-only dispatch for one approved real-device
-   interruption. Do not schedule cron yet.
-4. Verify exactly one normal provider-accepted interruption attempt, privacy-safe
-   payload fields, bounded TTL, completed lease, and no safety-incident delivery
+The SQL function rejects bounds outside 1–8. Do not use eight as the routine
+bound: two during the controlled rollout and four at steady state cap worker
+requests per minute. Each worker claims at most one delivery, each delivery has
+a per-device lease, each delivery targets at most eight endpoints, and existing
+delivery retry/TTL rules remain unchanged. The circuit breaker is the global
+technical-failure stop; queue growth from real device disconnections is not.
+
+## Eight-stage rollout
+
+Every stage needs evidence from real staging accounts, browsers, and protected
+devices. Synthetic rows or mocked provider acceptance are contract evidence,
+not rollout proof. Stop between stages for explicit approval.
+
+1. **Expire the old gap safely.** Keep cron absent and let the currently pending
+   restoration row expire naturally. Under a separate approval, use one bounded
+   manual cleanup invocation so normal TTL handling suppresses it without a
+   provider call, then turn the flag off. Verify the row was retained and
+   produced zero provider attempts. Reconfirm source/ledger, circuit closed, no
+   active leases, and the exact guardian/device/endpoint inventory.
+2. **Repeat the single-guardian proof.** With only the approved Yariv endpoint
+   eligible, create a fresh real-device interruption and restoration. Manually
+   dispatch one request at a time. Verify both notifications visibly arrive,
+   ordering is interruption before restoration, no duplicate occurs, and the
+   flag is turned off immediately afterward.
+3. **Make the other five scopes real and healthy.** Before registering more
+   endpoints, require a real active guardian session and a fresh protected
+   device heartbeat for every intended family. Do not treat stale or synthetic
+   devices as rollout proof. Stop if six real scopes cannot be established.
+4. **Two-guardian manual pilot.** Register exactly one normal PWA endpoint for
+   one additional guardian. With cron still absent, test fresh interruption and
+   restoration events for the two guardians using bound 1. Verify strict family
+   isolation, visible receipt, TTL, lease completion, and zero safety-lane
    mutation.
-5. Drive the same real device through restoration and verify the restoration is
-   attempted only after the accepted disruption and at most once in the normal
-   completion path.
-6. Exercise one approved transient retry and one 404/410 endpoint invalidation
-   only if the test plan explicitly authorizes those external effects.
-7. Set the feature flag false immediately after the controlled proof and review
-   counts, logs, duplicate risk, and payload privacy before requesting cron
-   approval.
+5. **Complete endpoint enrollment.** Register one normal PWA endpoint for each
+   of the remaining four approved guardians. Reconcile exactly six eligible
+   guardians, six healthy devices, and one active endpoint per guardian. Run a
+   read-only isolation audit before any multi-guardian dispatch.
+6. **Controlled cron at bound 2.** Under one approval window, create the named
+   job inactive, verify its owner/schedule/command/uniqueness, set the flag true,
+   then activate it. Observe ten consecutive one-minute runs. Require zero cron
+   or worker failures, no circuit transition, no duplicate, no stale lease, and
+   request/attempt counts within bound. Turn the flag off and deactivate the job
+   before reviewing evidence.
+7. **Steady bound and six-guardian soak.** After review, change only the named
+   job to bound 4, re-enable it, and drive an approved real six-device burst that
+   includes interruption and restoration. Verify each guardian receives only
+   their family event. Continue for at least 60 clean cron runs; inspect the
+   five-minute provider window, retries, queue age, and circuit audit after every
+   anomaly.
+8. **Approve continuous operation separately.** Only after the soak passes may
+   staging remain unattended. Production requires a separate inventory,
+   secrets, VAPID, real-family, privacy, and rollback approval; staging evidence
+   does not authorize production activation.
 
-## Gate D — recurring dispatch
+## Stop conditions
 
-Only after Gate C evidence is independently approved may the database owner
-create one job named `kippy-v2-monitoring-push` that calls the bounded dispatcher.
-The cron change is an operational action, not a migration. Verify its owner,
-schedule, command, and uniqueness, then re-enable the feature flag under the
-same approval window.
+Immediately set the flag false and deactivate the named job if any condition is
+observed:
 
-Stop and roll back if the ledger or source version drifts, VAPID verification
-returns 503, any credential is exposed, the preparation counts disagree, an
-unapproved endpoint is active, a pre-cutoff row becomes claimable, more requests
-than the bound are queued, a safety-incident table changes, or any contract fails.
+- source, migration ledger, function version, or job definition differs from
+  the reviewed artifact;
+- VAPID verification returns 503 or the exported public key does not match the
+  configured public key;
+- a token, private key, endpoint key, or decrypted Vault value is exposed;
+- an unapproved guardian/endpoint is eligible, a guardian sees another family's
+  event, or a child-content field appears in the generic payload;
+- an old or pre-cutoff row is claimed, or an expired row reaches a provider;
+  the pending Gate C restoration may be claimed only by the explicitly approved
+  bound-1 expiry-cleanup step and must produce zero provider attempts;
+- requests exceed the configured bound, a delivery is duplicated or reordered,
+  a lease remains stale, or attempts continue after flag/job shutdown;
+- the circuit opens, a half-open probe is not exactly one request, three cron or
+  worker failures occur, or provider transient rate exceeds 50% with four or
+  more attempts in five minutes;
+- a safety-incident table/function changes or any monitoring SQL/Deno contract
+  fails.
+
+Do not manually force the circuit closed during an incident. Preserve its state
+and audit evidence, diagnose the technical cause, and use the normal cooldown
+and half-open path only after a reviewed fix.
 
 ## Rollback
 
-Rollback prioritizes stopping external delivery and does not delete audit data:
+Rollback stops external effects first and preserves evidence:
 
 1. Set `KIPPY_MONITORING_PUSH_DELIVERY_ENABLED` false.
-2. Unschedule only `kippy-v2-monitoring-push` and verify no command still calls
-   `v2_dispatch_monitoring_push_worker_internal`.
-3. Revoke the active monitoring capability row and retain its audit history.
-4. Remove only the two monitoring Vault entries listed in this runbook.
-5. Remove the three dedicated monitoring Edge runtime names. Do not remove the
-   shared VAPID configuration during a monitoring-only rollback.
-6. Allow any existing lease to expire; do not requeue, delete, or unsuppress
-   historical rows. Preserve endpoint-attempt and activation audit evidence.
-7. Confirm the worker returns 503 while disabled, the dispatcher returns zero,
-   and endpoint-attempt counts stop changing.
+2. Mark only `kippy-v2-monitoring-push` inactive. Do not delete it while its run
+   history is needed by the circuit and incident review.
+3. Verify HTTP request, endpoint-attempt, and lease counts stop changing. Allow
+   an existing lease to expire; do not requeue it manually.
+4. Preserve queued/failed deliveries, circuit state, dispatch runs, endpoint
+   attempts, and audit events. Do not delete, unsuppress, or bulk-reschedule.
+5. For a credential or authorization incident, revoke the monitoring capability
+   and rotate/remove only the two monitoring Vault entries and three dedicated
+   monitoring Edge names under a separate security approval.
+6. Do not remove or rotate shared VAPID configuration during monitoring-only
+   rollback.
+7. Confirm the worker returns 503 while disabled, the dispatcher returns zero
+   while the circuit is open or configuration is absent, and no safety lane was
+   changed.
 
-The additive migration, cutoff columns, functions, audit events, and suppressed
-rows remain in place. Do not run a down migration. A later reactivation after a
-rollback could otherwise replay rows accumulated during the disabled interval;
-it therefore requires a new reviewed forward migration or owner-only cutoff
-operation designed specifically to suppress that later gap. The one-time initial
-preparation function must not be reset or reused.
+The additive migrations, cutoff, circuit, functions, and audit evidence remain.
+Do not run a down migration. Reactivation after a disabled interval requires a
+new reviewed forward-only cutoff/suppression decision so dormant-gap rows cannot
+be replayed unintentionally.
 
 ## Evidence record
 
-For every gate, record the reviewed commit, operator, approval reference, UTC
-start/end, migration/function versions, before/after counts, HTTP status classes,
-and PASS/FAIL decision. Redact endpoint URLs and identifiers where practical.
-Record only fingerprints for public keys and never record tokens, private keys,
-Vault plaintext, subscription authentication material, or service-role keys.
+For every stage, record the reviewed commit, operator, approval reference, UTC
+start/end, migration/function versions, before/after aggregate counts, HTTP
+status classes, cron run IDs, circuit state/reason, and PASS/FAIL decision.
+Redact endpoint URLs and identifiers where practical. Record only public-key
+fingerprints; never record tokens, private keys, Vault plaintext, subscription
+authentication material, or service-role keys.
