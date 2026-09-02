@@ -1,6 +1,5 @@
 import { useEffect, useRef } from "react";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
+import { loadGoogleMaps } from "@/lib/googleMaps";
 
 interface LocationMapProps {
   latitude: number;
@@ -8,61 +7,56 @@ interface LocationMapProps {
   name?: string;
 }
 
-// Custom Kippy-purple pin (SVG, no external icon assets)
-const kippyIcon = L.divIcon({
-  className: "kippy-map-pin",
-  html: `
-    <div style="
-      width: 32px; height: 32px;
-      background: hsl(263 70% 60%);
-      border: 3px solid white;
-      border-radius: 50% 50% 50% 0;
-      transform: rotate(-45deg);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-      display: flex; align-items: center; justify-content: center;
-    ">
-      <div style="
-        width: 10px; height: 10px;
-        background: white;
-        border-radius: 50%;
-        transform: rotate(45deg);
-      "></div>
-    </div>
-  `,
-  iconSize: [32, 32],
-  iconAnchor: [16, 32],
+// Custom Kippy-purple teardrop pin, as an inline SVG data URI (no external icon assets).
+const kippyPinIcon = (): google.maps.Icon => ({
+  url:
+    "data:image/svg+xml;charset=UTF-8," +
+    encodeURIComponent(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+        <path d="M16 2C9.4 2 4 7.4 4 14c0 9.4 12 16 12 16s12-6.6 12-16c0-6.6-5.4-12-12-12z"
+              fill="hsl(263 70% 60%)" stroke="white" stroke-width="2.5"/>
+        <circle cx="16" cy="14" r="4.5" fill="white"/>
+      </svg>
+    `),
+  scaledSize: new google.maps.Size(32, 32),
+  anchor: new google.maps.Point(16, 30),
 });
 
 export function LocationMap({ latitude, longitude, name }: LocationMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<L.Map | null>(null);
-  const markerRef = useRef<L.Marker | null>(null);
+  const mapRef = useRef<google.maps.Map | null>(null);
+  const markerRef = useRef<google.maps.Marker | null>(null);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
+    let cancelled = false;
 
-    const map = L.map(containerRef.current, {
-      attributionControl: false,
-      zoomControl: true,
-      scrollWheelZoom: false,
-    }).setView([latitude, longitude], 16);
+    (async () => {
+      const g = await loadGoogleMaps();
+      if (cancelled || !containerRef.current || mapRef.current) return;
 
-    // CartoDB Voyager — illustrated, soft, Wolt/Gett-like aesthetic
-    L.tileLayer(
-      "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-      {
-        subdomains: "abcd",
-        maxZoom: 20,
-      }
-    ).addTo(map);
+      const map = new g.maps.Map(containerRef.current, {
+        center: { lat: latitude, lng: longitude },
+        zoom: 16,
+        disableDefaultUI: true,
+        zoomControl: true,
+        scrollwheel: false,
+        clickableIcons: false,
+      });
 
-    markerRef.current = L.marker([latitude, longitude], { icon: kippyIcon }).addTo(map);
-    if (name) markerRef.current.bindTooltip(name, { direction: "top", offset: [0, -28] });
+      markerRef.current = new g.maps.Marker({
+        map,
+        position: { lat: latitude, lng: longitude },
+        icon: kippyPinIcon(),
+        title: name,
+      });
 
-    mapRef.current = map;
+      mapRef.current = map;
+    })();
 
     return () => {
-      map.remove();
+      cancelled = true;
+      markerRef.current?.setMap(null);
       mapRef.current = null;
       markerRef.current = null;
     };
@@ -72,8 +66,8 @@ export function LocationMap({ latitude, longitude, name }: LocationMapProps) {
   // Update marker/view when coordinates change
   useEffect(() => {
     if (!mapRef.current || !markerRef.current) return;
-    markerRef.current.setLatLng([latitude, longitude]);
-    mapRef.current.setView([latitude, longitude], mapRef.current.getZoom());
+    markerRef.current.setPosition({ lat: latitude, lng: longitude });
+    mapRef.current.setCenter({ lat: latitude, lng: longitude });
   }, [latitude, longitude]);
 
   return (
