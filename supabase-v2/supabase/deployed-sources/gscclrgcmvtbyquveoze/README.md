@@ -28,5 +28,13 @@ not be edited or normalized in place. Future implementation source belongs in
 `../../functions/`; promoting a snapshot into that editable tree requires an
 explicit diff, tests, and a deployment review.
 
+On `2026-09-02`, `v2-poll-device-commands` and
+`v2-finish-device-command` were downloaded again from their active version 44
+bundles. Their provider hashes and normalized source bytes match the recorded
+version 39 bundles. The version 44 bundles are preserved here, and their exact
+entrypoints were promoted into the editable tree. The editable tree retains
+the newer, stricter shared device-auth implementation; the versioned snapshots
+remain the byte-accurate record of the currently deployed shared dependencies.
+
 No function was invoked, deployed, updated, or deleted while creating this
 snapshot. No secret values are stored here.
