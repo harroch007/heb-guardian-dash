@@ -97,11 +97,12 @@
     },
     {
       "slug": "v2-finish-device-command",
-      "version": 39,
+      "version": 44,
       "status": "ACTIVE",
       "verify_jwt": false,
       "ezbr_sha256": "5d6264b36c855a2e49d2aa168562b7c94050b7e0b527cc9ce134b321e9134471",
-      "snapshot": "functions/v2-finish-device-command/v39/supabase"
+      "snapshot": "functions/v2-finish-device-command/v44/supabase",
+      "deployed_source_verified_at": "2026-09-02T10:10:21+03:00"
     },
     {
       "slug": "v2-get-incident-encryption-key",
@@ -129,11 +130,12 @@
     },
     {
       "slug": "v2-poll-device-commands",
-      "version": 39,
+      "version": 44,
       "status": "ACTIVE",
       "verify_jwt": false,
       "ezbr_sha256": "06c0750b85c0af1ed3421d7e8dc29f4abad4fd6541473036c281910b624c381a",
-      "snapshot": "functions/v2-poll-device-commands/v39/supabase"
+      "snapshot": "functions/v2-poll-device-commands/v44/supabase",
+      "deployed_source_verified_at": "2026-09-02T10:10:21+03:00"
     },
     {
       "slug": "v2-register-device",
