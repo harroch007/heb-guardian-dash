@@ -12,8 +12,7 @@ Kippy V2 הוא מוצר אחד. גרסה מלאה חייבת לכלול יחד:
 2. ניטור בטיחות ב-WhatsApp;
 3. אפליקציית Android אחת למכשיר הילד;
 4. PWA אחד להורה;
-5. Backend V2 אחד;
-6. Control Tower אחד לאופרציה, לסוכנים ולעוזרת המנכ״ל.
+5. Backend V2 אחד.
 
 אסור לשחרר גרסה שמכילה רק בקרת הורים או רק ניטור WhatsApp.
 
@@ -70,35 +69,10 @@ feed אירועים, ניהול משפחה או פעולות ילד.
 - device health ו-projections להורה;
 - incidents, expert analysis, policy ו-delivery;
 - Web Push;
-- staff, RBAC/AAL2, cases, agents ו-audit.
+- תשתית staff ו-RBAC/AAL2 המשותפת שנשארת בשימוש CMO ותמיכה.
 
 אין למסלול פעיל לקרוא או לכתוב טבלאות/RPC של V1. קוד ישן נשמר זמנית רק
 כ-donor עד שהחלופה המאוחדת עוברת QA.
-
-## Control Tower וסוכנים
-
-ה-Control Tower החדש הוא ממשק האופרציה היחיד. כל סוכן מקבל זהות והרשאות
-מוגבלות לפי תפקיד, ומתחבר לאותם contracts ו-projections של V2. סוכן אינו
-מקבל service role חופשי ואינו מאשר לעצמו פעולה רגישה.
-
-עוזרת המנכ״ל היא סוכנת פרטית ונפרדת מערוצי הלקוחות. היא מסכמת נתוני
-אופרציה, מוצר, בטיחות, שירות, כספים ושחרורים; פותחת cases ומשימות; ויכולה
-להפעיל תהליך Codex מבוקר ליצירת patch/PR. היא אינה משנה Production ישירות.
-כל שינוי Codex מחייב worktree מבודד, בדיקות, release gate ואישור אנושי.
-
-### Codex activation boundary
-
-- The CEO assistant may create and approve an audited Codex task request; it
-  never runs repository commands from the browser or a Supabase Edge Function.
-- A trusted server-side Node.js runner on an authorized development host
-  claims the request and starts or resumes a Codex SDK thread in an isolated
-  worktree with workspace-write permissions only.
-- The runner returns structured review, patch, validation and PR metadata to
-  the Control Tower. Production deployment still requires the normal release
-  gate and explicit human approval.
-- Codex credentials and repository credentials stay in the trusted runner.
-  Prompts contain operational evidence and task scope, not raw child-message
-  content.
 
 ## מעבדת Android Studio
 
@@ -124,10 +98,9 @@ verification והכנסה לאותה שרשרת. Production אינו רושם ת
 1. הקפאת contracts וזהויות משותפות;
 2. Backend V2 מאוחד;
 3. Android ו-PWA מאוחדים;
-4. Control Tower, סוכני האופרציה ועוזרת המנכ״ל;
-5. Android Studio + מכשיר פיזי + browser QA;
-6. Google Play Internal Testing;
-7. רק לאחר מוצר מלא עובד: אופטימיזציה, מיתוג ופרסום.
+4. Android Studio + מכשיר פיזי + browser QA;
+5. Google Play Internal Testing;
+6. רק לאחר מוצר מלא עובד: אופטימיזציה, מיתוג ופרסום.
 
 שער האינטגרציה בודק פונקציונליות מלאה. אופטימיזציות שאינן חוסמות שימוש,
 בטיחות, פרטיות או יציבות אינן מעכבות את יצירת המוצר המאוחד ב-Android Studio.
