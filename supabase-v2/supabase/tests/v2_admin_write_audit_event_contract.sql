@@ -26,12 +26,12 @@ begin
         raise exception 'admin_audit_helper_must_remain_internal_only';
     end if;
 
-    if not has_function_privilege(
+    if has_function_privilege(
         'authenticated',
         'public.v2_admin_list_fixture_scenarios()'::regprocedure,
         'EXECUTE'
     ) then
-        raise exception 'fixture_catalog_rpc_missing_authenticated_execute';
+        raise exception 'retired_fixture_catalog_rpc_still_executable';
     end if;
 end;
 $$;
@@ -167,8 +167,8 @@ begin
 end;
 $$;
 
-set local role authenticated;
-
+-- The historical function remains available to its owner for schema/history
+-- verification, but the browser-facing authenticated role is retired above.
 do $$
 declare
     response jsonb;
@@ -196,8 +196,6 @@ begin
     perform set_config('test.admin_audit_rpc_id', audit_event_id::text, true);
 end;
 $$;
-
-reset role;
 
 do $$
 declare

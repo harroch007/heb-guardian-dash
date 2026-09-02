@@ -26,7 +26,6 @@ import AlertsV2 from "./pages/AlertsV2Canonical";
 import SettingsV2 from "./pages/SettingsV2Canonical";
 import GuardianFamilyV2 from "./pages/GuardianFamilyV2";
 import LandingV1 from "./pages/LandingV1";
-import { ControlTowerEntry } from "@/features/control-tower";
 
 const queryClient = new QueryClient();
 
@@ -103,7 +102,6 @@ const App = () => (
                 <Route path="/admin-login" element={<Navigate to="/auth" replace />} />
                 <Route path="/admin" element={<Navigate to="/home-v2" replace />} />
                 <Route path="/impersonate-session" element={<Navigate to="/home-v2" replace />} />
-                <Route path="/control-tower/*" element={<ControlTowerEntry />} />
                 
                 {/* Main app routes */}
                 <Route path="/*" element={
