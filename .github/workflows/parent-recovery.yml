@@ -32,7 +32,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Type check
-        run: npm exec tsc -- --noEmit
+        run: npm exec tsc -- --noEmit -p tsconfig.app.json
 
       - name: Lint
         run: npm run lint

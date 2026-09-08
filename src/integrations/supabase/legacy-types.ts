@@ -1,0 +1,4018 @@
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
+export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.1"
+  }
+  public: {
+    Tables: {
+      admin_activity_log: {
+        Row: {
+          action_details: Json
+          action_type: string
+          admin_user_id: string
+          created_at: string
+          id: string
+          target_parent_id: string
+        }
+        Insert: {
+          action_details?: Json
+          action_type: string
+          admin_user_id: string
+          created_at?: string
+          id?: string
+          target_parent_id: string
+        }
+        Update: {
+          action_details?: Json
+          action_type?: string
+          admin_user_id?: string
+          created_at?: string
+          id?: string
+          target_parent_id?: string
+        }
+        Relationships: []
+      }
+      admin_notes: {
+        Row: {
+          admin_user_id: string
+          created_at: string
+          id: string
+          note_text: string
+          note_type: string
+          parent_id: string
+        }
+        Insert: {
+          admin_user_id: string
+          created_at?: string
+          id?: string
+          note_text: string
+          note_type?: string
+          parent_id: string
+        }
+        Update: {
+          admin_user_id?: string
+          created_at?: string
+          id?: string
+          note_text?: string
+          note_type?: string
+          parent_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_notes_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "parents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_engine_health: {
+        Row: {
+          child_id: string | null
+          device_id: string
+          id: string
+          last_failure_reason: string | null
+          last_slm_latency_ms: number | null
+          last_voice_latency_ms: number | null
+          selected_slm_engine: string | null
+          selected_voice_engine: string | null
+          slm_engine_status: string | null
+          slm_failure_count: number | null
+          updated_at: string | null
+          voice_engine_status: string | null
+          voice_failure_count: number | null
+        }
+        Insert: {
+          child_id?: string | null
+          device_id: string
+          id?: string
+          last_failure_reason?: string | null
+          last_slm_latency_ms?: number | null
+          last_voice_latency_ms?: number | null
+          selected_slm_engine?: string | null
+          selected_voice_engine?: string | null
+          slm_engine_status?: string | null
+          slm_failure_count?: number | null
+          updated_at?: string | null
+          voice_engine_status?: string | null
+          voice_failure_count?: number | null
+        }
+        Update: {
+          child_id?: string | null
+          device_id?: string
+          id?: string
+          last_failure_reason?: string | null
+          last_slm_latency_ms?: number | null
+          last_voice_latency_ms?: number | null
+          selected_slm_engine?: string | null
+          selected_voice_engine?: string | null
+          slm_engine_status?: string | null
+          slm_failure_count?: number | null
+          updated_at?: string | null
+          voice_engine_status?: string | null
+          voice_failure_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_engine_health_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_engine_health_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: true
+            referencedRelation: "devices"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "ai_engine_health_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: true
+            referencedRelation: "parent_daily_report"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "ai_engine_health_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: true
+            referencedRelation: "parent_daily_report_for_parent"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "ai_engine_health_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: true
+            referencedRelation: "parent_home_snapshot"
+            referencedColumns: ["device_id"]
+          },
+        ]
+      }
+      ai_incident_summaries: {
+        Row: {
+          chat_id: string
+          chat_type: string
+          child_id: string | null
+          child_role: string | null
+          confidence: number | null
+          created_at: string | null
+          device_id: string
+          evidence_message_ids: Json | null
+          evidence_snippets: Json | null
+          id: string
+          incident_action: string
+          is_open: boolean | null
+          last_seen_at: string | null
+          risk_type: string
+          severity: string
+          updated_at: string | null
+          why_short: string | null
+        }
+        Insert: {
+          chat_id: string
+          chat_type: string
+          child_id?: string | null
+          child_role?: string | null
+          confidence?: number | null
+          created_at?: string | null
+          device_id: string
+          evidence_message_ids?: Json | null
+          evidence_snippets?: Json | null
+          id?: string
+          incident_action: string
+          is_open?: boolean | null
+          last_seen_at?: string | null
+          risk_type: string
+          severity: string
+          updated_at?: string | null
+          why_short?: string | null
+        }
+        Update: {
+          chat_id?: string
+          chat_type?: string
+          child_id?: string | null
+          child_role?: string | null
+          confidence?: number | null
+          created_at?: string | null
+          device_id?: string
+          evidence_message_ids?: Json | null
+          evidence_snippets?: Json | null
+          id?: string
+          incident_action?: string
+          is_open?: boolean | null
+          last_seen_at?: string | null
+          risk_type?: string
+          severity?: string
+          updated_at?: string | null
+          why_short?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_incident_summaries_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_incident_summaries_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "ai_incident_summaries_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_daily_report"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "ai_incident_summaries_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_daily_report_for_parent"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "ai_incident_summaries_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_home_snapshot"
+            referencedColumns: ["device_id"]
+          },
+        ]
+      }
+      ai_model_config: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_default: boolean
+          model_name: string
+          updated_at: string | null
+          weight: number
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_default?: boolean
+          model_name: string
+          updated_at?: string | null
+          weight?: number
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_default?: boolean
+          model_name?: string
+          updated_at?: string | null
+          weight?: number
+        }
+        Relationships: []
+      }
+      ai_policy_config: {
+        Row: {
+          active_policy_version: string
+          context_window_size: number | null
+          created_at: string | null
+          escalation_thresholds: Json | null
+          feature_flags: Json | null
+          id: string
+          is_active: boolean | null
+          model_metadata: Json | null
+          preferred_slm_engine_order: Json | null
+          preferred_voice_engine_order: Json | null
+          suppression_minutes: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          active_policy_version: string
+          context_window_size?: number | null
+          created_at?: string | null
+          escalation_thresholds?: Json | null
+          feature_flags?: Json | null
+          id?: string
+          is_active?: boolean | null
+          model_metadata?: Json | null
+          preferred_slm_engine_order?: Json | null
+          preferred_voice_engine_order?: Json | null
+          suppression_minutes?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          active_policy_version?: string
+          context_window_size?: number | null
+          created_at?: string | null
+          escalation_thresholds?: Json | null
+          feature_flags?: Json | null
+          id?: string
+          is_active?: boolean | null
+          model_metadata?: Json | null
+          preferred_slm_engine_order?: Json | null
+          preferred_voice_engine_order?: Json | null
+          suppression_minutes?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      ai_rollout_flags: {
+        Row: {
+          created_at: string | null
+          disable_slm_on_low_end: boolean | null
+          disable_voice_on_low_end: boolean | null
+          enable_local_slm: boolean | null
+          enable_voice_transcription: boolean | null
+          force_heuristic_mode: boolean | null
+          id: string
+          is_active: boolean | null
+          notes: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          disable_slm_on_low_end?: boolean | null
+          disable_voice_on_low_end?: boolean | null
+          enable_local_slm?: boolean | null
+          enable_voice_transcription?: boolean | null
+          force_heuristic_mode?: boolean | null
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          disable_slm_on_low_end?: boolean | null
+          disable_voice_on_low_end?: boolean | null
+          enable_local_slm?: boolean | null
+          enable_voice_transcription?: boolean | null
+          force_heuristic_mode?: boolean | null
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      ai_runtime_telemetry: {
+        Row: {
+          child_id: string | null
+          created_at: string | null
+          device_id: string
+          engine_type: string
+          event_type: string
+          failure_reason: string | null
+          fallback_triggered: boolean | null
+          id: string
+          latency_ms: number | null
+          model_version: string | null
+          success: boolean | null
+        }
+        Insert: {
+          child_id?: string | null
+          created_at?: string | null
+          device_id: string
+          engine_type: string
+          event_type: string
+          failure_reason?: string | null
+          fallback_triggered?: boolean | null
+          id?: string
+          latency_ms?: number | null
+          model_version?: string | null
+          success?: boolean | null
+        }
+        Update: {
+          child_id?: string | null
+          created_at?: string | null
+          device_id?: string
+          engine_type?: string
+          event_type?: string
+          failure_reason?: string | null
+          fallback_triggered?: boolean | null
+          id?: string
+          latency_ms?: number | null
+          model_version?: string | null
+          success?: boolean | null
+        }
+        Relationships: []
+      }
+      ai_stack_requests: {
+        Row: {
+          chat_hash: string | null
+          chat_type: string
+          child_id: string | null
+          created_at: string
+          device_id: string
+          id: string
+          platform: string
+          stack_size: number
+          trigger_reason: string | null
+        }
+        Insert: {
+          chat_hash?: string | null
+          chat_type?: string
+          child_id?: string | null
+          created_at?: string
+          device_id: string
+          id?: string
+          platform?: string
+          stack_size: number
+          trigger_reason?: string | null
+        }
+        Update: {
+          chat_hash?: string | null
+          chat_type?: string
+          child_id?: string | null
+          created_at?: string
+          device_id?: string
+          id?: string
+          platform?: string
+          stack_size?: number
+          trigger_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_stack_requests_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_stack_requests_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "ai_stack_requests_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_daily_report"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "ai_stack_requests_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_daily_report_for_parent"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "ai_stack_requests_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_home_snapshot"
+            referencedColumns: ["device_id"]
+          },
+        ]
+      }
+      ai_suppression_audit: {
+        Row: {
+          chat_id: string
+          child_id: string | null
+          created_at: string | null
+          current_severity: string | null
+          device_id: string
+          id: string
+          last_alert_sent_at: string | null
+          previous_severity: string | null
+          risk_type: string
+          suppression_reason: string
+        }
+        Insert: {
+          chat_id: string
+          child_id?: string | null
+          created_at?: string | null
+          current_severity?: string | null
+          device_id: string
+          id?: string
+          last_alert_sent_at?: string | null
+          previous_severity?: string | null
+          risk_type: string
+          suppression_reason: string
+        }
+        Update: {
+          chat_id?: string
+          child_id?: string | null
+          created_at?: string | null
+          current_severity?: string | null
+          device_id?: string
+          id?: string
+          last_alert_sent_at?: string | null
+          previous_severity?: string | null
+          risk_type?: string
+          suppression_reason?: string
+        }
+        Relationships: []
+      }
+      alert_events_queue: {
+        Row: {
+          alert_id: number
+          attempt: number
+          created_at: string
+          event_type: string
+          id: string
+          last_error: string | null
+          max_attempts: number
+          status: string
+          updated_at: string
+          visible_at: string
+        }
+        Insert: {
+          alert_id: number
+          attempt?: number
+          created_at?: string
+          event_type: string
+          id?: string
+          last_error?: string | null
+          max_attempts?: number
+          status?: string
+          updated_at?: string
+          visible_at?: string
+        }
+        Update: {
+          alert_id?: number
+          attempt?: number
+          created_at?: string
+          event_type?: string
+          id?: string
+          last_error?: string | null
+          max_attempts?: number
+          status?: string
+          updated_at?: string
+          visible_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alert_events_queue_alert_id_fkey"
+            columns: ["alert_id"]
+            isOneToOne: false
+            referencedRelation: "alerts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alert_events_queue_alert_id_fkey"
+            columns: ["alert_id"]
+            isOneToOne: false
+            referencedRelation: "parent_alerts_effective"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      alert_feedback: {
+        Row: {
+          alert_id: number
+          created_at: string
+          feedback_type: string
+          id: string
+          parent_id: string
+        }
+        Insert: {
+          alert_id: number
+          created_at?: string
+          feedback_type: string
+          id?: string
+          parent_id: string
+        }
+        Update: {
+          alert_id?: number
+          created_at?: string
+          feedback_type?: string
+          id?: string
+          parent_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alert_feedback_alert_id_fkey"
+            columns: ["alert_id"]
+            isOneToOne: false
+            referencedRelation: "alerts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alert_feedback_alert_id_fkey"
+            columns: ["alert_id"]
+            isOneToOne: false
+            referencedRelation: "parent_alerts_effective"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alert_feedback_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "parents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      alerts: {
+        Row: {
+          acknowledged_at: string | null
+          ai_analysis: Json | null
+          ai_classification: Json | null
+          ai_confidence: number | null
+          ai_context: string | null
+          ai_error: string | null
+          ai_explanation: string | null
+          ai_explanation_short: string | null
+          ai_meaning: string | null
+          ai_patterns: string[] | null
+          ai_recommendation: string | null
+          ai_recommendation_short: string | null
+          ai_risk_score: number | null
+          ai_social_context: Json | null
+          ai_status: string | null
+          ai_summary: string | null
+          ai_title: string | null
+          ai_verdict: string | null
+          alert_type: string
+          analyzed_at: string | null
+          author_type: string | null
+          category: string | null
+          chat_name: string | null
+          chat_type: string | null
+          child_id: string | null
+          child_role: string | null
+          client_event_id: string | null
+          content: string | null
+          created_at: string
+          device_id: string | null
+          escalate: boolean | null
+          expert_type: string | null
+          id: number
+          is_processed: boolean | null
+          last_attempt_at: string | null
+          last_error: string | null
+          message_count: number | null
+          parent_message: string | null
+          platform: string
+          processing_status: string | null
+          remind_at: string | null
+          retry_count: number | null
+          risk_score: number | null
+          saved_at: string | null
+          sender: string | null
+          sender_display: string | null
+          should_alert: boolean | null
+          should_store: boolean | null
+          source: string | null
+          suggested_action: string | null
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          ai_analysis?: Json | null
+          ai_classification?: Json | null
+          ai_confidence?: number | null
+          ai_context?: string | null
+          ai_error?: string | null
+          ai_explanation?: string | null
+          ai_explanation_short?: string | null
+          ai_meaning?: string | null
+          ai_patterns?: string[] | null
+          ai_recommendation?: string | null
+          ai_recommendation_short?: string | null
+          ai_risk_score?: number | null
+          ai_social_context?: Json | null
+          ai_status?: string | null
+          ai_summary?: string | null
+          ai_title?: string | null
+          ai_verdict?: string | null
+          alert_type?: string
+          analyzed_at?: string | null
+          author_type?: string | null
+          category?: string | null
+          chat_name?: string | null
+          chat_type?: string | null
+          child_id?: string | null
+          child_role?: string | null
+          client_event_id?: string | null
+          content?: string | null
+          created_at?: string
+          device_id?: string | null
+          escalate?: boolean | null
+          expert_type?: string | null
+          id?: number
+          is_processed?: boolean | null
+          last_attempt_at?: string | null
+          last_error?: string | null
+          message_count?: number | null
+          parent_message?: string | null
+          platform?: string
+          processing_status?: string | null
+          remind_at?: string | null
+          retry_count?: number | null
+          risk_score?: number | null
+          saved_at?: string | null
+          sender?: string | null
+          sender_display?: string | null
+          should_alert?: boolean | null
+          should_store?: boolean | null
+          source?: string | null
+          suggested_action?: string | null
+        }
+        Update: {
+          acknowledged_at?: string | null
+          ai_analysis?: Json | null
+          ai_classification?: Json | null
+          ai_confidence?: number | null
+          ai_context?: string | null
+          ai_error?: string | null
+          ai_explanation?: string | null
+          ai_explanation_short?: string | null
+          ai_meaning?: string | null
+          ai_patterns?: string[] | null
+          ai_recommendation?: string | null
+          ai_recommendation_short?: string | null
+          ai_risk_score?: number | null
+          ai_social_context?: Json | null
+          ai_status?: string | null
+          ai_summary?: string | null
+          ai_title?: string | null
+          ai_verdict?: string | null
+          alert_type?: string
+          analyzed_at?: string | null
+          author_type?: string | null
+          category?: string | null
+          chat_name?: string | null
+          chat_type?: string | null
+          child_id?: string | null
+          child_role?: string | null
+          client_event_id?: string | null
+          content?: string | null
+          created_at?: string
+          device_id?: string | null
+          escalate?: boolean | null
+          expert_type?: string | null
+          id?: number
+          is_processed?: boolean | null
+          last_attempt_at?: string | null
+          last_error?: string | null
+          message_count?: number | null
+          parent_message?: string | null
+          platform?: string
+          processing_status?: string | null
+          remind_at?: string | null
+          retry_count?: number | null
+          risk_score?: number | null
+          saved_at?: string | null
+          sender?: string | null
+          sender_display?: string | null
+          should_alert?: boolean | null
+          should_store?: boolean | null
+          source?: string | null
+          suggested_action?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alerts_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alerts_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "alerts_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_daily_report"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "alerts_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_daily_report_for_parent"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "alerts_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_home_snapshot"
+            referencedColumns: ["device_id"]
+          },
+        ]
+      }
+      allowed_emails: {
+        Row: {
+          added_by: string | null
+          created_at: string | null
+          email: string
+          id: string
+          notes: string | null
+        }
+        Insert: {
+          added_by?: string | null
+          created_at?: string | null
+          email: string
+          id?: string
+          notes?: string | null
+        }
+        Update: {
+          added_by?: string | null
+          created_at?: string | null
+          email?: string
+          id?: string
+          notes?: string | null
+        }
+        Relationships: []
+      }
+      app_alerts: {
+        Row: {
+          app_name: string | null
+          child_id: string | null
+          created_at: string
+          device_id: string
+          id: string
+          package_name: string
+        }
+        Insert: {
+          app_name?: string | null
+          child_id?: string | null
+          created_at?: string
+          device_id: string
+          id?: string
+          package_name: string
+        }
+        Update: {
+          app_name?: string | null
+          child_id?: string | null
+          created_at?: string
+          device_id?: string
+          id?: string
+          package_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_alerts_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "app_alerts_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_daily_report"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "app_alerts_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_daily_report_for_parent"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "app_alerts_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_home_snapshot"
+            referencedColumns: ["device_id"]
+          },
+        ]
+      }
+      app_policies: {
+        Row: {
+          always_allowed: boolean
+          app_name: string | null
+          blocked_at: string | null
+          blocked_by: string | null
+          child_id: string
+          created_at: string
+          id: string
+          is_blocked: boolean
+          package_name: string
+          policy_status: string
+          updated_at: string
+        }
+        Insert: {
+          always_allowed?: boolean
+          app_name?: string | null
+          blocked_at?: string | null
+          blocked_by?: string | null
+          child_id: string
+          created_at?: string
+          id?: string
+          is_blocked?: boolean
+          package_name: string
+          policy_status?: string
+          updated_at?: string
+        }
+        Update: {
+          always_allowed?: boolean
+          app_name?: string | null
+          blocked_at?: string | null
+          blocked_by?: string | null
+          child_id?: string
+          created_at?: string
+          id?: string
+          is_blocked?: boolean
+          package_name?: string
+          policy_status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_policies_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      app_usage: {
+        Row: {
+          app_name: string | null
+          child_id: string | null
+          created_at: string | null
+          device_id: string | null
+          id: number
+          package_name: string
+          updated_at: string | null
+          usage_date: string
+          usage_minutes: number | null
+        }
+        Insert: {
+          app_name?: string | null
+          child_id?: string | null
+          created_at?: string | null
+          device_id?: string | null
+          id?: number
+          package_name: string
+          updated_at?: string | null
+          usage_date?: string
+          usage_minutes?: number | null
+        }
+        Update: {
+          app_name?: string | null
+          child_id?: string | null
+          created_at?: string | null
+          device_id?: string | null
+          id?: number
+          package_name?: string
+          updated_at?: string | null
+          usage_date?: string
+          usage_minutes?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_usage_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "app_usage_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "app_usage_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_daily_report"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "app_usage_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_daily_report_for_parent"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "app_usage_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_home_snapshot"
+            referencedColumns: ["device_id"]
+          },
+        ]
+      }
+      blocked_app_attempts: {
+        Row: {
+          app_name: string | null
+          attempted_at: string
+          child_id: string
+          device_id: string
+          id: string
+          package_name: string
+        }
+        Insert: {
+          app_name?: string | null
+          attempted_at?: string
+          child_id: string
+          device_id: string
+          id?: string
+          package_name: string
+        }
+        Update: {
+          app_name?: string | null
+          attempted_at?: string
+          child_id?: string
+          device_id?: string
+          id?: string
+          package_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blocked_app_attempts_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bonus_time_grants: {
+        Row: {
+          bonus_minutes: number
+          child_id: string
+          created_at: string
+          grant_date: string
+          granted_by: string | null
+          id: string
+        }
+        Insert: {
+          bonus_minutes: number
+          child_id: string
+          created_at?: string
+          grant_date?: string
+          granted_by?: string | null
+          id?: string
+        }
+        Update: {
+          bonus_minutes?: number
+          child_id?: string
+          created_at?: string
+          grant_date?: string
+          granted_by?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bonus_time_grants_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_invites: {
+        Row: {
+          accepted_at: string | null
+          accepted_by_id: string | null
+          created_at: string
+          expires_at: string
+          friendship_id: string | null
+          id: string
+          inviter_display_name: string | null
+          inviter_id: string
+          inviter_kippy_tag: string | null
+          token: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by_id?: string | null
+          created_at?: string
+          expires_at?: string
+          friendship_id?: string | null
+          id?: string
+          inviter_display_name?: string | null
+          inviter_id: string
+          inviter_kippy_tag?: string | null
+          token: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by_id?: string | null
+          created_at?: string
+          expires_at?: string
+          friendship_id?: string | null
+          id?: string
+          inviter_display_name?: string | null
+          inviter_id?: string
+          inviter_kippy_tag?: string | null
+          token?: string
+        }
+        Relationships: []
+      }
+      chat_messages: {
+        Row: {
+          content: string
+          created_at: string
+          friendship_id: string
+          id: string
+          is_view_once: boolean
+          message_type: string
+          sender_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          friendship_id: string
+          id?: string
+          is_view_once?: boolean
+          message_type: string
+          sender_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          friendship_id?: string
+          id?: string
+          is_view_once?: boolean
+          message_type?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_friendship_id_fkey"
+            columns: ["friendship_id"]
+            isOneToOne: false
+            referencedRelation: "friendships"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_messages_friendship_id_fkey"
+            columns: ["friendship_id"]
+            isOneToOne: false
+            referencedRelation: "view_child_active_chats"
+            referencedColumns: ["friendship_id"]
+          },
+        ]
+      }
+      chat_read_receipts: {
+        Row: {
+          friendship_id: string
+          id: string
+          last_read_at: string
+          participant_id: string
+        }
+        Insert: {
+          friendship_id: string
+          id?: string
+          last_read_at?: string
+          participant_id: string
+        }
+        Update: {
+          friendship_id?: string
+          id?: string
+          last_read_at?: string
+          participant_id?: string
+        }
+        Relationships: []
+      }
+      chat_thread_hides: {
+        Row: {
+          friendship_id: string
+          hidden_at: string
+          participant_id: string
+        }
+        Insert: {
+          friendship_id: string
+          hidden_at?: string
+          participant_id: string
+        }
+        Update: {
+          friendship_id?: string
+          hidden_at?: string
+          participant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_thread_hides_friendship_id_fkey"
+            columns: ["friendship_id"]
+            isOneToOne: false
+            referencedRelation: "friendships"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_thread_hides_friendship_id_fkey"
+            columns: ["friendship_id"]
+            isOneToOne: false
+            referencedRelation: "view_child_active_chats"
+            referencedColumns: ["friendship_id"]
+          },
+        ]
+      }
+      child_daily_insights: {
+        Row: {
+          child_id: string
+          created_at: string | null
+          data_quality: string
+          day_of_week: number
+          headline: string
+          id: string
+          insight_date: string
+          insights: string[]
+          is_conclusive: boolean
+          severity_band: string
+          suggested_action: string | null
+        }
+        Insert: {
+          child_id: string
+          created_at?: string | null
+          data_quality: string
+          day_of_week: number
+          headline: string
+          id?: string
+          insight_date: string
+          insights: string[]
+          is_conclusive?: boolean
+          severity_band: string
+          suggested_action?: string | null
+        }
+        Update: {
+          child_id?: string
+          created_at?: string | null
+          data_quality?: string
+          day_of_week?: number
+          headline?: string
+          id?: string
+          insight_date?: string
+          insights?: string[]
+          is_conclusive?: boolean
+          severity_band?: string
+          suggested_action?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "child_daily_insights_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      child_geofence_settings: {
+        Row: {
+          child_id: string
+          created_at: string
+          exit_debounce_seconds: number
+          home_exit_alert_enabled: boolean
+          id: string
+          school_exit_alert_enabled: boolean
+          updated_at: string
+        }
+        Insert: {
+          child_id: string
+          created_at?: string
+          exit_debounce_seconds?: number
+          home_exit_alert_enabled?: boolean
+          id?: string
+          school_exit_alert_enabled?: boolean
+          updated_at?: string
+        }
+        Update: {
+          child_id?: string
+          created_at?: string
+          exit_debounce_seconds?: number
+          home_exit_alert_enabled?: boolean
+          id?: string
+          school_exit_alert_enabled?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "child_geofence_settings_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: true
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      child_model_override: {
+        Row: {
+          child_id: string
+          created_at: string | null
+          id: string
+          model_name: string
+        }
+        Insert: {
+          child_id: string
+          created_at?: string | null
+          id?: string
+          model_name: string
+        }
+        Update: {
+          child_id?: string
+          created_at?: string | null
+          id?: string
+          model_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "child_model_override_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: true
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      child_periodic_summaries: {
+        Row: {
+          child_id: string
+          created_at: string
+          data_quality: string | null
+          headline: string
+          id: string
+          insights: string[]
+          period_end: string
+          period_start: string
+          period_type: string
+          positive_highlights: string[] | null
+          severity_summary: string | null
+          stats_snapshot: Json | null
+          suggested_action: string | null
+        }
+        Insert: {
+          child_id: string
+          created_at?: string
+          data_quality?: string | null
+          headline: string
+          id?: string
+          insights?: string[]
+          period_end: string
+          period_start: string
+          period_type: string
+          positive_highlights?: string[] | null
+          severity_summary?: string | null
+          stats_snapshot?: Json | null
+          suggested_action?: string | null
+        }
+        Update: {
+          child_id?: string
+          created_at?: string
+          data_quality?: string | null
+          headline?: string
+          id?: string
+          insights?: string[]
+          period_end?: string
+          period_start?: string
+          period_type?: string
+          positive_highlights?: string[] | null
+          severity_summary?: string | null
+          stats_snapshot?: Json | null
+          suggested_action?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "child_periodic_summaries_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      child_place_state: {
+        Row: {
+          child_id: string
+          is_inside: boolean
+          last_alert_at: string | null
+          last_transition_at: string
+          place_id: string
+        }
+        Insert: {
+          child_id: string
+          is_inside: boolean
+          last_alert_at?: string | null
+          last_transition_at?: string
+          place_id: string
+        }
+        Update: {
+          child_id?: string
+          is_inside?: boolean
+          last_alert_at?: string | null
+          last_transition_at?: string
+          place_id?: string
+        }
+        Relationships: []
+      }
+      child_places: {
+        Row: {
+          alert_on_enter: boolean
+          alert_on_exit: boolean
+          child_id: string
+          created_at: string
+          days_of_week: number[] | null
+          end_time: string | null
+          id: string
+          is_active: boolean
+          label: string | null
+          latitude: number
+          longitude: number
+          place_type: string
+          radius_meters: number
+          schedule_mode: string
+          start_time: string | null
+          updated_at: string
+        }
+        Insert: {
+          alert_on_enter?: boolean
+          alert_on_exit?: boolean
+          child_id: string
+          created_at?: string
+          days_of_week?: number[] | null
+          end_time?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          latitude: number
+          longitude: number
+          place_type: string
+          radius_meters: number
+          schedule_mode?: string
+          start_time?: string | null
+          updated_at?: string
+        }
+        Update: {
+          alert_on_enter?: boolean
+          alert_on_exit?: boolean
+          child_id?: string
+          created_at?: string
+          days_of_week?: number[] | null
+          end_time?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          latitude?: number
+          longitude?: number
+          place_type?: string
+          radius_meters?: number
+          schedule_mode?: string
+          start_time?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "child_places_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      children: {
+        Row: {
+          city: string | null
+          created_at: string
+          date_of_birth: string
+          gender: string
+          id: string
+          kippy_tag: string | null
+          name: string
+          pairing_code: string | null
+          pairing_code_expires_at: string | null
+          parent_id: string
+          phone_number: string
+          school: string | null
+          subscription_expires_at: string | null
+          subscription_tier: string | null
+        }
+        Insert: {
+          city?: string | null
+          created_at?: string
+          date_of_birth: string
+          gender: string
+          id?: string
+          kippy_tag?: string | null
+          name: string
+          pairing_code?: string | null
+          pairing_code_expires_at?: string | null
+          parent_id: string
+          phone_number: string
+          school?: string | null
+          subscription_expires_at?: string | null
+          subscription_tier?: string | null
+        }
+        Update: {
+          city?: string | null
+          created_at?: string
+          date_of_birth?: string
+          gender?: string
+          id?: string
+          kippy_tag?: string | null
+          name?: string
+          pairing_code?: string | null
+          pairing_code_expires_at?: string | null
+          parent_id?: string
+          phone_number?: string
+          school?: string | null
+          subscription_expires_at?: string | null
+          subscription_tier?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "children_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "parents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chores: {
+        Row: {
+          approved_at: string | null
+          child_id: string
+          completed_at: string | null
+          created_at: string
+          id: string
+          is_recurring: boolean
+          parent_id: string
+          proof_photo_base64: string | null
+          recurrence_days: number[] | null
+          reward_minutes: number
+          status: string
+          title: string
+        }
+        Insert: {
+          approved_at?: string | null
+          child_id: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          is_recurring?: boolean
+          parent_id: string
+          proof_photo_base64?: string | null
+          recurrence_days?: number[] | null
+          reward_minutes?: number
+          status?: string
+          title: string
+        }
+        Update: {
+          approved_at?: string | null
+          child_id?: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          is_recurring?: boolean
+          parent_id?: string
+          proof_photo_base64?: string | null
+          recurrence_days?: number[] | null
+          reward_minutes?: number
+          status?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chores_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chores_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "parents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_groups: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          is_default: boolean
+          model_name: string | null
+          name: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_default?: boolean
+          model_name?: string | null
+          name: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_default?: boolean
+          model_name?: string | null
+          name?: string
+        }
+        Relationships: []
+      }
+      daily_chat_stats: {
+        Row: {
+          chat_name: string
+          chat_type: string
+          child_id: string | null
+          device_id: string
+          id: string
+          message_count: number
+          platform: string
+          stat_date: string
+          updated_at: string
+        }
+        Insert: {
+          chat_name: string
+          chat_type?: string
+          child_id?: string | null
+          device_id: string
+          id?: string
+          message_count?: number
+          platform?: string
+          stat_date: string
+          updated_at?: string
+        }
+        Update: {
+          chat_name?: string
+          chat_type?: string
+          child_id?: string | null
+          device_id?: string
+          id?: string
+          message_count?: number
+          platform?: string
+          stat_date?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      device_ai_profiles: {
+        Row: {
+          child_id: string | null
+          created_at: string | null
+          device_id: string
+          device_tier: string | null
+          id: string
+          last_failure_reason: string | null
+          last_health_check_at: string | null
+          selected_slm_engine: string | null
+          selected_voice_engine: string | null
+          slm_supported: boolean | null
+          supports_aicore: boolean | null
+          updated_at: string | null
+          voice_supported: boolean | null
+        }
+        Insert: {
+          child_id?: string | null
+          created_at?: string | null
+          device_id: string
+          device_tier?: string | null
+          id?: string
+          last_failure_reason?: string | null
+          last_health_check_at?: string | null
+          selected_slm_engine?: string | null
+          selected_voice_engine?: string | null
+          slm_supported?: boolean | null
+          supports_aicore?: boolean | null
+          updated_at?: string | null
+          voice_supported?: boolean | null
+        }
+        Update: {
+          child_id?: string | null
+          created_at?: string | null
+          device_id?: string
+          device_tier?: string | null
+          id?: string
+          last_failure_reason?: string | null
+          last_health_check_at?: string | null
+          selected_slm_engine?: string | null
+          selected_voice_engine?: string | null
+          slm_supported?: boolean | null
+          supports_aicore?: boolean | null
+          updated_at?: string | null
+          voice_supported?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_ai_profiles_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "device_ai_profiles_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: true
+            referencedRelation: "devices"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "device_ai_profiles_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: true
+            referencedRelation: "parent_daily_report"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "device_ai_profiles_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: true
+            referencedRelation: "parent_daily_report_for_parent"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "device_ai_profiles_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: true
+            referencedRelation: "parent_home_snapshot"
+            referencedColumns: ["device_id"]
+          },
+        ]
+      }
+      device_commands: {
+        Row: {
+          acknowledged_at: string | null
+          command_type: string
+          completed_at: string | null
+          created_at: string
+          device_id: string
+          error_code: string | null
+          expires_at: string | null
+          id: string
+          payload: Json
+          request_key: string | null
+          requested_by: string | null
+          result: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          command_type: string
+          completed_at?: string | null
+          created_at?: string
+          device_id: string
+          error_code?: string | null
+          expires_at?: string | null
+          id?: string
+          payload?: Json
+          request_key?: string | null
+          requested_by?: string | null
+          result?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          command_type?: string
+          completed_at?: string | null
+          created_at?: string
+          device_id?: string
+          error_code?: string | null
+          expires_at?: string | null
+          id?: string
+          payload?: Json
+          request_key?: string | null
+          requested_by?: string | null
+          result?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_commands_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "device_commands_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_daily_report"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "device_commands_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_daily_report_for_parent"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "device_commands_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_home_snapshot"
+            referencedColumns: ["device_id"]
+          },
+        ]
+      }
+      device_daily_health: {
+        Row: {
+          check_date: string | null
+          checks_responded: number | null
+          checks_sent: number | null
+          created_at: string | null
+          device_id: string | null
+          id: string
+          last_lat: number | null
+          last_lon: number | null
+          last_response_at: string | null
+        }
+        Insert: {
+          check_date?: string | null
+          checks_responded?: number | null
+          checks_sent?: number | null
+          created_at?: string | null
+          device_id?: string | null
+          id?: string
+          last_lat?: number | null
+          last_lon?: number | null
+          last_response_at?: string | null
+        }
+        Update: {
+          check_date?: string | null
+          checks_responded?: number | null
+          checks_sent?: number | null
+          created_at?: string | null
+          device_id?: string | null
+          id?: string
+          last_lat?: number | null
+          last_lon?: number | null
+          last_response_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_daily_health_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "device_daily_health_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_daily_report"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "device_daily_health_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_daily_report_for_parent"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "device_daily_health_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_home_snapshot"
+            referencedColumns: ["device_id"]
+          },
+        ]
+      }
+      device_daily_metrics: {
+        Row: {
+          alerts_sent: number
+          created_at: string
+          device_id: string
+          id: string
+          messages_scanned: number
+          metric_date: string
+          stacks_sent_to_ai: number
+          updated_at: string
+        }
+        Insert: {
+          alerts_sent?: number
+          created_at?: string
+          device_id: string
+          id?: string
+          messages_scanned?: number
+          metric_date?: string
+          stacks_sent_to_ai?: number
+          updated_at?: string
+        }
+        Update: {
+          alerts_sent?: number
+          created_at?: string
+          device_id?: string
+          id?: string
+          messages_scanned?: number
+          metric_date?: string
+          stacks_sent_to_ai?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_daily_metrics_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "device_daily_metrics_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_daily_report"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "device_daily_metrics_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_daily_report_for_parent"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "device_daily_metrics_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_home_snapshot"
+            referencedColumns: ["device_id"]
+          },
+        ]
+      }
+      device_events: {
+        Row: {
+          child_id: string | null
+          created_at: string | null
+          device_id: string
+          event_data: Json | null
+          event_type: string
+          id: string
+          is_notified: boolean | null
+        }
+        Insert: {
+          child_id?: string | null
+          created_at?: string | null
+          device_id: string
+          event_data?: Json | null
+          event_type: string
+          id?: string
+          is_notified?: boolean | null
+        }
+        Update: {
+          child_id?: string | null
+          created_at?: string | null
+          device_id?: string
+          event_data?: Json | null
+          event_type?: string
+          id?: string
+          is_notified?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_events_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "device_events_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "device_events_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_daily_report"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "device_events_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_daily_report_for_parent"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "device_events_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_home_snapshot"
+            referencedColumns: ["device_id"]
+          },
+        ]
+      }
+      device_heartbeats_raw: {
+        Row: {
+          child_id: string | null
+          device: Json
+          device_id: string
+          id: number
+          permissions: Json
+          reported_at: string
+        }
+        Insert: {
+          child_id?: string | null
+          device: Json
+          device_id: string
+          id?: number
+          permissions: Json
+          reported_at?: string
+        }
+        Update: {
+          child_id?: string | null
+          device?: Json
+          device_id?: string
+          id?: number
+          permissions?: Json
+          reported_at?: string
+        }
+        Relationships: []
+      }
+      device_lock_state: {
+        Row: {
+          child_id: string
+          contact_name: string | null
+          contact_phone: string | null
+          created_at: string
+          id: string
+          is_locked: boolean
+          locked_at: string | null
+          locked_by: string | null
+          message: string | null
+          unlocked_at: string | null
+          unlocked_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          child_id: string
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          is_locked?: boolean
+          locked_at?: string | null
+          locked_by?: string | null
+          message?: string | null
+          unlocked_at?: string | null
+          unlocked_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          child_id?: string
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          is_locked?: boolean
+          locked_at?: string | null
+          locked_by?: string | null
+          message?: string | null
+          unlocked_at?: string | null
+          unlocked_by?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      devices: {
+        Row: {
+          address: string | null
+          auth_user_id: string | null
+          battery_level: number | null
+          child_id: string | null
+          created_at: string | null
+          device_id: string
+          device_manufacturer: string | null
+          device_model: string | null
+          first_seen_at: string | null
+          last_seen: string | null
+          latitude: number | null
+          longitude: number | null
+          previous_child_id: string | null
+        }
+        Insert: {
+          address?: string | null
+          auth_user_id?: string | null
+          battery_level?: number | null
+          child_id?: string | null
+          created_at?: string | null
+          device_id: string
+          device_manufacturer?: string | null
+          device_model?: string | null
+          first_seen_at?: string | null
+          last_seen?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          previous_child_id?: string | null
+        }
+        Update: {
+          address?: string | null
+          auth_user_id?: string | null
+          battery_level?: number | null
+          child_id?: string | null
+          created_at?: string | null
+          device_id?: string
+          device_manufacturer?: string | null
+          device_model?: string | null
+          first_seen_at?: string | null
+          last_seen?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          previous_child_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "devices_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      family_members: {
+        Row: {
+          accepted_at: string | null
+          id: string
+          invited_at: string
+          invited_email: string
+          invited_name: string | null
+          member_id: string | null
+          owner_id: string
+          pairing_code: string | null
+          pairing_code_expires_at: string | null
+          receive_alerts: boolean
+          revoked_at: string | null
+          role: string
+          status: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          id?: string
+          invited_at?: string
+          invited_email: string
+          invited_name?: string | null
+          member_id?: string | null
+          owner_id: string
+          pairing_code?: string | null
+          pairing_code_expires_at?: string | null
+          receive_alerts?: boolean
+          revoked_at?: string | null
+          role?: string
+          status?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          id?: string
+          invited_at?: string
+          invited_email?: string
+          invited_name?: string | null
+          member_id?: string | null
+          owner_id?: string
+          pairing_code?: string | null
+          pairing_code_expires_at?: string | null
+          receive_alerts?: boolean
+          revoked_at?: string | null
+          role?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_members_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "parents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "family_members_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "parents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      friendships: {
+        Row: {
+          created_at: string
+          id: string
+          receiver_id: string
+          requester_id: string
+          responded_at: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          receiver_id: string
+          requester_id: string
+          responded_at?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          receiver_id?: string
+          requester_id?: string
+          responded_at?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
+      insight_logs: {
+        Row: {
+          child_id: string
+          created_at: string
+          id: string
+          insight_date: string
+          is_today: boolean
+          request_type: string
+        }
+        Insert: {
+          child_id: string
+          created_at?: string
+          id?: string
+          insight_date: string
+          is_today?: boolean
+          request_type: string
+        }
+        Update: {
+          child_id?: string
+          created_at?: string
+          id?: string
+          insight_date?: string
+          is_today?: boolean
+          request_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "insight_logs_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      installed_apps: {
+        Row: {
+          app_name: string | null
+          category: string | null
+          child_id: string
+          first_seen_at: string
+          id: string
+          is_system: boolean
+          last_seen_at: string
+          package_name: string
+        }
+        Insert: {
+          app_name?: string | null
+          category?: string | null
+          child_id: string
+          first_seen_at?: string
+          id?: string
+          is_system?: boolean
+          last_seen_at?: string
+          package_name: string
+        }
+        Update: {
+          app_name?: string | null
+          category?: string | null
+          child_id?: string
+          first_seen_at?: string
+          id?: string
+          is_system?: boolean
+          last_seen_at?: string
+          package_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "installed_apps_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      issur_melacha_windows: {
+        Row: {
+          child_id: string
+          computed_at: string
+          end_epoch_ms: number
+          event_key: string
+          event_name: string
+          id: string
+          is_active: boolean
+          latitude: number
+          lock_type: string
+          longitude: number
+          source: string
+          start_epoch_ms: number
+          timezone: string
+          valid_for_date: string
+        }
+        Insert: {
+          child_id: string
+          computed_at?: string
+          end_epoch_ms: number
+          event_key: string
+          event_name: string
+          id?: string
+          is_active?: boolean
+          latitude: number
+          lock_type: string
+          longitude: number
+          source?: string
+          start_epoch_ms: number
+          timezone?: string
+          valid_for_date: string
+        }
+        Update: {
+          child_id?: string
+          computed_at?: string
+          end_epoch_ms?: number
+          event_key?: string
+          event_name?: string
+          id?: string
+          is_active?: boolean
+          latitude?: number
+          lock_type?: string
+          longitude?: number
+          source?: string
+          start_epoch_ms?: number
+          timezone?: string
+          valid_for_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "issur_melacha_windows_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      media_views: {
+        Row: {
+          id: string
+          message_id: string
+          viewed_at: string
+          viewer_id: string
+        }
+        Insert: {
+          id?: string
+          message_id: string
+          viewed_at?: string
+          viewer_id: string
+        }
+        Update: {
+          id?: string
+          message_id?: string
+          viewed_at?: string
+          viewer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "media_views_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "chat_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "media_views_viewer_id_fkey"
+            columns: ["viewer_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nightly_usage_reports: {
+        Row: {
+          child_id: string | null
+          created_at: string
+          device_id: string
+          id: string
+          report_date: string
+          top_app_minutes: number | null
+          top_app_name: string | null
+          top_app_package: string | null
+          total_minutes: number
+        }
+        Insert: {
+          child_id?: string | null
+          created_at?: string
+          device_id: string
+          id?: string
+          report_date: string
+          top_app_minutes?: number | null
+          top_app_name?: string | null
+          top_app_package?: string | null
+          total_minutes: number
+        }
+        Update: {
+          child_id?: string | null
+          created_at?: string
+          device_id?: string
+          id?: string
+          report_date?: string
+          top_app_minutes?: number | null
+          top_app_name?: string | null
+          top_app_package?: string | null
+          total_minutes?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nightly_usage_reports_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "nightly_usage_reports_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_daily_report"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "nightly_usage_reports_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_daily_report_for_parent"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "nightly_usage_reports_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_home_snapshot"
+            referencedColumns: ["device_id"]
+          },
+        ]
+      }
+      parents: {
+        Row: {
+          created_at: string
+          email: string | null
+          full_name: string
+          group_id: string | null
+          id: string
+          is_locked: boolean
+          kippy_tag: string | null
+          phone: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          full_name: string
+          group_id?: string | null
+          id: string
+          is_locked?: boolean
+          kippy_tag?: string | null
+          phone?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          full_name?: string
+          group_id?: string | null
+          id?: string
+          is_locked?: boolean
+          kippy_tag?: string | null
+          phone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parents_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "customer_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      promo_codes: {
+        Row: {
+          code: string
+          created_at: string
+          current_uses: number
+          discount_type: string
+          discount_value: number
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          max_uses: number | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          current_uses?: number
+          discount_type: string
+          discount_value: number
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_uses?: number | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          current_uses?: number
+          discount_type?: string
+          discount_value?: number
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_uses?: number | null
+        }
+        Relationships: []
+      }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string | null
+          endpoint: string
+          id: string
+          p256dh: string
+          parent_id: string
+          updated_at: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          auth: string
+          created_at?: string | null
+          endpoint: string
+          id?: string
+          p256dh: string
+          parent_id: string
+          updated_at?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          auth?: string
+          created_at?: string | null
+          endpoint?: string
+          id?: string
+          p256dh?: string
+          parent_id?: string
+          updated_at?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
+      reward_bank: {
+        Row: {
+          balance_minutes: number
+          child_id: string
+          current_streak: number
+          id: string
+          last_streak_date: string | null
+          updated_at: string
+        }
+        Insert: {
+          balance_minutes?: number
+          child_id: string
+          current_streak?: number
+          id?: string
+          last_streak_date?: string | null
+          updated_at?: string
+        }
+        Update: {
+          balance_minutes?: number
+          child_id?: string
+          current_streak?: number
+          id?: string
+          last_streak_date?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reward_bank_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: true
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reward_transactions: {
+        Row: {
+          amount_minutes: number
+          child_id: string
+          chore_id: string | null
+          created_at: string
+          id: string
+          source: string
+        }
+        Insert: {
+          amount_minutes: number
+          child_id: string
+          chore_id?: string | null
+          created_at?: string
+          id?: string
+          source: string
+        }
+        Update: {
+          amount_minutes?: number
+          child_id?: string
+          chore_id?: string | null
+          created_at?: string
+          id?: string
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reward_transactions_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reward_transactions_chore_id_fkey"
+            columns: ["chore_id"]
+            isOneToOne: false
+            referencedRelation: "chores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      schedule_windows: {
+        Row: {
+          child_id: string
+          created_at: string
+          days_of_week: number[] | null
+          end_time: string | null
+          id: string
+          is_active: boolean
+          manual_end_time: string | null
+          manual_start_time: string | null
+          mode: string
+          name: string
+          schedule_type: string
+          start_time: string | null
+          updated_at: string
+        }
+        Insert: {
+          child_id: string
+          created_at?: string
+          days_of_week?: number[] | null
+          end_time?: string | null
+          id?: string
+          is_active?: boolean
+          manual_end_time?: string | null
+          manual_start_time?: string | null
+          mode?: string
+          name: string
+          schedule_type: string
+          start_time?: string | null
+          updated_at?: string
+        }
+        Update: {
+          child_id?: string
+          created_at?: string
+          days_of_week?: number[] | null
+          end_time?: string | null
+          id?: string
+          is_active?: boolean
+          manual_end_time?: string | null
+          manual_start_time?: string | null
+          mode?: string
+          name?: string
+          schedule_type?: string
+          start_time?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedule_windows_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      settings: {
+        Row: {
+          accessibility_service_enabled: boolean | null
+          alert_on_trigger_words: boolean | null
+          alert_on_unknown_contacts: boolean | null
+          alert_threshold: number | null
+          blocked_apps: Json | null
+          child_id: string | null
+          created_at: string | null
+          custom_trigger_words: Json | null
+          daily_screen_time_limit_minutes: number | null
+          device_id: string | null
+          id: string
+          local_llm_enabled: boolean | null
+          location_tracking_enabled: boolean | null
+          location_update_interval_minutes: number | null
+          monitoring_enabled: boolean | null
+          notification_listener_enabled: boolean | null
+          parent_id: string | null
+          redaction_mode: string | null
+          remote_llm_enabled: boolean | null
+          screen_time_tracking_enabled: boolean | null
+          updated_at: string | null
+          version: number | null
+        }
+        Insert: {
+          accessibility_service_enabled?: boolean | null
+          alert_on_trigger_words?: boolean | null
+          alert_on_unknown_contacts?: boolean | null
+          alert_threshold?: number | null
+          blocked_apps?: Json | null
+          child_id?: string | null
+          created_at?: string | null
+          custom_trigger_words?: Json | null
+          daily_screen_time_limit_minutes?: number | null
+          device_id?: string | null
+          id?: string
+          local_llm_enabled?: boolean | null
+          location_tracking_enabled?: boolean | null
+          location_update_interval_minutes?: number | null
+          monitoring_enabled?: boolean | null
+          notification_listener_enabled?: boolean | null
+          parent_id?: string | null
+          redaction_mode?: string | null
+          remote_llm_enabled?: boolean | null
+          screen_time_tracking_enabled?: boolean | null
+          updated_at?: string | null
+          version?: number | null
+        }
+        Update: {
+          accessibility_service_enabled?: boolean | null
+          alert_on_trigger_words?: boolean | null
+          alert_on_unknown_contacts?: boolean | null
+          alert_threshold?: number | null
+          blocked_apps?: Json | null
+          child_id?: string | null
+          created_at?: string | null
+          custom_trigger_words?: Json | null
+          daily_screen_time_limit_minutes?: number | null
+          device_id?: string | null
+          id?: string
+          local_llm_enabled?: boolean | null
+          location_tracking_enabled?: boolean | null
+          location_update_interval_minutes?: number | null
+          monitoring_enabled?: boolean | null
+          notification_listener_enabled?: boolean | null
+          parent_id?: string | null
+          redaction_mode?: string | null
+          remote_llm_enabled?: boolean | null
+          screen_time_tracking_enabled?: boolean | null
+          updated_at?: string | null
+          version?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "settings_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "settings_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "settings_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_daily_report"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "settings_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_daily_report_for_parent"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "settings_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_home_snapshot"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "settings_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "parents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shabbat_times_computed: {
+        Row: {
+          child_id: string
+          computed_at: string
+          end_epoch_ms: number
+          friday_date: string
+          id: string
+          latitude: number
+          longitude: number
+          start_epoch_ms: number
+        }
+        Insert: {
+          child_id: string
+          computed_at?: string
+          end_epoch_ms: number
+          friday_date: string
+          id?: string
+          latitude: number
+          longitude: number
+          start_epoch_ms: number
+        }
+        Update: {
+          child_id?: string
+          computed_at?: string
+          end_epoch_ms?: number
+          friday_date?: string
+          id?: string
+          latitude?: number
+          longitude?: number
+          start_epoch_ms?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shabbat_times_computed_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shabbat_zmanim: {
+        Row: {
+          candle_lighting: string
+          friday_date: string
+          havdalah: string
+        }
+        Insert: {
+          candle_lighting: string
+          friday_date: string
+          havdalah: string
+        }
+        Update: {
+          candle_lighting?: string
+          friday_date?: string
+          havdalah?: string
+        }
+        Relationships: []
+      }
+      time_extension_requests: {
+        Row: {
+          approved_minutes: number | null
+          child_id: string
+          created_at: string
+          id: string
+          parent_id: string
+          reason: string | null
+          requested_minutes: number
+          responded_at: string | null
+          status: string
+        }
+        Insert: {
+          approved_minutes?: number | null
+          child_id: string
+          created_at?: string
+          id?: string
+          parent_id: string
+          reason?: string | null
+          requested_minutes?: number
+          responded_at?: string | null
+          status?: string
+        }
+        Update: {
+          approved_minutes?: number | null
+          child_id?: string
+          created_at?: string
+          id?: string
+          parent_id?: string
+          reason?: string | null
+          requested_minutes?: number
+          responded_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "time_extension_requests_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_extension_requests_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "parents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_dataset: {
+        Row: {
+          age_at_incident: number | null
+          ai_verdict: Json | null
+          alert_id: number | null
+          created_at: string
+          gender: string | null
+          id: string
+          platform: string
+          raw_text: string
+        }
+        Insert: {
+          age_at_incident?: number | null
+          ai_verdict?: Json | null
+          alert_id?: number | null
+          created_at?: string
+          gender?: string | null
+          id?: string
+          platform?: string
+          raw_text: string
+        }
+        Update: {
+          age_at_incident?: number | null
+          ai_verdict?: Json | null
+          alert_id?: number | null
+          created_at?: string
+          gender?: string | null
+          id?: string
+          platform?: string
+          raw_text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_dataset_alert_id_fkey"
+            columns: ["alert_id"]
+            isOneToOne: false
+            referencedRelation: "alerts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_dataset_alert_id_fkey"
+            columns: ["alert_id"]
+            isOneToOne: false
+            referencedRelation: "parent_alerts_effective"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      waitlist_signups: {
+        Row: {
+          child_age: number
+          created_at: string | null
+          device_os: string
+          email: string
+          id: string
+          parent_name: string
+          phone: string
+          referral_other: string | null
+          referral_source: string | null
+          region: string | null
+          status: string | null
+        }
+        Insert: {
+          child_age: number
+          created_at?: string | null
+          device_os: string
+          email: string
+          id?: string
+          parent_name: string
+          phone: string
+          referral_other?: string | null
+          referral_source?: string | null
+          region?: string | null
+          status?: string | null
+        }
+        Update: {
+          child_age?: number
+          created_at?: string | null
+          device_os?: string
+          email?: string
+          id?: string
+          parent_name?: string
+          phone?: string
+          referral_other?: string | null
+          referral_source?: string | null
+          region?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      chat_participants: {
+        Row: {
+          display_name: string | null
+          owner_parent_id: string | null
+          participant_id: string | null
+          participant_type: string | null
+        }
+        Relationships: []
+      }
+      parent_alerts_effective: {
+        Row: {
+          acknowledged_at: string | null
+          ai_analysis: Json | null
+          ai_classification: Json | null
+          ai_confidence: number | null
+          ai_explanation: string | null
+          ai_explanation_short: string | null
+          ai_patterns: string[] | null
+          ai_recommendation: string | null
+          ai_recommendation_short: string | null
+          ai_risk_score: number | null
+          ai_summary: string | null
+          ai_verdict: string | null
+          alert_type: string | null
+          analyzed_at: string | null
+          author_type: string | null
+          category: string | null
+          chat_name: string | null
+          chat_type: string | null
+          child_id: string | null
+          child_role: string | null
+          content: string | null
+          created_at: string | null
+          device_id: string | null
+          effective_threshold: number | null
+          escalate: boolean | null
+          expert_type: string | null
+          id: number | null
+          is_in_warmup: boolean | null
+          is_processed: boolean | null
+          message_count: number | null
+          parent_message: string | null
+          remind_at: string | null
+          risk_score: number | null
+          saved_at: string | null
+          sender: string | null
+          sender_display: string | null
+          should_alert: boolean | null
+          should_store: boolean | null
+          source: string | null
+          suggested_action: string | null
+          warmup_start: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alerts_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alerts_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "alerts_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_daily_report"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "alerts_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_daily_report_for_parent"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "alerts_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "parent_home_snapshot"
+            referencedColumns: ["device_id"]
+          },
+        ]
+      }
+      parent_daily_report: {
+        Row: {
+          checks_responded: number | null
+          checks_sent: number | null
+          child_id: string | null
+          cnt_notify: number | null
+          cnt_notify_effective: number | null
+          cnt_review: number | null
+          cnt_safe: number | null
+          device_id: string | null
+          effective_threshold: number | null
+          is_in_warmup: boolean | null
+          last_response_at: string | null
+          report_date: string | null
+          top_apps: Json | null
+          total_usage_minutes: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "devices_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      parent_daily_report_for_parent: {
+        Row: {
+          checks_responded: number | null
+          checks_sent: number | null
+          child_id: string | null
+          cnt_notify: number | null
+          cnt_notify_effective: number | null
+          cnt_review: number | null
+          cnt_safe: number | null
+          device_id: string | null
+          effective_threshold: number | null
+          is_in_warmup: boolean | null
+          last_response_at: string | null
+          report_date: string | null
+          top_apps: Json | null
+          total_usage_minutes: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "devices_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      parent_home_snapshot: {
+        Row: {
+          address: string | null
+          alerts_sent: number | null
+          battery_level: number | null
+          child_id: string | null
+          child_name: string | null
+          device_id: string | null
+          last_seen: string | null
+          max_notify_score: number | null
+          messages_scanned: number | null
+          notify_effective_today: number | null
+          stacks_sent_to_ai: number | null
+          top_apps: Json | null
+          top_chats: Json | null
+          total_usage_minutes: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "devices_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      parent_top_chats_today: {
+        Row: {
+          device_id: string | null
+          stat_date: string | null
+          top_chats: Json | null
+        }
+        Relationships: []
+      }
+      view_child_active_chats: {
+        Row: {
+          created_at: string | null
+          friendship_id: string | null
+          peer_id: string | null
+          peer_name: string | null
+          peer_type: string | null
+          receiver_id: string | null
+          requester_id: string | null
+          status: string | null
+        }
+        Relationships: []
+      }
+    }
+    Functions: {
+      _generate_family_pairing_code: { Args: never; Returns: string }
+      accept_family_invite: { Args: { p_invite_id: string }; Returns: Json }
+      add_daily_metrics: {
+        Args: {
+          p_ai_delta?: number
+          p_alerts_delta?: number
+          p_device_id: string
+          p_messages_delta?: number
+          p_metric_date?: string
+        }
+        Returns: Json
+      }
+      approve_chore: { Args: { p_chore_id: string }; Returns: Json }
+      authorize_device_call: { Args: { p_device_id: string }; Returns: string }
+      calc_sunset_utc: {
+        Args: { p_date: string; p_lat: number; p_lon: number }
+        Returns: string
+      }
+      can_access_child_row: { Args: { p_parent_id: string }; Returns: boolean }
+      check_unresponsive_devices: { Args: never; Returns: undefined }
+      claim_alert_events: {
+        Args: { _event_type: string; _lease_seconds?: number; _limit?: number }
+        Returns: {
+          alert_id: number
+          attempt: number
+          created_at: string
+          event_type: string
+          id: string
+          last_error: string | null
+          max_attempts: number
+          status: string
+          updated_at: string
+          visible_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "alert_events_queue"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      claim_family_invite_by_code: {
+        Args: { p_code: string; p_email: string }
+        Returns: Json
+      }
+      cleanup_old_data: { Args: never; Returns: Json }
+      complete_chore: {
+        Args: {
+          p_chore_id: string
+          p_device_id?: string
+          p_photo_base64?: string
+        }
+        Returns: Json
+      }
+      connect_child_device: {
+        Args: {
+          p_device_id: string
+          p_pairing_code: string
+          p_parent_email: string
+        }
+        Returns: Json
+      }
+      create_alert: {
+        Args: {
+          p_ai_verdict?: string
+          p_author_type?: string
+          p_category?: string
+          p_chat_name?: string
+          p_chat_type?: string
+          p_client_event_id?: string
+          p_contact_hash?: string
+          p_device_id: string
+          p_is_processed?: boolean
+          p_message: string
+          p_message_count?: number
+          p_parent_message?: string
+          p_pii_redacted_count?: number
+          p_platform?: string
+          p_risk_level: number
+          p_sender_display?: string
+          p_source: string
+        }
+        Returns: number
+      }
+      create_app_alert: {
+        Args: {
+          p_app_name?: string
+          p_device_id: string
+          p_package_name: string
+        }
+        Returns: string
+      }
+      create_family_invite_with_code:
+        | { Args: { p_email: string }; Returns: Json }
+        | { Args: { p_email: string; p_name?: string }; Returns: Json }
+      current_chat_participant_id: { Args: never; Returns: string }
+      delete_all_my_data: { Args: never; Returns: Json }
+      delete_child_data: { Args: { p_child_id: string }; Returns: Json }
+      delete_friendship_chat: {
+        Args: { p_child_id: string; p_friendship_id: string }
+        Returns: Json
+      }
+      disconnect_device: { Args: { p_device_id: string }; Returns: Json }
+      evaluate_geofences: {
+        Args: {
+          p_child_id: string
+          p_device_id: string
+          p_lat: number
+          p_lon: number
+        }
+        Returns: undefined
+      }
+      export_my_data: { Args: never; Returns: Json }
+      generate_kippy_tag:
+        | { Args: never; Returns: string }
+        | { Args: { p_base: string }; Returns: string }
+      generate_new_pairing_code: { Args: { p_child_id: string }; Returns: Json }
+      generate_pairing_code: { Args: { p_child_id: string }; Returns: string }
+      get_active_ai_config: { Args: never; Returns: Json }
+      get_alert_recipients: { Args: { p_child_id: string }; Returns: string[] }
+      get_chat_peer_info: {
+        Args: { p_participant_id: string }
+        Returns: {
+          peer_name: string
+          peer_type: string
+        }[]
+      }
+      get_chat_thread: {
+        Args: {
+          p_before?: string
+          p_child_id: string
+          p_friendship_id: string
+          p_limit?: number
+        }
+        Returns: {
+          consumed: boolean
+          content: string
+          created_at: string
+          id: string
+          is_view_once: boolean
+          message_type: string
+          sender_id: string
+          signed_url: string
+        }[]
+      }
+      get_child_chores: {
+        Args: { p_child_id: string; p_device_id?: string }
+        Returns: {
+          approved_at: string | null
+          child_id: string
+          completed_at: string | null
+          created_at: string
+          id: string
+          is_recurring: boolean
+          parent_id: string
+          proof_photo_base64: string | null
+          recurrence_days: number[] | null
+          reward_minutes: number
+          status: string
+          title: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "chores"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      get_child_daily_metrics: {
+        Args: { p_child_id: string; p_date: string }
+        Returns: {
+          alerts_sent: number
+          messages_scanned: number
+          metric_date: string
+          stacks_sent_to_ai: number
+        }[]
+      }
+      get_child_device_health: { Args: { p_child_id: string }; Returns: Json }
+      get_child_friends: {
+        Args: { p_child_id: string }
+        Returns: {
+          created_at: string
+          friend_child_id: string
+          friend_id: string
+          friend_kippy_tag: string
+          friend_name: string
+          friendship_id: string
+          participant_type: string
+          status: string
+        }[]
+      }
+      get_child_siblings_status: {
+        Args: { p_child_id: string; p_device_id?: string }
+        Returns: {
+          gender: string
+          name: string
+          sibling_id: string
+          streak: number
+        }[]
+      }
+      get_child_top_apps: {
+        Args: { p_child_id: string; p_date: string; p_limit?: number }
+        Returns: {
+          app_name: string
+          package_name: string
+          usage_minutes: number
+        }[]
+      }
+      get_child_top_contacts: {
+        Args: { p_child_id: string; p_date: string; p_limit?: number }
+        Returns: {
+          chat_name: string
+          chat_type: string
+          message_count: number
+        }[]
+      }
+      get_device_id_from_jwt: { Args: never; Returns: string }
+      get_device_lock_state: {
+        Args: { p_child_id: string; p_device_id?: string }
+        Returns: {
+          child_id: string
+          contact_name: string | null
+          contact_phone: string | null
+          created_at: string
+          id: string
+          is_locked: boolean
+          locked_at: string | null
+          locked_by: string | null
+          message: string | null
+          unlocked_at: string | null
+          unlocked_by: string | null
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "device_lock_state"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      get_device_settings: { Args: { p_device_id: string }; Returns: Json }
+      get_disconnected_devices: {
+        Args: { p_child_id: string }
+        Returns: {
+          device_id: string
+          device_manufacturer: string
+          device_model: string
+          last_seen: string
+        }[]
+      }
+      get_family_owner_id: { Args: never; Returns: string }
+      get_my_kippy_tag: { Args: { p_child_id: string }; Returns: string }
+      get_parent_daily_report_for_parent: {
+        Args: { p_report_date: string }
+        Returns: {
+          checks_responded: number
+          checks_sent: number
+          child_id: string
+          cnt_notify: number
+          cnt_notify_effective: number
+          cnt_review: number
+          cnt_safe: number
+          device_id: string
+          effective_threshold: number
+          is_in_warmup: boolean
+          last_response_at: string
+          report_date: string
+          top_apps: Json
+          total_usage_minutes: number
+        }[]
+      }
+      get_parent_daily_report_text: {
+        Args: { p_child_id: string }
+        Returns: string
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      haversine_km: {
+        Args: { lat1: number; lat2: number; lon1: number; lon2: number }
+        Returns: number
+      }
+      hide_chat_thread: {
+        Args: { p_friendship_id: string }
+        Returns: undefined
+      }
+      increment_daily_chat_stat: {
+        Args: {
+          p_chat_name: string
+          p_chat_type: string
+          p_child_id: string
+          p_delta?: number
+          p_device_id: string
+          p_platform?: string
+          p_stat_date?: string
+        }
+        Returns: Json
+      }
+      invite_co_parent: {
+        Args: { p_email: string; p_receive_alerts?: boolean }
+        Returns: Json
+      }
+      is_admin: { Args: never; Returns: boolean }
+      is_caller_in_friendship: {
+        Args: { p_friendship_id: string }
+        Returns: boolean
+      }
+      is_calling_device_in_friendship: {
+        Args: { p_friendship_id: string }
+        Returns: boolean
+      }
+      is_calling_user_in_friendship: {
+        Args: { p_friendship_id: string }
+        Returns: boolean
+      }
+      is_calling_user_participant: {
+        Args: { p_participant_id: string }
+        Returns: boolean
+      }
+      is_child_in_friendship: {
+        Args: { p_child_id: string; p_friendship_id: string }
+        Returns: boolean
+      }
+      is_child_of_calling_device: {
+        Args: { p_child_id: string }
+        Returns: boolean
+      }
+      is_child_owner: { Args: { p_child_id: string }; Returns: boolean }
+      is_email_allowed: { Args: { p_email: string }; Returns: boolean }
+      is_family_parent: { Args: { p_child_id: string }; Returns: boolean }
+      is_family_parent_for_device: {
+        Args: { p_device_id: string }
+        Returns: boolean
+      }
+      is_paired_device: { Args: { p_device_id: string }; Returns: boolean }
+      is_participant_in_friendship: {
+        Args: { p_friendship_id: string; p_participant_id: string }
+        Returns: boolean
+      }
+      list_my_chats: {
+        Args: never
+        Returns: {
+          friendship_id: string
+          last_message: string
+          last_message_at: string
+          last_message_type: string
+          peer_id: string
+          peer_name: string
+          peer_type: string
+          unread_count: number
+        }[]
+      }
+      lock_child_device: {
+        Args: {
+          p_child_id: string
+          p_contact_name: string
+          p_contact_phone: string
+          p_message?: string
+        }
+        Returns: Json
+      }
+      mark_media_viewed: {
+        Args: { p_message_id: string; p_viewer_id: string }
+        Returns: Json
+      }
+      maybe_recalc_nearest_issur_window: {
+        Args: { p_child_id: string; p_new_lat: number; p_new_lon: number }
+        Returns: undefined
+      }
+      pair_device: {
+        Args: { p_device_id: string; p_pairing_code: string }
+        Returns: {
+          child_gender: string
+          child_id: string
+          child_name: string
+          error_message: string
+          success: boolean
+        }[]
+      }
+      purge_expired_chat_messages: { Args: never; Returns: undefined }
+      reconnect_device: {
+        Args: { p_child_id: string; p_device_id: string }
+        Returns: Json
+      }
+      redeem_reward_minutes: {
+        Args: { p_child_id: string; p_minutes: number }
+        Returns: Json
+      }
+      refund_reward_minutes: {
+        Args: { p_child_id: string; p_minutes_to_refund: number }
+        Returns: Json
+      }
+      regenerate_family_invite_code: {
+        Args: { p_invite_id: string }
+        Returns: Json
+      }
+      reject_chore: { Args: { p_chore_id: string }; Returns: Json }
+      report_ai_incident_summary: {
+        Args: {
+          p_chat_id: string
+          p_chat_type: string
+          p_child_id?: string
+          p_child_role?: string
+          p_confidence?: number
+          p_device_id: string
+          p_evidence_message_ids?: Json
+          p_evidence_snippets?: Json
+          p_incident_action: string
+          p_is_open?: boolean
+          p_risk_type: string
+          p_severity: string
+          p_why_short?: string
+        }
+        Returns: Json
+      }
+      report_ai_suppression_event: {
+        Args: {
+          p_chat_id?: string
+          p_child_id?: string
+          p_current_severity?: string
+          p_device_id: string
+          p_last_alert_sent_at?: string
+          p_previous_severity?: string
+          p_risk_type?: string
+          p_suppression_reason?: string
+        }
+        Returns: Json
+      }
+      report_ai_telemetry: {
+        Args: {
+          p_child_id?: string
+          p_device_id: string
+          p_engine_type?: string
+          p_event_type?: string
+          p_failure_reason?: string
+          p_fallback_triggered?: boolean
+          p_latency_ms?: number
+          p_model_version?: string
+          p_success?: boolean
+        }
+        Returns: Json
+      }
+      report_device_heartbeat: {
+        Args: {
+          p_child_id: string
+          p_device: Json
+          p_device_id: string
+          p_permissions: Json
+          p_timestamp: string
+        }
+        Returns: undefined
+      }
+      report_installed_apps: {
+        Args: { p_apps: Json; p_device_id: string }
+        Returns: undefined
+      }
+      report_nightly_usage: {
+        Args: {
+          p_device_id: string
+          p_report_date?: string
+          p_top_app_minutes?: number
+          p_top_app_name?: string
+          p_top_app_package?: string
+          p_total_minutes: number
+        }
+        Returns: string
+      }
+      report_pending_app: {
+        Args: {
+          p_app_name?: string
+          p_device_id: string
+          p_package_name: string
+          p_was_blocked_attempt?: boolean
+        }
+        Returns: Json
+      }
+      request_extra_time: {
+        Args: { p_child_id: string; p_device_id?: string; p_reason: string }
+        Returns: Json
+      }
+      request_parental_control_command_v2: {
+        Args: {
+          p_command_type: string
+          p_device_id: string
+          p_payload?: Json
+          p_request_key?: string
+          p_ttl_seconds?: number
+        }
+        Returns: {
+          acknowledged_at: string | null
+          command_type: string
+          completed_at: string | null
+          created_at: string
+          device_id: string
+          error_code: string | null
+          expires_at: string | null
+          id: string
+          payload: Json
+          request_key: string | null
+          requested_by: string | null
+          result: string | null
+          status: string
+          updated_at: string
+        }
+      }
+      respond_friend_request: {
+        Args: {
+          p_accept: boolean
+          p_friendship_id: string
+          p_receiver_child_id: string
+        }
+        Returns: Json
+      }
+      respond_time_request: {
+        Args: { p_approved: boolean; p_minutes: number; p_request_id: string }
+        Returns: Json
+      }
+      retry_failed_queue_items: { Args: never; Returns: Json }
+      revoke_co_parent: { Args: { p_membership_id: string }; Returns: Json }
+      send_chat_message:
+        | {
+            Args: {
+              p_content: string
+              p_friendship_id: string
+              p_is_view_once?: boolean
+              p_message_type?: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_content: string
+              p_friendship_id: string
+              p_is_view_once?: boolean
+              p_message_type: string
+              p_sender_id: string
+            }
+            Returns: Json
+          }
+      send_friend_request: {
+        Args: { p_requester_child_id: string; p_target_kippy_tag: string }
+        Returns: Json
+      }
+      send_locate_to_all_devices: { Args: never; Returns: undefined }
+      unlock_child_device: { Args: { p_child_id: string }; Returns: Json }
+      update_device_location: {
+        Args: {
+          p_address?: string
+          p_device_id: string
+          p_lat: number
+          p_lon: number
+        }
+        Returns: undefined
+      }
+      update_device_settings: {
+        Args: { p_device_id: string; p_settings: Json }
+        Returns: Json
+      }
+      update_device_status: {
+        Args: {
+          p_battery?: number
+          p_device_id: string
+          p_device_manufacturer?: string
+          p_device_model?: string
+          p_lat?: number
+          p_lon?: number
+        }
+        Returns: Json
+      }
+      upsert_ai_engine_health: {
+        Args: {
+          p_child_id?: string
+          p_device_id: string
+          p_last_failure_reason?: string
+          p_last_slm_latency_ms?: number
+          p_last_voice_latency_ms?: number
+          p_selected_slm_engine?: string
+          p_selected_voice_engine?: string
+          p_slm_engine_status?: string
+          p_slm_failure_count?: number
+          p_voice_engine_status?: string
+          p_voice_failure_count?: number
+        }
+        Returns: Json
+      }
+      upsert_app_usage: {
+        Args: {
+          p_app_name: string
+          p_device_id: string
+          p_package_name: string
+          p_usage_date?: string
+          p_usage_minutes: number
+        }
+        Returns: undefined
+      }
+      upsert_device_ai_profile: {
+        Args: {
+          p_child_id?: string
+          p_device_id: string
+          p_device_tier?: string
+          p_last_failure_reason?: string
+          p_selected_slm_engine?: string
+          p_selected_voice_engine?: string
+          p_slm_supported?: boolean
+          p_supports_aicore?: boolean
+          p_voice_supported?: boolean
+        }
+        Returns: Json
+      }
+      verify_parent_code: {
+        Args: { p_code: string; p_email: string }
+        Returns: Json
+      }
+    }
+    Enums: {
+      app_role: "admin" | "user"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+}
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      app_role: ["admin", "user"],
+    },
+  },
+} as const

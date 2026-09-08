@@ -2661,8 +2661,44 @@ export type Database = {
         }
         Relationships: []
       }
+      v2_guardian_incident_feedback: {
+        Row: {
+          incident_id: string
+          guardian_user_id: string
+          usefulness: string
+          reason: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          incident_id: string
+          guardian_user_id: string
+          usefulness: string
+          reason?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          incident_id?: string
+          guardian_user_id?: string
+          usefulness?: string
+          reason?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [{
+          foreignKeyName: "v2_guardian_incident_feedback_incident_id_fkey"
+          columns: ["incident_id"]
+          isOneToOne: false
+          referencedRelation: "v2_safety_incidents"
+          referencedColumns: ["id"]
+        }]
+      }
       v2_guardian_incident_states: {
         Row: {
+          acknowledged_assessment_seq: number | null
+          last_acknowledged_at: string | null
+          state_version: number
           acknowledged_at: string | null
           created_at: string
           guardian_user_id: string
@@ -2672,6 +2708,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          acknowledged_assessment_seq?: number | null
+          last_acknowledged_at?: string | null
+          state_version?: number
           acknowledged_at?: string | null
           created_at?: string
           guardian_user_id: string
@@ -2681,6 +2720,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          acknowledged_assessment_seq?: number | null
+          last_acknowledged_at?: string | null
+          state_version?: number
           acknowledged_at?: string | null
           created_at?: string
           guardian_user_id?: string
@@ -2736,6 +2778,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      v2_guardian_missed_concerns: {
+        Row: {
+          id: string
+          child_id: string
+          guardian_user_id: string
+          category: string
+          occurred_on: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          child_id: string
+          guardian_user_id: string
+          category: string
+          occurred_on: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          child_id?: string
+          guardian_user_id?: string
+          category?: string
+          occurred_on?: string
+          created_at?: string
+        }
+        Relationships: [{
+          foreignKeyName: "v2_guardian_missed_concerns_child_id_fkey"
+          columns: ["child_id"]
+          isOneToOne: false
+          referencedRelation: "v2_children"
+          referencedColumns: ["id"]
+        }]
       }
       v2_guardian_profiles: {
         Row: {
@@ -4119,6 +4194,7 @@ export type Database = {
       }
       v2_safety_incidents: {
         Row: {
+          updated_at: string
           capture_quality: number
           category: string
           child_id: string
@@ -4136,6 +4212,7 @@ export type Database = {
           status: string
         }
         Insert: {
+          updated_at?: string
           capture_quality: number
           category: string
           child_id: string
@@ -4153,6 +4230,7 @@ export type Database = {
           status?: string
         }
         Update: {
+          updated_at?: string
           capture_quality?: number
           category?: string
           child_id?: string
@@ -5827,6 +5905,36 @@ export type Database = {
           status: string
         }[]
       }
+      v2_get_guardian_case_history: {
+        Args: { target_incident_id: string; target_through_seq: number; target_expected_count: number; target_after_seq?: number; target_limit?: number }
+        Returns: { incident_id: string; through_seq: number; assessments: Json; next_after_seq: number | null; has_more: boolean }[]
+      }
+      v2_get_guardian_case_summaries: {
+        Args: { target_incident_ids: string[] }
+        Returns: {
+          incident_id: string
+          assessment_seq: number
+          expert_outcome: string
+          expert_category: string | null
+          expert_severity: string | null
+          expert_child_role: string | null
+          expert_confidence: number | null
+          safe_summary: string
+          safe_reason: string
+          recommended_action: string
+          latest_assessment_at: string
+          history_assessment_count: number
+          attention_assessment_seq: number
+          acknowledged_assessment_seq: number | null
+          acknowledged_at: string | null
+          guardian_state: string
+          guardian_state_version: number
+          guardian_state_updated_at: string | null
+          case_details_available: boolean
+          conversation_label: string | null
+          conversation_type: string | null
+        }[]
+      }
       v2_get_guardian_push_state: {
         Args: { target_installation_id: string }
         Returns: {
@@ -5834,6 +5942,21 @@ export type Database = {
           is_subscribed: boolean
           last_seen_at: string
           permission_state: string
+        }[]
+      }
+      v2_get_guardian_three_gate_projections: {
+        Args: { target_incident_ids: string[] }
+        Returns: {
+          incident_id: string
+          assessment_seq: number
+          expert_outcome: string
+          expert_category: string | null
+          expert_severity: string | null
+          expert_child_role: string
+          expert_confidence: number
+          safe_summary: string
+          safe_reason: string
+          recommended_action: string
         }[]
       }
       v2_grant_parent_bonus_time: {
@@ -6039,6 +6162,15 @@ export type Database = {
         Args: { target_device_id: string; target_events: Json }
         Returns: number
       }
+      v2_report_missed_safety_concern: {
+        Args: {
+          target_child_id: string
+          target_category: string
+          target_occurred_on: string
+          target_request_key: string
+        }
+        Returns: Database["public"]["Tables"]["v2_guardian_missed_concerns"]["Row"][]
+      }
       v2_report_parental_state_service: {
         Args: {
           target_app_usage: Json
@@ -6107,6 +6239,27 @@ export type Database = {
         }
         Returns: number
       }
+      v2_set_guardian_case_state: {
+        Args: {
+          target_incident_id: string
+          target_state: string
+          target_expected_assessment_seq: number
+          target_expected_state_version: number
+          target_request_key: string
+        }
+        Returns: {
+          incident_id: string
+          assessment_seq: number
+          attention_assessment_seq: number
+          state: string
+          state_version: number
+          saved_at: string | null
+          acknowledged_assessment_seq: number | null
+          acknowledged_at: string | null
+          updated_at: string | null
+          replayed: boolean
+        }[]
+      }
       v2_set_guardian_incident_state: {
         Args: {
           target_incident_id: string
@@ -6150,6 +6303,15 @@ export type Database = {
           target_request_key: string
         }
         Returns: number
+      }
+      v2_submit_guardian_incident_feedback: {
+        Args: {
+          target_incident_id: string
+          target_usefulness: string
+          target_reason: string | null
+          target_request_key: string
+        }
+        Returns: Database["public"]["Tables"]["v2_guardian_incident_feedback"]["Row"][]
       }
       v2_submit_marketing_waitlist: {
         Args: {

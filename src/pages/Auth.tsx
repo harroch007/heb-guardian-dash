@@ -42,6 +42,21 @@ const passwordUpdateSchema = z
 const getErrorMessage = (error: unknown) =>
   error instanceof Error ? error.message : 'Unexpected error';
 
+const getAuthDestination = (redirectTo: string | null) => {
+  if (!redirectTo?.startsWith('/') || redirectTo.startsWith('//') ||
+      Array.from(redirectTo).some((character) => character === '\\' || character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127)) {
+    return '/home-v2';
+  }
+  try {
+    const destination = new URL(redirectTo, window.location.origin);
+    return destination.origin === window.location.origin && !destination.pathname.startsWith('//')
+      ? destination.pathname + destination.search + destination.hash
+      : '/home-v2';
+  } catch {
+    return '/home-v2';
+  }
+};
+
 export default function Auth() {
   const [searchParams] = useSearchParams();
   const isRecoveryFlow = searchParams.get('reset') === 'true';
@@ -125,12 +140,7 @@ export default function Auth() {
         }
 
         // Honor internal redirect params, then continue into the V2 portal.
-        const redirectTo = searchParams.get('redirect');
-        if (redirectTo && redirectTo.startsWith('/')) {
-          navigate(redirectTo, { replace: true });
-        } else {
-          navigate('/home-v2');
-        }
+        navigate(getAuthDestination(searchParams.get('redirect')), { replace: true });
       }
     };
     
@@ -199,7 +209,9 @@ export default function Auth() {
           password,
         });
         if (error) throw error;
-        navigate('/home-v2');
+        // Both the session effect and password success retain the same internal
+        // destination; neither can replace an incident link with the home page.
+        navigate(getAuthDestination(searchParams.get('redirect')), { replace: true });
       } else {
         // In waitlist mode, check if email is approved before allowing signup
         if (WAITLIST_MODE) {
