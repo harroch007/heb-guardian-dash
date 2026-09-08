@@ -1,0 +1,138 @@
+import { useEffect, useId, useRef, useState, type FormEvent } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  createV2FeedbackRequestKey,
+  submitV2GuardianFeedback,
+  v2FeedbackErrorMessage,
+  type V2FeedbackReason,
+  type V2FeedbackUsefulness,
+  type V2GuardianFeedback,
+} from "@/lib/v2/guardianFeedbackService";
+
+const choices: Array<{ value: V2FeedbackUsefulness; label: string }> = [
+  { value: "helpful", label: "עזרה לי" },
+  { value: "not_helpful", label: "לא עזרה לי" },
+  { value: "unsure", label: "לא בטוח/ה" },
+];
+const reasons: Array<{ value: V2FeedbackReason; label: string }> = [
+  { value: "incorrect_interpretation", label: "המצב הובן לא נכון" },
+  { value: "duplicate", label: "כבר קיבלתי התראה על זה" },
+  { value: "already_handled", label: "כבר טיפלנו במצב" },
+  { value: "other", label: "סיבה אחרת" },
+];
+
+export function V2GuardianFeedback({ incidentId, feedback, onSaved }: {
+  incidentId: string;
+  feedback?: V2GuardianFeedback;
+  onSaved: (feedback: V2GuardianFeedback) => void;
+}) {
+  const id = useId();
+  const [usefulness, setUsefulness] = useState<V2FeedbackUsefulness | "">("");
+  const [reason, setReason] = useState<V2FeedbackReason | "">("");
+  const [pending, setPending] = useState(false);
+  const [validation, setValidation] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const request = useRef<{ fingerprint: string; key: string } | null>(null);
+  const submitting = useRef(false);
+  const reasonRef = useRef<HTMLSelectElement>(null);
+
+  useEffect(() => {
+    setUsefulness(choices.find((choice) => choice.value === feedback?.usefulness)?.value ?? "");
+    setReason(reasons.find((item) => item.value === feedback?.reason)?.value ?? "");
+  }, [feedback]);
+
+  const unchanged = Boolean(feedback && usefulness === feedback.usefulness &&
+    (usefulness !== "not_helpful" || reason === feedback.reason));
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (submitting.current || unchanged) return;
+    if (!usefulness) {
+      setValidation("יש לבחור אם ההתראה עזרה לך.");
+      return;
+    }
+    if (usefulness === "not_helpful" && !reason) {
+      setValidation("יש לבחור סיבה כדי לשלוח את המשוב.");
+      reasonRef.current?.focus();
+      return;
+    }
+    const selectedReason = usefulness === "not_helpful" && reason ? reason : null;
+    const fingerprint = JSON.stringify([incidentId, usefulness, selectedReason]);
+    // An uncertain response retries the same logical request, never a new mutation.
+    if (request.current?.fingerprint !== fingerprint) {
+      request.current = { fingerprint, key: createV2FeedbackRequestKey() };
+    }
+    submitting.current = true;
+    setPending(true);
+    setError(null);
+    setValidation(null);
+    try {
+      const saved = await submitV2GuardianFeedback({
+        incidentId, usefulness, reason: selectedReason, requestKey: request.current.key,
+      });
+      request.current = null;
+      onSaved(saved);
+    } catch (failure) {
+      setError(v2FeedbackErrorMessage(failure));
+    } finally {
+      submitting.current = false;
+      setPending(false);
+    }
+  };
+
+  return (
+    <form onSubmit={(event) => void submit(event)} className="space-y-3 border-t border-border pt-4" aria-label="משוב על ההתראה" aria-busy={pending}>
+      <fieldset disabled={pending} aria-describedby={`${id}-description${validation ? ` ${id}-validation` : ""}`}>
+        <legend className="mb-2 text-sm font-semibold text-foreground">ההתראה עזרה לך?</legend>
+        <p id={`${id}-description`} className="mb-3 text-xs leading-relaxed text-muted-foreground">
+          המשוב מיועד לבדיקת איכות ההתראות. סימון כטופל הוא פעולה נפרדת.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {choices.map((choice) => (
+            <label key={choice.value} className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm ${usefulness === choice.value ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted-foreground"}`}>
+              <input
+                type="radio" name={`${id}-usefulness`} value={choice.value}
+                checked={usefulness === choice.value}
+                className="h-4 w-4 accent-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                onChange={() => {
+                  setUsefulness(choice.value);
+                  if (choice.value !== "not_helpful") setReason("");
+                  setValidation(null);
+                  setError(null);
+                }}
+              />
+              {choice.label}
+            </label>
+          ))}
+        </div>
+        {usefulness === "not_helpful" && (
+          <div className="mt-3 space-y-2">
+            <label htmlFor={`${id}-reason`} className="block text-sm text-foreground">מה לא עזר? (חובה)</label>
+            <select
+              id={`${id}-reason`} ref={reasonRef} value={reason}
+              aria-required="true" aria-invalid={Boolean(validation && !reason)}
+              aria-describedby={validation ? `${id}-validation` : undefined}
+              onChange={(event) => {
+                setReason(event.target.value as V2FeedbackReason | "");
+                setValidation(null);
+                setError(null);
+              }}
+              className="min-h-11 w-full min-w-0 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+            >
+              <option value="">בחירת סיבה</option>
+              {reasons.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+            </select>
+          </div>
+        )}
+      </fieldset>
+      {validation && <p id={`${id}-validation`} role="alert" className="text-sm text-destructive">{validation}</p>}
+      {error && <p role="alert" className="text-sm leading-relaxed text-destructive">{error}</p>}
+      <div className="flex flex-wrap items-center gap-3">
+        <Button type="submit" variant="outline" className="min-h-11 whitespace-normal" disabled={pending || unchanged}>
+          {pending ? "שומר את המשוב…" : error ? "ניסיון נוסף לשמירת המשוב" : feedback ? "עדכון המשוב" : "שליחת משוב"}
+        </Button>
+        <p role="status" className="text-sm text-primary">{unchanged ? "המשוב שלך נשמר." : ""}</p>
+      </div>
+    </form>
+  );
+}

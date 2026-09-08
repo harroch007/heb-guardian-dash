@@ -19,7 +19,12 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   }
 
   if (!user) {
-    return <Navigate to="/auth" state={{ from: location }} replace />;
+    // Auth already honors its internal redirect parameter. Carry a notification
+    // destination through an expired session instead of losing it at sign-in.
+    const authPath = location.pathname === '/alerts-v2'
+      ? `/auth?redirect=${encodeURIComponent(location.pathname + location.search)}`
+      : '/auth';
+    return <Navigate to={authPath} state={{ from: location }} replace />;
   }
 
   // If user is new and not on onboarding page, redirect to onboarding

@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import type { Page, Route } from "@playwright/test";
 import { expect, test } from "../playwright-fixture";
+import { installSyntheticMaps } from "./synthetic-google-maps";
 
 const USER_ID = "71000000-0000-4000-8000-000000000001";
 const FAMILY_ID = "72000000-0000-4000-8000-000000000001";
@@ -303,6 +304,7 @@ async function fulfillPostgrest(
 }
 
 async function installSyntheticV2Session(page: Page) {
+  await installSyntheticMaps(page);
   await page.route("**/auth/v1/**", async (route) => {
     const pathname = new URL(route.request().url()).pathname;
     if (route.request().method() === "OPTIONS") {
@@ -332,6 +334,7 @@ async function installSyntheticV2Session(page: Page) {
 }
 
 async function installSyntheticNewGuardianSession(page: Page) {
+  await installSyntheticMaps(page);
   let guardianCreated = false;
   let childCreated = false;
   const bootstrapBodies: Record<string, unknown>[] = [];
