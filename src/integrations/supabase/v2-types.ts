@@ -5039,6 +5039,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      v2_archive_guardian_child: {
+        Args: { target_child_id: string; target_request_key: string }
+        Returns: { child_id: string; archived: boolean }[]
+      }
       v2_activate_child_install_session_service: {
         Args: { supplied_activation_token_hash: string }
         Returns: {
