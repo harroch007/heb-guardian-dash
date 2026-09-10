@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ReconnectChildV2Modal } from "@/components/ReconnectChildV2Modal";
+import { RemoveChildV2Modal } from "@/components/RemoveChildV2Modal";
 import { BottomNavigationV2 } from "@/components/BottomNavigationV2";
 import { TopNavigationV2 } from "@/components/TopNavigationV2";
 import {
@@ -102,6 +103,11 @@ export default function ChildControlV2() {
   const [device, setDevice] = useState<Device | null>(null);
   const [appUsage, setAppUsage] = useState<AppUsage[]>([]);
   const [loading, setLoading] = useState(true);
+  const scopeKey = `${user?.id ?? ""}:${familyId ?? ""}:${childId ?? ""}`;
+  const currentScope = useRef(scopeKey);
+  currentScope.current = scopeKey;
+  const fetchGeneration = useRef(0);
+  const [loadedScope, setLoadedScope] = useState("");
   const [dataError, setDataError] = useState(false);
   const [screenTimeLimit, setScreenTimeLimit] = useState<number | null>(null);
   const [totalUsageFromDb, setTotalUsageFromDb] = useState(0);
@@ -110,6 +116,12 @@ export default function ChildControlV2() {
 
   // Child management state
   const [showReconnectModal, setShowReconnectModal] = useState(false);
+  const [showRemoveModal, setShowRemoveModal] = useState(false);
+  const removeButtonRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    setShowReconnectModal(false);
+    setShowRemoveModal(false);
+  }, [scopeKey]);
 
   // Command statuses
   const [locateStatus, setLocateStatus] = useState<CommandStatus>("idle");
@@ -188,6 +200,8 @@ export default function ChildControlV2() {
 
   // ---------- Canonical V2 data fetching ----------
   const fetchData = useCallback(async (isPolling = false) => {
+    const generation = ++fetchGeneration.current;
+    const isCurrent = () => currentScope.current === scopeKey && fetchGeneration.current === generation;
     if (!childId || !user || !familyId) {
       setLoading(false);
       return;
@@ -231,6 +245,7 @@ export default function ChildControlV2() {
             .in("status", ["confirmed", "alerted"]),
         ]);
 
+      if (!isCurrent()) return;
       const firstError = [
         childResult.error,
         devicesResult.error,
@@ -271,6 +286,7 @@ export default function ChildControlV2() {
               incidents.map((incident) => incident.id),
             )
             .in("state", ["saved", "acknowledged"]);
+        if (!isCurrent()) return;
         if (guardianStatesError) throw guardianStatesError;
         for (const state of guardianStates ?? []) {
           nonNewIncidentIds.add(state.incident_id);
@@ -317,6 +333,7 @@ export default function ChildControlV2() {
           .order("usage_minutes", { ascending: false }),
       ]);
 
+      if (!isCurrent()) return;
       const deviceError = [
         stateResult.error,
         healthResult.error,
@@ -348,13 +365,17 @@ export default function ChildControlV2() {
       );
       setDataError(false);
     } catch (error) {
+      if (!isCurrent()) return;
       console.error("[ChildControlV2] Failed to load V2 data", error);
       if (!isPolling) setDataError(true);
     } finally {
-      if (!isPolling) setLoading(false);
-      else setIsRefreshing(false);
+      if (isCurrent()) {
+        setLoadedScope(scopeKey);
+        setLoading(false);
+        setIsRefreshing(false);
+      }
     }
-  }, [childId, user, familyId, navigate]);
+  }, [childId, user, familyId, navigate, scopeKey]);
 
   const handleDeviceConnected = useCallback(() => {
     void fetchData(true);
@@ -580,7 +601,7 @@ export default function ChildControlV2() {
   ).length;
   const hasLocation = device?.latitude != null && device?.longitude != null;
 
-  if (loading) {
+  if (loading || (loadedScope !== scopeKey && !dataError)) {
     return (
       <div className="v2-dark min-h-screen" dir="rtl">
         <TopNavigationV2 />
@@ -595,7 +616,7 @@ export default function ChildControlV2() {
     );
   }
 
-  if (dataError || !child) {
+  if (dataError || !child || loadedScope !== scopeKey || child.id !== childId) {
     return (
       <div className="v2-dark min-h-screen pb-24" dir="rtl">
         <TopNavigationV2 />
@@ -681,8 +702,8 @@ export default function ChildControlV2() {
             size="icon"
             className="shrink-0 h-9 w-9 text-muted-foreground hover:text-foreground"
             onClick={() => setShowReconnectModal(true)}
-            title="צור קישור חיבור חדש"
-            aria-label={`צור קישור חיבור חדש עבור ${child.name}`}
+            title="חיבור מחדש באמצעות קוד לאימייל"
+            aria-label={`חיבור מחדש עבור ${child.name}`}
           >
             <RefreshCw className="w-4 h-4" />
           </Button>
@@ -811,7 +832,39 @@ export default function ChildControlV2() {
             </CardContent>
           </Card>
         )}
+        <Card className="border-border bg-card">
+          <CardContent className="space-y-3 p-4">
+            <h2 className="text-sm font-semibold">ניהול החיבור והמשפחה</h2>
+            <Button variant="outline" className="min-h-11 w-full" onClick={() => setShowReconnectModal(true)}>
+              חיבור מחדש
+            </Button>
+            <Button
+              ref={removeButtonRef}
+              variant="ghost"
+              className="min-h-11 w-full text-destructive hover:text-destructive"
+              onClick={() => setShowRemoveModal(true)}
+            >
+              הסרת ילד
+            </Button>
+          </CardContent>
+        </Card>
       </div>
+
+      {showRemoveModal && child && (
+        <RemoveChildV2Modal
+          key={scopeKey}
+          childId={child.id}
+          childName={child.name}
+          triggerRef={removeButtonRef}
+          onClose={() => setShowRemoveModal(false)}
+          onRemoved={() => {
+            if (currentScope.current !== scopeKey) return;
+            setShowRemoveModal(false);
+            toast({ title: "הילד הוסר מהמשפחה", description: "גישת המכשירים וקודי החיבור בוטלו." });
+            navigate("/home-v2", { replace: true });
+          }}
+        />
+      )}
 
       {child && (
         <ReconnectChildV2Modal

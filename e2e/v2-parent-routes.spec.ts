@@ -690,9 +690,9 @@ test.describe("V2 private parent routes", () => {
     }
   });
 
-  test("keeps a reconnect QR open until its exact install session is consumed", async ({ page }) => {
+  test("keeps an explicitly requested reconnect open until its exact session is consumed", async ({ page }) => {
     const installSessionId = "77000000-0000-4000-8000-000000000001";
-    const expiresAt = "2030-07-31T13:00:00.000Z";
+    const expiresAt = new Date(Date.now() + 15 * 60_000).toISOString();
     const requestedSessionIds: string[] = [];
     let installStatus = "created";
     let protectedDeviceReads = 0;
@@ -718,9 +718,21 @@ test.describe("V2 private parent routes", () => {
         json: {
           install_session_id: installSessionId,
           expires_at: expiresAt,
-          activation_url: "https://example.invalid/install/synthetic",
-          qr_payload: "https://example.invalid/install/synthetic",
+          activation_url: `https://example.invalid/install/${"A".repeat(43)}`,
+          qr_payload: `https://example.invalid/install/${"A".repeat(43)}`,
         },
+      });
+    });
+    await page.route("**/functions/v1/v2-activate-child-install", async (route) => {
+      if (route.request().method() === "OPTIONS") {
+        await route.fulfill({ status: 204, headers: corsHeaders });
+        return;
+      }
+      installStatus = "activated";
+      await route.fulfill({
+        status: 200,
+        headers: { ...corsHeaders, "content-type": "application/json" },
+        json: { activated: true, otp_sent: true, otp_delivery: "requested", expires_at: expiresAt },
       });
     });
     await page.route(
@@ -743,10 +755,12 @@ test.describe("V2 private parent routes", () => {
     );
 
     await navigateWithinParentApp(page, `/child-v2/${CHILD_ID}`);
-    await page.getByTitle("צור קישור חיבור חדש").click();
+    await page.getByRole("button", { name: `חיבור מחדש עבור ${child.display_name}`, exact: true }).click();
 
-    const modalHeading = page.getByRole("heading", { name: /חיבור מכשיר/ });
+    const modalHeading = page.getByRole("dialog").getByRole("heading");
     await expect(modalHeading).toBeVisible();
+    expect(requestedSessionIds).toEqual([]);
+    await page.getByRole("button", { name: "שליחת קוד לאימייל", exact: true }).click();
     await expect
       .poll(() => requestedSessionIds.length, { timeout: 7_000 })
       .toBeGreaterThanOrEqual(2);
@@ -755,7 +769,7 @@ test.describe("V2 private parent routes", () => {
 
     const readsBeforeConsume = protectedDeviceReads;
     installStatus = "consumed";
-    await expect(modalHeading).toBeHidden({ timeout: 7_000 });
+    await expect(page.getByText("המכשיר קושר בהצלחה", { exact: true })).toBeVisible({ timeout: 7_000 });
     await expect
       .poll(() => protectedDeviceReads, { timeout: 7_000 })
       .toBeGreaterThan(readsBeforeConsume);

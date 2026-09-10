@@ -123,10 +123,11 @@ const childInstallStatuses = new Set<V2ChildInstallSessionStatus>([
 
 export async function createChildInstallSession(
   childId: string,
+  options?: { signal?: AbortSignal; timeout?: number },
 ): Promise<V2ChildInstallSession> {
   const { data, error } = await supabase.functions.invoke(
     "v2-create-child-install",
-    { body: { child_id: childId } },
+    { body: { child_id: childId }, signal: options?.signal, timeout: options?.timeout },
   );
   if (error) throw error;
   if (
