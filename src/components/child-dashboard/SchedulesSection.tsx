@@ -10,20 +10,20 @@ import type { ScheduleWindow } from "@/hooks/useChildControls";
 
 interface SchedulesSectionProps {
   scheduleWindows: ScheduleWindow[];
-  onToggleShabbat: () => Promise<void>;
+  onToggleShabbat: () => Promise<boolean>;
   onUpdateShabbatMode: (
     scheduleId: string,
     mode: "default" | "manual",
     manualStartTime?: string,
     manualEndTime?: string,
-  ) => Promise<void>;
+  ) => Promise<boolean>;
   onCreateSchedule: (params: {
     schedule_type: string;
     name: string;
     days_of_week: number[];
     start_time: string;
     end_time: string;
-  }) => Promise<void>;
+  }) => Promise<boolean>;
   onUpdateSchedule: (
     scheduleId: string,
     params: {
@@ -33,8 +33,9 @@ interface SchedulesSectionProps {
       end_time?: string;
       is_active?: boolean;
     }
-  ) => Promise<void>;
-  onDeleteSchedule: (scheduleId: string) => Promise<void>;
+  ) => Promise<boolean>;
+  onDeleteSchedule: (scheduleId: string) => Promise<boolean>;
+  onRestrictionComplete: () => void;
 }
 
 const DAY_LABELS: Record<number, string> = { 1: "א׳", 2: "ב׳", 3: "ג׳", 4: "ד׳", 5: "ה׳", 6: "ו׳", 7: "ש׳" };
@@ -46,6 +47,7 @@ export function SchedulesSection({
   onCreateSchedule,
   onUpdateSchedule,
   onDeleteSchedule,
+  onRestrictionComplete,
 }: SchedulesSectionProps) {
   const [togglingShabbat, setTogglingShabbat] = useState(false);
   const [editingShabbat, setEditingShabbat] = useState(false);
@@ -74,36 +76,49 @@ export function SchedulesSection({
       return;
     }
     setTogglingShabbat(true);
-    await onToggleShabbat();
-    setTogglingShabbat(false);
+    try {
+      await completeRestrictionChange(onToggleShabbat);
+    } finally {
+      setTogglingShabbat(false);
+    }
   };
 
   const saveShabbatWindow = async () => {
     if (!shabbatStart || !shabbatEnd) return;
     setTogglingShabbat(true);
-    if (shabbatRule) {
-      await onUpdateShabbatMode(
-        shabbatRule.id,
-        "manual",
-        shabbatStart,
-        shabbatEnd,
-      );
-    } else {
-      await onCreateSchedule({
-        schedule_type: "shabbat",
-        name: "שבתות וחגים",
-        // Friday. Cross-midnight evaluation applies the end time on Saturday.
-        days_of_week: [6],
-        start_time: shabbatStart,
-        end_time: shabbatEnd,
-      });
+    let succeeded = false;
+    try {
+      if (shabbatRule) {
+        succeeded = await completeRestrictionChange(() =>
+          onUpdateShabbatMode(
+            shabbatRule.id,
+            "manual",
+            shabbatStart,
+            shabbatEnd,
+          ),
+        );
+      } else {
+        succeeded = await completeRestrictionChange(() =>
+          onCreateSchedule({
+            schedule_type: "shabbat",
+            name: "שבתות וחגים",
+            // Friday. Cross-midnight evaluation applies the end time on Saturday.
+            days_of_week: [6],
+            start_time: shabbatStart,
+            end_time: shabbatEnd,
+          }),
+        );
+      }
+    } finally {
+      setTogglingShabbat(false);
     }
-    setTogglingShabbat(false);
-    setEditingShabbat(false);
+    if (succeeded) setEditingShabbat(false);
   };
 
   const handleToggleRule = async (rule: ScheduleWindow) => {
-    await onUpdateSchedule(rule.id, { is_active: !rule.is_active });
+    await completeRestrictionChange(() =>
+      onUpdateSchedule(rule.id, { is_active: !rule.is_active }),
+    );
   };
 
   const renderDays = (days: number[] | null) => {
@@ -113,6 +128,28 @@ export function SchedulesSection({
   };
 
   const activeCount = scheduleWindows.filter((s) => s.is_active).length;
+
+  /** Finish every successful schedule change through one shared path. */
+  const completeRestrictionChange = async (
+    operation: () => Promise<boolean>,
+  ) => {
+    const succeeded = await operation();
+    if (!succeeded) return false;
+    onRestrictionComplete();
+    return true;
+  };
+
+  const handleCreateSchedule = (
+    params: Parameters<typeof onCreateSchedule>[0],
+  ) => completeRestrictionChange(() => onCreateSchedule(params));
+
+  const handleUpdateSchedule = (
+    scheduleId: string,
+    params: Parameters<typeof onUpdateSchedule>[1],
+  ) => completeRestrictionChange(() => onUpdateSchedule(scheduleId, params));
+
+  const handleDeleteSchedule = (scheduleId: string) =>
+    completeRestrictionChange(() => onDeleteSchedule(scheduleId));
 
   return (
     <div id="schedules-section" className="scroll-mt-4">
@@ -327,9 +364,9 @@ export function SchedulesSection({
         onOpenChange={(open) => setEditModal((prev) => ({ ...prev, open }))}
         scheduleType={editModal.type}
         existing={editModal.existing}
-        onCreate={onCreateSchedule}
-        onUpdate={onUpdateSchedule}
-        onDelete={onDeleteSchedule}
+        onCreate={handleCreateSchedule}
+        onUpdate={handleUpdateSchedule}
+        onDelete={handleDeleteSchedule}
       />
     </div>
   );

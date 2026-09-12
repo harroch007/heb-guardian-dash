@@ -631,6 +631,7 @@ export default function ChildDashboard() {
               onCreateSchedule={createSchedule}
               onUpdateSchedule={updateSchedule}
               onDeleteSchedule={deleteSchedule}
+              onRestrictionComplete={() => navigate("/home-v2", { replace: true })}
             />
           </div>
         )}

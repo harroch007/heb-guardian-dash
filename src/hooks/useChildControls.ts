@@ -625,18 +625,19 @@ export function useChildControls(childId: string | undefined) {
   // --- Schedule CRUD ---
 
   const toggleShabbat = async () => {
-    if (!childId || !user) return;
+    if (!childId || !user) return false;
 
     let nextActive: boolean;
     try {
       nextActive = await toggleShabbatSchedule(childId);
     } catch {
       toast.error("שגיאה בעדכון מצב שבת");
-      return;
+      return false;
     }
 
     toast.success(nextActive ? "מצב שבת הופעל" : "מצב שבת כובה");
     fetchData();
+    return true;
   };
 
   /** Update shabbat mode (default/manual) and optional manual times */
@@ -646,7 +647,7 @@ export function useChildControls(childId: string | undefined) {
     manualStartTime?: string,
     manualEndTime?: string
   ) => {
-    if (!childId) return;
+    if (!childId) return false;
 
     try {
       await saveShabbatMode({
@@ -658,11 +659,12 @@ export function useChildControls(childId: string | undefined) {
       });
     } catch {
       toast.error("שגיאה בעדכון מצב שבת");
-      return;
+      return false;
     }
 
     toast.success(mode === "manual" ? "זמני שבת ידניים נשמרו" : "חזרה לזמני שבת אוטומטיים");
     fetchData();
+    return true;
   };
 
   const createSchedule = async (params: {
@@ -672,17 +674,18 @@ export function useChildControls(childId: string | undefined) {
     start_time: string;
     end_time: string;
   }) => {
-    if (!childId || !user) return;
+    if (!childId || !user) return false;
 
     try {
       await createProtectionSchedule(childId, params);
     } catch {
       toast.error("שגיאה ביצירת לוח זמנים");
-      return;
+      return false;
     }
 
     toast.success("לוח זמנים נוצר בהצלחה");
     fetchData();
+    return true;
   };
 
   const updateSchedule = async (
@@ -695,7 +698,7 @@ export function useChildControls(childId: string | undefined) {
       is_active?: boolean;
     }
   ) => {
-    if (!childId) return;
+    if (!childId) return false;
 
     try {
       await updateProtectionSchedule({
@@ -705,25 +708,27 @@ export function useChildControls(childId: string | undefined) {
       });
     } catch {
       toast.error("שגיאה בעדכון לוח זמנים");
-      return;
+      return false;
     }
 
     toast.success("לוח זמנים עודכן בהצלחה");
     fetchData();
+    return true;
   };
 
   const deleteSchedule = async (scheduleId: string) => {
-    if (!childId) return;
+    if (!childId) return false;
 
     try {
       await deleteProtectionSchedule({ childId, scheduleId });
     } catch {
       toast.error("שגיאה במחיקת לוח זמנים");
-      return;
+      return false;
     }
 
     toast.success("לוח זמנים נמחק");
     fetchData();
+    return true;
   };
 
   return {

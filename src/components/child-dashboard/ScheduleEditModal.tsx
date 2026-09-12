@@ -35,7 +35,7 @@ interface ScheduleEditModalProps {
     days_of_week: number[];
     start_time: string;
     end_time: string;
-  }) => Promise<void>;
+  }) => Promise<boolean>;
   onUpdate: (
     scheduleId: string,
     params: {
@@ -44,8 +44,8 @@ interface ScheduleEditModalProps {
       start_time?: string;
       end_time?: string;
     }
-  ) => Promise<void>;
-  onDelete: (scheduleId: string) => Promise<void>;
+  ) => Promise<boolean>;
+  onDelete: (scheduleId: string) => Promise<boolean>;
 }
 
 const DEFAULTS: Record<"bedtime" | "school", { name: string; days: number[]; start: string; end: string }> = {
@@ -92,15 +92,17 @@ export function ScheduleEditModal({
     setSaving(true);
     try {
       if (isEdit && existing) {
-        await onUpdate(existing.id, { days_of_week: days, start_time: startTime, end_time: endTime });
+        const succeeded = await onUpdate(existing.id, { days_of_week: days, start_time: startTime, end_time: endTime });
+        if (!succeeded) return;
       } else {
-        await onCreate({
+        const succeeded = await onCreate({
           schedule_type: scheduleType,
           name: defaults.name,
           days_of_week: days,
           start_time: startTime,
           end_time: endTime,
         });
+        if (!succeeded) return;
       }
       onOpenChange(false);
     } finally {
@@ -112,7 +114,8 @@ export function ScheduleEditModal({
     if (!existing) return;
     setDeleting(true);
     try {
-      await onDelete(existing.id);
+      const succeeded = await onDelete(existing.id);
+      if (!succeeded) return;
       onOpenChange(false);
     } finally {
       setDeleting(false);
