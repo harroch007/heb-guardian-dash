@@ -15,12 +15,21 @@ declare namespace google {
     type MapMouseEvent = any;
     type Size = any;
     type Point = any;
+    type Icon = any;
+    type Symbol = any;
+    type Circle = any;
+    type Polygon = any;
+    type Polyline = any;
     namespace places {
       type Autocomplete = any;
       type AutocompleteService = any;
+      type AutocompleteSessionToken = any;
+      type AutocompleteSuggestion = any;
+      type PlacePrediction = any;
       type PlaceResult = any;
       type AutocompletePrediction = any;
       type PlacesService = any;
+      type Place = any;
     }
   }
 }
