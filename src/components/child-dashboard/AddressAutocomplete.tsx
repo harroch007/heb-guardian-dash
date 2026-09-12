@@ -12,7 +12,7 @@ import type {
 interface NormalizedResult {
   id: string;
   label: string;
-  prediction: google.maps.places.PlacePrediction;
+  prediction: GPlacePrediction;
 }
 
 interface AddressAutocompleteProps {
@@ -39,7 +39,7 @@ export function AddressAutocomplete({
   const containerRef = useRef<HTMLDivElement>(null);
   // One token per typing session — bundles suggestions + the final place-details
   // fetch into a single billed Places session instead of per-keystroke billing.
-  const sessionTokenRef = useRef<google.maps.places.AutocompleteSessionToken | null>(null);
+  const sessionTokenRef = useRef<GAutocompleteSessionToken | null>(null);
 
   const getSessionToken = useCallback(async () => {
     const g = await loadGoogleMaps();
@@ -69,7 +69,7 @@ export function AddressAutocomplete({
       });
 
       const unique = (suggestions ?? [])
-        .filter((s): s is google.maps.places.AutocompleteSuggestion & { placePrediction: google.maps.places.PlacePrediction } =>
+        .filter((s: GAutocompleteSuggestion): s is GAutocompleteSuggestion & { placePrediction: GPlacePrediction } =>
           Boolean(s.placePrediction))
         .map((s, i) => ({
           id: s.placePrediction.placeId ?? `gp-${i}`,
