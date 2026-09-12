@@ -75,6 +75,16 @@ export const AttentionSection = ({ childrenData }: Props) => {
       });
     }
 
+    const pendingApps = pendingAppCounts[child.id] || 0;
+    if (pendingApps > 0) {
+      items.push({
+        id: `apps-${child.id}`,
+        icon: <Download className="h-4 w-4 text-amber-500" />,
+        text: `${child.name}: ${pendingApps} אפליקציות חדשות ממתינות לאישור`,
+        path: `/child-v2/${child.id}`,
+        color: "bg-warning/10 border-amber-200",
+      });
+    }
   }
 
   if (items.length === 0) return null;
