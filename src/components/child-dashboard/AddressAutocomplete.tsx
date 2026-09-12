@@ -3,6 +3,11 @@ import { Input } from "@/components/ui/input";
 import { Loader2, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { loadGoogleMaps } from "@/lib/googleMaps";
+import type {
+  GAutocompleteSessionToken,
+  GAutocompleteSuggestion,
+  GPlacePrediction,
+} from "@/lib/googleMapsTypes";
 
 interface NormalizedResult {
   id: string;
