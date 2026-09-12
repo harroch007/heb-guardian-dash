@@ -1,3 +1,4 @@
+// Counts apps awaiting parent approval, per child.
 import { useEffect, useState } from "react";
 import { v2Supabase } from "@/integrations/supabase/v2-client";
 import { isSystemApp } from "@/lib/appUtils";
