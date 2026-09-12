@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { v2Supabase } from "@/integrations/supabase/v2-client";
 import { isSystemApp } from "@/lib/appUtils";
@@ -17,17 +18,19 @@ const lastSeenValue = (value: string | null) =>
  * Child time requests are intentionally absent. Home attention combines
  * confirmed safety incidents with parental-control and device-health issues.
  */
-export function useV2NavBadgeCounts(): NavBadgeCounts {
-  const { familyId } = useAuth();
-  const [counts, setCounts] = useState<NavBadgeCounts>({
-    home: 0,
-    alerts: 0,
-  });
+export function useV2NavBadgeCounts(
+  { subscribeToChanges = true }: { subscribeToChanges?: boolean } = {},
+): NavBadgeCounts {
+  const { familyId, user } = useAuth();
+  const queryClient = useQueryClient();
+  const queryKey = useMemo(
+    () => ["v2-nav-badges", user?.id ?? null, familyId] as const,
+    [familyId, user?.id],
+  );
 
   const fetchAll = useCallback(async () => {
     if (!familyId) {
-      setCounts({ home: 0, alerts: 0 });
-      return;
+      return { home: 0, alerts: 0 };
     }
 
     try {
@@ -40,8 +43,7 @@ export function useV2NavBadgeCounts(): NavBadgeCounts {
 
       const childIds = (children || []).map((child) => child.id);
       if (childIds.length === 0) {
-        setCounts({ home: 0, alerts: 0 });
-        return;
+        return { home: 0, alerts: 0 };
       }
 
       const [devicesResult, policiesResult, incidentsResult] =
@@ -161,16 +163,36 @@ export function useV2NavBadgeCounts(): NavBadgeCounts {
         );
       }).length;
 
+      // Keep the badge contract identical to /alerts-v2: an incident is
+      // actionable only after a parent-safe confirmed analysis exists. The
+      // incident row can legitimately arrive first while ThreeGate/expert
+      // finalization is still completing; counting it here would show a badge
+      // for a card the alert surface is required to hide.
       const incidents = incidentsResult.data || [];
-      let newIncidentCount = incidents.length;
+      let confirmedIncidentIds = new Set<string>();
       if (incidents.length > 0) {
+        const { data: analyses, error: analysesError } = await v2Supabase
+          .from("v2_incident_analysis")
+          .select("incident_id")
+          .in("incident_id", incidents.map((incident) => incident.id))
+          .eq("outcome", "confirmed");
+        if (analysesError) throw analysesError;
+        confirmedIncidentIds = new Set(
+          (analyses || []).map((analysis) => analysis.incident_id),
+        );
+      }
+      const actionableIncidents = incidents.filter((incident) =>
+        confirmedIncidentIds.has(incident.id),
+      );
+      let newIncidentCount = actionableIncidents.length;
+      if (actionableIncidents.length > 0) {
         const { data: incidentStates, error: incidentStatesError } =
           await v2Supabase
             .from("v2_guardian_incident_states")
             .select("incident_id, state")
             .in(
               "incident_id",
-              incidents.map((incident) => incident.id),
+              actionableIncidents.map((incident) => incident.id),
             )
             .in("state", ["saved", "acknowledged"]);
         if (incidentStatesError) throw incidentStatesError;
@@ -180,7 +202,7 @@ export function useV2NavBadgeCounts(): NavBadgeCounts {
         );
       }
 
-      setCounts({
+      return {
         home:
           newIncidentCount +
           pendingApps +
@@ -188,47 +210,70 @@ export function useV2NavBadgeCounts(): NavBadgeCounts {
           degradedDevices +
           disconnected,
         alerts: newIncidentCount,
-      });
+      };
     } catch (error) {
-      console.error("[navigation] Failed to load V2 badge counts", error);
+      console.error("[navigation] Failed to load V2 badge counts");
+      throw error;
     }
   }, [familyId]);
 
+  // Both responsive navigation surfaces share one scoped cache/in-flight read.
+  // Polling remains a fallback when realtime is unavailable, and is suspended
+  // in background tabs by React Query's existing focus/online managers.
+  const { data: counts } = useQuery({
+    queryKey,
+    queryFn: fetchAll,
+    enabled: Boolean(familyId && user?.id),
+    staleTime: 5_000,
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    retry: 1,
+  });
+
   useEffect(() => {
-    void fetchAll();
-    if (!familyId) return;
+    if (!familyId || !user?.id || !subscribeToChanges) return;
+    const refresh = () => {
+      // Coalesce realtime events with any read already in flight.
+      void queryClient.invalidateQueries({
+        queryKey,
+        exact: true,
+        refetchType: document.visibilityState === "visible" ? "active" : "none",
+      }, { cancelRefetch: false });
+    };
 
     const channel = v2Supabase
       .channel(`v2-nav-badges-${familyId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "v2_protected_devices" },
-        () => void fetchAll(),
+        refresh,
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "v2_parental_installed_apps" },
-        () => void fetchAll(),
+        refresh,
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "v2_parental_app_policies" },
-        () => void fetchAll(),
+        refresh,
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "v2_parental_geofence_events" },
-        () => void fetchAll(),
+        refresh,
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "v2_device_health_events" },
-        () => void fetchAll(),
+        refresh,
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "v2_safety_incidents" },
-        () => void fetchAll(),
+        refresh,
       )
       .on(
         "postgres_changes",
@@ -237,17 +282,16 @@ export function useV2NavBadgeCounts(): NavBadgeCounts {
           schema: "public",
           table: "v2_guardian_incident_states",
         },
-        () => void fetchAll(),
+        refresh,
       )
       .subscribe();
 
-    const onFocus = () => void fetchAll();
-    window.addEventListener("focus", onFocus);
+    window.addEventListener("focus", refresh);
     return () => {
       void v2Supabase.removeChannel(channel);
-      window.removeEventListener("focus", onFocus);
+      window.removeEventListener("focus", refresh);
     };
-  }, [familyId, fetchAll]);
+  }, [familyId, user?.id, queryClient, queryKey, subscribeToChanges]);
 
-  return counts;
+  return familyId && user?.id ? counts ?? { home: 0, alerts: 0 } : { home: 0, alerts: 0 };
 }

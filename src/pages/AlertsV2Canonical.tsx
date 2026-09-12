@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { CheckCircle2, Clock3, Loader2, RefreshCw, ShieldAlert } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { v2Supabase } from "@/integrations/supabase/v2-client";
 import { getV2GuardianAlerts, type V2GuardianAlert, type V2GuardianIncidentState } from "@/lib/v2/guardianAlertsService";
 import { BottomNavigationV2 } from "@/components/BottomNavigationV2";
 import { TopNavigationV2 } from "@/components/TopNavigationV2";
@@ -30,6 +31,7 @@ export default function AlertsV2Canonical() {
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const loadGeneration = useRef(0);
+  const activeRequest = useRef<number | null>(null);
   const active = useRef(false);
   const currentLoad = useRef<(() => Promise<void>) | null>(null);
   const lastRefresh = useRef(0);
@@ -46,9 +48,11 @@ export default function AlertsV2Canonical() {
     const generation = ++loadGeneration.current;
     lastRefresh.current = Date.now();
     if (!familyId || !user?.id) {
+      activeRequest.current = null;
       setChildren([]); setAlerts([]); setLoading(false); setRefreshing(false);
       return;
     }
+    activeRequest.current = generation;
     setRefreshing(true);
     setLoadError(false);
     try {
@@ -59,7 +63,10 @@ export default function AlertsV2Canonical() {
     } catch {
       if (generation === loadGeneration.current) setLoadError(true);
     } finally {
-      if (generation === loadGeneration.current) { setLoading(false); setRefreshing(false); }
+      if (generation === loadGeneration.current) {
+        activeRequest.current = null;
+        setLoading(false); setRefreshing(false);
+      }
     }
   }, [familyId, selectedChildId, user?.id]);
   currentLoad.current = load;
@@ -70,21 +77,55 @@ export default function AlertsV2Canonical() {
     setLoading(true);
     setAlerts([]);
     void load();
-    return () => { active.current = false; loadGeneration.current += 1; };
+    return () => { active.current = false; loadGeneration.current += 1; activeRequest.current = null; };
   }, [load]);
 
   useEffect(() => {
     if (incidentId !== null) return;
     const refreshVisible = () => {
-      if (document.visibilityState === "visible" && Date.now() - lastRefresh.current > 1_000) void load();
+      if (document.visibilityState === "visible" && navigator.onLine &&
+        activeRequest.current === null && Date.now() - lastRefresh.current > 1_000) void load();
     };
+    // Refresh only the list. An open case retains its displayed assessment
+    // version until its existing explicit refresh/conflict flow updates it.
+    const interval = window.setInterval(refreshVisible, 30_000);
+    refreshVisible();
     window.addEventListener("focus", refreshVisible);
+    window.addEventListener("online", refreshVisible);
     document.addEventListener("visibilitychange", refreshVisible);
     return () => {
+      window.clearInterval(interval);
       window.removeEventListener("focus", refreshVisible);
+      window.removeEventListener("online", refreshVisible);
       document.removeEventListener("visibilitychange", refreshVisible);
     };
   }, [incidentId, load]);
+
+  // A completed ThreeGate decision updates the parent-safe incident row. Keep
+  // the visible list in sync with that write; the query remains scoped to the
+  // authenticated family's active-child ids and never subscribes to message
+  // content or local FIFO tables. The polling/focus path above remains the
+  // fallback when Realtime is unavailable.
+  useEffect(() => {
+    if (incidentId !== null || !familyId || !user?.id || children.length === 0) return;
+    const childIds = selectedChildId
+      ? children.filter((child) => child.id === selectedChildId).map((child) => child.id)
+      : children.map((child) => child.id);
+    if (childIds.length === 0) return;
+    const filter = `child_id=in.(${childIds.join(",")})`;
+    const refreshFromIncident = () => {
+      if (document.visibilityState !== "visible" || !navigator.onLine ||
+        activeRequest.current !== null || Date.now() - lastRefresh.current <= 1_000) return;
+      void load();
+    };
+    const channel = v2Supabase
+      .channel(`v2-alerts-${familyId}-${selectedChildId ?? "all"}`)
+      .on("postgres_changes", {
+        event: "*", schema: "public", table: "v2_safety_incidents", filter,
+      }, refreshFromIncident)
+      .subscribe();
+    return () => { void v2Supabase.removeChannel(channel); };
+  }, [children, familyId, incidentId, load, selectedChildId, user?.id]);
 
   useEffect(() => {
     if (previousIncident.current !== null && incidentId === null) pendingFocusReturn.current = true;
