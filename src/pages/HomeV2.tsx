@@ -15,7 +15,7 @@ import { DailyControlSummary } from "@/components/home-v2/DailyControlSummary";
 import { FamilyLocationsMap } from "@/components/home-v2/FamilyLocationsMap";
 import { FamilyStatusHero } from "@/components/home-v2/FamilyStatusHero";
 import { HomeGreeting } from "@/components/home-v2/HomeGreeting";
-import { HomePendingApps } from "@/components/home-v2/HomePendingApps";
+
 import { HomePendingGeofenceAlerts } from "@/components/home-v2/HomePendingGeofenceAlerts";
 import { SmartProtectionSummary } from "@/components/home-v2/SmartProtectionSummary";
 import { Accordion } from "@/components/ui/accordion";
@@ -314,7 +314,7 @@ const HomeV2 = () => {
         )}
 
         <HomePendingGeofenceAlerts childrenData={childrenData} />
-        <HomePendingApps childrenData={childrenData} />
+        
         <AttentionSection childrenData={childrenData} />
         {childrenData.length > 0 && (
           <FamilyLocationsMap children={childrenData} />

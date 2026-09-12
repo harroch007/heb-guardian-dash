@@ -2,6 +2,10 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, MapPin } from "lucide-react";
 import { loadGoogleMaps } from "@/lib/googleMaps";
+import type { GGeocoder, GMap, GMapMouseEvent, GMarker } from "@/lib/googleMapsTypes";
+
+// The SDK is loaded at runtime via loadGoogleMaps().
+declare const google: any;
 
 interface MapPinPickerProps {
   initialLat?: number | null;
@@ -13,9 +17,9 @@ interface MapPinPickerProps {
 }
 
 export function MapPinPicker({ initialLat, initialLng, fallbackLabel, onConfirm, onCancel }: MapPinPickerProps) {
-  const mapRef = useRef<google.maps.Map | null>(null);
-  const markerRef = useRef<google.maps.Marker | null>(null);
-  const geocoderRef = useRef<google.maps.Geocoder | null>(null);
+  const mapRef = useRef<GMap | null>(null);
+  const markerRef = useRef<GMarker | null>(null);
+  const geocoderRef = useRef<GGeocoder | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const [pin, setPin] = useState<{ lat: number; lng: number } | null>(
@@ -92,7 +96,7 @@ export function MapPinPicker({ initialLat, initialLng, fallbackLabel, onConfirm,
         reverseGeocode(initialLat, initialLng);
       }
 
-      map.addListener("click", (e: google.maps.MapMouseEvent) => {
+      map.addListener("click", (e: GMapMouseEvent) => {
         if (e.latLng) placeMarker(e.latLng.lat(), e.latLng.lng());
       });
     })();

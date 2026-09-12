@@ -1,7 +1,8 @@
 import { useNavigate } from "react-router-dom";
-import { AlertTriangle, WifiOff, ShieldAlert } from "lucide-react";
+import { AlertTriangle, WifiOff, ShieldAlert, Download } from "lucide-react";
 import type { ChildWithData } from "@/pages/HomeV2";
 import { hasCurrentDeviceReport } from "@/lib/v2/guardianMonitoringService";
+import { usePendingAppCounts } from "./usePendingAppCounts";
 
 interface Props {
   childrenData: ChildWithData[];
@@ -17,6 +18,7 @@ interface AttentionItem {
 
 export const AttentionSection = ({ childrenData }: Props) => {
   const navigate = useNavigate();
+  const pendingAppCounts = usePendingAppCounts(childrenData.map((c) => c.id));
   const items: AttentionItem[] = [];
 
   for (const child of childrenData) {
@@ -73,6 +75,16 @@ export const AttentionSection = ({ childrenData }: Props) => {
       });
     }
 
+    const pendingApps = pendingAppCounts[child.id] || 0;
+    if (pendingApps > 0) {
+      items.push({
+        id: `apps-${child.id}`,
+        icon: <Download className="h-4 w-4 text-amber-500" />,
+        text: `${child.name}: ${pendingApps} אפליקציות חדשות ממתינות לאישור`,
+        path: `/child-v2/${child.id}`,
+        color: "bg-warning/10 border-amber-200",
+      });
+    }
   }
 
   if (items.length === 0) return null;

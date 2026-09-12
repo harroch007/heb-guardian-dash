@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { loadGoogleMaps } from "@/lib/googleMaps";
+import type { GIcon, GMap, GMarker, GoogleNamespace } from "@/lib/googleMapsTypes";
 
 interface LocationMapProps {
   latitude: number;
@@ -8,7 +9,7 @@ interface LocationMapProps {
 }
 
 // Custom Kippy-purple teardrop pin, as an inline SVG data URI (no external icon assets).
-const kippyPinIcon = (): google.maps.Icon => ({
+const kippyPinIcon = (g: GoogleNamespace): GIcon => ({
   url:
     "data:image/svg+xml;charset=UTF-8," +
     encodeURIComponent(`
@@ -18,14 +19,14 @@ const kippyPinIcon = (): google.maps.Icon => ({
         <circle cx="16" cy="14" r="4.5" fill="white"/>
       </svg>
     `),
-  scaledSize: new google.maps.Size(32, 32),
-  anchor: new google.maps.Point(16, 30),
+  scaledSize: new g.maps.Size(32, 32),
+  anchor: new g.maps.Point(16, 30),
 });
 
 export function LocationMap({ latitude, longitude, name }: LocationMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<google.maps.Map | null>(null);
-  const markerRef = useRef<google.maps.Marker | null>(null);
+  const mapRef = useRef<GMap | null>(null);
+  const markerRef = useRef<GMarker | null>(null);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -47,7 +48,7 @@ export function LocationMap({ latitude, longitude, name }: LocationMapProps) {
       markerRef.current = new g.maps.Marker({
         map,
         position: { lat: latitude, lng: longitude },
-        icon: kippyPinIcon(),
+        icon: kippyPinIcon(g),
         title: name,
       });
 

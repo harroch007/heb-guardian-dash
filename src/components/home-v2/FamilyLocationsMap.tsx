@@ -3,6 +3,10 @@ import { MapPin } from "lucide-react";
 import type { ChildWithData } from "@/pages/HomeV2";
 import { hasCurrentDeviceReport } from "@/lib/v2/guardianMonitoringService";
 import { loadGoogleMaps } from "@/lib/googleMaps";
+import type { GIcon, GInfoWindow, GMap, GMarker } from "@/lib/googleMapsTypes";
+
+// The SDK is loaded at runtime via loadGoogleMaps().
+declare const google: any;
 
 interface Props {
   children: ChildWithData[];
@@ -18,7 +22,7 @@ const formatLastSeen = (ts: string | null): string => {
   return `לפני ${Math.floor(h / 24)} ימים`;
 };
 
-const makePinIcon = (initial: string, connected: boolean): google.maps.Icon => {
+const makePinIcon = (initial: string, connected: boolean): GIcon => {
   const color = connected ? "hsl(142 71% 45%)" : "hsl(0 84% 60%)";
   return {
     url:
@@ -47,9 +51,9 @@ function escapeHtml(s: string): string {
 
 export const FamilyLocationsMap = ({ children }: Props) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<google.maps.Map | null>(null);
-  const infoWindowRef = useRef<google.maps.InfoWindow | null>(null);
-  const markersRef = useRef<Map<string, google.maps.Marker>>(new Map());
+  const mapRef = useRef<GMap | null>(null);
+  const infoWindowRef = useRef<GInfoWindow | null>(null);
+  const markersRef = useRef<Map<string, GMarker>>(new Map());
   const didInitialFitRef = useRef(false);
   const readyRef = useRef(false);
 
