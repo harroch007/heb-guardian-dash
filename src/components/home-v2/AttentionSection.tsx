@@ -18,6 +18,7 @@ interface AttentionItem {
 
 export const AttentionSection = ({ childrenData }: Props) => {
   const navigate = useNavigate();
+  const pendingAppCounts = usePendingAppCounts(childrenData.map((c) => c.id));
   const items: AttentionItem[] = [];
 
   for (const child of childrenData) {
