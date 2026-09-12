@@ -18,20 +18,18 @@ export function isFemale(gender: string | null | undefined): boolean {
   return normalizeGender(gender) === "female";
 }
 
-/** "הילד" / "הילדה" — when gender is unknown returns inclusive "הילד/ה". */
+/** "הילד" / "הילדה" — unknown gender follows the product's masculine default. */
 export function child(gender: string | null | undefined): string {
   const g = normalizeGender(gender);
   if (g === "female") return "הילדה";
-  if (g === "male") return "הילד";
-  return "הילד/ה";
+  return "הילד";
 }
 
-/** Possessive "שלו" / "שלה" / "שלו/ה". */
+/** Possessive "שלו" / "שלה" — unknown gender follows the masculine default. */
 export function poss(gender: string | null | undefined): string {
   const g = normalizeGender(gender);
   if (g === "female") return "שלה";
-  if (g === "male") return "שלו";
-  return "שלו/ה";
+  return "שלו";
 }
 
 export type { ChildGender };

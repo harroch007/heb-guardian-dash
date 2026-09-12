@@ -17,7 +17,6 @@ import { FamilyStatusHero } from "@/components/home-v2/FamilyStatusHero";
 import { HomeGreeting } from "@/components/home-v2/HomeGreeting";
 
 import { HomePendingGeofenceAlerts } from "@/components/home-v2/HomePendingGeofenceAlerts";
-import { SmartProtectionSummary } from "@/components/home-v2/SmartProtectionSummary";
 import { Accordion } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -229,24 +228,13 @@ const HomeV2 = () => {
       <main className="mx-auto max-w-lg space-y-5 px-4 py-6">
         <HomeGreeting />
 
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-xs font-medium text-primary">
-              הגנה חכמה ובקרת הורים
-            </p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              כל מצב המשפחה, בקרות המכשיר והתראות הבטיחות במקום אחד.
-            </p>
-          </div>
-          <Button
-            type="button"
-            size="sm"
-            className="h-11 shrink-0"
-            onClick={() => setAddChildOpen(true)}
-          >
-            <Plus className="ml-1 h-4 w-4" />
-            הוספת ילד
-          </Button>
+        <div>
+          <p className="text-xs font-medium text-primary">
+            בקרת הורים והתרעות בטיחות
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            כל מצב המשפחה, בקרות המכשיר והתראות הבטיחות במקום אחד.
+          </p>
         </div>
 
         {loadError && (
@@ -281,6 +269,9 @@ const HomeV2 = () => {
           openIssues={openIssues}
         />
 
+        {/* Put actionable attention items before the detailed child cards. */}
+        <AttentionSection childrenData={childrenData} />
+
         {childrenData.length === 0 ? (
           <Card className="border-dashed border-border bg-card">
             <CardContent className="py-12 text-center">
@@ -313,16 +304,13 @@ const HomeV2 = () => {
           </Accordion>
         )}
 
-        <HomePendingGeofenceAlerts childrenData={childrenData} />
-        
-        <AttentionSection childrenData={childrenData} />
-        {childrenData.length > 0 && (
-          <FamilyLocationsMap children={childrenData} />
-        )}
         {childrenData.length === 1 && (
           <DailyControlSummary childrenData={childrenData} />
         )}
-        <SmartProtectionSummary childrenData={childrenData} />
+        <HomePendingGeofenceAlerts childrenData={childrenData} />
+        {childrenData.length > 0 && (
+          <FamilyLocationsMap children={childrenData} />
+        )}
       </main>
       <AddChildModal
         open={addChildOpen}

@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { MapPin } from "lucide-react";
 import type { ChildWithData } from "@/pages/HomeV2";
+import { gt } from "@/lib/genderText";
 
 interface GeofenceAlert {
   id: string;
@@ -35,6 +36,7 @@ export const HomePendingGeofenceAlerts = ({ childrenData }: Props) => {
   const childIds = childrenData.map((c) => c.id);
   const childIdsKey = childIds.join(",");
   const nameById = new Map(childrenData.map((c) => [c.id, c.name]));
+  const genderById = new Map(childrenData.map((c) => [c.id, c.gender]));
 
   const fetchAlerts = async () => {
     if (childIds.length === 0) {
@@ -97,10 +99,12 @@ export const HomePendingGeofenceAlerts = ({ childrenData }: Props) => {
         .map((event) => {
           const childId = childByDevice.get(event.device_id);
           if (!childId) return null;
-          const childName = nameById.get(childId) || "הילד/ה";
+          const childName = nameById.get(childId) || "הילד";
+          const childGender = genderById.get(childId);
           const place = geofenceById.get(event.geofence_id) || "אזור מוגדר";
-          const action =
-            event.transition === "enter" ? "נכנס/ה אל" : "יצא/ה מתוך";
+          const action = event.transition === "enter"
+            ? gt(childGender, "נכנס אל", "נכנסה אל")
+            : gt(childGender, "יצא מתוך", "יצאה מתוך");
           return {
             id: event.id,
             child_id: childId,
