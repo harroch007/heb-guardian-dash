@@ -314,7 +314,7 @@ const HomeV2 = () => {
         )}
 
         <HomePendingGeofenceAlerts childrenData={childrenData} />
-        <HomePendingApps childrenData={childrenData} />
+        
         <AttentionSection childrenData={childrenData} />
         {childrenData.length > 0 && (
           <FamilyLocationsMap children={childrenData} />
