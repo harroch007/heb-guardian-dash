@@ -1,4 +1,5 @@
 import { Loader } from "@googlemaps/js-api-loader";
+import type { GoogleNamespace } from "@/lib/googleMapsTypes";
 
 const loader = new Loader({
   apiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string,
