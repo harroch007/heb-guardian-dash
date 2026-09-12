@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { loadGoogleMaps } from "@/lib/googleMaps";
+import type { GIcon, GMap, GMarker, GoogleNamespace } from "@/lib/googleMapsTypes";
 
 interface LocationMapProps {
   latitude: number;
