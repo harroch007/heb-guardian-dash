@@ -6,10 +6,10 @@ const loader = new Loader({
   libraries: ["places"],
 });
 
-let loadPromise: Promise<typeof google> | null = null;
+let loadPromise: Promise<GoogleNamespace> | null = null;
 
 /** Loads the Google Maps JS SDK exactly once and returns the shared `google` namespace. */
-export function loadGoogleMaps(): Promise<typeof google> {
+export function loadGoogleMaps(): Promise<GoogleNamespace> {
   if (!loadPromise) {
     loadPromise = loader.load();
   }
