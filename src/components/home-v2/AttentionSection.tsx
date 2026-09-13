@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { AlertTriangle, WifiOff, ShieldAlert, Download } from "lucide-react";
+import { AlertTriangle, WifiOff, ShieldAlert, Download, ShieldCheck } from "lucide-react";
 import type { ChildWithData } from "@/pages/HomeV2";
 import { hasCurrentDeviceReport } from "@/lib/v2/guardianMonitoringService";
 import { usePendingAppCounts } from "./usePendingAppCounts";
