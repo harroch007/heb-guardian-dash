@@ -51,7 +51,7 @@ const AppRoutes = () => {
       <Route path="/chat-v2/:friendshipId" element={<Navigate to="/home-v2" replace />} />
       <Route path="/accept-invite/:inviteId" element={<Navigate to="/family-v2" replace />} />
       <Route path="/invite/:token" element={<Navigate to="/home-v2" replace />} />
-      <Route path="/join-family" element={<Navigate to="/family-v2" replace />} />
+      <Route path="/join-family" element={<JoinFamily />} />
       <Route path="/auth" element={<Auth />} />
       <Route path="/install" element={<Install />} />
       <Route
