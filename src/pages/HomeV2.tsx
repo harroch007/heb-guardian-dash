@@ -11,9 +11,7 @@ import { BottomNavigationV2 } from "@/components/BottomNavigationV2";
 import { TopNavigationV2 } from "@/components/TopNavigationV2";
 import { AttentionSection } from "@/components/home-v2/AttentionSection";
 import { ChildCardV2 } from "@/components/home-v2/ChildCardV2";
-import { DailyControlSummary } from "@/components/home-v2/DailyControlSummary";
 import { FamilyLocationsMap } from "@/components/home-v2/FamilyLocationsMap";
-import { FamilyStatusHero } from "@/components/home-v2/FamilyStatusHero";
 import { HomeGreeting } from "@/components/home-v2/HomeGreeting";
 
 import { HomePendingGeofenceAlerts } from "@/components/home-v2/HomePendingGeofenceAlerts";
