@@ -21,10 +21,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { getIsraelDate } from "@/lib/utils";
 import { getV2GuardianHome } from "@/lib/v2/guardianHomeService";
-import {
-  hasCurrentDeviceReport,
-  type GuardianMonitoringState,
-} from "@/lib/v2/guardianMonitoringService";
+import type { GuardianMonitoringState } from "@/lib/v2/guardianMonitoringService";
 
 export interface ActiveRestriction {
   type: "schedule" | "shabbat";
