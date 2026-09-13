@@ -112,6 +112,8 @@ export function MonitoringOverviewPage({ mode }: Props) {
                 ))}
               </section>
             )}
+
+            {mode === "family" && <FamilyGuardiansSection />}
           </>
         )}
       </main>
