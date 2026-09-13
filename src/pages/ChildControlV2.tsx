@@ -110,7 +110,6 @@ export default function ChildControlV2() {
   const [screenTimeLimit, setScreenTimeLimit] = useState<number | null>(null);
   const [totalUsageFromDb, setTotalUsageFromDb] = useState(0);
   const [unacknowledgedAlerts, setUnacknowledgedAlerts] = useState(0);
-  const [todayAlerts, setTodayAlerts] = useState(0);
 
   // Child management state
   const [showReconnectModal, setShowReconnectModal] = useState(false);
@@ -293,12 +292,6 @@ export default function ChildControlV2() {
         (incident) => !nonNewIncidentIds.has(incident.id),
       );
       setUnacknowledgedAlerts(newIncidents.length);
-      setTodayAlerts(
-        newIncidents.filter(
-          (incident) =>
-            new Date(incident.occurred_at) >= todayStart,
-        ).length,
-      );
 
       const deviceRow = devicesResult.data?.[0] ?? null;
       if (!deviceRow) {
@@ -587,8 +580,6 @@ export default function ChildControlV2() {
   };
 
   // ---------- Active restriction ----------
-  getActiveScheduleName();
-
   if (loading || (loadedScope !== scopeKey && !dataError)) {
     return (
       <div className="v2-dark min-h-screen" dir="rtl">
@@ -783,7 +774,12 @@ export default function ChildControlV2() {
 
             {/* ===== Lost Mode — emergency device lock ===== */}
             <section id="lost-mode" className="scroll-mt-20">
-              <LostModeV2Section childId={childId!} childName={child?.name || ""} />
+              <LostModeV2Section
+                childId={childId!}
+                childName={child?.name || ""}
+                expanded={openProtectionSection === "lost-mode"}
+                onExpandedChange={(open) => setOpenProtectionSection(open ? "lost-mode" : null)}
+              />
             </section>
 
 
