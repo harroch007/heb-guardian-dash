@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { ShieldAlert, ShieldCheck, Smartphone, HelpCircle, Wrench, CheckCircle2, XCircle, ChevronDown, ChevronUp } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type { DeviceHealthInfo } from "@/hooks/useChildControls";
@@ -77,6 +76,9 @@ export function DeviceHealthBanner({ health, expanded: controlledExpanded, onExp
   const pendingPermissions = allPermissions.filter(
     ([key]) => permissions[key] === undefined,
   );
+  const actionablePermissions = allPermissions.filter(
+    ([key]) => permissions[key] !== true,
+  );
   const allGranted =
     missingPermissions.length === 0 && pendingPermissions.length === 0;
 
@@ -134,7 +136,15 @@ export function DeviceHealthBanner({ health, expanded: controlledExpanded, onExp
         {/* Permissions list */}
         {expanded && (
           <div className="space-y-1.5">
-            {allPermissions.map(([key, meta]) => {
+            {allGranted && (
+              <div className="flex min-h-11 items-center gap-2 rounded-md bg-success/10 px-3 py-2 text-xs text-success">
+                <CheckCircle2 className="h-4 w-4 shrink-0" />
+                <p className="leading-relaxed">
+                  הכול תקין כרגע. נעדכן כאן אם תידרש פעולה.
+                </p>
+              </div>
+            )}
+            {actionablePermissions.map(([key, meta]) => {
               const granted = permissions[key] !== false;
               const pending = permissions[key] === undefined;
               const permissionGranted = permissions[key] === true;
