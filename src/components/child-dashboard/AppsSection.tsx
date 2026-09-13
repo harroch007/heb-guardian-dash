@@ -28,6 +28,8 @@ interface AppsSectionProps {
   onApproveApp: (packageName: string, appName: string | null) => Promise<void>;
   onBlockApp: (packageName: string, appName: string | null) => Promise<void>;
   onSetDailyLimit: (packageName: string, appName: string | null, minutes: number | null) => Promise<boolean>;
+  expanded?: boolean;
+  onExpandedChange?: (expanded: boolean) => void;
 }
 
 export function AppsSection({
@@ -41,9 +43,13 @@ export function AppsSection({
   onApproveApp,
   onBlockApp,
   onSetDailyLimit,
+  expanded: controlledExpanded,
+  onExpandedChange,
 }: AppsSectionProps) {
   const [filter, setFilter] = useState<Filter>("all");
-  const [expanded, setExpanded] = useState(false);
+  const [localExpanded, setLocalExpanded] = useState(false);
+  const expanded = controlledExpanded ?? localExpanded;
+  const setExpanded = onExpandedChange ?? setLocalExpanded;
   const [showAll, setShowAll] = useState(false);
 
   // Always filter out always_allowed apps from parent UI

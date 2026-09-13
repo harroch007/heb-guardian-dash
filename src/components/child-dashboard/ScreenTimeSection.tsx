@@ -24,6 +24,8 @@ interface ScreenTimeSectionProps {
   todayBonusMinutes: number;
   onUpdateLimit: (minutes: number | null) => Promise<void>;
   onGrantBonus: (minutes: number) => Promise<void>;
+  expanded?: boolean;
+  onExpandedChange?: (expanded: boolean) => void;
 }
 
 
@@ -36,6 +38,8 @@ export function ScreenTimeSection({
   todayBonusMinutes,
   onUpdateLimit,
   onGrantBonus,
+  expanded: controlledExpanded,
+  onExpandedChange,
 }: ScreenTimeSectionProps) {
   const [limitEnabled, setLimitEnabled] = useState(screenTimeLimit !== null);
   const [sliderValue, setSliderValue] = useState(screenTimeLimit || 120);
@@ -87,7 +91,9 @@ export function ScreenTimeSection({
     .sort((a, b) => b.usage_minutes - a.usage_minutes)
     .slice(0, 5);
 
-  const [expanded, setExpanded] = useState(false);
+  const [localExpanded, setLocalExpanded] = useState(false);
+  const expanded = controlledExpanded ?? localExpanded;
+  const setExpanded = onExpandedChange ?? setLocalExpanded;
 
   return (
     <div id="screentime-section" className="space-y-3 scroll-mt-4">

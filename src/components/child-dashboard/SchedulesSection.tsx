@@ -36,6 +36,8 @@ interface SchedulesSectionProps {
   ) => Promise<boolean>;
   onDeleteSchedule: (scheduleId: string) => Promise<boolean>;
   onRestrictionComplete: () => void;
+  expanded?: boolean;
+  onExpandedChange?: (expanded: boolean) => void;
 }
 
 const DAY_LABELS: Record<number, string> = { 1: "א׳", 2: "ב׳", 3: "ג׳", 4: "ד׳", 5: "ה׳", 6: "ו׳", 7: "ש׳" };
@@ -48,6 +50,8 @@ export function SchedulesSection({
   onUpdateSchedule,
   onDeleteSchedule,
   onRestrictionComplete,
+  expanded: controlledExpanded,
+  onExpandedChange,
 }: SchedulesSectionProps) {
   const [togglingShabbat, setTogglingShabbat] = useState(false);
   const [editingShabbat, setEditingShabbat] = useState(false);
@@ -58,7 +62,9 @@ export function SchedulesSection({
     type: "bedtime",
     existing: null,
   });
-  const [expanded, setExpanded] = useState(false);
+  const [localExpanded, setLocalExpanded] = useState(false);
+  const expanded = controlledExpanded ?? localExpanded;
+  const setExpanded = onExpandedChange ?? setLocalExpanded;
 
   const shabbatRule = scheduleWindows.find((s) => s.schedule_type === "shabbat");
   const bedtimeRule = scheduleWindows.find((s) => s.schedule_type === "bedtime");

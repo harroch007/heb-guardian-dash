@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { MapPin, ChevronDown, ChevronUp, Copy, Loader2, AlertTriangle, Volume2, CheckCircle2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,9 @@ interface LocationSectionV2Props {
   ringPhase: RingPhase;
   handleRingDevice: () => void;
   handleRetryRing: () => void;
+  expanded?: boolean;
+  onExpandedChange?: (expanded: boolean) => void;
+  children?: ReactNode;
 }
 
 export function LocationSectionV2({
@@ -39,8 +42,13 @@ export function LocationSectionV2({
   ringPhase,
   handleRingDevice,
   handleRetryRing,
+  expanded: controlledExpanded,
+  onExpandedChange,
+  children,
 }: LocationSectionV2Props) {
-  const [expanded, setExpanded] = useState(false);
+  const [localExpanded, setLocalExpanded] = useState(false);
+  const expanded = controlledExpanded ?? localExpanded;
+  const setExpanded = onExpandedChange ?? setLocalExpanded;
 
   const hasLocation = device.latitude !== null && device.longitude !== null;
 
@@ -76,7 +84,7 @@ export function LocationSectionV2({
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2 text-sm font-semibold">
               <MapPin className="w-5 h-5 text-primary" />
-              מיקום
+              מיקום וגבולות גזרה
             </CardTitle>
             <div className="flex items-center gap-2">
               {expanded ? (
@@ -198,6 +206,7 @@ export function LocationSectionV2({
             {!hasLocation && !device.address && locateStatus !== "locating" && locateStatus !== "failed" && (
               <p className="text-muted-foreground text-sm text-center py-2">אין מיקום זמין</p>
             )}
+            {children && <div className="border-t border-border pt-4">{children}</div>}
           </CardContent>
         )}
       </Card>
