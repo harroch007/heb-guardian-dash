@@ -21,12 +21,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Loader2, Lock, ShieldAlert, Unlock } from "lucide-react";
+import { ChevronDown, ChevronUp, Loader2, Lock, ShieldAlert, Unlock } from "lucide-react";
 import { toast } from "sonner";
 
 interface LostModeV2SectionProps {
   childId: string;
   childName: string;
+  expanded?: boolean;
+  onExpandedChange?: (expanded: boolean) => void;
 }
 
 const requestKey = () => `lost-mode:${crypto.randomUUID()}`;
@@ -34,6 +36,8 @@ const requestKey = () => `lost-mode:${crypto.randomUUID()}`;
 export function LostModeV2Section({
   childId,
   childName,
+  expanded: controlledExpanded,
+  onExpandedChange,
 }: LostModeV2SectionProps) {
   const [enabled, setEnabled] = useState(false);
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
@@ -44,6 +48,9 @@ export function LostModeV2Section({
   const [busy, setBusy] = useState(false);
   const [openLockDialog, setOpenLockDialog] = useState(false);
   const [openUnlockConfirm, setOpenUnlockConfirm] = useState(false);
+  const [localExpanded, setLocalExpanded] = useState(false);
+  const expanded = controlledExpanded ?? localExpanded;
+  const setExpanded = onExpandedChange ?? setLocalExpanded;
 
   const fetchState = useCallback(async () => {
     const { data, error } = await v2Supabase
@@ -121,7 +128,7 @@ export function LostModeV2Section({
 
   if (loading) {
     return (
-      <Card className="border-border bg-card shadow-sm">
+      <Card className="protection-panel border-border bg-card shadow-sm">
         <CardContent className="flex items-center justify-center p-4">
           <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
         </CardContent>
@@ -132,14 +139,15 @@ export function LostModeV2Section({
   return (
     <>
       <Card
+        data-protection-section="emergency"
         className={
           enabled
-            ? "border-destructive/40 bg-destructive/5 shadow-sm"
-            : "border-border bg-card shadow-sm"
+            ? "protection-panel border-destructive/40 bg-destructive/5 shadow-sm"
+            : "protection-panel border-border bg-card shadow-sm"
         }
       >
         <CardContent className="p-4">
-          <div className="flex items-start gap-3">
+          <button type="button" className="flex min-h-11 w-full items-center gap-3 text-right" onClick={() => setExpanded(!expanded)}>
             <div
               className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
                 enabled ? "bg-destructive/15" : "bg-primary/10"
@@ -172,6 +180,9 @@ export function LostModeV2Section({
                 </p>
               )}
             </div>
+            {expanded ? <ChevronUp className="h-4 w-4 shrink-0 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />}
+          </button>
+          {expanded && <div className="mt-3 flex justify-end border-t border-border pt-3">
             {enabled ? (
               <Button
                 size="sm"
@@ -199,7 +210,7 @@ export function LostModeV2Section({
                 הפעל
               </Button>
             )}
-          </div>
+          </div>}
         </CardContent>
       </Card>
 

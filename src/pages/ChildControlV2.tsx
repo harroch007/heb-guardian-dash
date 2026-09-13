@@ -27,12 +27,9 @@ import { RemoveChildV2Modal } from "@/components/RemoveChildV2Modal";
 import { BottomNavigationV2 } from "@/components/BottomNavigationV2";
 import { TopNavigationV2 } from "@/components/TopNavigationV2";
 import {
-  ProblemBanner,
   AppsSection,
-  ProtectionCenterOverview,
   ScreenTimeSection,
   SchedulesSection,
-  WhatsAppSafetySection,
 } from "@/components/child-dashboard";
 import { LocationSectionV2 } from "@/components/child-dashboard/LocationSectionV2";
 import { GeofenceSection } from "@/components/child-dashboard/GeofenceSection";
@@ -44,6 +41,7 @@ import {
   RefreshCw,
   AlertTriangle,
   LocateFixed,
+  ShieldCheck,
   Smartphone,
 } from "lucide-react";
 import { gt } from "@/lib/genderText";
@@ -112,7 +110,6 @@ export default function ChildControlV2() {
   const [screenTimeLimit, setScreenTimeLimit] = useState<number | null>(null);
   const [totalUsageFromDb, setTotalUsageFromDb] = useState(0);
   const [unacknowledgedAlerts, setUnacknowledgedAlerts] = useState(0);
-  const [todayAlerts, setTodayAlerts] = useState(0);
 
   // Child management state
   const [showReconnectModal, setShowReconnectModal] = useState(false);
@@ -139,6 +136,7 @@ export default function ChildControlV2() {
   const { phase: ringPhase, sendRing, retry: retryRing } = useRingCommand(device?.device_id ?? null);
 
   const [showMap, setShowMap] = useState(false);
+  const [openProtectionSection, setOpenProtectionSection] = useState<string | null>(null);
 
   const {
     appPolicies,
@@ -161,8 +159,6 @@ export default function ChildControlV2() {
   } = useChildControls(childId);
   const {
     children: monitoringChildren,
-    loading: monitoringLoading,
-    error: monitoringError,
     refresh: refreshMonitoring,
   } = useV2GuardianMonitoring();
 
@@ -176,28 +172,6 @@ export default function ChildControlV2() {
         hasCurrentDeviceReport(monitoringDevice.monitoringState)
       ? "connected"
       : "inactive";
-
-  // ---------- Active schedule helper (1-7 mapping) ----------
-  const getActiveScheduleName = useCallback((): string | null => {
-    if (!scheduleWindows || scheduleWindows.length === 0) return null;
-    const now = new Date();
-    const dayOfWeek = now.getDay() + 1; // 1=Sun ... 7=Sat
-    const currentTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
-
-    for (const sw of scheduleWindows) {
-      if (!sw.is_active) continue;
-      if (sw.schedule_type === "shabbat") continue;
-      if (!sw.days_of_week?.includes(dayOfWeek)) continue;
-      if (sw.start_time && sw.end_time) {
-        if (sw.start_time <= sw.end_time) {
-          if (currentTime >= sw.start_time && currentTime <= sw.end_time) return sw.name;
-        } else {
-          if (currentTime >= sw.start_time || currentTime <= sw.end_time) return sw.name;
-        }
-      }
-    }
-    return null;
-  }, [scheduleWindows]);
 
   // ---------- Canonical V2 data fetching ----------
   const fetchData = useCallback(async (isPolling = false) => {
@@ -215,9 +189,6 @@ export default function ChildControlV2() {
 
     try {
       const today = getIsraelDate();
-      const todayStart = new Date();
-      todayStart.setHours(0, 0, 0, 0);
-
       const [childResult, devicesResult, settingsResult, incidentsResult] =
         await Promise.all([
           v2Supabase
@@ -297,12 +268,6 @@ export default function ChildControlV2() {
         (incident) => !nonNewIncidentIds.has(incident.id),
       );
       setUnacknowledgedAlerts(newIncidents.length);
-      setTodayAlerts(
-        newIncidents.filter(
-          (incident) =>
-            new Date(incident.occurred_at) >= todayStart,
-        ).length,
-      );
 
       const deviceRow = devicesResult.data?.[0] ?? null;
       if (!deviceRow) {
@@ -591,17 +556,6 @@ export default function ChildControlV2() {
   };
 
   // ---------- Active restriction ----------
-  const activeRestrictionName = getActiveScheduleName();
-
-  // ---------- Unified protection summary ----------
-  const activeSchedulesCount = scheduleWindows.filter((window) => window.is_active).length;
-  const blockedAppsCount = appPolicies.filter((policy) => policy.is_blocked).length;
-  const decidedAppPackages = new Set(appPolicies.map((policy) => policy.package_name));
-  const pendingAppsCount = installedApps.filter(
-    (app) => !decidedAppPackages.has(app.package_name),
-  ).length;
-  const hasLocation = device?.latitude != null && device?.longitude != null;
-
   if (loading || (loadedScope !== scopeKey && !dataError)) {
     return (
       <div className="v2-dark min-h-screen" dir="rtl">
@@ -710,36 +664,19 @@ export default function ChildControlV2() {
           </Button>
         </div>
 
-        <ProtectionCenterOverview
-          childName={child.name}
-          status={status}
-          currentUsageMinutes={totalUsageFromDb}
-          dailyLimitMinutes={screenTimeLimit}
-          todayBonusMinutes={todayBonusMinutes}
-          installedAppsCount={installedApps.length}
-          blockedAppsCount={blockedAppsCount}
-          pendingAppsCount={pendingAppsCount}
-          activeSchedulesCount={activeSchedulesCount}
-          activeRestrictionName={activeRestrictionName}
-          hasLocation={hasLocation}
-          deviceHealth={deviceHealth}
-          monitoringState={monitoringDevice?.monitoringState ?? null}
-          newIncidentCount={unacknowledgedAlerts}
-        />
-
-        <WhatsAppSafetySection
-          device={monitoringDevice}
-          newIncidentCount={unacknowledgedAlerts}
-          todayIncidentCount={todayAlerts}
-          loading={monitoringLoading}
-          error={monitoringError}
-          onRefresh={() => void refreshMonitoring()}
-          onOpenAlerts={() => navigate("/alerts-v2")}
-        />
         {/* ===== 4-9. EXISTING SECTIONS (reused) ===== */}
         {device ? (
-          <div className="space-y-4">
-            <ProblemBanner deviceHealth={deviceHealth} status={status} lastSeen={device.last_seen} />
+          <Card className="overflow-hidden border-primary/20 bg-card shadow-sm">
+            <div className="flex min-h-14 items-center gap-3 border-b border-border px-4 py-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <ShieldCheck className="h-5 w-5" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <h2 className="text-sm font-semibold text-foreground">הגדרות ההגנה</h2>
+                <p className="text-xs text-muted-foreground">כל נושא מופיע פעם אחת וניתן לפתיחה</p>
+              </div>
+            </div>
+            <div className="protection-sections divide-y divide-border [&_.protection-panel]:rounded-none [&_.protection-panel]:border-0 [&_.protection-panel]:shadow-none">
 
             <section id="screen-time" className="scroll-mt-20 space-y-4">
               <ScreenTimeSection
@@ -749,6 +686,8 @@ export default function ChildControlV2() {
                 todayBonusMinutes={todayBonusMinutes}
                 onUpdateLimit={async (minutes) => { await updateDailyLimit(minutes); setScreenTimeLimit(minutes); }}
                 onGrantBonus={grantBonusTime}
+                expanded={openProtectionSection === "screen-time"}
+                onExpandedChange={(open) => setOpenProtectionSection(open ? "screen-time" : null)}
               />
             </section>
 
@@ -761,6 +700,8 @@ export default function ChildControlV2() {
                 onUpdateSchedule={updateSchedule}
                 onDeleteSchedule={deleteSchedule}
                 onRestrictionComplete={() => navigate("/home-v2", { replace: true })}
+                expanded={openProtectionSection === "schedules"}
+                onExpandedChange={(open) => setOpenProtectionSection(open ? "schedules" : null)}
               />
             </section>
 
@@ -776,6 +717,8 @@ export default function ChildControlV2() {
                 onApproveApp={approveApp}
                 onBlockApp={blockApp}
                 onSetDailyLimit={setAppDailyLimit}
+                expanded={openProtectionSection === "apps"}
+                onExpandedChange={(open) => setOpenProtectionSection(open ? "apps" : null)}
               />
             </section>
 
@@ -792,34 +735,49 @@ export default function ChildControlV2() {
                 ringPhase={ringPhase}
                 handleRingDevice={handleRingDevice}
                 handleRetryRing={retryRing}
-              />
-
-              <GeofenceSection
-                childId={childId!}
-                deviceLatitude={device?.latitude}
-                deviceLongitude={device?.longitude}
-                deviceAddress={device?.address}
-              />
+                expanded={openProtectionSection === "location"}
+                onExpandedChange={(open) => setOpenProtectionSection(open ? "location" : null)}
+              >
+                <GeofenceSection
+                  childId={childId!}
+                  deviceLatitude={device?.latitude}
+                  deviceLongitude={device?.longitude}
+                  deviceAddress={device?.address}
+                  embedded
+                />
+              </LocationSectionV2>
             </section>
 
             {/* ===== Lost Mode — emergency device lock ===== */}
             <section id="lost-mode" className="scroll-mt-20">
-              <LostModeV2Section childId={childId!} childName={child?.name || ""} />
+              <LostModeV2Section
+                childId={childId!}
+                childName={child?.name || ""}
+                expanded={openProtectionSection === "lost-mode"}
+                onExpandedChange={(open) => setOpenProtectionSection(open ? "lost-mode" : null)}
+              />
             </section>
 
 
             {/* ===== 12. DEVICE HEALTH ===== */}
             <section id="device-health" className="scroll-mt-20">
-              {deviceHealth && <DeviceHealthBanner health={deviceHealth} />}
+              {deviceHealth && (
+                <DeviceHealthBanner
+                  health={deviceHealth}
+                  expanded={openProtectionSection === "device-health"}
+                  onExpandedChange={(open) => setOpenProtectionSection(open ? "device-health" : null)}
+                />
+              )}
               {!deviceHealth && (
-                <Card className="border-border shadow-sm bg-card">
+                <Card className="protection-panel border-border shadow-sm bg-card">
                   <CardContent className="p-4">
-                    <p className="text-sm text-muted-foreground text-center py-2">אין נתוני בריאות זמינים</p>
+                    <p className="text-sm text-muted-foreground text-center py-2">אין מידע על הרשאות ותקינות</p>
                   </CardContent>
                 </Card>
               )}
             </section>
-          </div>
+            </div>
+          </Card>
         ) : (
           <Card className="border-border shadow-sm bg-card">
             <CardContent className="py-12 text-center">

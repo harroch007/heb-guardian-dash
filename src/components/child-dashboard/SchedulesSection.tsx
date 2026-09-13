@@ -36,6 +36,8 @@ interface SchedulesSectionProps {
   ) => Promise<boolean>;
   onDeleteSchedule: (scheduleId: string) => Promise<boolean>;
   onRestrictionComplete: () => void;
+  expanded?: boolean;
+  onExpandedChange?: (expanded: boolean) => void;
 }
 
 const DAY_LABELS: Record<number, string> = { 1: "א׳", 2: "ב׳", 3: "ג׳", 4: "ד׳", 5: "ה׳", 6: "ו׳", 7: "ש׳" };
@@ -48,6 +50,8 @@ export function SchedulesSection({
   onUpdateSchedule,
   onDeleteSchedule,
   onRestrictionComplete,
+  expanded: controlledExpanded,
+  onExpandedChange,
 }: SchedulesSectionProps) {
   const [togglingShabbat, setTogglingShabbat] = useState(false);
   const [editingShabbat, setEditingShabbat] = useState(false);
@@ -58,7 +62,9 @@ export function SchedulesSection({
     type: "bedtime",
     existing: null,
   });
-  const [expanded, setExpanded] = useState(false);
+  const [localExpanded, setLocalExpanded] = useState(false);
+  const expanded = controlledExpanded ?? localExpanded;
+  const setExpanded = onExpandedChange ?? setLocalExpanded;
 
   const shabbatRule = scheduleWindows.find((s) => s.schedule_type === "shabbat");
   const bedtimeRule = scheduleWindows.find((s) => s.schedule_type === "bedtime");
@@ -153,17 +159,24 @@ export function SchedulesSection({
 
   return (
     <div id="schedules-section" className="scroll-mt-4">
-      <Card className="border-border/50">
+      <Card className="protection-panel border-border/50">
         <CardHeader
           className="pb-3 cursor-pointer"
           onClick={() => setExpanded(!expanded)}
         >
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-              <Calendar className="w-5 h-5 text-primary" />
-              לוחות זמנים
-              <HelpTooltip text="חלונות זמן בהם המכשיר חסום אוטומטית — לדוגמה שינה, שיעורים או שבת." iconSize={12} />
-            </CardTitle>
+            <div className="flex min-w-0 items-center gap-3">
+              <Calendar className="h-5 w-5 shrink-0 text-primary" />
+              <div className="min-w-0 text-right">
+                <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                  לוחות זמנים
+                  <HelpTooltip text="חלונות זמן בהם המכשיר חסום אוטומטית — לדוגמה שינה, שיעורים או שבת." iconSize={12} />
+                </CardTitle>
+                <p className="mt-1 text-xs font-normal text-muted-foreground">
+                  {activeCount > 0 ? `${activeCount} לוחות פעילים` : "לא הוגדר לוח פעיל"}
+                </p>
+              </div>
+            </div>
             <div className="flex items-center gap-2">
               {expanded ? (
                 <ChevronUp className="w-4 h-4 text-muted-foreground" />

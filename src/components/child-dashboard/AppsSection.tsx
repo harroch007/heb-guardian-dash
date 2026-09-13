@@ -28,6 +28,8 @@ interface AppsSectionProps {
   onApproveApp: (packageName: string, appName: string | null) => Promise<void>;
   onBlockApp: (packageName: string, appName: string | null) => Promise<void>;
   onSetDailyLimit: (packageName: string, appName: string | null, minutes: number | null) => Promise<boolean>;
+  expanded?: boolean;
+  onExpandedChange?: (expanded: boolean) => void;
 }
 
 export function AppsSection({
@@ -41,9 +43,13 @@ export function AppsSection({
   onApproveApp,
   onBlockApp,
   onSetDailyLimit,
+  expanded: controlledExpanded,
+  onExpandedChange,
 }: AppsSectionProps) {
   const [filter, setFilter] = useState<Filter>("all");
-  const [expanded, setExpanded] = useState(false);
+  const [localExpanded, setLocalExpanded] = useState(false);
+  const expanded = controlledExpanded ?? localExpanded;
+  const setExpanded = onExpandedChange ?? setLocalExpanded;
   const [showAll, setShowAll] = useState(false);
 
   // Always filter out always_allowed apps from parent UI
@@ -125,17 +131,24 @@ export function AppsSection({
 
   return (
     <div id="apps-section" className="scroll-mt-4">
-      <Card className="border-border/50">
+      <Card className="protection-panel border-border/50">
         <CardHeader
           className="pb-3 cursor-pointer"
           onClick={() => setExpanded(!expanded)}
         >
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-              <Shield className="w-5 h-5 text-primary" />
-              ניהול אפליקציות
-              <HelpTooltip text="'מאושרות' — הילד/ה יכול/ה להשתמש. 'ממתינות לאישור' — אפליקציות חדשות שהותקנו וצריכות החלטה שלך." iconSize={12} />
-            </CardTitle>
+            <div className="flex min-w-0 items-center gap-3">
+              <Shield className="h-5 w-5 shrink-0 text-primary" />
+              <div className="min-w-0 text-right">
+                <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                  אפליקציות
+                  <HelpTooltip text="'מאושרות' — הילד/ה יכול/ה להשתמש. 'ממתינות לאישור' — אפליקציות חדשות שהותקנו וצריכות החלטה שלך." iconSize={12} />
+                </CardTitle>
+                <p className="mt-1 text-xs font-normal text-muted-foreground">
+                  {pendingApps.length > 0 ? `${pendingApps.length} ממתינות לאישור` : `${visiblePolicies.length} מנוהלות · ${blockedTotal} חסומות`}
+                </p>
+              </div>
+            </div>
             <div className="flex items-center gap-2">
               {expanded ? (
                 <ChevronUp className="w-4 h-4 text-muted-foreground" />
