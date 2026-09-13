@@ -26,6 +26,7 @@ export interface AppPolicy {
   blocked_by: string | null;
   policy_status: "approved" | "blocked";
   always_allowed: boolean;
+  daily_limit_minutes: number | null;
 }
 
 export interface BlockedAttemptSummary {
@@ -338,6 +339,7 @@ export function useChildControls(childId: string | undefined) {
           policy_status:
             policy.policy_status === "blocked" ? "blocked" : "approved",
           always_allowed: policy.always_allowed,
+          daily_limit_minutes: policy.daily_limit_minutes,
         }),
       );
       setAppPolicies(policies);
@@ -533,6 +535,9 @@ export function useChildControls(childId: string | undefined) {
         packageName,
         appName,
         blocked: newBlocked,
+        dailyLimitMinutes: appPolicies.find(
+          (policy) => policy.package_name === packageName,
+        )?.daily_limit_minutes ?? null,
       });
     } catch {
       toast.error("שגיאה בעדכון מדיניות האפליקציה");
@@ -583,6 +588,32 @@ export function useChildControls(childId: string | undefined) {
 
     toast.success("האפליקציה נחסמה");
     fetchData();
+  };
+
+  const setAppDailyLimit = async (
+    packageName: string,
+    appName: string | null,
+    minutes: number | null,
+  ) => {
+    if (!childId || !user) return false;
+
+    try {
+      await saveAppPolicy({
+        childId,
+        parentId: user.id,
+        packageName,
+        appName,
+        blocked: false,
+        dailyLimitMinutes: minutes,
+      });
+    } catch {
+      toast.error("שגיאה בעדכון מגבלת האפליקציה");
+      return false;
+    }
+
+    toast.success(minutes ? "מגבלת האפליקציה נשמרה" : "מגבלת האפליקציה הוסרה");
+    await fetchData();
+    return true;
   };
 
   const updateDailyLimit = async (minutes: number | null) => {
@@ -744,6 +775,7 @@ export function useChildControls(childId: string | undefined) {
     toggleAppBlock,
     approveApp,
     blockApp,
+    setAppDailyLimit,
     updateDailyLimit,
     grantBonusTime,
     toggleShabbat,

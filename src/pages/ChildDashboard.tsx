@@ -127,6 +127,7 @@ export default function ChildDashboard() {
     toggleAppBlock,
     approveApp,
     blockApp,
+    setAppDailyLimit,
     updateDailyLimit,
     grantBonusTime,
     toggleShabbat,
@@ -608,6 +609,7 @@ export default function ChildDashboard() {
               onToggleBlock={toggleAppBlock}
               onApproveApp={approveApp}
               onBlockApp={blockApp}
+              onSetDailyLimit={setAppDailyLimit}
             />
 
             <TimeRequestsCard childId={childId!} />

@@ -27,6 +27,7 @@ interface AppsSectionProps {
   onToggleBlock: (packageName: string, appName: string | null, currentlyBlocked: boolean) => Promise<void>;
   onApproveApp: (packageName: string, appName: string | null) => Promise<void>;
   onBlockApp: (packageName: string, appName: string | null) => Promise<void>;
+  onSetDailyLimit: (packageName: string, appName: string | null, minutes: number | null) => Promise<boolean>;
 }
 
 export function AppsSection({
@@ -39,6 +40,7 @@ export function AppsSection({
   onToggleBlock,
   onApproveApp,
   onBlockApp,
+  onSetDailyLimit,
 }: AppsSectionProps) {
   const [filter, setFilter] = useState<Filter>("all");
   const [expanded, setExpanded] = useState(false);
@@ -186,6 +188,7 @@ export function AppsSection({
               onToggleBlock={onToggleBlock}
               onApproveApp={onApproveApp}
               onBlockApp={onBlockApp}
+              onSetDailyLimit={onSetDailyLimit}
               showPendingOnly={filter === "new"}
             />
           </CardContent>
