@@ -87,24 +87,35 @@ export const AttentionSection = ({ childrenData }: Props) => {
     }
   }
 
-  if (items.length === 0) return null;
+  const hasChildren = childrenData.length > 0;
 
   return (
     <div className="space-y-2">
       <h2 className="text-sm font-semibold text-foreground/80">דורש תשומת לב</h2>
-      <div className="space-y-2">
-        {items.slice(0, 5).map((item) => (
-          <button
-            key={item.id}
-            onClick={() => navigate(item.path)}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-right transition-colors ${item.color} hover:opacity-90`}
-          >
-            {item.icon}
-            <span className="text-xs font-medium text-foreground flex-1">{item.text}</span>
-            <span className="text-muted-foreground text-xs">←</span>
-          </button>
-        ))}
-      </div>
+      {items.length === 0 ? (
+        <div className="flex items-center gap-3 rounded-xl border border-border/50 bg-card px-3 py-3 text-right">
+          <ShieldCheck className="h-4 w-4 shrink-0 text-success" />
+          <span className="text-xs font-medium text-muted-foreground">
+            {hasChildren
+              ? "אין כרגע התראות שדורשות תשומת לב"
+              : "אין ילדים במשפחה — הוסיפו ילד כדי להפעיל את ההגנה"}
+          </span>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {items.slice(0, 5).map((item) => (
+            <button
+              key={item.id}
+              onClick={() => navigate(item.path)}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-right transition-colors ${item.color} hover:opacity-90`}
+            >
+              {item.icon}
+              <span className="text-xs font-medium text-foreground flex-1">{item.text}</span>
+              <span className="text-muted-foreground text-xs">←</span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
