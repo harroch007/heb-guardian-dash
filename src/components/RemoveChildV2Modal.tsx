@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
-import { Loader2 } from "lucide-react";
+import { AlertTriangle, Loader2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,7 +10,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { archiveGuardianChild } from "@/lib/v2/childManagementService";
 import { cn } from "@/lib/utils";
 
@@ -32,6 +32,7 @@ export function RemoveChildV2Modal({
 }: RemoveChildV2ModalProps) {
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [confirmationStep, setConfirmationStep] = useState<"details" | "final">("details");
   const requestKey = useRef(`archive-child:${crypto.randomUUID()}`);
   const inFlight = useRef(false);
   const mounted = useRef(true);
@@ -73,15 +74,25 @@ export function RemoveChildV2Modal({
         }}
       >
         <AlertDialogHeader>
-          <AlertDialogTitle className="break-words">הסרת {childName} מהמשפחה</AlertDialogTitle>
+          <AlertDialogTitle className="break-words">
+            {confirmationStep === "details" ? `הסרת ${childName} מהמשפחה` : `אישור סופי להסרת ${childName}`}
+          </AlertDialogTitle>
           <AlertDialogDescription>
-            הילד יוסר מרשימת הילדים של המשפחה, קודי חיבור פתוחים יבוטלו
-            וגישת המכשירים לחשבון תבוטל. זו אינה מחיקה של היסטוריית המידע.
+            {confirmationStep === "details"
+              ? "הילד יוסר מרשימת הילדים של המשפחה, קודי חיבור פתוחים יבוטלו וגישת המכשירים לחשבון תבוטל. זו אינה מחיקה של היסטוריית המידע."
+              : `זהו שלב האישור האחרון. לאחר האישור ${childName} יוסר מהמשפחה והמכשיר לא יהיה מחובר יותר לחשבון.`}
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <p className="text-sm text-muted-foreground">
-          להסדרת חיבור במכשיר קיים או חדש, אפשר לבחור בחיבור מחדש במקום להסיר את הילד.
-        </p>
+        {confirmationStep === "details" ? (
+          <p className="text-sm text-muted-foreground">
+            להסדרת חיבור במכשיר קיים או חדש, אפשר לבחור בחיבור מחדש במקום להסיר את הילד.
+          </p>
+        ) : (
+          <div className="flex items-start gap-3 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-foreground">
+            <AlertTriangle aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
+            <p>ודאו שבחרתם בילד הנכון. פעולה זו תנתק את כל המכשירים המשויכים אליו.</p>
+          </div>
+        )}
         {failed && (
           <p role="alert" className="text-sm text-destructive">
             לא התקבל אישור להסרה. בדקו את החיבור ונסו שוב. אם ההסרה כבר הושלמה,
@@ -89,16 +100,41 @@ export function RemoveChildV2Modal({
           </p>
         )}
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={busy} className="min-h-11">ביטול</AlertDialogCancel>
-          <AlertDialogAction
-            disabled={busy}
-            aria-busy={busy}
-            className={cn(buttonVariants({ variant: "destructive" }), "min-h-11")}
-            onClick={(event) => { event.preventDefault(); void remove(); }}
-          >
-            {busy && <Loader2 aria-hidden="true" className="ml-2 h-4 w-4 animate-spin motion-reduce:animate-none" />}
-            {busy ? "מסיר..." : "הסרה מהמשפחה"}
-          </AlertDialogAction>
+          {confirmationStep === "details" ? (
+            <>
+              <AlertDialogCancel disabled={busy} className="min-h-11">ביטול</AlertDialogCancel>
+              <AlertDialogAction
+                className="min-h-11"
+                onClick={(event) => {
+                  event.preventDefault();
+                  setConfirmationStep("final");
+                }}
+              >
+                המשך לאישור
+              </AlertDialogAction>
+            </>
+          ) : (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={busy}
+                className="min-h-11"
+                onClick={() => setConfirmationStep("details")}
+              >
+                חזרה
+              </Button>
+              <AlertDialogAction
+                disabled={busy}
+                aria-busy={busy}
+                className={cn(buttonVariants({ variant: "destructive" }), "min-h-11")}
+                onClick={(event) => { event.preventDefault(); void remove(); }}
+              >
+                {busy && <Loader2 aria-hidden="true" className="ml-2 h-4 w-4 animate-spin motion-reduce:animate-none" />}
+                {busy ? "מסיר..." : `כן, להסיר את ${childName}`}
+              </AlertDialogAction>
+            </>
+          )}
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
