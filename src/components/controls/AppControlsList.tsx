@@ -1,8 +1,11 @@
 import { useState } from "react";
-import { Loader2, AlertTriangle, Smartphone, Check, X } from "lucide-react";
+import { Loader2, AlertTriangle, Smartphone, Check, X, Timer } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { getAppIconInfo } from "@/lib/appIcons";
 import { isSystemApp } from "@/lib/appUtils";
@@ -23,6 +26,7 @@ interface AppControlsListProps {
   onToggleBlock: (packageName: string, appName: string | null, currentlyBlocked: boolean) => Promise<void>;
   onApproveApp: (packageName: string, appName: string | null) => Promise<void>;
   onBlockApp: (packageName: string, appName: string | null) => Promise<void>;
+  onSetDailyLimit: (packageName: string, appName: string | null, minutes: number | null) => Promise<boolean>;
   showPendingOnly?: boolean;
 }
 
@@ -35,16 +39,24 @@ export function AppControlsList({
   onToggleBlock,
   onApproveApp,
   onBlockApp,
+  onSetDailyLimit,
   showPendingOnly = false,
 }: AppControlsListProps) {
   const [togglingPkg, setTogglingPkg] = useState<string | null>(null);
   const [actionPkg, setActionPkg] = useState<string | null>(null);
+  const [limitApp, setLimitApp] = useState<{
+    packageName: string;
+    appName: string | null;
+    minutes: number | null;
+  } | null>(null);
+  const [customMinutes, setCustomMinutes] = useState("");
+  const [savingLimit, setSavingLimit] = useState(false);
 
   const hasInventory = installedApps.length > 0;
   const policyPackages = new Set(appPolicies.map((p) => p.package_name));
 
   // Build apps map
-  const appsMap = new Map<string, { appName: string | null; isBlocked: boolean; usageMinutes: number; isPending: boolean }>();
+  const appsMap = new Map<string, { appName: string | null; isBlocked: boolean; usageMinutes: number; isPending: boolean; dailyLimitMinutes: number | null }>();
 
   if (hasInventory) {
     for (const app of installedApps) {
@@ -55,6 +67,7 @@ export function AppControlsList({
           isBlocked: false,
           usageMinutes: 0,
           isPending: !hasPolicyRow,
+          dailyLimitMinutes: null,
         });
       }
     }
@@ -66,6 +79,7 @@ export function AppControlsList({
           isBlocked: false,
           usageMinutes: app.usage_minutes,
           isPending: false,
+          dailyLimitMinutes: null,
         });
       }
     }
@@ -83,12 +97,14 @@ export function AppControlsList({
     if (existing) {
       existing.isBlocked = policy.is_blocked;
       existing.isPending = false; // has a policy row = not pending
+      existing.dailyLimitMinutes = policy.daily_limit_minutes;
     } else if (!isSystemApp(policy.package_name)) {
       appsMap.set(policy.package_name, {
         appName: policy.app_name,
         isBlocked: policy.is_blocked,
         usageMinutes: 0,
         isPending: false,
+        dailyLimitMinutes: policy.daily_limit_minutes,
       });
     }
   }
@@ -130,6 +146,40 @@ export function AppControlsList({
   const formatTime = (date: string) =>
     new Date(date).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" });
 
+  const formatMinutes = (minutes: number) => {
+    const hours = Math.floor(minutes / 60);
+    const remainder = minutes % 60;
+    if (hours === 0) return `${minutes} דקות`;
+    if (remainder === 0) return hours === 1 ? "שעה" : `${hours} שעות`;
+    return `${hours}:${String(remainder).padStart(2, "0")} שעות`;
+  };
+
+  const openLimitDialog = (
+    packageName: string,
+    appName: string | null,
+    minutes: number | null,
+  ) => {
+    setLimitApp({ packageName, appName, minutes });
+    setCustomMinutes(minutes?.toString() ?? "");
+  };
+
+  const saveLimit = async (minutes: number | null) => {
+    if (!limitApp) return;
+    setSavingLimit(true);
+    const saved = await onSetDailyLimit(
+      limitApp.packageName,
+      limitApp.appName,
+      minutes,
+    );
+    setSavingLimit(false);
+    if (saved) setLimitApp(null);
+  };
+
+  const parsedCustomMinutes = Number(customMinutes);
+  const customMinutesValid = Number.isInteger(parsedCustomMinutes)
+    && parsedCustomMinutes >= 1
+    && parsedCustomMinutes <= 1440;
+
   if (sortedApps.length === 0) {
     return (
       <div className="flex flex-col items-center py-8 text-center">
@@ -151,6 +201,7 @@ export function AppControlsList({
   }
 
   return (
+    <>
     <div className="space-y-1">
       {sortedApps.map(([pkg, app]) => {
         const iconInfo = getAppIconInfo(pkg);
@@ -196,6 +247,17 @@ export function AppControlsList({
                     </span>
                   </div>
                 )}
+                {!app.isBlocked && app.dailyLimitMinutes !== null && (
+                  <div className="mt-1.5 max-w-52 space-y-1">
+                    <p className="text-xs text-muted-foreground">
+                      שימוש היום: {app.usageMinutes} מתוך {app.dailyLimitMinutes} דקות
+                    </p>
+                    <Progress
+                      value={Math.min(100, (app.usageMinutes / app.dailyLimitMinutes) * 100)}
+                      className="h-1.5"
+                    />
+                  </div>
+                )}
               </div>
             </div>
 
@@ -233,12 +295,27 @@ export function AppControlsList({
                   {isToggling ? (
                     <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
                   ) : (
-                    <div dir="ltr">
-                      <Switch
-                        checked={app.isBlocked}
-                        onCheckedChange={() => handleToggle(pkg, app.appName, app.isBlocked)}
-                      />
-                    </div>
+                    <>
+                      {!app.isBlocked && (
+                        <Button
+                          type="button"
+                          variant={app.dailyLimitMinutes !== null ? "secondary" : "ghost"}
+                          size="icon"
+                          className="h-11 w-11"
+                          title="הגדרת מגבלת זמן"
+                          aria-label={`הגדרת מגבלת זמן עבור ${app.appName || pkg}`}
+                          onClick={() => openLimitDialog(pkg, app.appName, app.dailyLimitMinutes)}
+                        >
+                          <Timer className="h-4 w-4" />
+                        </Button>
+                      )}
+                      <div dir="ltr">
+                        <Switch
+                          checked={app.isBlocked}
+                          onCheckedChange={() => handleToggle(pkg, app.appName, app.isBlocked)}
+                        />
+                      </div>
+                    </>
                   )}
                 </>
               )}
@@ -247,5 +324,75 @@ export function AppControlsList({
         );
       })}
     </div>
+    <Dialog
+      open={limitApp !== null}
+      onOpenChange={(open) => {
+        if (!open && !savingLimit) setLimitApp(null);
+      }}
+    >
+      <DialogContent dir="rtl" className="inset-x-4 w-auto max-w-sm sm:inset-x-auto sm:w-full">
+        <DialogHeader className="text-right">
+          <DialogTitle>מגבלת זמן יומית</DialogTitle>
+          <DialogDescription>
+            {limitApp?.appName || "האפליקציה"} תיחסם לאחר ניצול הזמן שהוגדר בכל יום.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="grid grid-cols-2 gap-2">
+          {[15, 30, 45, 60, 90, 120].map((minutes) => (
+            <Button
+              key={minutes}
+              type="button"
+              variant={limitApp?.minutes === minutes ? "default" : "outline"}
+              className="h-11"
+              disabled={savingLimit}
+              onClick={() => saveLimit(minutes)}
+            >
+              {formatMinutes(minutes)}
+            </Button>
+          ))}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="custom-app-limit">מספר דקות אחר</Label>
+          <div className="flex gap-2">
+            <Input
+              id="custom-app-limit"
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={1440}
+              value={customMinutes}
+              disabled={savingLimit}
+              onChange={(event) => setCustomMinutes(event.target.value)}
+              placeholder="לדוגמה: 75"
+              className="h-11"
+            />
+            <Button
+              type="button"
+              className="h-11 shrink-0"
+              disabled={savingLimit || !customMinutesValid}
+              onClick={() => saveLimit(parsedCustomMinutes)}
+            >
+              שמירה
+            </Button>
+          </div>
+          {customMinutes !== "" && !customMinutesValid && (
+            <p className="text-xs text-destructive">יש להזין בין דקה אחת ל־1,440 דקות.</p>
+          )}
+        </div>
+
+        <Button
+          type="button"
+          variant="outline"
+          className="h-11 w-full"
+          disabled={savingLimit || limitApp?.minutes === null}
+          onClick={() => saveLimit(null)}
+        >
+          {savingLimit ? <Loader2 className="h-4 w-4 animate-spin" /> : "ללא מגבלה"}
+        </Button>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }

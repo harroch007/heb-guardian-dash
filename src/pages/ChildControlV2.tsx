@@ -150,6 +150,7 @@ export default function ChildControlV2() {
     toggleAppBlock,
     approveApp,
     blockApp,
+    setAppDailyLimit,
     updateDailyLimit,
     grantBonusTime,
     toggleShabbat,
@@ -774,6 +775,7 @@ export default function ChildControlV2() {
                 onToggleBlock={toggleAppBlock}
                 onApproveApp={approveApp}
                 onBlockApp={blockApp}
+                onSetDailyLimit={setAppDailyLimit}
               />
             </section>
 

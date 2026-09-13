@@ -68,6 +68,7 @@ export async function saveAppPolicy(input: {
   packageName: string;
   appName: string | null;
   blocked: boolean;
+  dailyLimitMinutes?: number | null;
 }): Promise<void> {
   const { error } = await v2Supabase.rpc("v2_set_parental_app_policy", {
     target_child_id: input.childId,
@@ -75,7 +76,7 @@ export async function saveAppPolicy(input: {
     target_app_name: input.appName ?? "",
     target_policy_status: input.blocked ? "blocked" : "approved",
     // PostgREST's generated function type does not preserve nullable SQL args.
-    target_daily_limit_minutes: null as unknown as number,
+    target_daily_limit_minutes: (input.dailyLimitMinutes ?? null) as unknown as number,
     target_always_allowed: false,
     target_request_key: requestKey("app-policy"),
   });
