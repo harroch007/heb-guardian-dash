@@ -152,7 +152,7 @@ export function AppControlsList({
     const remainder = minutes % 60;
     if (hours === 0) return `${minutes} דקות`;
     if (remainder === 0) return hours === 1 ? "שעה" : `${hours} שעות`;
-    return `${hours}:${String(remainder).padStart(2, "0")} שעות`;
+    return `${hours}:${String(remainder).padStart(2, "0")} ש׳`;
   };
 
   const openLimitDialog = (
@@ -254,7 +254,9 @@ export function AppControlsList({
                       שימוש היום: {app.usageMinutes} מתוך {app.dailyLimitMinutes} דקות
                     </p>
                     <Progress
-                      value={Math.min(100, (app.usageMinutes / app.dailyLimitMinutes) * 100)}
+                      value={app.dailyLimitMinutes > 0
+                        ? Math.min(100, (app.usageMinutes / app.dailyLimitMinutes) * 100)
+                        : 100}
                       className="h-1.5"
                     />
                   </div>
@@ -331,7 +333,7 @@ export function AppControlsList({
         if (!open && !savingLimit) setLimitApp(null);
       }}
     >
-      <DialogContent dir="rtl" className="inset-x-4 w-auto max-w-sm sm:inset-x-auto sm:w-full">
+      <DialogContent dir="rtl" className="w-[calc(100%-2rem)] max-w-sm">
         <DialogHeader className="text-right">
           <DialogTitle>מגבלת זמן יומית</DialogTitle>
           <DialogDescription>
