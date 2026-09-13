@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ShieldAlert, ShieldCheck, Smartphone, MessageCircle, HelpCircle, Wrench, CheckCircle2, XCircle } from "lucide-react";
+import { ShieldAlert, ShieldCheck, Smartphone, HelpCircle, Wrench, CheckCircle2, XCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -9,6 +9,8 @@ import { HelpTooltip } from "@/components/help/HelpTooltip";
 
 interface DeviceHealthBannerProps {
   health: DeviceHealthInfo;
+  expanded?: boolean;
+  onExpandedChange?: (expanded: boolean) => void;
 }
 
 interface PermissionMeta {
@@ -65,7 +67,7 @@ const PERMISSION_META: Record<string, PermissionMeta> = {
   },
 };
 
-export function DeviceHealthBanner({ health }: DeviceHealthBannerProps) {
+export function DeviceHealthBanner({ health, expanded: controlledExpanded, onExpandedChange }: DeviceHealthBannerProps) {
   const { permissions, deviceVersion, deviceModel, reportedAt } = health;
   const [expandedInfo, setExpandedInfo] = useState<Set<string>>(new Set());
   const [expandedFix, setExpandedFix] = useState<Set<string>>(new Set());
@@ -78,9 +80,9 @@ export function DeviceHealthBanner({ health }: DeviceHealthBannerProps) {
   const allGranted =
     missingPermissions.length === 0 && pendingPermissions.length === 0;
 
-  const whatsappHealthy =
-    permissions.accessibilityEnabled === true &&
-    permissions.notificationListenerEnabled === true;
+  const [localExpanded, setLocalExpanded] = useState(false);
+  const expanded = controlledExpanded ?? localExpanded;
+  const setExpanded = onExpandedChange ?? setLocalExpanded;
 
   const toggleInfo = (key: string) => {
     setExpandedInfo((prev) => {
@@ -107,7 +109,7 @@ export function DeviceHealthBanner({ health }: DeviceHealthBannerProps) {
     )}>
       <CardContent className="p-4 space-y-3">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <button type="button" className="flex min-h-11 w-full items-center justify-between text-right" onClick={() => setExpanded(!expanded)}>
           <div className="flex items-center gap-2">
             {allGranted ? (
               <ShieldCheck className="w-5 h-5 text-success" />
@@ -123,22 +125,11 @@ export function DeviceHealthBanner({ health }: DeviceHealthBannerProps) {
             </span>
             <HelpTooltip text="הרשאות שהמכשיר צריך כדי שהפיצ׳רים השונים של Kippy יעבדו (זמן מסך, מיקום, חסימת אפליקציות ועוד)." iconSize={12} />
           </div>
-          <Badge
-            variant="secondary"
-            className={cn(
-              "gap-1 text-xs",
-              whatsappHealthy
-                ? "bg-success/20 text-success"
-                : "bg-destructive/20 text-destructive"
-            )}
-          >
-            <MessageCircle className="w-3 h-3" />
-            {whatsappHealthy ? "פעיל" : "דורש טיפול"}
-          </Badge>
-        </div>
+          {expanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+        </button>
 
         {/* Permissions list */}
-        {!allGranted && (
+        {expanded && (
           <div className="space-y-1.5">
             {allPermissions.map(([key, meta]) => {
               const granted = permissions[key] !== false;
@@ -213,7 +204,7 @@ export function DeviceHealthBanner({ health }: DeviceHealthBannerProps) {
         )}
 
         {/* Device info footer */}
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
+        {expanded && <div className="flex items-center justify-between text-xs text-muted-foreground">
           <div className="flex items-center gap-1.5">
             <Smartphone className="w-3 h-3" />
             <span>{deviceModel || "מכשיר לא ידוע"}</span>
@@ -224,7 +215,7 @@ export function DeviceHealthBanner({ health }: DeviceHealthBannerProps) {
           {reportedAt && (
             <span>דיווח: {formatLastSeen(reportedAt)}</span>
           )}
-        </div>
+        </div>}
       </CardContent>
     </Card>
   );

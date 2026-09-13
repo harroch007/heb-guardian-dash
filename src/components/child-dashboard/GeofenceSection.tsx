@@ -17,6 +17,7 @@ interface GeofenceSectionProps {
   deviceLatitude?: number | null;
   deviceLongitude?: number | null;
   deviceAddress?: string | null;
+  embedded?: boolean;
 }
 
 function PlaceCard({
@@ -232,7 +233,7 @@ function ManualPlaceItem({
   );
 }
 
-export function GeofenceSection({ childId, deviceLatitude, deviceLongitude, deviceAddress }: GeofenceSectionProps) {
+export function GeofenceSection({ childId, deviceLatitude, deviceLongitude, deviceAddress, embedded = false }: GeofenceSectionProps) {
   const {
     settings, loading, saving, getPlace,
     upsertPlace, updateRadius, updateSettings, deletePlace,
@@ -243,7 +244,7 @@ export function GeofenceSection({ childId, deviceLatitude, deviceLongitude, devi
 
   if (loading) {
     return (
-      <Card className="protection-panel border-border shadow-sm bg-card">
+      <Card className={embedded ? "border-0 bg-transparent shadow-none" : "protection-panel border-border shadow-sm bg-card"}>
         <CardContent className="p-4 flex justify-center">
           <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
         </CardContent>
@@ -252,15 +253,15 @@ export function GeofenceSection({ childId, deviceLatitude, deviceLongitude, devi
   }
 
   return (
-    <Card className="protection-panel border-border shadow-sm bg-card">
-      <CardContent className="p-4">
-        <Accordion type="single" collapsible defaultValue={undefined} className="w-full">
+    <Card className={embedded ? "border-0 bg-transparent shadow-none" : "protection-panel border-border shadow-sm bg-card"}>
+      <CardContent className={embedded ? "p-0" : "p-4"}>
+        <Accordion type="single" collapsible={!embedded} value={embedded ? "geofence" : undefined} className="w-full">
           <AccordionItem value="geofence" className="border-0">
-            <div className="flex items-center gap-2">
+            <div className={embedded ? "mb-3 flex items-center gap-2" : "flex items-center gap-2"}>
               <AccordionTrigger className="flex-1 py-0 hover:no-underline">
                 <div className="flex items-center gap-2">
                   <MapPin className="w-5 h-5 text-primary" />
-                  <span className="font-semibold text-sm text-foreground">גבולות גזרה</span>
+                  <span className="font-semibold text-sm text-foreground">גבולות גזרה והתראות מיקום</span>
                 </div>
               </AccordionTrigger>
               <HelpTooltip text="אזורים גאוגרפיים שתוגדר בהם התראה כשהילד/ה נכנס/ת או יוצא/ת — בית, בית ספר ומקומות מותאמים." iconSize={12} />

@@ -137,6 +137,7 @@ export default function ChildControlV2() {
   const { phase: ringPhase, sendRing, retry: retryRing } = useRingCommand(device?.device_id ?? null);
 
   const [showMap, setShowMap] = useState(false);
+  const [openProtectionSection, setOpenProtectionSection] = useState<string | null>(null);
 
   const {
     appPolicies,
@@ -586,16 +587,7 @@ export default function ChildControlV2() {
   };
 
   // ---------- Active restriction ----------
-  const activeRestrictionName = getActiveScheduleName();
-
-  // ---------- Unified protection summary ----------
-  const activeSchedulesCount = scheduleWindows.filter((window) => window.is_active).length;
-  const blockedAppsCount = appPolicies.filter((policy) => policy.is_blocked).length;
-  const decidedAppPackages = new Set(appPolicies.map((policy) => policy.package_name));
-  const pendingAppsCount = installedApps.filter(
-    (app) => !decidedAppPackages.has(app.package_name),
-  ).length;
-  const hasLocation = device?.latitude != null && device?.longitude != null;
+  getActiveScheduleName();
 
   if (loading || (loadedScope !== scopeKey && !dataError)) {
     return (
@@ -727,6 +719,8 @@ export default function ChildControlV2() {
                 todayBonusMinutes={todayBonusMinutes}
                 onUpdateLimit={async (minutes) => { await updateDailyLimit(minutes); setScreenTimeLimit(minutes); }}
                 onGrantBonus={grantBonusTime}
+                expanded={openProtectionSection === "screen-time"}
+                onExpandedChange={(open) => setOpenProtectionSection(open ? "screen-time" : null)}
               />
             </section>
 
@@ -739,6 +733,8 @@ export default function ChildControlV2() {
                 onUpdateSchedule={updateSchedule}
                 onDeleteSchedule={deleteSchedule}
                 onRestrictionComplete={() => navigate("/home-v2", { replace: true })}
+                expanded={openProtectionSection === "schedules"}
+                onExpandedChange={(open) => setOpenProtectionSection(open ? "schedules" : null)}
               />
             </section>
 
@@ -754,6 +750,8 @@ export default function ChildControlV2() {
                 onApproveApp={approveApp}
                 onBlockApp={blockApp}
                 onSetDailyLimit={setAppDailyLimit}
+                expanded={openProtectionSection === "apps"}
+                onExpandedChange={(open) => setOpenProtectionSection(open ? "apps" : null)}
               />
             </section>
 
@@ -770,14 +768,17 @@ export default function ChildControlV2() {
                 ringPhase={ringPhase}
                 handleRingDevice={handleRingDevice}
                 handleRetryRing={retryRing}
-              />
-
-              <GeofenceSection
-                childId={childId!}
-                deviceLatitude={device?.latitude}
-                deviceLongitude={device?.longitude}
-                deviceAddress={device?.address}
-              />
+                expanded={openProtectionSection === "location"}
+                onExpandedChange={(open) => setOpenProtectionSection(open ? "location" : null)}
+              >
+                <GeofenceSection
+                  childId={childId!}
+                  deviceLatitude={device?.latitude}
+                  deviceLongitude={device?.longitude}
+                  deviceAddress={device?.address}
+                  embedded
+                />
+              </LocationSectionV2>
             </section>
 
             {/* ===== Lost Mode — emergency device lock ===== */}
@@ -788,7 +789,13 @@ export default function ChildControlV2() {
 
             {/* ===== 12. DEVICE HEALTH ===== */}
             <section id="device-health" className="scroll-mt-20">
-              {deviceHealth && <DeviceHealthBanner health={deviceHealth} />}
+              {deviceHealth && (
+                <DeviceHealthBanner
+                  health={deviceHealth}
+                  expanded={openProtectionSection === "device-health"}
+                  onExpandedChange={(open) => setOpenProtectionSection(open ? "device-health" : null)}
+                />
+              )}
               {!deviceHealth && (
                 <Card className="protection-panel border-border shadow-sm bg-card">
                   <CardContent className="p-4">
