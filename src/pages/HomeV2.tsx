@@ -243,15 +243,6 @@ const HomeV2 = () => {
           </Card>
         )}
 
-        <FamilyStatusHero
-          childrenCount={childrenData.length}
-          connectedCount={connectedCount}
-          openIssues={openIssues}
-        />
-
-        {/* Put actionable attention items before the detailed child cards. */}
-        <AttentionSection childrenData={childrenData} />
-
         {childrenData.length === 0 ? (
           <Card className="border-dashed border-border bg-card">
             <CardContent className="py-12 text-center">
