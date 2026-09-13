@@ -62,3 +62,6 @@ verify_jwt = false
 
 [functions.accept-chat-invite]
 verify_jwt = false
+
+[functions.v2-join-family-by-code]
+verify_jwt = false

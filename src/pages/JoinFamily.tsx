@@ -1,12 +1,20 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- Frozen legacy donor surface; migrate types before reactivation. */
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Loader2, ShieldCheck, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Loader2, Users, ShieldCheck } from "lucide-react";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { claimGuardianInvite } from "@/lib/v2/guardianInvites";
+
+const errorMessages: Record<string, string> = {
+  INVALID_EMAIL: "כתובת אימייל לא תקינה.",
+  INVALID_CODE_FORMAT: "הקוד צריך להיות 6 ספרות.",
+  INVALID_CODE_OR_EMAIL: "האימייל או הקוד שגויים.",
+  INVITE_MISSING_NAME: "ההזמנה חסרה שם. בקשו מההורה הראשי להנפיק הזמנה חדשה.",
+};
 
 const JoinFamily = () => {
   const navigate = useNavigate();
@@ -27,22 +35,13 @@ const JoinFamily = () => {
     });
   }, []);
 
-  const claim = async (claimEmail: string, claimCode: string) => {
-    const { data, error } = await supabase.rpc("claim_family_invite_by_code", {
-      p_email: claimEmail,
-      p_code: claimCode,
-    });
-    if (error) throw error;
-    return data;
-  };
-
   const handleSubmit = async () => {
     const cleanEmail = email.trim().toLowerCase();
     const cleanCode = code.trim();
-    if (!cleanEmail || cleanCode.length !== 6) {
+    if (!/^\S+@\S+\.\S+$/.test(cleanEmail) || !/^\d{6}$/.test(cleanCode)) {
       toast({
-        title: "שגיאה",
-        description: "מלא אימייל וקוד בן 6 ספרות",
+        title: "חסרים פרטים",
+        description: "יש למלא אימייל וקוד בן 6 ספרות",
         variant: "destructive",
       });
       return;
@@ -50,64 +49,53 @@ const JoinFamily = () => {
 
     setSubmitting(true);
     try {
-      // Case 1: already signed in with the same email → just claim.
       if (signedInEmail && signedInEmail.toLowerCase() === cleanEmail) {
-        await claim(cleanEmail, cleanCode);
-        toast({ title: "הצטרפת למשפחה!", description: "ברוך הבא ל-KippyAI" });
+        await claimGuardianInvite(cleanCode);
+        toast({ title: "הצטרפת למשפחה!", description: "ברוכים הבאים ל-Kippy" });
         navigate("/home-v2", { replace: true });
         return;
       }
 
-      // Case 2: signed in with a different email — sign out first.
-      if (signedInEmail && signedInEmail.toLowerCase() !== cleanEmail) {
+      if (signedInEmail) {
         await supabase.auth.signOut();
       }
 
-      // Case 3: passwordless join — exchange code for a one-time password.
       const { data, error } = await supabase.functions.invoke(
-        "join-family-by-code",
-        { body: { email: cleanEmail, code: cleanCode } }
+        "v2-join-family-by-code",
+        { body: { email: cleanEmail, code: cleanCode } },
       );
 
       if (error || !data?.success) {
-        const code = (data as any)?.error || "";
-        const map: Record<string, string> = {
-          INVALID_EMAIL: "כתובת אימייל לא תקינה.",
-          INVALID_CODE_FORMAT: "הקוד צריך להיות 6 ספרות.",
-          INVALID_CODE_OR_EMAIL: "האימייל או הקוד שגויים.",
-          CODE_EXPIRED: "הקוד פג תוקף. בקש מההורה הראשי קוד חדש.",
-        };
+        const key = (data as { error?: string } | null)?.error ?? "";
         toast({
           title: "לא ניתן להצטרף",
-          description: map[code] || error?.message || "נסה שוב",
+          description: errorMessages[key] || "האימייל או הקוד שגויים.",
           variant: "destructive",
         });
         return;
       }
 
-      // Sign in with the one-time password we just received.
-      const { error: signInErr } = await supabase.auth.signInWithPassword({
+      const { error: signInError } = await supabase.auth.signInWithPassword({
         email: data.email,
         password: data.one_time_password,
       });
-      if (signInErr) {
+      if (signInError) {
         toast({
           title: "שגיאה בהתחברות",
-          description: signInErr.message,
+          description: "אפשר לנסות שוב בעוד רגע",
           variant: "destructive",
         });
         return;
       }
 
-      // Now claim the invite (RPC requires authenticated session matching email).
-      await claim(data.email, cleanCode);
-
-      toast({ title: "הצטרפת למשפחה!", description: "ברוך הבא ל-KippyAI" });
+      await claimGuardianInvite(cleanCode);
+      toast({ title: "הצטרפת למשפחה!", description: "ברוכים הבאים ל-Kippy" });
       navigate("/home-v2", { replace: true });
-    } catch (err: any) {
+    } catch (err) {
+      console.error("[join-family] failed", err);
       toast({
-        title: "שגיאה",
-        description: err?.message || "לא ניתן להצטרף",
+        title: "לא ניתן להצטרף",
+        description: "האימייל או הקוד שגויים, או שהקוד פג תוקף.",
         variant: "destructive",
       });
     } finally {
@@ -117,79 +105,76 @@ const JoinFamily = () => {
 
   if (checking) {
     return (
-      <div className="v2-dark min-h-screen flex items-center justify-center" dir="rtl">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <div
+        className="v2-dark flex min-h-screen items-center justify-center"
+        dir="rtl"
+      >
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="v2-dark min-h-screen flex items-center justify-center px-4 py-8" dir="rtl">
-      <div className="max-w-md w-full space-y-5">
-        <div className="text-center space-y-2">
-          <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
-            <Users className="w-7 h-7 text-primary" />
-          </div>
-          <h1 className="text-2xl font-bold text-foreground">הצטרפות למשפחה</h1>
-          <p className="text-sm text-muted-foreground">
-            הזן את האימייל והקוד שקיבלת מההורה הראשי כדי להצטרף כהורה שותף
-          </p>
-        </div>
-
-        <Card>
-          <CardContent className="p-5 space-y-4">
-            <div className="space-y-1.5">
-              <label className="text-xs text-muted-foreground">אימייל</label>
-              <Input
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="email@example.com"
-                type="email"
-                dir="ltr"
-                disabled={submitting}
-              />
+    <div
+      className="v2-dark flex min-h-screen items-center justify-center px-4 py-10"
+      dir="rtl"
+    >
+      <Card className="w-full max-w-md">
+        <CardContent className="space-y-5 pt-6">
+          <div className="space-y-2 text-center">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+              <Users className="h-6 w-6 text-primary" />
             </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs text-muted-foreground">
-                קוד הצטרפות (6 ספרות)
-              </label>
-              <Input
-                value={code}
-                onChange={(e) =>
-                  setCode(e.target.value.replace(/\D/g, "").slice(0, 6))
-                }
-                placeholder="123456"
-                inputMode="numeric"
-                dir="ltr"
-                className="text-center text-2xl tracking-[0.4em] font-bold h-14"
-                disabled={submitting}
-              />
-            </div>
-
-            <Button
-              className="w-full gap-2"
-              onClick={handleSubmit}
-              disabled={submitting || !email || code.length !== 6}
-            >
-              {submitting ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <ShieldCheck className="w-4 h-4" />
-              )}
-              הצטרף למשפחה
-            </Button>
-
-            <p className="text-[11px] text-muted-foreground text-center pt-1">
-              לא צריך סיסמה — הקוד מספיק כדי להיכנס.
+            <h1 className="text-xl font-bold text-foreground">
+              הצטרפות למשפחה ב-Kippy
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              הזינו את האימייל שאליו נשלחה ההזמנה ואת הקוד בן 6 הספרות שקיבלתם.
             </p>
-          </CardContent>
-        </Card>
+          </div>
 
-        <p className="text-center text-xs text-muted-foreground">
-          אין לך קוד? פנה להורה הראשי כדי לקבל קוד הצטרפות חדש.
-        </p>
-      </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="join-email">אימייל</Label>
+            <Input
+              id="join-email"
+              type="email"
+              dir="ltr"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="name@example.com"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="join-code">קוד הצטרפות</Label>
+            <Input
+              id="join-code"
+              inputMode="numeric"
+              maxLength={6}
+              dir="ltr"
+              className="text-center font-mono text-2xl tracking-[0.5em]"
+              value={code}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+              placeholder="000000"
+            />
+          </div>
+
+          <Button
+            type="button"
+            className="h-11 w-full"
+            disabled={submitting}
+            onClick={() => void handleSubmit()}
+          >
+            {submitting && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+            הצטרפות למשפחה
+          </Button>
+
+          <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+            <ShieldCheck className="h-3.5 w-3.5" />
+            הקוד תקף ל-7 ימים ומיועד לכתובת שאליה נשלח בלבד.
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 };

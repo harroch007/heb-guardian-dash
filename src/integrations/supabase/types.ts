@@ -2920,6 +2920,65 @@ export type Database = {
           },
         ]
       }
+      v2_guardian_invites: {
+        Row: {
+          accepted_at: string | null
+          accepted_user_id: string | null
+          attempt_count: number
+          code_expires_at: string
+          code_hash: string
+          created_at: string
+          family_id: string
+          id: string
+          invited_by: string
+          invited_email: string
+          invited_name: string
+          receive_alerts: boolean
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_user_id?: string | null
+          attempt_count?: number
+          code_expires_at: string
+          code_hash: string
+          created_at?: string
+          family_id: string
+          id?: string
+          invited_by: string
+          invited_email: string
+          invited_name: string
+          receive_alerts?: boolean
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_user_id?: string | null
+          attempt_count?: number
+          code_expires_at?: string
+          code_hash?: string
+          created_at?: string
+          family_id?: string
+          id?: string
+          invited_by?: string
+          invited_email?: string
+          invited_name?: string
+          receive_alerts?: boolean
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_guardian_invites_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "v2_families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       v2_guardian_memberships: {
         Row: {
           created_at: string
@@ -6015,6 +6074,10 @@ export type Database = {
         Args: { target_actor: string; target_child_id: string }
         Returns: number
       }
+      v2_cancel_guardian_invite: {
+        Args: { target_invite_id: string }
+        Returns: boolean
+      }
       v2_child_age_band: {
         Args: { target_birth_year: number; target_year?: number }
         Returns: string
@@ -6026,6 +6089,13 @@ export type Database = {
           expires_at: string
           id: string
           payload: Json
+        }[]
+      }
+      v2_claim_guardian_invite: {
+        Args: { supplied_code: string }
+        Returns: {
+          already_member: boolean
+          family_id: string
         }[]
       }
       v2_claim_incident_analysis_service: {
@@ -6349,6 +6419,20 @@ export type Database = {
               status: string
             }[]
           }
+      v2_create_guardian_invite: {
+        Args: {
+          target_email: string
+          target_name: string
+          target_receive_alerts?: boolean
+        }
+        Returns: {
+          code_expires_at: string
+          invite_code: string
+          invite_id: string
+          invited_email: string
+          invited_name: string
+        }[]
+      }
       v2_create_pairing_session_service: {
         Args: {
           actor_user_id: string
@@ -6536,6 +6620,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      v2_generate_invite_code: { Args: never; Returns: string }
       v2_get_active_incident_encryption_key_service: {
         Args: never
         Returns: {
@@ -6659,6 +6744,10 @@ export type Database = {
         Args: { target_child_id: string }
         Returns: boolean
       }
+      v2_hash_invite_code: {
+        Args: { supplied_code: string; target_invite_id: string }
+        Returns: string
+      }
       v2_is_child_guardian: {
         Args: { target_child_id: string }
         Returns: boolean
@@ -6670,6 +6759,14 @@ export type Database = {
       v2_is_family_guardian: {
         Args: { target_family_id: string }
         Returns: boolean
+      }
+      v2_lookup_guardian_invite_service: {
+        Args: { supplied_code: string; supplied_email: string }
+        Returns: {
+          invite_id: string
+          invited_email: string
+          invited_name: string
+        }[]
       }
       v2_marketing_touch_is_valid: {
         Args: { target_touch: Json }
@@ -6811,6 +6908,13 @@ export type Database = {
         Returns: {
           attempt_count: number
           job_state: string
+        }[]
+      }
+      v2_regenerate_guardian_invite_code: {
+        Args: { target_invite_id: string }
+        Returns: {
+          code_expires_at: string
+          invite_code: string
         }[]
       }
       v2_register_device_service: {

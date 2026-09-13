@@ -6,6 +6,7 @@ import { TopNavigationV2 } from "@/components/TopNavigationV2";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useV2GuardianMonitoring } from "@/hooks/useV2GuardianMonitoring";
+import { FamilyGuardiansSection } from "./FamilyGuardiansSection";
 import { MonitoringChildCard } from "./MonitoringChildCard";
 import { MonitoringSummaryCard } from "./MonitoringSummaryCard";
 
@@ -112,6 +113,8 @@ export function MonitoringOverviewPage({ mode }: Props) {
                 ))}
               </section>
             )}
+
+            {mode === "family" && <FamilyGuardiansSection />}
           </>
         )}
       </main>

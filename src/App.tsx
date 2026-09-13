@@ -25,6 +25,7 @@ import GuardianChildV2 from "./pages/GuardianChildV2";
 import AlertsV2 from "./pages/AlertsV2Canonical";
 import SettingsV2 from "./pages/SettingsV2Canonical";
 import GuardianFamilyV2 from "./pages/GuardianFamilyV2";
+import JoinFamily from "./pages/JoinFamily";
 import LandingV1 from "./pages/LandingV1";
 
 const queryClient = new QueryClient();
@@ -51,7 +52,7 @@ const AppRoutes = () => {
       <Route path="/chat-v2/:friendshipId" element={<Navigate to="/home-v2" replace />} />
       <Route path="/accept-invite/:inviteId" element={<Navigate to="/family-v2" replace />} />
       <Route path="/invite/:token" element={<Navigate to="/home-v2" replace />} />
-      <Route path="/join-family" element={<Navigate to="/family-v2" replace />} />
+      <Route path="/join-family" element={<JoinFamily />} />
       <Route path="/auth" element={<Auth />} />
       <Route path="/install" element={<Install />} />
       <Route
