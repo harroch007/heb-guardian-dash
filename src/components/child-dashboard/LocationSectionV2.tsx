@@ -68,7 +68,7 @@ export function LocationSectionV2({
 
   return (
     <div id="location-section" className="scroll-mt-4">
-      <Card className="border-border/50">
+      <Card className="protection-panel border-border/50">
         <CardHeader
           className="pb-3 cursor-pointer"
           onClick={() => setExpanded(!expanded)}

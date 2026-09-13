@@ -121,7 +121,7 @@ export function LostModeV2Section({
 
   if (loading) {
     return (
-      <Card className="border-border bg-card shadow-sm">
+      <Card className="protection-panel border-border bg-card shadow-sm">
         <CardContent className="flex items-center justify-center p-4">
           <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
         </CardContent>
@@ -132,6 +132,7 @@ export function LostModeV2Section({
   return (
     <>
       <Card
+        data-protection-section="emergency"
         className={
           enabled
             ? "border-destructive/40 bg-destructive/5 shadow-sm"

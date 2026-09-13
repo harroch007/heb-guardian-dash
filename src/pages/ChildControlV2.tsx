@@ -27,12 +27,9 @@ import { RemoveChildV2Modal } from "@/components/RemoveChildV2Modal";
 import { BottomNavigationV2 } from "@/components/BottomNavigationV2";
 import { TopNavigationV2 } from "@/components/TopNavigationV2";
 import {
-  ProblemBanner,
   AppsSection,
-  ProtectionCenterOverview,
   ScreenTimeSection,
   SchedulesSection,
-  WhatsAppSafetySection,
 } from "@/components/child-dashboard";
 import { LocationSectionV2 } from "@/components/child-dashboard/LocationSectionV2";
 import { GeofenceSection } from "@/components/child-dashboard/GeofenceSection";
@@ -44,6 +41,7 @@ import {
   RefreshCw,
   AlertTriangle,
   LocateFixed,
+  ShieldCheck,
   Smartphone,
 } from "lucide-react";
 import { gt } from "@/lib/genderText";
@@ -161,9 +159,6 @@ export default function ChildControlV2() {
   } = useChildControls(childId);
   const {
     children: monitoringChildren,
-    loading: monitoringLoading,
-    error: monitoringError,
-    refresh: refreshMonitoring,
   } = useV2GuardianMonitoring();
 
   const monitoringChild = monitoringChildren.find(
@@ -710,36 +705,19 @@ export default function ChildControlV2() {
           </Button>
         </div>
 
-        <ProtectionCenterOverview
-          childName={child.name}
-          status={status}
-          currentUsageMinutes={totalUsageFromDb}
-          dailyLimitMinutes={screenTimeLimit}
-          todayBonusMinutes={todayBonusMinutes}
-          installedAppsCount={installedApps.length}
-          blockedAppsCount={blockedAppsCount}
-          pendingAppsCount={pendingAppsCount}
-          activeSchedulesCount={activeSchedulesCount}
-          activeRestrictionName={activeRestrictionName}
-          hasLocation={hasLocation}
-          deviceHealth={deviceHealth}
-          monitoringState={monitoringDevice?.monitoringState ?? null}
-          newIncidentCount={unacknowledgedAlerts}
-        />
-
-        <WhatsAppSafetySection
-          device={monitoringDevice}
-          newIncidentCount={unacknowledgedAlerts}
-          todayIncidentCount={todayAlerts}
-          loading={monitoringLoading}
-          error={monitoringError}
-          onRefresh={() => void refreshMonitoring()}
-          onOpenAlerts={() => navigate("/alerts-v2")}
-        />
         {/* ===== 4-9. EXISTING SECTIONS (reused) ===== */}
         {device ? (
-          <div className="space-y-4">
-            <ProblemBanner deviceHealth={deviceHealth} status={status} lastSeen={device.last_seen} />
+          <Card className="overflow-hidden border-primary/20 bg-card shadow-sm">
+            <div className="flex min-h-14 items-center gap-3 border-b border-border px-4 py-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <ShieldCheck className="h-5 w-5" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <h2 className="text-sm font-semibold text-foreground">הגדרות ההגנה</h2>
+                <p className="text-xs text-muted-foreground">כל נושא מופיע פעם אחת וניתן לפתיחה</p>
+              </div>
+            </div>
+            <div className="protection-sections divide-y divide-border [&_.protection-panel]:rounded-none [&_.protection-panel]:border-0 [&_.protection-panel]:shadow-none">
 
             <section id="screen-time" className="scroll-mt-20 space-y-4">
               <ScreenTimeSection
@@ -812,14 +790,15 @@ export default function ChildControlV2() {
             <section id="device-health" className="scroll-mt-20">
               {deviceHealth && <DeviceHealthBanner health={deviceHealth} />}
               {!deviceHealth && (
-                <Card className="border-border shadow-sm bg-card">
+                <Card className="protection-panel border-border shadow-sm bg-card">
                   <CardContent className="p-4">
-                    <p className="text-sm text-muted-foreground text-center py-2">אין נתוני בריאות זמינים</p>
+                    <p className="text-sm text-muted-foreground text-center py-2">אין מידע על הרשאות ותקינות</p>
                   </CardContent>
                 </Card>
               )}
             </section>
-          </div>
+            </div>
+          </Card>
         ) : (
           <Card className="border-border shadow-sm bg-card">
             <CardContent className="py-12 text-center">

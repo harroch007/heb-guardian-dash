@@ -102,7 +102,7 @@ export function DeviceHealthBanner({ health }: DeviceHealthBannerProps) {
 
   return (
     <Card className={cn(
-      "border",
+      "protection-panel border",
       allGranted ? "border-success/30 bg-success/5" : "border-warning/30 bg-warning/5"
     )}>
       <CardContent className="p-4 space-y-3">
@@ -133,7 +133,7 @@ export function DeviceHealthBanner({ health }: DeviceHealthBannerProps) {
             )}
           >
             <MessageCircle className="w-3 h-3" />
-            {whatsappHealthy ? "ניטור פעיל" : "ניטור לקוי"}
+            {whatsappHealthy ? "פעיל" : "דורש טיפול"}
           </Badge>
         </div>
 

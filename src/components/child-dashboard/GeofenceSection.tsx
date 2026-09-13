@@ -243,7 +243,7 @@ export function GeofenceSection({ childId, deviceLatitude, deviceLongitude, devi
 
   if (loading) {
     return (
-      <Card className="border-border shadow-sm bg-card">
+      <Card className="protection-panel border-border shadow-sm bg-card">
         <CardContent className="p-4 flex justify-center">
           <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
         </CardContent>
@@ -252,7 +252,7 @@ export function GeofenceSection({ childId, deviceLatitude, deviceLongitude, devi
   }
 
   return (
-    <Card className="border-border shadow-sm bg-card">
+    <Card className="protection-panel border-border shadow-sm bg-card">
       <CardContent className="p-4">
         <Accordion type="single" collapsible defaultValue={undefined} className="w-full">
           <AccordionItem value="geofence" className="border-0">
