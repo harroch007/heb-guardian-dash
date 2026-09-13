@@ -11,9 +11,7 @@ import { BottomNavigationV2 } from "@/components/BottomNavigationV2";
 import { TopNavigationV2 } from "@/components/TopNavigationV2";
 import { AttentionSection } from "@/components/home-v2/AttentionSection";
 import { ChildCardV2 } from "@/components/home-v2/ChildCardV2";
-import { DailyControlSummary } from "@/components/home-v2/DailyControlSummary";
 import { FamilyLocationsMap } from "@/components/home-v2/FamilyLocationsMap";
-import { FamilyStatusHero } from "@/components/home-v2/FamilyStatusHero";
 import { HomeGreeting } from "@/components/home-v2/HomeGreeting";
 
 import { HomePendingGeofenceAlerts } from "@/components/home-v2/HomePendingGeofenceAlerts";
@@ -23,10 +21,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { getIsraelDate } from "@/lib/utils";
 import { getV2GuardianHome } from "@/lib/v2/guardianHomeService";
-import {
-  hasCurrentDeviceReport,
-  type GuardianMonitoringState,
-} from "@/lib/v2/guardianMonitoringService";
+import type { GuardianMonitoringState } from "@/lib/v2/guardianMonitoringService";
 
 export interface ActiveRestriction {
   type: "schedule" | "shabbat";
@@ -207,21 +202,6 @@ const HomeV2 = () => {
     );
   }
 
-  const connectedCount = childrenData.filter(
-    (child) =>
-      child.device && hasCurrentDeviceReport(child.device.monitoring_state),
-  ).length;
-  const totalAlerts = childrenData.reduce(
-    (total, child) => total + child.unacknowledgedAlerts,
-    0,
-  );
-  const childrenRequiringAttention = childrenData.filter(
-    (child) =>
-      child.permissionIssues.length > 0 ||
-      child.device?.monitoring_state !== "healthy",
-  ).length;
-  const openIssues = totalAlerts + childrenRequiringAttention;
-
   return (
     <div className="v2-dark min-h-screen pb-24" dir="rtl">
       <TopNavigationV2 />
@@ -263,15 +243,6 @@ const HomeV2 = () => {
           </Card>
         )}
 
-        <FamilyStatusHero
-          childrenCount={childrenData.length}
-          connectedCount={connectedCount}
-          openIssues={openIssues}
-        />
-
-        {/* Put actionable attention items before the detailed child cards. */}
-        <AttentionSection childrenData={childrenData} />
-
         {childrenData.length === 0 ? (
           <Card className="border-dashed border-border bg-card">
             <CardContent className="py-12 text-center">
@@ -304,9 +275,7 @@ const HomeV2 = () => {
           </Accordion>
         )}
 
-        {childrenData.length === 1 && (
-          <DailyControlSummary childrenData={childrenData} />
-        )}
+        <AttentionSection childrenData={childrenData} />
         <HomePendingGeofenceAlerts childrenData={childrenData} />
         {childrenData.length > 0 && (
           <FamilyLocationsMap children={childrenData} />
