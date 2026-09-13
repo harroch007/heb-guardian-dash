@@ -77,35 +77,31 @@ export function MonitoringChildCard({ child }: Props) {
             </p>
             <p className="text-[11px] text-muted-foreground">סוללה</p>
           </div>
-          <div className="rounded-lg bg-muted/35 px-2 py-2.5">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate("/alerts-v2");
+            }}
+            className="rounded-lg bg-muted/35 px-2 py-2.5 cursor-pointer transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          >
             <Bell className="mx-auto mb-1 h-4 w-4 text-primary" />
             <p className="text-sm font-bold text-foreground">
               {child.newIncidentCount}
             </p>
             <p className="text-[11px] text-muted-foreground">חדשות</p>
-          </div>
+          </button>
         </div>
 
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <Button
-            type="button"
-            variant="outline"
-            className="h-11 flex-1 justify-between"
-            onClick={() => navigate(`/child-v2/${child.id}`)}
-          >
-            <span>מרכז ההגנה המלא</span>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          {child.newIncidentCount > 0 && (
-            <Button
-              type="button"
-              className="h-11 flex-1"
-              onClick={() => navigate("/alerts-v2")}
-            >
-              צפייה בהתראות
-            </Button>
-          )}
-        </div>
+        <Button
+          type="button"
+          variant="outline"
+          className="h-11 w-full justify-between"
+          onClick={() => navigate(`/child-v2/${child.id}`)}
+        >
+          <span>מרכז ההגנה המלא</span>
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
       </CardContent>
     </Card>
   );
