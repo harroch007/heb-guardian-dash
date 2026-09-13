@@ -205,21 +205,6 @@ const HomeV2 = () => {
     );
   }
 
-  const connectedCount = childrenData.filter(
-    (child) =>
-      child.device && hasCurrentDeviceReport(child.device.monitoring_state),
-  ).length;
-  const totalAlerts = childrenData.reduce(
-    (total, child) => total + child.unacknowledgedAlerts,
-    0,
-  );
-  const childrenRequiringAttention = childrenData.filter(
-    (child) =>
-      child.permissionIssues.length > 0 ||
-      child.device?.monitoring_state !== "healthy",
-  ).length;
-  const openIssues = totalAlerts + childrenRequiringAttention;
-
   return (
     <div className="v2-dark min-h-screen pb-24" dir="rtl">
       <TopNavigationV2 />
