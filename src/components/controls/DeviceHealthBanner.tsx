@@ -116,12 +116,15 @@ export function DeviceHealthBanner({ health, expanded: controlledExpanded, onExp
             ) : (
               <ShieldAlert className="w-5 h-5 text-warning" />
             )}
-            <span className="font-semibold text-sm text-foreground">
-              {allGranted
-                ? "כל ההרשאות פעילות"
-                : missingPermissions.length > 0
-                  ? `${missingPermissions.length} הרשאות חסרות`
-                  : `ממתינים לדיווח על ${pendingPermissions.length} הרשאות`}
+            <span className="text-right">
+              <span className="block text-sm font-semibold text-foreground">הרשאות ותקינות</span>
+              <span className="mt-1 block text-xs font-normal text-muted-foreground">
+                {allGranted
+                  ? "כל ההרשאות פעילות"
+                  : missingPermissions.length > 0
+                    ? `${missingPermissions.length} הרשאות דורשות טיפול`
+                    : `אין מידע על ${pendingPermissions.length} הרשאות`}
+              </span>
             </span>
             <HelpTooltip text="הרשאות שהמכשיר צריך כדי שהפיצ׳רים השונים של Kippy יעבדו (זמן מסך, מיקום, חסימת אפליקציות ועוד)." iconSize={12} />
           </div>

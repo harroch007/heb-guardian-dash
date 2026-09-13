@@ -82,10 +82,15 @@ export function LocationSectionV2({
           onClick={() => setExpanded(!expanded)}
         >
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-              <MapPin className="w-5 h-5 text-primary" />
-              מיקום וגבולות גזרה
-            </CardTitle>
+            <div className="flex min-w-0 items-center gap-3">
+              <MapPin className="h-5 w-5 shrink-0 text-primary" />
+              <div className="min-w-0 text-right">
+                <CardTitle className="text-sm font-semibold">מיקום וגבולות גזרה</CardTitle>
+                <p className="mt-1 truncate text-xs font-normal text-muted-foreground">
+                  {hasLocation ? device.address || "מיקום אחרון זמין" : "אין מידע על מיקום"}
+                </p>
+              </div>
+            </div>
             <div className="flex items-center gap-2">
               {expanded ? (
                 <ChevronUp className="w-4 h-4 text-muted-foreground" />

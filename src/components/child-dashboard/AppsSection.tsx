@@ -137,11 +137,18 @@ export function AppsSection({
           onClick={() => setExpanded(!expanded)}
         >
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-              <Shield className="w-5 h-5 text-primary" />
-              ניהול אפליקציות
-              <HelpTooltip text="'מאושרות' — הילד/ה יכול/ה להשתמש. 'ממתינות לאישור' — אפליקציות חדשות שהותקנו וצריכות החלטה שלך." iconSize={12} />
-            </CardTitle>
+            <div className="flex min-w-0 items-center gap-3">
+              <Shield className="h-5 w-5 shrink-0 text-primary" />
+              <div className="min-w-0 text-right">
+                <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                  אפליקציות
+                  <HelpTooltip text="'מאושרות' — הילד/ה יכול/ה להשתמש. 'ממתינות לאישור' — אפליקציות חדשות שהותקנו וצריכות החלטה שלך." iconSize={12} />
+                </CardTitle>
+                <p className="mt-1 text-xs font-normal text-muted-foreground">
+                  {pendingApps.length > 0 ? `${pendingApps.length} ממתינות לאישור` : `${visiblePolicies.length} מנוהלות · ${blockedTotal} חסומות`}
+                </p>
+              </div>
+            </div>
             <div className="flex items-center gap-2">
               {expanded ? (
                 <ChevronUp className="w-4 h-4 text-muted-foreground" />

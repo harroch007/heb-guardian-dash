@@ -165,11 +165,18 @@ export function SchedulesSection({
           onClick={() => setExpanded(!expanded)}
         >
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-              <Calendar className="w-5 h-5 text-primary" />
-              לוחות זמנים
-              <HelpTooltip text="חלונות זמן בהם המכשיר חסום אוטומטית — לדוגמה שינה, שיעורים או שבת." iconSize={12} />
-            </CardTitle>
+            <div className="flex min-w-0 items-center gap-3">
+              <Calendar className="h-5 w-5 shrink-0 text-primary" />
+              <div className="min-w-0 text-right">
+                <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                  לוחות זמנים
+                  <HelpTooltip text="חלונות זמן בהם המכשיר חסום אוטומטית — לדוגמה שינה, שיעורים או שבת." iconSize={12} />
+                </CardTitle>
+                <p className="mt-1 text-xs font-normal text-muted-foreground">
+                  {activeCount > 0 ? `${activeCount} לוחות פעילים` : "לא הוגדר לוח פעיל"}
+                </p>
+              </div>
+            </div>
             <div className="flex items-center gap-2">
               {expanded ? (
                 <ChevronUp className="w-4 h-4 text-muted-foreground" />
