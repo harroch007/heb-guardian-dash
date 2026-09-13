@@ -275,9 +275,7 @@ const HomeV2 = () => {
           </Accordion>
         )}
 
-        {childrenData.length === 1 && (
-          <DailyControlSummary childrenData={childrenData} />
-        )}
+        <AttentionSection childrenData={childrenData} />
         <HomePendingGeofenceAlerts childrenData={childrenData} />
         {childrenData.length > 0 && (
           <FamilyLocationsMap children={childrenData} />
