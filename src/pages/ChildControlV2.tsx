@@ -159,6 +159,7 @@ export default function ChildControlV2() {
   } = useChildControls(childId);
   const {
     children: monitoringChildren,
+    refresh: refreshMonitoring,
   } = useV2GuardianMonitoring();
 
   const monitoringChild = monitoringChildren.find(
@@ -171,28 +172,6 @@ export default function ChildControlV2() {
         hasCurrentDeviceReport(monitoringDevice.monitoringState)
       ? "connected"
       : "inactive";
-
-  // ---------- Active schedule helper (1-7 mapping) ----------
-  const getActiveScheduleName = useCallback((): string | null => {
-    if (!scheduleWindows || scheduleWindows.length === 0) return null;
-    const now = new Date();
-    const dayOfWeek = now.getDay() + 1; // 1=Sun ... 7=Sat
-    const currentTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
-
-    for (const sw of scheduleWindows) {
-      if (!sw.is_active) continue;
-      if (sw.schedule_type === "shabbat") continue;
-      if (!sw.days_of_week?.includes(dayOfWeek)) continue;
-      if (sw.start_time && sw.end_time) {
-        if (sw.start_time <= sw.end_time) {
-          if (currentTime >= sw.start_time && currentTime <= sw.end_time) return sw.name;
-        } else {
-          if (currentTime >= sw.start_time || currentTime <= sw.end_time) return sw.name;
-        }
-      }
-    }
-    return null;
-  }, [scheduleWindows]);
 
   // ---------- Canonical V2 data fetching ----------
   const fetchData = useCallback(async (isPolling = false) => {
@@ -210,9 +189,6 @@ export default function ChildControlV2() {
 
     try {
       const today = getIsraelDate();
-      const todayStart = new Date();
-      todayStart.setHours(0, 0, 0, 0);
-
       const [childResult, devicesResult, settingsResult, incidentsResult] =
         await Promise.all([
           v2Supabase
