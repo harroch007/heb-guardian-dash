@@ -2,10 +2,10 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, MapPin } from "lucide-react";
 import { loadGoogleMaps } from "@/lib/googleMaps";
-import type { GGeocoder, GMap, GMapMouseEvent, GMarker } from "@/lib/googleMapsTypes";
+import type { GGeocoder, GMap, GMapMouseEvent, GMarker, GoogleNamespace } from "@/lib/googleMapsTypes";
 
 // The SDK is loaded at runtime via loadGoogleMaps().
-declare const google: any;
+declare const google: GoogleNamespace;
 
 interface MapPinPickerProps {
   initialLat?: number | null;

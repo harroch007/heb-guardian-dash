@@ -628,7 +628,7 @@ test.describe("V2 private parent routes", () => {
 
   test("keeps a freshly reporting degraded device connected", async ({
     page,
-  }) => {
+  }, testInfo) => {
     const monitoringState = rowsByTable.v2_device_monitoring_state[0] as {
       monitoring_state: string;
     };
@@ -656,7 +656,16 @@ test.describe("V2 private parent routes", () => {
           { exact: true },
         ),
       ).toBeVisible();
-      await expect(page.getByText("1/1", { exact: true }).first()).toBeVisible();
+      // Lovable replaced the aggregate connection counter with child cards.
+      // Verify the reporting child and its usable controls without sending a command.
+      await page.getByRole("button").filter({
+        has: page.getByRole("heading", { name: child.display_name, exact: true }),
+      }).click();
+      await expect(page.getByRole("button", { name: "צלצל למכשיר", exact: true })).toBeEnabled();
+      await testInfo.attach("home-degraded-reporting-desktop-rtl", {
+        body: await page.screenshot({ fullPage: true }),
+        contentType: "image/png",
+      });
     } finally {
       monitoringState.monitoring_state = originalState;
       health.product_ready = originalProductReady;

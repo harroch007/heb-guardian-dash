@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-const SUPABASE_URL = 'https://fsedenvbdpctzoznppwo.supabase.co';
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

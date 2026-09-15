@@ -515,7 +515,9 @@ test.describe("V2 child management with isolated synthetic traffic", () => {
       await page.getByRole("button", { name: "הסרת ילד", exact: true }).click();
       const dialog = page.getByRole("alertdialog");
       await expect(dialog.getByRole("heading", { name: `הסרת ${OTHER_CHILD_NAME} מהמשפחה`, exact: true })).toBeVisible();
-      await dialog.getByRole("button", { name: "הסרה מהמשפחה", exact: true }).click();
+      await dialog.getByRole("button", { name: "המשך לאישור", exact: true }).click();
+      expect(app.calls.archive).toEqual([]);
+      await dialog.getByRole("button", { name: `כן, להסיר את ${OTHER_CHILD_NAME}`, exact: true }).click();
       await expect(page).toHaveURL(/\/home-v2$/);
       expect(app.calls.archive).toEqual([{ target_child_id: OTHER_CHILD_ID,
         target_request_key: expect.stringMatching(/\S+/) }]);
@@ -577,14 +579,16 @@ test.describe("V2 child management with isolated synthetic traffic", () => {
     const remove = page.getByRole("button", { name: "הסרת ילד", exact: true });
     await remove.click();
     let dialog = managementDialog(page);
-    await expect(dialog.getByRole("button", { name: "הסרה מהמשפחה", exact: true })).toBeVisible();
+    await expect(dialog.getByRole("button", { name: "המשך לאישור", exact: true })).toBeVisible();
     expect(app.calls.archive).toEqual([]);
     await dialog.getByRole("button", { name: "ביטול", exact: true }).click();
     await expect(dialog).toBeHidden();
     expect(app.calls.archive).toEqual([]);
     await remove.click();
     dialog = managementDialog(page);
-    await dialog.getByRole("button", { name: "הסרה מהמשפחה", exact: true }).click();
+    await dialog.getByRole("button", { name: "המשך לאישור", exact: true }).click();
+    expect(app.calls.archive).toEqual([]);
+    await dialog.getByRole("button", { name: `כן, להסיר את ${CHILD_NAME}`, exact: true }).click();
     await expect(dialog.getByRole("alert")).toBeVisible();
     await expect(page).toHaveURL(new RegExp(`/child-v2/${CHILD_ID}$`));
     await expect(dialog).toContainText(CHILD_NAME);
@@ -594,7 +598,7 @@ test.describe("V2 child management with isolated synthetic traffic", () => {
     await testInfo.attach("remove-child-retry-desktop-rtl", {
       body: await page.screenshot({ fullPage: true }), contentType: "image/png",
     });
-    await dialog.getByRole("button", { name: "הסרה מהמשפחה", exact: true }).click();
+    await dialog.getByRole("button", { name: `כן, להסיר את ${CHILD_NAME}`, exact: true }).click();
     await expect(page).toHaveURL(/\/home-v2$/);
     expect(app.calls.archive).toHaveLength(2);
     expect(app.calls.archive[1]).toEqual(app.calls.archive[0]);
@@ -615,14 +619,17 @@ test.describe("V2 child management with isolated synthetic traffic", () => {
     await navigateToChild(page);
     await page.getByRole("button", { name: "הסרת ילד", exact: true }).click();
     const dialog = managementDialog(page);
+    await dialog.getByRole("button", { name: "המשך לאישור", exact: true }).click();
+    expect(app.calls.archive).toEqual([]);
     for (const attempts of [1, 2]) {
-      await dialog.getByRole("button", { name: "הסרה מהמשפחה", exact: true }).click();
+      await dialog.getByRole("button", { name: `כן, להסיר את ${CHILD_NAME}`, exact: true }).click();
       await expect.poll(() => app.calls.archive.length).toBe(attempts);
       await expect(dialog.getByRole("alert")).toBeVisible();
       await expect(page).toHaveURL(new RegExp(`/child-v2/${CHILD_ID}$`));
       await expect(dialog).toContainText(CHILD_NAME);
     }
     expect(app.calls.archive[1]).toEqual(app.calls.archive[0]);
+    await dialog.getByRole("button", { name: "חזרה", exact: true }).click();
     await dialog.getByRole("button", { name: "ביטול", exact: true }).click();
     await expect(page.getByRole("heading", { level: 1, name: CHILD_NAME, exact: true })).toBeVisible();
     await expect(page.getByText("הילד הוסר מהמשפחה", { exact: true })).toHaveCount(0);
@@ -652,6 +659,11 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 900 
       dialog = managementDialog(page);
       await expect(dialog).toBeVisible();
       await assertDialogLayout(page, dialog, testInfo, `remove-${viewport.width}-rtl-reduced-motion`);
+      await dialog.getByRole("button", { name: "המשך לאישור", exact: true }).click();
+      await expect(dialog.getByRole("heading", { name: `אישור סופי להסרת ${CHILD_NAME}`, exact: true })).toBeVisible();
+      await assertDialogLayout(page, dialog, testInfo, `remove-final-${viewport.width}-rtl-reduced-motion`);
+      expect(app.calls.archive).toEqual([]);
+      await dialog.getByRole("button", { name: "חזרה", exact: true }).click();
       await dialog.getByRole("button", { name: "ביטול", exact: true }).click();
       await expect(dialog).toBeHidden();
       await expect(remove).toBeFocused();
