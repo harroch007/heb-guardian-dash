@@ -23,3 +23,7 @@ Date: 2026-09-15. This milestone identifies source, not a new installed APK or p
 ## Outstanding runtime work
 
 Before an Alpha100 device release, validate Room/SQLCipher migration and the actual frozen-history review path, edit/delete evidence, semantic assessment and parent delivery. Four separate Sep14 text capture gaps remain at 20:17, 20:18, 20:20 and 20:22; history work does not fix them. No device, installation, migration application or production function invocation is performed by this source consolidation.
+
+## CI reconciliation follow-up
+
+First full GitHub run 34958711002 passed 70/71 browser tests. The remaining assertion referenced a 1/1 aggregate counter removed by the newer Lovable design. Updated the test to verify the actual reporting child card and usable controls without issuing a command; the disconnected/reporting assertions remain. Focused local rerun passed. Product code was not changed. A new full CI run is required before web merge.
