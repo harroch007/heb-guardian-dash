@@ -1,0 +1,115 @@
+/** Provider telemetry deliberately excludes prompts, responses, identifiers and errors. */
+export interface ProviderObservation {
+  status:
+    | "completed"
+    | "inconclusive"
+    | "transport_error"
+    | "http_error"
+    | "invalid_response";
+  http_status: number | null;
+  latency_ms: number;
+  input_tokens: number | null;
+  cached_input_tokens: number | null;
+  output_tokens: number | null;
+  reasoning_tokens: number | null;
+}
+export type ProviderObservationSink = (
+  observation: ProviderObservation,
+) => Promise<void>;
+
+export function newProviderObservation(): ProviderObservation {
+  return {
+    status: "transport_error",
+    http_status: null,
+    latency_ms: 0,
+    input_tokens: null,
+    cached_input_tokens: null,
+    output_tokens: null,
+    reasoning_tokens: null,
+  };
+}
+
+export function captureProviderUsage(
+  observation: ProviderObservation,
+  body: unknown,
+): void {
+  const usage = record(record(body)?.usage);
+  observation.input_tokens = tokenCount(usage?.input_tokens);
+  observation.output_tokens = tokenCount(usage?.output_tokens);
+  const cached = tokenCount(record(usage?.input_tokens_details)?.cached_tokens);
+  const reasoning = tokenCount(
+    record(usage?.output_tokens_details)?.reasoning_tokens,
+  );
+  observation.cached_input_tokens =
+    cached !== null && observation.input_tokens !== null &&
+      cached <= observation.input_tokens
+      ? cached
+      : null;
+  observation.reasoning_tokens =
+    reasoning !== null && observation.output_tokens !== null &&
+      reasoning <= observation.output_tokens
+      ? reasoning
+      : null;
+}
+
+export async function publishProviderObservation(
+  observation: ProviderObservation,
+  startedAt: number,
+  sink?: ProviderObservationSink,
+): Promise<void> {
+  observation.latency_ms = Math.max(
+    0,
+    Math.min(600_000, Math.round(performance.now() - startedAt)),
+  );
+  if (sink === undefined) return;
+  try {
+    await sink(Object.freeze({ ...observation }));
+  } catch {
+    // Operational failure is visible, but cannot convert acute analysis into a dropped alert.
+    console.error("expert_provider_telemetry_write_failed");
+  }
+}
+
+export function providerObservationSink(
+  rpc: (
+    name: string,
+    args: Record<string, unknown>,
+  ) => PromiseLike<{ error: unknown }>,
+  incidentId: string,
+  leaseToken: string,
+  endpoint: "ephemeral_v3" | "stored_queue",
+): ProviderObservationSink {
+  const attemptId = crypto.randomUUID();
+  return async (observation) => {
+    const { error } = await rpc(
+      "v2_record_expert_provider_attempt_v2_service",
+      {
+        target_attempt_id: attemptId,
+        target_incident_id: incidentId,
+        target_lease_token: leaseToken,
+        target_endpoint: endpoint,
+        target_status: observation.status,
+        target_http_status: observation.http_status,
+        target_latency_ms: observation.latency_ms,
+        target_input_tokens: observation.input_tokens,
+        target_cached_input_tokens: observation.cached_input_tokens,
+        target_output_tokens: observation.output_tokens,
+        target_reasoning_tokens: observation.reasoning_tokens,
+        target_prompt_version: "kippy-expert-v6",
+      },
+    );
+    if (error) throw new Error("provider_observation_write_failed");
+  };
+}
+
+function record(value: unknown): Record<string, unknown> | undefined {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : undefined;
+}
+function tokenCount(value: unknown): number | null {
+  return typeof value === "number" && Number.isSafeInteger(value) &&
+      value >= 0 && value <= 2_147_483_647
+    ? value
+    : null;
+}

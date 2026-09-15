@@ -1,0 +1,181 @@
+{
+  "milestone": "Alpha 3.0 Version 1",
+  "parent": "3fd568550233e061d4150ae01a135d23d186e53d",
+  "files": [
+    {
+      "path": "e2e/v2-child-management.spec.ts",
+      "sha256": "b5bbd762a02c4c35b49f8e2789ec2129d8a8426e6a0a160870b26e27abd9a4c9",
+      "git_blob": "d35d5d55f9fef1c5d8ace001ab26cd48d2145a34"
+    },
+    {
+      "path": "src/components/child-dashboard/MapPinPicker.tsx",
+      "sha256": "039e07a19d745d665f63c004c143257fc1943bc13915bb73879647b000c491f1",
+      "git_blob": "24008de4e7accb57c137280e83720a642227efa2"
+    },
+    {
+      "path": "src/components/home-v2/FamilyLocationsMap.tsx",
+      "sha256": "ab228c7158bc105db31a409b02529b7f45dadb0415e85e51d59e4f3203a42295",
+      "git_blob": "ea57b4ca0222a0dce473595d5896c00c290dd48c"
+    },
+    {
+      "path": "supabase-v2/supabase/functions/v2-moderate-message-batch/contract.ts",
+      "sha256": "5a04bf27da371ac450c93e1aa2c25471f29ca2ac432dbc403950f26df67c3302",
+      "git_blob": "7c2da26660d8b564572d89cc9a701eb701dab2e3"
+    },
+    {
+      "path": "supabase-v2/supabase/functions/v2-moderate-message-batch/contract_test.ts",
+      "sha256": "8623629495634df76051b60375221d25de7708e5a78cb27e75ab4a038e0cf57b",
+      "git_blob": "360dec5da5908bd373f6b0da57dd7d6ffa3efda4"
+    },
+    {
+      "path": "supabase-v2/supabase/functions/v2-moderate-message-batch/index.ts",
+      "sha256": "35faa265204fedba4340b3e692b24893f96951b82141e961111a897bf4ab53a6",
+      "git_blob": "3c983a9519a0f289526a0da8f8510a71ee12ba70"
+    },
+    {
+      "path": "supabase-v2/supabase/functions/v2-submit-safety-incident/_shared/auth.ts",
+      "sha256": "882924979edfbb7cffab09573a9520688a6b68007c2a5696f6ffd3a651ce373b",
+      "git_blob": "9ca29082e6cd8db6c6f317a741379ef15aeaec12"
+    },
+    {
+      "path": "supabase-v2/supabase/functions/v2-submit-safety-incident/_shared/http.ts",
+      "sha256": "d698cea5e398b61f63fdbbad84389b7e42fc677b9bb138f40f203cddff1863de",
+      "git_blob": "8ff0dbc2cc19cf2501e26693f40c8ba99aaeba88"
+    },
+    {
+      "path": "supabase-v2/supabase/functions/v2-submit-safety-incident/_shared/incident_age_context.ts",
+      "sha256": "101b1d76f0bf73bc75259c2120982cc6def8098a628dc173b8912c600f64f9fa",
+      "git_blob": "6d8276f25fd37612884bdff0982044585550a69f"
+    },
+    {
+      "path": "supabase-v2/supabase/functions/v2-submit-safety-incident/_shared/incident_crypto.ts",
+      "sha256": "9cfdac1d229945897cd6b9733f81a0e2fdf712cbc1e8b9ccb7ca2f9926bec539",
+      "git_blob": "fc9c771ee4c5575f4fae67342dd18e8113b30b60"
+    },
+    {
+      "path": "supabase-v2/supabase/functions/v2-submit-safety-incident/_shared/incident_deadline.ts",
+      "sha256": "3ec8ffb491f358184c05555e9b01e69cb56779e3cd0b5564b0816263fa0e9ac1",
+      "git_blob": "f7b823a36f27d94daaacc73b6f0187f146efb93c"
+    },
+    {
+      "path": "supabase-v2/supabase/functions/v2-submit-safety-incident/_shared/incident_ephemeral_deadline.ts",
+      "sha256": "ba0462f21bbf3c7bfcce16369b2bedd6d4f9af25d58523c4eff25485db05ccf7",
+      "git_blob": "d915c06c57604207ffd059de1f92a17aea53baf2"
+    },
+    {
+      "path": "supabase-v2/supabase/functions/v2-submit-safety-incident/_shared/incident_expert.ts",
+      "sha256": "6550ddba3d490582ba27c80175e56b0e3407c3c005f5324bd8bc29ba7eafc03c",
+      "git_blob": "a224f21f567c6821ed019bbaffb8cff186550d1d"
+    },
+    {
+      "path": "supabase-v2/supabase/functions/v2-submit-safety-incident/_shared/incident_explanation.ts",
+      "sha256": "b6d45e5f6533a3f38222d318ec9c41f961010e3d548f49406bf6ca7a207dd09f",
+      "git_blob": "a53e85bd4ed059b42dec61cd35b9d1685035540c"
+    },
+    {
+      "path": "supabase-v2/supabase/functions/v2-submit-safety-incident/_shared/incident_failure.ts",
+      "sha256": "7f3a55414a493a369e686673c7932265e22ea64e49fc02f05b87648f31ca2bf2",
+      "git_blob": "c45022e599b77ea99b4ff81b0f5cbcfb259635fe"
+    },
+    {
+      "path": "supabase-v2/supabase/functions/v2-submit-safety-incident/_shared/incident_full_fifo.ts",
+      "sha256": "bb1d8c146b428103c2144ebfda0bf98239d46736ba76e2477249db5798639a76",
+      "git_blob": "4317458385eb28be52986857b4b996e89f54c5ec"
+    },
+    {
+      "path": "supabase-v2/supabase/functions/v2-submit-safety-incident/_shared/incident_message_history.ts",
+      "sha256": "73c45ddbb7d8711645ce2536c3907adb6b5c6720654cf0ae110d24d9c7fdd2d6",
+      "git_blob": "7400041ad01eef27a607c619ab647ff19729c3f0"
+    },
+    {
+      "path": "supabase-v2/supabase/functions/v2-submit-safety-incident/_shared/incident_private_key.ts",
+      "sha256": "1216c8cbe3c06662be1b0b8b6cd5951df3cca937ac69d0b2ede60db2c2c3078d",
+      "git_blob": "182100a1ca581a91087a79c045310b413049efe9"
+    },
+    {
+      "path": "supabase-v2/supabase/functions/v2-submit-safety-incident/_shared/incident_retention_policy.ts",
+      "sha256": "d68dc69d2bf0500b85af74eba8b778b48038f8250ce49af25e5b2180e1ec9127",
+      "git_blob": "637772be68b736a0211b554eb2c51e6ea8eb8b9e"
+    },
+    {
+      "path": "supabase-v2/supabase/functions/v2-submit-safety-incident/_shared/incident_review.ts",
+      "sha256": "3a398e9f287d1580ef519edeb24221cc7a2ecc3988209cf00004b970e50c67dd",
+      "git_blob": "abad46022690d6ce63d7e66096d58bdb4ec6fba2"
+    },
+    {
+      "path": "supabase-v2/supabase/functions/v2-submit-safety-incident/_shared/incident_safety_identifier.ts",
+      "sha256": "6c8786140c9c3c2d429938200106f9ff9fc1168ff3b0f374cd398c21e7af6838",
+      "git_blob": "39876b93067352be743571437f03f3a1157558ad"
+    },
+    {
+      "path": "supabase-v2/supabase/functions/v2-submit-safety-incident/_shared/incident_submission.ts",
+      "sha256": "a01f984f586ec3633e3a4ae2400f185132323b799067fb867096100fc3f335ad",
+      "git_blob": "08da31a91df58b02b180dbc2b13d640a9e655918"
+    },
+    {
+      "path": "supabase-v2/supabase/functions/v2-submit-safety-incident/_shared/incident_three_gate_service.ts",
+      "sha256": "5710b275be346bb5d7a13f2fe5b31ccbdb1387da32acb4f66f1bdf880532d83d",
+      "git_blob": "b3c9623aec1b90a64c02512664971d1a52c8d4dc"
+    },
+    {
+      "path": "supabase-v2/supabase/functions/v2-submit-safety-incident/_shared/provider_observation.ts",
+      "sha256": "d95fe1d703786b8363f90784c4d960e5b19cfb7ad4090dcd135d2293c1dc77de",
+      "git_blob": "70c6a729152aa9897036ec7b67d612c361cf9a41"
+    },
+    {
+      "path": "supabase-v2/supabase/functions/v2-submit-safety-incident/age_context_test.ts",
+      "sha256": "61985888b89c9b32986a63c84210387071d41d6ec0956977176e62a057fcd720",
+      "git_blob": "6038ea31bb815ee3c0d5baa3c3f7f1b63b52e322"
+    },
+    {
+      "path": "supabase-v2/supabase/functions/v2-submit-safety-incident/explanation_contract_test.ts",
+      "sha256": "bbd2b8ad16acdba2a256796ab1bb4bc0d5ec123da80c1f08425ece49417e812c",
+      "git_blob": "e8586f1240a047506223807828e504e016b26d4b"
+    },
+    {
+      "path": "supabase-v2/supabase/functions/v2-submit-safety-incident/index.ts",
+      "sha256": "5886f8dfefa0341ef9e587168d77b60fc1866c1f592afc987d867504fffa7870",
+      "git_blob": "e732551b2e4dacc63ea08811bac7bce2d9f660ee"
+    },
+    {
+      "path": "supabase-v2/supabase/functions/v2-submit-safety-incident/message_history_contract_test.ts",
+      "sha256": "60966f0f1d5b44f23ad96e2e6ead282a666c6dbc7e80d46e3b429700cbb7eecb",
+      "git_blob": "a56c4051c60d6054fffaa7a35a9baee880202953"
+    },
+    {
+      "path": "supabase-v2/supabase/functions/v2-submit-safety-incident/moderation_contract_test.ts",
+      "sha256": "19f9e9492b3a531b82f993cd49afe574211abd15550289443d1b5adfb3e7164e",
+      "git_blob": "889639b7e4a51a7fd308fa8098ee1abea6d95ee2"
+    },
+    {
+      "path": "supabase-v2/supabase/migrations/20260914120000_v2_moderation_context_pipeline.sql",
+      "sha256": "c20a53c7c2b75a3ce221015c658dbe26f353ec3bcdb304ba3ad2b1f153ea156c",
+      "git_blob": "ab1b4d050950af75ef28fd873d9d4151ad98a2d5"
+    },
+    {
+      "path": "supabase-v2/supabase/migrations/20260914121000_v2_moderation_error_observation.sql",
+      "sha256": "a8ebdd9bb23d7255677eabecbfcab1d2199dde2c21fd4fade7a158d82ffbdfdf",
+      "git_blob": "212f090d915adef1cfbceb4eca634cc8a2310bce"
+    },
+    {
+      "path": "supabase-v2/supabase/migrations/20260915120000_v2_expert_explanation_review.sql",
+      "sha256": "a884563dd534b79f18bb46263bd63222898e4e5ab3ff18a6dadc024dbe838dc1",
+      "git_blob": "948f196fa6d8a2f4765c45ae3d5745c84ed9b376"
+    },
+    {
+      "path": "supabase-v2/supabase/tests/v2_expert_explanation_review_contract.sql",
+      "sha256": "34413bc0a5eb40a375c086e4910cefe597f040d8ad2417d2ade7e5dd3c8fe742",
+      "git_blob": "9427754e9f93802f13bbbee811c09517c60e6f04"
+    },
+    {
+      "path": "supabase/config.toml",
+      "sha256": "824ab8028f3acb00af95765d84be359d934c095a944bed932f5a56c08613cb0d",
+      "git_blob": "c8489864e219a224b361d77afcf96ac8b15581b1"
+    },
+    {
+      "path": "supabase/functions/check-device-health/index.ts",
+      "sha256": "2eca83d3206a9e92e2164440655aff38067898f30185743695f4713fa80bb255",
+      "git_blob": "05b5fafae401ade2ad9a4e31948d91b9d4b8a1d3"
+    }
+  ]
+}

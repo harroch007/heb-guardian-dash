@@ -3,10 +3,10 @@ import { MapPin } from "lucide-react";
 import type { ChildWithData } from "@/pages/HomeV2";
 import { hasCurrentDeviceReport } from "@/lib/v2/guardianMonitoringService";
 import { loadGoogleMaps } from "@/lib/googleMaps";
-import type { GIcon, GInfoWindow, GMap, GMarker } from "@/lib/googleMapsTypes";
+import type { GIcon, GInfoWindow, GMap, GMarker, GoogleNamespace } from "@/lib/googleMapsTypes";
 
 // The SDK is loaded at runtime via loadGoogleMaps().
-declare const google: any;
+declare const google: GoogleNamespace;
 
 interface Props {
   children: ChildWithData[];
