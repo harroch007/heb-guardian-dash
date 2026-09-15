@@ -1,0 +1,297 @@
+import { callOpenAIExpert, deriveExpertPolicy } from "./incident_expert.ts";
+import { callOpenAIExpert as callQueueExpert } from "./incident_expert_v4.ts";
+import type {
+  ExpertAnalysis,
+  SanitizedIncidentContext,
+} from "./incident_expert.ts";
+import {
+  captureProviderUsage,
+  newProviderObservation,
+  providerObservationSink,
+} from "./provider_observation.ts";
+import type { ProviderObservation } from "./provider_observation.ts";
+
+const context: SanitizedIncidentContext = {
+  schema_version: 2,
+  privacy_contract_version: 1,
+  privacy_identity_version: 1,
+  conversation_ref: "C".repeat(22),
+  conversation_type: "private",
+  trigger_segment_ref: "A".repeat(22),
+  evidence_segment_refs: ["A".repeat(22)],
+  messages: [{
+    segment_ref: "A".repeat(22),
+    participant_ref: "P".repeat(22),
+    sequence: 0,
+    relative_time_seconds: 0,
+    sender_role: "peer",
+    source_kind: "text",
+    capture_sources: ["accessibility"],
+    capture_confidence: {
+      conversation: 1,
+      message: 1,
+      sender: 1,
+      direction: 1,
+    },
+    text: "SYNTHETIC_PRIVATE_CONTENT_MUST_NOT_APPEAR_IN_TELEMETRY",
+  }],
+  redaction_manifest: {},
+};
+const analysis: ExpertAnalysis = {
+  outcome: "confirmed",
+  primary_category: "self_harm",
+  secondary_categories: [],
+  severity: "high",
+  urgency: "immediate",
+  child_role: "target",
+  pattern: "isolated",
+  confidence: 0.95,
+  evidence_segment_refs: ["A".repeat(22)],
+};
+function response(inference = analysis, usage: unknown = {
+  input_tokens: 2300,
+  input_tokens_details: { cached_tokens: 1200 },
+  output_tokens: 190,
+  output_tokens_details: { reasoning_tokens: 60 },
+}): Response {
+  return Response.json({
+    model: "gpt-5.6-luna",
+    status: "completed",
+    usage,
+    output: [{
+      type: "message",
+      content: [{ type: "output_text", text: JSON.stringify(inference) }],
+    }],
+    metadata: { private: "SHOULD_NEVER_BE_RECORDED" },
+  });
+}
+async function mockFetch<T>(
+  replacement: typeof fetch,
+  work: () => Promise<T>,
+): Promise<T> {
+  const previous = globalThis.fetch;
+  globalThis.fetch = replacement;
+  try {
+    return await work();
+  } finally {
+    globalThis.fetch = previous;
+  }
+}
+function equal(actual: unknown, expected: unknown): void {
+  if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+    throw new Error(
+      `Mismatch ${JSON.stringify(actual)} expected ${JSON.stringify(expected)}`,
+    );
+  }
+}
+const key = "synthetic-provider-key-never-real";
+const safetyId = "kippy_v1_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+
+for (
+  const [label, call] of [["v5 ephemeral", callOpenAIExpert], [
+    "v4 queue",
+    callQueueExpert,
+  ]] as const
+) {
+  Deno.test(`${label} observes success usage without private provider fields`, async () => {
+    const events: ProviderObservation[] = [];
+    const result = await mockFetch(async (_url, init) => {
+      const request = JSON.parse(String(init?.body));
+      equal(request.store, false);
+      equal(request.background, false);
+      equal(request.tools, []);
+      return response();
+    }, () =>
+      call(context, key, safetyId, async (event) => {
+        events.push(event);
+      }));
+    equal(
+      deriveExpertPolicy(result.analysis).action_code,
+      "urgent_intervention",
+    );
+    equal(events.length, 1);
+    const { latency_ms, ...event } = events[0];
+    equal(event, {
+      status: "completed",
+      http_status: 200,
+      input_tokens: 2300,
+      cached_input_tokens: 1200,
+      output_tokens: 190,
+      reasoning_tokens: 60,
+    });
+    if (latency_ms < 0 || !Number.isInteger(latency_ms)) {
+      throw new Error("invalid latency");
+    }
+    if (
+      /PRIVATE|SHOULD|text|prompt|secret|error_message/.test(
+        JSON.stringify(events),
+      )
+    ) throw new Error("telemetry leaked body");
+  });
+
+  for (
+    const [label, replacement, expectedStatus, expectedCode] of [
+      [
+        "rate limit",
+        async () =>
+          Response.json({ error: { message: "PRIVATE_PROVIDER_ERROR" } }, {
+            status: 429,
+          }),
+        "http_error",
+        "openai_rate_limited",
+      ],
+      [
+        "provider outage",
+        async () =>
+          Response.json({ error: { message: "PRIVATE_PROVIDER_ERROR" } }, {
+            status: 503,
+          }),
+        "http_error",
+        "openai_server_error",
+      ],
+      [
+        "invalid JSON",
+        async () => new Response("PRIVATE_NON_JSON"),
+        "invalid_response",
+        "openai_invalid_response",
+      ],
+      [
+        "transport failure",
+        async () => {
+          throw new Error("PRIVATE_NETWORK_ERROR");
+        },
+        "transport_error",
+        "openai_transport_error",
+      ],
+      [
+        "schema rejection",
+        async () =>
+          Response.json({
+            status: "completed",
+            model: "unapproved-model",
+            output: [],
+            usage: { input_tokens: 90, output_tokens: 10 },
+          }),
+        "invalid_response",
+        "openai_contract_mismatch",
+      ],
+    ] as const
+  ) {
+    Deno.test(`${label}: ${call === callOpenAIExpert ? "v5" : "v4"} failure still reports usage and safe status`, async () => {
+      const events: ProviderObservation[] = [];
+      let code: string | undefined;
+      await mockFetch(replacement, async () => {
+        try {
+          await call(context, key, safetyId, async (event) => {
+            events.push(event);
+          });
+        } catch (error) {
+          code = (error as { code: string }).code;
+        }
+      });
+      equal(code, expectedCode);
+      equal(events.length, 1);
+      equal(events[0].status, expectedStatus);
+      if (JSON.stringify(events).includes("PRIVATE")) {
+        throw new Error("raw error leaked");
+      }
+      if (label !== "schema rejection") equal(events[0].input_tokens, null);
+      else equal(events[0].input_tokens, 90);
+    });
+  }
+}
+
+Deno.test("inconclusive provider result is observable and still needs retry", async () => {
+  const events: ProviderObservation[] = [];
+  const inconclusive: ExpertAnalysis = {
+    ...analysis,
+    outcome: "inconclusive",
+    confidence: 0.51,
+    child_role: "unknown",
+    pattern: "unknown",
+  };
+  const result = await mockFetch(
+    async () => response(inconclusive),
+    () =>
+      callOpenAIExpert(context, key, safetyId, async (event) => {
+        events.push(event);
+      }),
+  );
+  equal(events[0].status, "inconclusive");
+  equal(deriveExpertPolicy(result.analysis).finalizable, false);
+});
+
+Deno.test("telemetry outage cannot suppress acute safety policy", async () => {
+  const result = await mockFetch(
+    async () => response(),
+    () =>
+      callOpenAIExpert(context, key, safetyId, async () => {
+        throw new Error("synthetic telemetry outage");
+      }),
+  );
+  equal(deriveExpertPolicy(result.analysis).channels, ["in_app", "push"]);
+});
+
+Deno.test("invalid numeric usage is unknown and nested arbitrary fields never escape", () => {
+  const observation = newProviderObservation();
+  captureProviderUsage(observation, {
+    usage: {
+      input_tokens: -1,
+      output_tokens: "190",
+      input_tokens_details: { cached_tokens: 999 },
+      output_tokens_details: { reasoning_tokens: 10 },
+      messages: ["PRIVATE"],
+    },
+  });
+  equal([
+    observation.input_tokens,
+    observation.output_tokens,
+    observation.cached_input_tokens,
+    observation.reasoning_tokens,
+  ], [null, null, null, null]);
+  captureProviderUsage(observation, {
+    usage: {
+      input_tokens: 2,
+      output_tokens: 3,
+      input_tokens_details: { cached_tokens: 4 },
+      output_tokens_details: { reasoning_tokens: 4 },
+    },
+  });
+  equal([observation.cached_input_tokens, observation.reasoning_tokens], [
+    null,
+    null,
+  ]);
+});
+
+Deno.test("RPC sink uses a stable attempt ID and allowlisted content-free arguments", async () => {
+  const calls: Array<Record<string, unknown>> = [];
+  const sink = providerObservationSink(
+    async (name, args) => {
+      equal(name, "v2_record_expert_provider_attempt_service");
+      calls.push(args);
+      return { error: null };
+    },
+    "synthetic-incident",
+    "a".repeat(64),
+    "ephemeral_v3",
+  );
+  await sink(newProviderObservation());
+  await sink(newProviderObservation());
+  equal(calls[0].target_attempt_id, calls[1].target_attempt_id);
+  equal(
+    Object.keys(calls[0]).sort(),
+    [
+      "target_attempt_id",
+      "target_incident_id",
+      "target_lease_token",
+      "target_endpoint",
+      "target_status",
+      "target_http_status",
+      "target_latency_ms",
+      "target_input_tokens",
+      "target_cached_input_tokens",
+      "target_output_tokens",
+      "target_reasoning_tokens",
+    ].sort(),
+  );
+});

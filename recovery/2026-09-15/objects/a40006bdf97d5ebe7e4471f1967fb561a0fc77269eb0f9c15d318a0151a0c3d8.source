@@ -1,0 +1,44 @@
+import type { V2GuardianAlert } from "@/lib/v2/guardianAlertsService";
+import { guardianCurrentOutcomeLabel } from "@/lib/v2/guardianAlertProjection";
+
+export const categoryLabels: Record<string, string> = {
+  bullying: "בריונות", exclusion: "חרם והדרה", sexual_content: "תוכן מיני",
+  violence: "אלימות ואיומים", grooming: "גרומינג", manipulation: "מניפולציה",
+  stranger_contact: "פנייה מזר", self_harm: "פגיעה עצמית", other: "בטיחות אחרת",
+};
+export const roleLabels: Record<string, string> = {
+  target: "הילד/ה יעד לפגיעה", participant: "הילד/ה משתתף/ת", initiator: "הילד/ה יזם/ה",
+  unknown: "תפקיד הילד/ה עדיין לא ודאי",
+};
+export const severityLabels: Record<string, string> = {
+  critical: "חומרה קריטית", high: "חומרה גבוהה", medium: "חומרה בינונית", low: "חומרה נמוכה",
+};
+export const severityClasses: Record<string, string> = {
+  critical: "border-red-500/40 bg-red-500/10 text-red-300",
+  high: "border-orange-500/40 bg-orange-500/10 text-orange-300",
+  medium: "border-amber-500/40 bg-amber-500/10 text-amber-300",
+  low: "border-blue-500/40 bg-blue-500/10 text-blue-300",
+};
+export const caseTitle = (alert: V2GuardianAlert) =>
+  alert.category ? categoryLabels[alert.category] ?? "אירוע בטיחות" : "אירוע במעקב";
+export const platformLabel = (platform: string) => platform === "whatsapp" ? "WhatsApp" : platform;
+export function formatCaseTime(value: string | null): string {
+  if (!value || !Number.isFinite(Date.parse(value))) return "המועד אינו זמין";
+  return new Intl.DateTimeFormat("he-IL", { dateStyle: "short", timeStyle: "short" }).format(new Date(value));
+}
+export function currentCaseLabel(alert: V2GuardianAlert): string {
+  return guardianCurrentOutcomeLabel(alert.expertOutcome) ??
+    (alert.assessmentSource === "expert" && alert.severity
+      ? severityLabels[alert.severity] ?? "נדרשת תשומת לב" : "סיווג ראשוני");
+}
+export function acknowledgementLabel(alert: V2GuardianAlert): string | null {
+  if (!alert.acknowledgedAt) return null;
+  if (alert.acknowledgedAssessmentSeq == null) return `סימנת שטיפלת באירוע בעבר · ${formatCaseTime(alert.acknowledgedAt)}`;
+  const previous = alert.acknowledgedAssessmentSeq != null && alert.assessmentSeq != null &&
+    alert.acknowledgedAssessmentSeq < alert.assessmentSeq;
+  return `${previous ? "סימנת שטיפלת בעדכון הקודם" : "סימנת שטיפלת בעדכון הזה"} · ${formatCaseTime(alert.acknowledgedAt)}`;
+}
+export function versionedActionsUnavailable(alert: V2GuardianAlert): boolean {
+  return (alert.assessmentSeq != null || alert.expertOutcome != null) &&
+    (!alert.caseDetailsAvailable || alert.guardianStateVersion == null);
+}

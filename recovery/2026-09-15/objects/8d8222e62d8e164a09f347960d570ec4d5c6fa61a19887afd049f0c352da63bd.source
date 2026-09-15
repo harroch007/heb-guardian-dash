@@ -1,0 +1,61 @@
+project_id = "gscclrgcmvtbyquveoze"
+
+[functions.analyze-alert]
+verify_jwt = false
+
+[functions.check-device-health]
+verify_jwt = false
+
+[functions.cleanup-unauthorized-user]
+verify_jwt = false
+
+[functions.generate-daily-insights]
+verify_jwt = false
+
+[functions.send-push-notification]
+verify_jwt = false
+
+[functions.set-user-password]
+verify_jwt = false
+
+[functions.create-admin-user]
+verify_jwt = false
+
+[functions.cleanup-stale-queue]
+verify_jwt = false
+
+[functions.admin-ai-analyst]
+verify_jwt = false
+
+[functions.generate-periodic-summary]
+verify_jwt = false
+
+[functions.expire-subscriptions]
+verify_jwt = false
+
+[functions.impersonate-user]
+verify_jwt = false
+
+[functions.admin-delete-user]
+verify_jwt = false
+
+[functions.send-email]
+verify_jwt = false
+
+[functions.calculate-shabbat-times]
+verify_jwt = false
+
+[functions.bootstrap-device-auth]
+verify_jwt = false
+
+[functions.join-family-by-code]
+verify_jwt = false
+
+[functions.recover-device-credentials]
+verify_jwt = false
+
+[functions.create-chat-invite]
+verify_jwt = false
+
+[functions.accept-chat-invite]
+verify_jwt = false

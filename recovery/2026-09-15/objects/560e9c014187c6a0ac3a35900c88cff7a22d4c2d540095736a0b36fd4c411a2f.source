@@ -1,0 +1,216 @@
+begin;
+do $$ begin
+  if current_database() <> 'kippy_three_gate' or inet_server_addr() <> '127.0.0.1'::inet
+     or inet_server_port() <> 57439 then raise exception 'isolated_three_gate_database_required'; end if;
+end $$;
+insert into auth.users(id) values ('15000000-0000-4000-8000-000000000001'),('15000000-0000-4000-8000-000000000002');
+insert into public.v2_families(id,display_name) values ('25000000-0000-4000-8000-000000000001','Synthetic three gate family');
+insert into public.v2_guardian_memberships(family_id,guardian_user_id,role,status) values
+ ('25000000-0000-4000-8000-000000000001','15000000-0000-4000-8000-000000000001','owner','active');
+insert into public.v2_children(id,family_id,display_name) values
+ ('35000000-0000-4000-8000-000000000001','25000000-0000-4000-8000-000000000001','Synthetic child');
+insert into public.v2_protected_devices(id,child_id,installation_id,app_version,status) values
+ ('45000000-0000-4000-8000-000000000001','35000000-0000-4000-8000-000000000001','55000000-0000-4000-8000-000000000001','synthetic','active');
+
+create function pg_temp.header(assessment uuid) returns jsonb language sql as $$
+ select jsonb_build_object('target_device_id','45000000-0000-4000-8000-000000000001',
+   'target_client_incident_id',assessment,'target_category','bullying','target_severity','high',
+   'target_child_role','target','target_confidence',0.9,'target_capture_quality',0.9,
+   'target_occurred_at',now(),'target_model_contract_version',2,'target_privacy_contract_version',3,
+   'target_privacy_identity_version',1,'target_key_version',1,'target_message_count',2,
+   'target_context_expires_at',now()+interval '1 hour','target_submission_hash_hex',repeat('a',64),'target_lease_seconds',120);
+$$;
+create function pg_temp.manifest(assessment uuid, seq bigint, previous uuid default null) returns jsonb language sql as $$
+ select jsonb_build_object('contract_version','THREE_GATE_FULL_FIFO_V1','case_id','65000000-0000-4000-8000-000000000001',
+   'assessment_id',assessment,'assessment_seq',seq,'previous_assessment_id',previous,
+   'origin_evidence_available',false,'digest_algorithm','HMAC_SHA256_JSON_BINARY_V1','payload_digest',repeat('b',64),
+   'snapshot',jsonb_build_object('conversation_revision',seq,'cutoff_at_ms',100000+seq,'message_count',2,
+       'ordered_segment_refs',jsonb_build_array(repeat('A',22),repeat('B',22)),'message_revisions',jsonb_build_array(seq,seq),
+       'pending_count',0,'coverage_gap',false,'earliest_evidence_at_ms',10000,'latest_evidence_at_ms',90000),
+   'gate_evidence',jsonb_build_object('rule_version','test-v1','evaluated_gates','[1,2,3]'::jsonb,'reason_codes','["SYNTHETIC_PATTERN"]'::jsonb));
+$$;
+create function pg_temp.analysis(outcome text, severity text default null) returns jsonb language sql as $$
+ select jsonb_build_object('outcome',outcome,'primary_category',case when outcome='confirmed' then 'bullying' end,
+   'secondary_categories','[]'::jsonb,'severity',severity,'urgency',case when outcome='confirmed' then 'elevated' else 'routine' end,
+   'child_role',case when outcome='confirmed' then 'target' else 'unknown' end,'pattern','repeated',
+   'confidence',0.9,'evidence_segment_refs',jsonb_build_array(repeat('A',22)));
+$$;
+
+do $$
+declare
+  device constant uuid := '45000000-0000-4000-8000-000000000001';
+  id1 constant uuid := '75000000-0000-4000-8000-000000000001';
+  id2 constant uuid := '75000000-0000-4000-8000-000000000002';
+  id3 constant uuid := '75000000-0000-4000-8000-000000000003';
+  id4 constant uuid := '75000000-0000-4000-8000-000000000004';
+  id5 constant uuid := '75000000-0000-4000-8000-000000000005';
+  id6 constant uuid := '75000000-0000-4000-8000-000000000006';
+  b1 record; b2 record; b3 record; b4 record; b5 record; b6 record; replay record; result record; parent uuid;
+  projection_count integer; saved_analysis jsonb; before_count integer;
+begin
+  if has_table_privilege('authenticated','public.v2_three_gate_cases','SELECT')
+     or has_table_privilege('anon','public.v2_three_gate_assessments','SELECT') then raise exception 'raw_case_access'; end if;
+  if (select count(*) from pg_class where oid in ('public.v2_three_gate_cases'::regclass,'public.v2_three_gate_assessments'::regclass)
+         and relrowsecurity and relforcerowsecurity) <> 2 then raise exception 'forced_rls_required'; end if;
+  if has_function_privilege('authenticated','public.v2_begin_three_gate_assessment_service(uuid,jsonb,jsonb,text)','EXECUTE')
+     or not has_function_privilege('service_role','public.v2_finalize_three_gate_assessment_service(uuid,text,jsonb,text,text)','EXECUTE') then raise exception 'rpc_acl'; end if;
+  select * into b1 from public.v2_begin_three_gate_assessment_service(device,pg_temp.header(id1),pg_temp.manifest(id1,1),repeat('C',22));
+  select * into replay from public.v2_begin_three_gate_assessment_service(device,pg_temp.header(id1),pg_temp.manifest(id1,1),repeat('C',22));
+  if not b1.created or b1.analysis_state <> 'leased' or replay.analysis_state <> 'busy' then raise exception 'lease_or_busy'; end if;
+  select * into result from public.v2_finalize_three_gate_assessment_service(b1.incident_id,b1.lease_token,pg_temp.analysis('inconclusive'),'gpt-5.6-luna','kippy-expert-v5');
+  if result.analysis_outcome <> 'inconclusive' or result.parent_incident_id is not null or result.delivery_count <> 0 then raise exception 'inconclusive_not_terminal'; end if;
+  select * into replay from public.v2_begin_three_gate_assessment_service(device,pg_temp.header(id1),pg_temp.manifest(id1,1),repeat('C',22));
+  if replay.analysis_state <> 'completed' or replay.analysis_outcome <> 'inconclusive' or replay.lease_token is not null then raise exception 'inconclusive_retried'; end if;
+  perform public.v2_finalize_three_gate_assessment_service(b1.incident_id,b1.lease_token,pg_temp.analysis('inconclusive'),'gpt-5.6-luna','kippy-expert-v5');
+  begin
+    perform public.v2_finalize_three_gate_assessment_service(b1.incident_id,b1.lease_token,pg_temp.analysis('dismissed'),'gpt-5.6-luna','kippy-expert-v5');
+    raise exception 'expected_completion_conflict';
+  exception when unique_violation then null; end;
+  begin
+    perform public.v2_begin_three_gate_assessment_service(device,pg_temp.header(id2),pg_temp.manifest(id2,3,id1),repeat('C',22));
+    raise exception 'expected_sequence_conflict';
+  exception when unique_violation then null; end;
+  begin
+    perform public.v2_begin_three_gate_assessment_service(device,pg_temp.header(id2),pg_temp.manifest(id2,2,id1),repeat('D',22));
+    raise exception 'expected_scope_conflict';
+  exception when unique_violation then null; end;
+  begin
+    perform public.v2_begin_three_gate_assessment_service(device,pg_temp.header(id1)||jsonb_build_object('target_submission_hash_hex',repeat('f',64)),pg_temp.manifest(id1,1),repeat('C',22));
+    raise exception 'expected_ciphertext_conflict';
+  exception when unique_violation then null; end;
+  select * into b2 from public.v2_begin_three_gate_assessment_service(device,pg_temp.header(id2),pg_temp.manifest(id2,2,id1),repeat('C',22));
+  select * into result from public.v2_finalize_three_gate_assessment_service(b2.incident_id,b2.lease_token,pg_temp.analysis('confirmed','high'),'gpt-5.6-luna','kippy-expert-v5');
+  parent := result.parent_incident_id;
+  if parent <> b2.incident_id or result.delivery_count <> 2 then raise exception 'first_parent_confirmation'; end if;
+  select to_jsonb(x) into saved_analysis from public.v2_incident_analysis x where x.incident_id=parent;
+  select count(*) into before_count from public.v2_alert_deliveries where incident_id=parent;
+  select * into b3 from public.v2_begin_three_gate_assessment_service(device,pg_temp.header(id3),pg_temp.manifest(id3,3,id2),repeat('C',22));
+  select * into b4 from public.v2_begin_three_gate_assessment_service(device,pg_temp.header(id4),pg_temp.manifest(id4,4,id3),repeat('C',22));
+  -- Newer result wins; older late conclusion must not overwrite it or create an event.
+  select * into result from public.v2_finalize_three_gate_assessment_service(b4.incident_id,b4.lease_token,pg_temp.analysis('confirmed','critical'),'gpt-5.6-luna','kippy-expert-v5');
+  if result.parent_incident_id <> parent or result.delivery_count <> 2 then raise exception 'missing_measured_escalation'; end if;
+  perform public.v2_finalize_three_gate_assessment_service(b4.incident_id,b4.lease_token,pg_temp.analysis('confirmed','critical'),'gpt-5.6-luna','kippy-expert-v5');
+  if (select count(*) from public.v2_alert_deliveries where incident_id=parent and event_key='three-gate-severity:4'
+      and event_assessment_id=b4.incident_id) <> 2 then raise exception 'escalation_not_idempotent'; end if;
+  perform public.v2_finalize_three_gate_assessment_service(b3.incident_id,b3.lease_token,pg_temp.analysis('dismissed'),'gpt-5.6-luna','kippy-expert-v5');
+  if not exists(select 1 from public.v2_three_gate_cases where parent_incident_id=parent and latest_applied_seq=4
+    and latest_outcome='confirmed' and latest_analysis->>'severity'='critical') then raise exception 'stale_result_overwrite'; end if;
+  if (select count(*) from public.v2_safety_incidents where status in ('confirmed','alerted')) <> 1
+    or (select count(*) from public.v2_alert_deliveries where incident_id=parent) <> before_count+2
+    or (select to_jsonb(x) from public.v2_incident_analysis x where x.incident_id=parent) is distinct from saved_analysis then
+    raise exception 'parent_identity_or_history_changed'; end if;
+  perform set_config('request.jwt.claim.sub','15000000-0000-4000-8000-000000000001',true);
+  select count(*) into projection_count from public.v2_get_guardian_three_gate_projections(array[parent]) where assessment_seq=4 and expert_severity='critical';
+  if projection_count <> 1 then raise exception 'guardian_projection_missing'; end if;
+  perform set_config('request.jwt.claim.sub','15000000-0000-4000-8000-000000000002',true);
+  if exists(select 1 from public.v2_get_guardian_three_gate_projections(array[parent])) then raise exception 'other_guardian_read'; end if;
+  select * into b5 from public.v2_begin_three_gate_assessment_service(device,pg_temp.header(id5),pg_temp.manifest(id5,5,id4),repeat('C',22));
+  perform public.v2_finalize_three_gate_assessment_service(b5.incident_id,b5.lease_token,pg_temp.analysis('inconclusive'),'gpt-5.6-luna','kippy-expert-v5');
+  if not exists(select 1 from public.v2_three_gate_cases where parent_incident_id=parent and latest_applied_seq=5 and latest_outcome='inconclusive') then raise exception 'visible_case_erased'; end if;
+  perform set_config('request.jwt.claim.sub','15000000-0000-4000-8000-000000000001',true);
+  if not exists(select 1 from public.v2_get_guardian_three_gate_projections(array[parent]) where assessment_seq=5
+    and expert_outcome='inconclusive' and expert_category is null and expert_severity is null) then
+    raise exception 'inconclusive_has_current_classification'; end if;
+  -- A transport error releases the lease; identical assessment resumes, rather than forking a case.
+  select * into b6 from public.v2_begin_three_gate_assessment_service(device,pg_temp.header(id6),pg_temp.manifest(id6,6,id5),repeat('C',22));
+  if not public.v2_release_ephemeral_incident_analysis_service(b6.incident_id,b6.lease_token) then raise exception 'release_failed'; end if;
+  select * into replay from public.v2_begin_three_gate_assessment_service(device,pg_temp.header(id6),pg_temp.manifest(id6,6,id5),repeat('C',22));
+  if replay.incident_id <> b6.incident_id or replay.analysis_state <> 'leased' or replay.lease_token=b6.lease_token then raise exception 'transport_retry_identity'; end if;
+  if exists(select 1 from public.v2_incident_context where incident_id in (b1.incident_id,b2.incident_id,b3.incident_id,b4.incident_id,b5.incident_id,b6.incident_id)) then raise exception 'raw_context_persisted'; end if;
+  -- A newer inconclusive must not hide a late first confirmed concern.
+  select * into b1 from public.v2_begin_three_gate_assessment_service(device,
+    pg_temp.header('85000000-0000-4000-8000-000000000001'),
+    pg_temp.manifest('85000000-0000-4000-8000-000000000001',1)||'{"case_id":"65000000-0000-4000-8000-000000000002"}'::jsonb,repeat('E',22));
+  select * into b2 from public.v2_begin_three_gate_assessment_service(device,
+    pg_temp.header('85000000-0000-4000-8000-000000000002'),
+    pg_temp.manifest('85000000-0000-4000-8000-000000000002',2,'85000000-0000-4000-8000-000000000001')||'{"case_id":"65000000-0000-4000-8000-000000000002"}'::jsonb,repeat('E',22));
+  perform public.v2_finalize_three_gate_assessment_service(b2.incident_id,b2.lease_token,pg_temp.analysis('inconclusive'),'gpt-5.6-luna','kippy-expert-v5');
+  perform public.v2_finalize_three_gate_assessment_service(b1.incident_id,b1.lease_token,pg_temp.analysis('confirmed','high'),'gpt-5.6-luna','kippy-expert-v5');
+  if not exists(select 1 from public.v2_three_gate_cases where case_id='65000000-0000-4000-8000-000000000002'
+      and parent_incident_id=b1.incident_id and latest_applied_seq=2 and latest_outcome='inconclusive'
+      and first_confirmed_seq=1) then raise exception 'late_first_confirmation_erased'; end if;
+  if has_function_privilege('authenticated','public.v2_get_three_gate_assessment_receipt_service(uuid,uuid,uuid,bigint)','EXECUTE') then raise exception 'receipt_lookup_not_service_only'; end if;
+  select * into result from public.v2_get_three_gate_assessment_receipt_service(device,
+    '65000000-0000-4000-8000-000000000001',id1,1);
+  if result.receipt_state <> 'completed' or result.expert_outcome <> 'inconclusive'
+     or result.message_count <> 2 or result.payload_digest <> repeat('b',64)
+     or result.incident_id is null or result.parent_alert_created then raise exception 'receipt_completion_changed'; end if;
+  select * into result from public.v2_get_three_gate_assessment_receipt_service(device,
+    '65000000-0000-4000-8000-000000000001',id6,6);
+  if result.receipt_state <> 'pending' or result.expert_outcome is not null then raise exception 'pending_receipt_conclusion'; end if;
+  select * into result from public.v2_get_three_gate_assessment_receipt_service(device,
+    '65000000-0000-4000-8000-000000000099',id1,1);
+  if result.receipt_state <> 'not_found' or result.expert_outcome is not null then raise exception 'receipt_scope_leak'; end if;
+  -- A known server assessment cannot be relabelled as never submitted.
+  begin
+    perform public.v2_begin_three_gate_assessment_service(device,
+      pg_temp.header('95000000-0000-4000-8000-000000000001'),
+      pg_temp.manifest('95000000-0000-4000-8000-000000000001',7,id6)||'{"previous_assessment_state":"cancelled_before_submission"}'::jsonb,repeat('C',22));
+    raise exception 'expected_known_previous_cancellation_rejection';
+  exception when unique_violation then null; end;
+  -- Local reservations 1 and 2 can be cancelled before HTTP; first server contact is 3.
+  select * into b1 from public.v2_begin_three_gate_assessment_service(device,
+    pg_temp.header('95000000-0000-4000-8000-000000000003'),
+    pg_temp.manifest('95000000-0000-4000-8000-000000000003',3,'95000000-0000-4000-8000-000000000002')||
+      '{"case_id":"65000000-0000-4000-8000-000000000003","previous_assessment_state":"cancelled_before_submission"}'::jsonb,repeat('F',22));
+  if b1.analysis_state <> 'leased' then raise exception 'cancelled_reservation_gap_stranded_case'; end if;
+  begin
+    perform public.v2_begin_three_gate_assessment_service(device,
+      pg_temp.header('95000000-0000-4000-8000-000000000002'),
+      pg_temp.manifest('95000000-0000-4000-8000-000000000002',2,'95000000-0000-4000-8000-000000000001')||
+        '{"case_id":"65000000-0000-4000-8000-000000000003","previous_assessment_state":"cancelled_before_submission"}'::jsonb,repeat('F',22));
+    raise exception 'expected_stale_cancelled_reservation_rejection';
+  exception when unique_violation then null; end;
+  -- Same and lower confirmed ranks never create another event, even after an inconclusive.
+  -- Use a fresh linked assessment while seq6 remains pending.
+  select * into b1 from public.v2_begin_three_gate_assessment_service(device,
+    pg_temp.header('75000000-0000-4000-8000-000000000007'),
+    pg_temp.manifest('75000000-0000-4000-8000-000000000007',7,id6),repeat('C',22));
+  select * into result from public.v2_finalize_three_gate_assessment_service(b1.incident_id,b1.lease_token,pg_temp.analysis('confirmed','critical'),'gpt-5.6-luna','kippy-expert-v5');
+  if result.delivery_count <> 0 then raise exception 'same_rank_notified_again'; end if;
+  select * into b2 from public.v2_begin_three_gate_assessment_service(device,
+    pg_temp.header('75000000-0000-4000-8000-000000000008'),
+    pg_temp.manifest('75000000-0000-4000-8000-000000000008',8,'75000000-0000-4000-8000-000000000007'),repeat('C',22));
+  select * into result from public.v2_finalize_three_gate_assessment_service(b2.incident_id,b2.lease_token,pg_temp.analysis('confirmed','low'),'gpt-5.6-luna','kippy-expert-v5');
+  if result.delivery_count <> 0 then raise exception 'lower_rank_notified_again'; end if;
+  select * into b3 from public.v2_begin_three_gate_assessment_service(device,
+    pg_temp.header('75000000-0000-4000-8000-000000000009'),
+    pg_temp.manifest('75000000-0000-4000-8000-000000000009',9,'75000000-0000-4000-8000-000000000008'),repeat('C',22));
+  perform public.v2_finalize_three_gate_assessment_service(b3.incident_id,b3.lease_token,pg_temp.analysis('dismissed'),'gpt-5.6-luna','kippy-expert-v5');
+  if not exists(select 1 from public.v2_get_guardian_three_gate_projections(array[parent]) where assessment_seq=9
+    and expert_outcome='dismissed' and expert_category is null and expert_severity is null) then
+    raise exception 'dismissed_has_current_classification'; end if;
+  if (select count(*) from public.v2_alert_deliveries where incident_id=parent) <> before_count+2 then
+    raise exception 'same_lower_or_dismissed_duplicate_delivery'; end if;
+  raise notice 'PASS: terminal replay, immutable history, one parent, escalation idempotency, neutral non-confirmed projection, ordering, authorization and ephemeral privacy';
+end;
+$$;
+-- Ordinary production finalizers cannot notify a dedicated synthetic scope with no guardians.
+insert into public.v2_families(id,display_name) values ('26000000-0000-4000-8000-000000000001','Synthetic no-recipient family');
+insert into public.v2_children(id,family_id,display_name) values
+ ('36000000-0000-4000-8000-000000000001','26000000-0000-4000-8000-000000000001','Synthetic no-recipient child');
+insert into public.v2_protected_devices(id,child_id,installation_id,app_version,status) values
+ ('46000000-0000-4000-8000-000000000001','36000000-0000-4000-8000-000000000001','56000000-0000-4000-8000-000000000001','synthetic-no-recipient','active');
+do $$
+declare b record; completed record;
+begin
+  select * into b from public.v2_begin_three_gate_assessment_service('46000000-0000-4000-8000-000000000001',
+    pg_temp.header('76000000-0000-4000-8000-000000000001')||'{"target_device_id":"46000000-0000-4000-8000-000000000001"}'::jsonb,
+    pg_temp.manifest('76000000-0000-4000-8000-000000000001',1),repeat('G',22));
+  select * into completed from public.v2_finalize_three_gate_assessment_service(b.incident_id,b.lease_token,
+    pg_temp.analysis('confirmed','low'),'gpt-5.6-luna','kippy-expert-v5');
+  if completed.analysis_outcome <> 'confirmed' or completed.delivery_count <> 0
+     or exists(select 1 from public.v2_alert_deliveries where incident_id=b.incident_id)
+     or exists(select 1 from public.v2_guardian_memberships where family_id='26000000-0000-4000-8000-000000000001') then
+    raise exception 'synthetic_no_recipient_boundary_failed'; end if;
+  select * into b from public.v2_begin_three_gate_assessment_service('46000000-0000-4000-8000-000000000001',
+    pg_temp.header('76000000-0000-4000-8000-000000000002')||'{"target_device_id":"46000000-0000-4000-8000-000000000001"}'::jsonb,
+    pg_temp.manifest('76000000-0000-4000-8000-000000000002',2,'76000000-0000-4000-8000-000000000001'),repeat('G',22));
+  select * into completed from public.v2_finalize_three_gate_assessment_service(b.incident_id,b.lease_token,
+    pg_temp.analysis('confirmed','critical'),'gpt-5.6-luna','kippy-expert-v5');
+  if completed.delivery_count <> 0 or exists(select 1 from public.v2_alert_deliveries where incident_id=completed.parent_incident_id) then
+    raise exception 'synthetic_escalation_notified_without_guardian'; end if;
+  raise notice 'PASS: first confirmation and critical escalation create no delivery without an active guardian';
+end;
+$$;
+rollback;

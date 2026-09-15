@@ -1,0 +1,141 @@
+-- Synthetic, rollback-only contract. Disposable database only.
+begin;
+do $$ begin
+    if current_database() <> 'kippy_monitoring' or inet_server_addr() <> '127.0.0.1'::inet
+        or inet_server_port() <> 56439 then raise exception 'disposable_database_required'; end if;
+end $$;
+create function pg_temp.assert_true(value boolean, label text) returns void language plpgsql as $$
+begin if value is distinct from true then raise exception 'ASSERTION FAILED: %', label; end if; end $$;
+create function pg_temp.expect_error(statement text, expected_state text) returns void language plpgsql as $$
+begin
+    begin execute statement;
+    exception when others then
+        if sqlstate = expected_state then return; end if;
+        raise exception 'Expected SQLSTATE %, got %: %', expected_state, sqlstate, sqlerrm;
+    end;
+    raise exception 'Expected SQLSTATE %, statement succeeded', expected_state;
+end $$;
+
+insert into auth.users(id) values
+('10000000-0000-4000-8000-000000000001'), -- active guardian
+('10000000-0000-4000-8000-000000000002'), -- other active guardian, same family
+('10000000-0000-4000-8000-000000000003'), -- outsider
+('10000000-0000-4000-8000-000000000004'); -- human reviewer
+insert into public.v2_families(id,display_name) values ('20000000-0000-4000-8000-000000000001','Synthetic monitoring family');
+insert into public.v2_guardian_memberships(family_id,guardian_user_id,role,status) values
+('20000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001','owner','active'),
+('20000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000002','guardian','active');
+insert into public.v2_children(id,family_id,display_name) values
+('30000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','Synthetic child');
+insert into public.v2_protected_devices(id,child_id,installation_id,app_version,status) values
+('40000000-0000-4000-8000-000000000001','30000000-0000-4000-8000-000000000001','41000000-0000-4000-8000-000000000001','test','active');
+insert into public.v2_safety_incidents(id,device_id,child_id,client_incident_id,category,severity,child_role,confidence,capture_quality,occurred_at,status,privacy_contract_version) values
+('50000000-0000-4000-8000-000000000001','40000000-0000-4000-8000-000000000001','30000000-0000-4000-8000-000000000001','51000000-0000-4000-8000-000000000001','bullying','high','target',0.9,0.9,now(),'received',3),
+('50000000-0000-4000-8000-000000000002','40000000-0000-4000-8000-000000000001','30000000-0000-4000-8000-000000000001','51000000-0000-4000-8000-000000000002','bullying','low','unknown',0.9,0.9,now(),'received',3);
+insert into public.v2_incident_analysis(incident_id,outcome,reason_code,action_code,safe_summary,safe_reason,recommended_action,model_provider,model_name,model_version,prompt_version,analysis_contract_version)
+values ('50000000-0000-4000-8000-000000000001','confirmed','bullying_pattern','professional_support','Synthetic summary','Synthetic reason','Synthetic action','openai','gpt-5.6-luna','gpt-5.6-luna','kippy-expert-v5',2);
+update public.v2_safety_incidents set status = 'confirmed' where id = '50000000-0000-4000-8000-000000000001';
+
+select pg_temp.assert_true(not has_table_privilege('authenticated','public.v2_guardian_incident_feedback','INSERT'), 'RPC-only feedback writes');
+select pg_temp.assert_true(not has_table_privilege('authenticated','public.v2_safety_feedback_review_queue','SELECT'), 'review queue restricted');
+select pg_temp.assert_true(not has_table_privilege('authenticated','public.v2_expert_provider_attempts','SELECT'), 'provider ledger restricted');
+select pg_temp.assert_true(not has_table_privilege('authenticated','public.v2_safety_feedback_reviewers','INSERT'), 'no self-authorized reviewer');
+select pg_temp.assert_true(not has_table_privilege('service_role','public.v2_safety_feedback_reviewers','INSERT'), 'service cannot appoint itself reviewer');
+select pg_temp.assert_true((select bool_and(relrowsecurity and relforcerowsecurity) from pg_class where oid in (
+    'public.v2_guardian_incident_feedback'::regclass,'public.v2_guardian_missed_concerns'::regclass,
+    'public.v2_guardian_feedback_requests'::regclass,'public.v2_safety_feedback_reviews'::regclass,
+    'public.v2_safety_feedback_reviewers'::regclass,'public.v2_expert_provider_attempts'::regclass)), 'forced RLS');
+
+set local role anon;
+select pg_temp.expect_error($q$select public.v2_submit_guardian_incident_feedback('50000000-0000-4000-8000-000000000001','helpful',null,'feedback-key-0001')$q$,'42501');
+set local role authenticated;
+select set_config('request.jwt.claim.sub','','true');
+select pg_temp.expect_error($q$select public.v2_submit_guardian_incident_feedback('50000000-0000-4000-8000-000000000001','helpful',null,'feedback-key-0001')$q$,'42501');
+select set_config('request.jwt.claim.sub','10000000-0000-4000-8000-000000000003',true);
+select pg_temp.expect_error($q$select public.v2_submit_guardian_incident_feedback('50000000-0000-4000-8000-000000000001','helpful',null,'feedback-key-0001')$q$,'42501');
+select pg_temp.expect_error($q$select public.v2_report_missed_safety_concern('30000000-0000-4000-8000-000000000001','bullying',current_date,'missed-key-000001')$q$,'42501');
+select set_config('request.jwt.claim.sub','10000000-0000-4000-8000-000000000001',true);
+select pg_temp.expect_error($q$select public.v2_submit_guardian_incident_feedback('50000000-0000-4000-8000-000000000002','helpful',null,'feedback-key-0001')$q$,'42501');
+select pg_temp.expect_error($q$select public.v2_submit_guardian_incident_feedback('50000000-0000-4000-8000-000000000001',null,null,'feedback-key-0001')$q$,'22023');
+select pg_temp.expect_error($q$select public.v2_submit_guardian_incident_feedback('50000000-0000-4000-8000-000000000001','not_helpful',null,'feedback-key-0001')$q$,'22023');
+select pg_temp.expect_error($q$select public.v2_submit_guardian_incident_feedback('50000000-0000-4000-8000-000000000001','helpful','other','feedback-key-0001')$q$,'22023');
+select pg_temp.expect_error($q$insert into public.v2_guardian_incident_feedback(incident_id,guardian_user_id,usefulness) values ('50000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001','helpful')$q$,'42501');
+
+select * from public.v2_submit_guardian_incident_feedback('50000000-0000-4000-8000-000000000001','helpful',null,'feedback-key-0001');
+select * from public.v2_submit_guardian_incident_feedback('50000000-0000-4000-8000-000000000001','helpful',null,'feedback-key-0001');
+select pg_temp.assert_true((select count(*) = 1 from public.v2_guardian_incident_feedback), 'one guardian row after replay');
+select pg_temp.assert_true((select prompt_version = 'kippy-expert-v5' and decision_action_code = 'professional_support'
+    and guardian_user_id = auth.uid() from public.v2_guardian_incident_feedback), 'server-derived identity and provenance');
+select pg_temp.expect_error($q$select public.v2_submit_guardian_incident_feedback('50000000-0000-4000-8000-000000000001','unsure',null,'feedback-key-0001')$q$,'23505');
+select * from public.v2_submit_guardian_incident_feedback('50000000-0000-4000-8000-000000000001','not_helpful','incorrect_interpretation','feedback-key-0002');
+select pg_temp.assert_true((select usefulness = 'helpful' from public.v2_submit_guardian_incident_feedback('50000000-0000-4000-8000-000000000001','helpful',null,'feedback-key-0001')), 'retry returns original response');
+select pg_temp.assert_true((select usefulness = 'not_helpful' from public.v2_guardian_incident_feedback), 'old retry does not overwrite newer feedback');
+select pg_temp.expect_error($q$select public.v2_report_missed_safety_concern('30000000-0000-4000-8000-000000000001','bullying',current_date,'feedback-key-0001')$q$,'23505');
+select pg_temp.expect_error($q$select public.v2_report_missed_safety_concern('30000000-0000-4000-8000-000000000001','bullying',current_date+1,'missed-key-000001')$q$,'22023');
+select pg_temp.expect_error($q$select public.v2_report_missed_safety_concern('30000000-0000-4000-8000-000000000001','bullying',current_date-31,'missed-key-000001')$q$,'22023');
+select pg_temp.expect_error($q$select public.v2_report_missed_safety_concern('30000000-0000-4000-8000-000000000001','raw conversation',current_date,'missed-key-000001')$q$,'22023');
+select * from public.v2_report_missed_safety_concern('30000000-0000-4000-8000-000000000001','bullying',(now() at time zone 'UTC')::date-30,'missed-key-000001');
+select * from public.v2_report_missed_safety_concern('30000000-0000-4000-8000-000000000001','bullying',(now() at time zone 'UTC')::date-30,'missed-key-000001');
+select pg_temp.assert_true((select count(*) = 1 from public.v2_guardian_missed_concerns), 'missed concern replay creates one row');
+
+select set_config('request.jwt.claim.sub','10000000-0000-4000-8000-000000000002',true);
+select pg_temp.assert_true((select count(*) = 0 from public.v2_guardian_incident_feedback), 'second guardian cannot read first feedback');
+select pg_temp.assert_true((select count(*) = 0 from public.v2_guardian_missed_concerns), 'second guardian cannot read first missed concern');
+select * from public.v2_submit_guardian_incident_feedback('50000000-0000-4000-8000-000000000001','unsure',null,'feedback-key-0001');
+select pg_temp.assert_true((select count(*) = 1 from public.v2_guardian_incident_feedback), 'request key scoped per guardian');
+-- A spoofed metadata role does not change SQL execute privileges.
+select set_config('request.jwt.claims','{"role":"service_role","app_metadata":{"role":"admin"}}',true);
+select pg_temp.expect_error($q$select public.v2_review_safety_feedback_service('incident','50000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001',now(),'10000000-0000-4000-8000-000000000002','no_change')$q$,'42501');
+reset role;
+update public.v2_guardian_memberships set status = 'revoked' where guardian_user_id = '10000000-0000-4000-8000-000000000001';
+set local role authenticated;
+select set_config('request.jwt.claim.sub','10000000-0000-4000-8000-000000000001',true);
+select pg_temp.assert_true((select count(*) = 0 from public.v2_guardian_incident_feedback), 'revocation hides own feedback');
+select pg_temp.assert_true((select count(*) = 0 from public.v2_guardian_missed_concerns), 'revocation hides own concern');
+select pg_temp.expect_error($q$select public.v2_submit_guardian_incident_feedback('50000000-0000-4000-8000-000000000001','helpful',null,'feedback-key-0001')$q$,'42501');
+reset role;
+update public.v2_guardian_memberships set status = 'active' where guardian_user_id = '10000000-0000-4000-8000-000000000001';
+
+select pg_temp.assert_true((select count(*) = 2 from public.v2_safety_incidents), 'feedback creates no incident');
+select pg_temp.assert_true((select count(*) = 0 from public.v2_alert_deliveries), 'feedback creates no delivery');
+select pg_temp.assert_true((select count(*) = 0 from public.v2_guardian_incident_states), 'feedback independent of acknowledgement');
+select pg_temp.assert_true((select status = 'confirmed' and severity = 'high' from public.v2_safety_incidents where id = '50000000-0000-4000-8000-000000000001'), 'classification unaffected');
+select pg_temp.assert_true((select count(*) = 3 from public.v2_audit_events where action = 'v2.guardian.feedback.submit'), 'one audit per new feedback request');
+
+set local role service_role;
+select pg_temp.assert_true((select count(*) = 3 from public.v2_safety_feedback_review_queue), 'restricted combined review queue');
+select pg_temp.expect_error($q$select public.v2_review_safety_feedback_service('incident','50000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001',now(),'10000000-0000-4000-8000-000000000003','no_change')$q$,'42501');
+reset role;
+insert into public.v2_safety_feedback_reviewers(user_id, enabled) values ('10000000-0000-4000-8000-000000000004',true);
+set local role service_role;
+select public.v2_review_safety_feedback_service(q.feedback_kind,q.target_id,q.guardian_user_id,q.feedback_updated_at,
+    '10000000-0000-4000-8000-000000000004','candidate_evaluation')
+from public.v2_safety_feedback_review_queue q where q.feedback_kind = 'incident' and q.guardian_user_id = '10000000-0000-4000-8000-000000000001';
+select pg_temp.assert_true((select count(*) = 2 from public.v2_safety_feedback_review_queue), 'review removes only reviewed revision');
+select pg_temp.expect_error($q$select public.v2_review_safety_feedback_service('incident','50000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001',now()-interval '1 day','10000000-0000-4000-8000-000000000004','no_change')$q$,'40001');
+reset role;
+select pg_temp.assert_true((select count(*) = 1 from public.v2_audit_events where action = 'v2.safety_feedback.human_review'
+    and actor_user_id = '10000000-0000-4000-8000-000000000004'), 'attributed human review audit');
+set local role authenticated;
+select * from public.v2_submit_guardian_incident_feedback('50000000-0000-4000-8000-000000000001','unsure',null,'feedback-key-0003');
+set local role service_role;
+select pg_temp.assert_true((select count(*) = 3 from public.v2_safety_feedback_review_queue), 'changed feedback requires another human review');
+reset role;
+
+-- Provider telemetry validates a server-held lease; failure usage is unknown.
+insert into public.v2_ephemeral_incident_receipts(incident_id,submission_hash,privacy_identity_version,key_version,message_count,
+    context_expires_at,state,lease_token_hash,lease_expires_at)
+values ('50000000-0000-4000-8000-000000000002',extensions.digest('synthetic','sha256'),1,1,1,now()+interval '1 hour',
+    'leased',extensions.digest(repeat('a',64),'sha256'),now()+interval '2 minutes');
+set local role service_role;
+select pg_temp.expect_error($q$select public.v2_record_expert_provider_attempt_service('60000000-0000-4000-8000-000000000001','50000000-0000-4000-8000-000000000002',repeat('b',64),'ephemeral_v3','completed',200,100,1000,400,50,20)$q$,'42501');
+select public.v2_record_expert_provider_attempt_service('60000000-0000-4000-8000-000000000001','50000000-0000-4000-8000-000000000002',repeat('a',64),'ephemeral_v3','http_error',429,100,null,null,null,null);
+select public.v2_record_expert_provider_attempt_service('60000000-0000-4000-8000-000000000001','50000000-0000-4000-8000-000000000002',repeat('a',64),'ephemeral_v3','http_error',429,100,null,null,null,null);
+select public.v2_record_expert_provider_attempt_service('60000000-0000-4000-8000-000000000002','50000000-0000-4000-8000-000000000002',repeat('a',64),'ephemeral_v3','completed',200,250,1000,400,50,20);
+select pg_temp.expect_error($q$select public.v2_record_expert_provider_attempt_service('60000000-0000-4000-8000-000000000002','50000000-0000-4000-8000-000000000002',repeat('a',64),'ephemeral_v3','completed',200,250,1001,400,50,20)$q$,'23505');
+select pg_temp.assert_true((select count(*) = 2 and max(attempt_number) = 2 from public.v2_expert_provider_attempts), 'idempotent calls and retry attribution');
+select pg_temp.assert_true((select bool_and(prompt_version = 'kippy-expert-v5' and model_name = 'gpt-5.6-luna') from public.v2_expert_provider_attempts), 'server-owned provider provenance');
+select pg_temp.assert_true((select sum(retry_attempts) = 1 and sum(usage_missing_attempts) = 1 and sum(input_tokens) = 1000 from public.v2_expert_provider_usage_daily), 'usage aggregate distinguishes unknown');
+reset role;
+select pg_temp.assert_true((select count(*) = 0 from public.v2_incident_context), 'v3 never persisted an envelope');
+rollback;

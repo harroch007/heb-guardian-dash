@@ -1,0 +1,210 @@
+begin;
+set transaction read only;
+
+do $$
+declare
+    stored_submit regprocedure := to_regprocedure(
+        'public.v2_submit_safety_incident_service(uuid,uuid,text,text,text,real,real,timestamptz,smallint,smallint,bigint,text,text,integer,smallint,timestamptz)'
+    );
+    ephemeral_begin regprocedure := to_regprocedure(
+        'public.v2_begin_ephemeral_incident_analysis_service(uuid,uuid,text,text,text,real,real,timestamptz,smallint,smallint,bigint,integer,smallint,timestamptz,text,integer)'
+    );
+    stored_finalize regprocedure := to_regprocedure(
+        'public.v2_finalize_incident_analysis_service(text,uuid,text,uuid,text,text,text,text,text,text[],text,text,text,text,real,text[],text[])'
+    );
+    legacy_finalize regprocedure := to_regprocedure(
+        'public.v2_finalize_ephemeral_incident_analysis_service(uuid,text,text,text,text,text,text,text[],text,text,text,text,real,text[],text[])'
+    );
+    v5_finalize regprocedure := to_regprocedure(
+        'public.v2_finalize_ephemeral_incident_analysis_service(uuid,text,text,text,text,text,text,text[],text,text,text,text,real,text[],text[],text)'
+    );
+    context_guard regprocedure := to_regprocedure(
+        'public.v2_guard_incident_context_privacy_version()'
+    );
+    target_function regprocedure;
+    constraint_definition text;
+    stored_definition text;
+    begin_definition text;
+    guard_definition text;
+    stored_finalize_definition text;
+    legacy_finalize_definition text;
+    v5_finalize_definition text;
+    receipts_rls boolean;
+begin
+    if stored_submit is null
+       or ephemeral_begin is null
+       or stored_finalize is null
+       or legacy_finalize is null
+       or v5_finalize is null
+       or context_guard is null then
+        raise exception 'Required incident compatibility RPC is missing';
+    end if;
+
+    select lower(pg_get_constraintdef(constraint_row.oid))
+      into constraint_definition
+      from pg_constraint constraint_row
+     where constraint_row.conrelid = 'public.v2_safety_incidents'::regclass
+       and constraint_row.conname =
+           'v2_safety_incidents_privacy_contract_version_check';
+
+    if constraint_definition is null
+       or constraint_definition !~
+          'privacy_contract_version = any \(array\[1, 2, 3\]\)' then
+        raise exception 'Incident table does not accept exactly V1/V2/V3';
+    end if;
+
+    stored_definition := lower(regexp_replace(
+        pg_get_functiondef(stored_submit),
+        '[[:space:]]+',
+        ' ',
+        'g'
+    ));
+    if position(
+        'target_privacy_contract_version not in (1, 2)'
+        in stored_definition
+    ) = 0
+       or position(
+           'insert into public.v2_incident_context'
+           in stored_definition
+       ) = 0 then
+        raise exception 'Stored submit RPC is not restricted to V1/V2';
+    end if;
+
+    begin_definition := lower(regexp_replace(
+        pg_get_functiondef(ephemeral_begin),
+        '[[:space:]]+',
+        ' ',
+        'g'
+    ));
+    if position(
+        'target_privacy_contract_version <> 3'
+        in begin_definition
+    ) = 0
+       or position(
+           'insert into public.v2_ephemeral_incident_receipts'
+           in begin_definition
+       ) = 0
+       or position(
+           'insert into public.v2_incident_context'
+           in begin_definition
+       ) > 0 then
+        raise exception 'Ephemeral begin RPC is not isolated to V3 receipts';
+    end if;
+
+    guard_definition := lower(regexp_replace(
+        pg_get_functiondef(context_guard),
+        '[[:space:]]+',
+        ' ',
+        'g'
+    ));
+    if position(
+        'incident.privacy_contract_version in (1, 2)'
+        in guard_definition
+    ) = 0
+       or not exists (
+           select 1
+           from pg_trigger target_trigger
+           where target_trigger.tgrelid =
+               'public.v2_incident_context'::regclass
+             and target_trigger.tgname =
+                 'v2_incident_context_guard_privacy_version'
+             and not target_trigger.tgisinternal
+             and target_trigger.tgenabled <> 'D'
+       ) then
+        raise exception 'V3 context-storage guard is missing or disabled';
+    end if;
+
+    stored_finalize_definition := lower(pg_get_functiondef(stored_finalize));
+    legacy_finalize_definition := lower(pg_get_functiondef(legacy_finalize));
+    v5_finalize_definition := lower(pg_get_functiondef(v5_finalize));
+    if position('kippy-expert-v4' in stored_finalize_definition) = 0
+       or position('target_prompt_version' in stored_finalize_definition) > 0
+       or position('target_prompt_version' in legacy_finalize_definition) > 0
+       or position('target_prompt_version' in v5_finalize_definition) = 0
+       or position('kippy-expert-v5' in v5_finalize_definition) = 0
+       or position('prompt_version' in v5_finalize_definition) = 0 then
+        raise exception 'Expert prompt-version provenance contract drifted';
+    end if;
+
+    foreach target_function in array array[
+        stored_submit,
+        ephemeral_begin,
+        stored_finalize,
+        legacy_finalize,
+        v5_finalize
+    ] loop
+        if not (
+            select function_row.prosecdef
+               and pg_get_userbyid(function_row.proowner) = 'postgres'
+            from pg_proc function_row
+            where function_row.oid = target_function
+        ) then
+            raise exception 'Incident RPC owner/security-definer drift: %',
+                target_function;
+        end if;
+        if not has_function_privilege(
+            'service_role',
+            target_function,
+            'EXECUTE'
+        ) or has_function_privilege(
+            'anon',
+            target_function,
+            'EXECUTE'
+        ) or has_function_privilege(
+            'authenticated',
+            target_function,
+            'EXECUTE'
+        ) then
+            raise exception 'Incident RPC execution ACL drift: %',
+                target_function;
+        end if;
+    end loop;
+
+    if not (
+        select guard_row.prosecdef
+           and pg_get_userbyid(guard_row.proowner) = 'postgres'
+        from pg_proc guard_row
+        where guard_row.oid = context_guard
+    ) or has_function_privilege(
+        'service_role',
+        context_guard,
+        'EXECUTE'
+    ) or has_function_privilege(
+        'anon',
+        context_guard,
+        'EXECUTE'
+    ) or has_function_privilege(
+        'authenticated',
+        context_guard,
+        'EXECUTE'
+    ) then
+        raise exception 'Incident context guard ownership/ACL drifted';
+    end if;
+
+    select receipts.relrowsecurity and receipts.relforcerowsecurity
+      into receipts_rls
+      from pg_class receipts
+     where receipts.oid = 'public.v2_ephemeral_incident_receipts'::regclass;
+
+    if receipts_rls is distinct from true
+       or has_table_privilege(
+           'service_role',
+           'public.v2_ephemeral_incident_receipts',
+           'SELECT,INSERT,UPDATE,DELETE'
+       )
+       or has_table_privilege(
+           'anon',
+           'public.v2_ephemeral_incident_receipts',
+           'SELECT,INSERT,UPDATE,DELETE'
+       )
+       or has_table_privilege(
+           'authenticated',
+           'public.v2_ephemeral_incident_receipts',
+           'SELECT,INSERT,UPDATE,DELETE'
+       ) then
+        raise exception 'Ephemeral receipt RLS/direct-DML boundary drifted';
+    end if;
+end
+$$;
+
+rollback;

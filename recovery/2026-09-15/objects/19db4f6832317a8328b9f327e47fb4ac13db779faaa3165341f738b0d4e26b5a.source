@@ -1,0 +1,43 @@
+import {
+  assertEphemeralContextFresh,
+  providerTimeoutMs,
+} from "./incident_ephemeral_deadline.ts";
+import { AnalysisDeadlineError } from "./incident_deadline.ts";
+
+const now = Date.parse("2026-09-06T12:00:00.000Z");
+Deno.test("expired ephemeral context cannot be decrypted, sent, or finalized", () => {
+  for (
+    const value of [
+      "2026-09-06T11:59:59.000Z",
+      "2026-09-06T12:00:00.000Z",
+      "invalid",
+    ]
+  ) {
+    let rejected = false;
+    try {
+      assertEphemeralContextFresh(value, now);
+    } catch (error) {
+      rejected = error instanceof AnalysisDeadlineError && !error.retryable;
+    }
+    if (!rejected) throw new Error("invalid or expired deadline accepted");
+  }
+});
+Deno.test("provider timeout is clipped to context expiry", () => {
+  if (providerTimeoutMs(now + 8000, now) !== 8000) {
+    throw new Error("provider can outlive context");
+  }
+  if (providerTimeoutMs(now + 60_000, now) !== 45_000) {
+    throw new Error("provider timeout changed");
+  }
+});
+Deno.test("acute risk with little remaining time is admitted without a minimum budget", () => {
+  const expiry = assertEphemeralContextFresh("2026-09-06T12:00:00.010Z", now);
+  if (providerTimeoutMs(expiry, now) !== 10) {
+    throw new Error("short valid context discarded");
+  }
+});
+Deno.test("stored queue retains the existing provider timeout", () => {
+  if (providerTimeoutMs(undefined, now) !== 45_000) {
+    throw new Error("legacy timeout changed");
+  }
+});

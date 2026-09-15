@@ -1,0 +1,121 @@
+import { useId, useRef, useState, type FormEvent } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  createV2FeedbackRequestKey,
+  reportV2MissedConcern,
+  V2_CONCERN_CATEGORIES,
+  v2FeedbackErrorMessage,
+  type V2ConcernCategory,
+} from "@/lib/v2/guardianFeedbackService";
+
+function dateBounds() {
+  const today = new Date();
+  const earliest = new Date(today);
+  earliest.setUTCDate(earliest.getUTCDate() - 30);
+  return { max: today.toISOString().slice(0, 10), min: earliest.toISOString().slice(0, 10) };
+}
+
+export function V2MissedConcern({ children }: {
+  children: Array<{ id: string; displayName: string }>;
+}) {
+  const id = useId();
+  const [childId, setChildId] = useState(children.length === 1 ? children[0].id : "");
+  const [category, setCategory] = useState<V2ConcernCategory | "">("");
+  const [occurredOn, setOccurredOn] = useState("");
+  const [pending, setPending] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [validation, setValidation] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const request = useRef<{ fingerprint: string; key: string } | null>(null);
+  const submitting = useRef(false);
+  const bounds = dateBounds();
+
+  const edited = () => {
+    setSaved(false);
+    setValidation(null);
+    setError(null);
+  };
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (submitting.current || saved) return;
+    if (!children.some((child) => child.id === childId) || !category || !occurredOn) {
+      setValidation("יש לבחור ילד/ה, סוג חשש ותאריך.");
+      return;
+    }
+    const currentBounds = dateBounds();
+    if (occurredOn < currentBounds.min || occurredOn > currentBounds.max) {
+      setValidation("יש לבחור תאריך מהיום או מ־30 הימים האחרונים.");
+      return;
+    }
+    const fingerprint = JSON.stringify([childId, category, occurredOn]);
+    if (request.current?.fingerprint !== fingerprint) {
+      request.current = { fingerprint, key: createV2FeedbackRequestKey() };
+    }
+    submitting.current = true;
+    setPending(true);
+    setValidation(null);
+    setError(null);
+    try {
+      await reportV2MissedConcern({ childId, category, occurredOn, requestKey: request.current.key });
+      request.current = null;
+      setSaved(true);
+    } catch (failure) {
+      setError(v2FeedbackErrorMessage(failure));
+    } finally {
+      submitting.current = false;
+      setPending(false);
+    }
+  };
+
+  return (
+    <details className="rounded-xl border border-border bg-card p-4">
+      <summary className="min-h-11 cursor-pointer py-2 text-sm font-semibold text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
+        משהו מדאיג לא הופיע כאן?
+      </summary>
+      <form noValidate onSubmit={(event) => void submit(event)} aria-label="דיווח על חשש שלא הופיע" aria-busy={pending} className="mt-3 space-y-3">
+        <p id={`${id}-description`} className="text-sm leading-relaxed text-muted-foreground">
+          אפשר לדווח על חשש מהיום או מ־30 הימים האחרונים לצורך בדיקה. הדיווח כולל רק ילד/ה, סוג חשש ותאריך, ללא תוכן שיחות. הוא לא יוצר התראה חדשה.
+        </p>
+        {children.length === 0 ? (
+          <p className="text-sm text-muted-foreground">אפשר לדווח לאחר הוספת ילד/ה לחשבון.</p>
+        ) : (
+          <fieldset disabled={pending} className="space-y-3" aria-describedby={`${id}-description${validation ? ` ${id}-validation` : ""}`}>
+            <legend className="sr-only">פרטי החשש</legend>
+            <div className="space-y-1">
+              <label htmlFor={`${id}-child`} className="block text-sm">ילד/ה</label>
+              <select id={`${id}-child`} value={childId} aria-required="true" aria-invalid={Boolean(validation && !childId)}
+                onChange={(event) => { setChildId(event.target.value); edited(); }}
+                className="min-h-11 w-full min-w-0 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
+                <option value="">בחירת ילד/ה</option>
+                {children.map((child) => <option key={child.id} value={child.id}>{child.displayName}</option>)}
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label htmlFor={`${id}-category`} className="block text-sm">סוג החשש</label>
+              <select id={`${id}-category`} value={category} aria-required="true" aria-invalid={Boolean(validation && !category)}
+                onChange={(event) => { setCategory(event.target.value as V2ConcernCategory | ""); edited(); }}
+                className="min-h-11 w-full min-w-0 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
+                <option value="">בחירת סוג חשש</option>
+                {V2_CONCERN_CATEGORIES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label htmlFor={`${id}-date`} className="block text-sm">מתי זה קרה?</label>
+              <input id={`${id}-date`} type="date" value={occurredOn} min={bounds.min} max={bounds.max} dir="ltr"
+                aria-required="true" aria-invalid={Boolean(validation && (!occurredOn || occurredOn < bounds.min || occurredOn > bounds.max))}
+                onChange={(event) => { setOccurredOn(event.target.value); edited(); }}
+                className="min-h-11 w-full min-w-0 max-w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary" />
+            </div>
+          </fieldset>
+        )}
+        {validation && <p id={`${id}-validation`} role="alert" className="text-sm text-red-300">{validation}</p>}
+        {error && <p role="alert" className="text-sm leading-relaxed text-red-300">{error}</p>}
+        <Button type="submit" variant="outline" className="min-h-11 whitespace-normal" disabled={pending || saved || children.length === 0}>
+          {pending ? "שומר את הדיווח…" : error ? "ניסיון נוסף לשליחת הדיווח" : "שליחת דיווח לבדיקה"}
+        </Button>
+        <p role="status" className="text-sm text-primary">{saved ? "הדיווח נשמר לבדיקה." : ""}</p>
+      </form>
+    </details>
+  );
+}

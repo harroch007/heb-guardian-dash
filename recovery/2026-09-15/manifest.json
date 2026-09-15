@@ -1,0 +1,1734 @@
+{
+  "purpose": "Non-executable preservation of local source variants; not an active product merge",
+  "files": [
+    {
+      "worktree": "kippy",
+      "branch": "feature/google-maps-migration",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase/config.toml",
+      "sha256": "8d8222e62d8e164a09f347960d570ec4d5c6fa61a19887afd049f0c352da63bd",
+      "bytes": 1140
+    },
+    {
+      "worktree": "kippy",
+      "branch": "feature/google-maps-migration",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase/functions/check-device-health/index.ts",
+      "sha256": "23cf340968d2926142001216a275d93d86b1539d55aa18c409fa9e70844f0e95",
+      "bytes": 12267
+    },
+    {
+      "worktree": "kippy-brand-20260906",
+      "branch": "codex/kippy-brand-first-phone-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "e2e/public-routes.spec.ts",
+      "sha256": "ae1439d7972dbfb23286164fb0b244363f0c55359bc5e0a9fb8eb086c8d39752",
+      "bytes": 9594
+    },
+    {
+      "worktree": "kippy-brand-20260906",
+      "branch": "codex/kippy-brand-first-phone-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "e2e/v2-parent-routes.spec.ts",
+      "sha256": "ead4c23a0569ba9bff4e7d688648e26d9aa714ccb50c7748dda02385058cc815",
+      "bytes": 23421
+    },
+    {
+      "worktree": "kippy-brand-20260906",
+      "branch": "codex/kippy-brand-first-phone-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "public/apple-touch-icon.png",
+      "sha256": "c31c86addb81a567aedb8c0c191361b1b4d8505bd152d4d9ce9cf2dddce03754",
+      "bytes": 9230
+    },
+    {
+      "worktree": "kippy-brand-20260906",
+      "branch": "codex/kippy-brand-first-phone-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "public/favicon.ico",
+      "sha256": "0982c26d134d56de21144d3b6586be380333707152251f0544db903e4ad00719",
+      "bytes": 8036
+    },
+    {
+      "worktree": "kippy-brand-20260906",
+      "branch": "codex/kippy-brand-first-phone-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "public/favicon.png",
+      "sha256": "70d48361196288f7f841ff82619bf604f4c8f70c9f094ccdb9124374acb1fb45",
+      "bytes": 3125
+    },
+    {
+      "worktree": "kippy-brand-20260906",
+      "branch": "codex/kippy-brand-first-phone-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "public/pwa-192x192.png",
+      "sha256": "f9e558d1f279e056898ac79914694f1ce0451bd98dabb3d6a28b5dfe0de02a5e",
+      "bytes": 10283
+    },
+    {
+      "worktree": "kippy-brand-20260906",
+      "branch": "codex/kippy-brand-first-phone-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "public/pwa-512x512.png",
+      "sha256": "0767d25a929d3dd67be2760c4e69e5a7e51652828812f89d713626419b7119e7",
+      "bytes": 36069
+    },
+    {
+      "worktree": "kippy-brand-20260906",
+      "branch": "codex/kippy-brand-first-phone-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "src/assets/kippy-logo.png",
+      "sha256": "59499b7d8bb1ccf1df30b17bb93aba10591f45fa813284b627e0962b568f2f4d",
+      "bytes": 44495
+    },
+    {
+      "worktree": "kippy-brand-20260906",
+      "branch": "codex/kippy-brand-first-phone-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "src/assets/kippy-logo.svg",
+      "sha256": "70b512e89ad7c3f315ebfd9e2d48023b067b38ab3ae4801122ce12eed761fac5",
+      "bytes": 290
+    },
+    {
+      "worktree": "kippy-brand-20260906",
+      "branch": "codex/kippy-brand-first-phone-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "src/components/TopNavigationV2.tsx",
+      "sha256": "531cc1aab54ba7ba8c828fac1c374087349b9199cffb895628aea5e4f6a3c54b",
+      "bytes": 1668
+    },
+    {
+      "worktree": "kippy-brand-20260906",
+      "branch": "codex/kippy-brand-first-phone-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "src/components/WaitlistModal.tsx",
+      "sha256": "8b42e0938774ea1317caac281c26ff3f32606c41e6dd625cdd2c45150d66d325",
+      "bytes": 18230
+    },
+    {
+      "worktree": "kippy-brand-20260906",
+      "branch": "codex/kippy-brand-first-phone-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "src/components/accessibility/AccessibilityPanel.tsx",
+      "sha256": "f8549423f691b45581c8c6f2ae5a7f78bb4b13555a37fbfcef4e70ea476163b3",
+      "bytes": 9804
+    },
+    {
+      "worktree": "kippy-brand-20260906",
+      "branch": "codex/kippy-brand-first-phone-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "src/index.css",
+      "sha256": "6967e8228abacc4316537fc0cb8ca2d4be199df9893ed83df2ac84fc92db66d8",
+      "bytes": 7892
+    },
+    {
+      "worktree": "kippy-brand-20260906",
+      "branch": "codex/kippy-brand-first-phone-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "src/lib/v2/guardianMonitoringService.ts",
+      "sha256": "1148e7cbc459f9e154a19c0ce7a9b631fcf0b69e926eead5e993cc472db9723a",
+      "bytes": 8648
+    },
+    {
+      "worktree": "kippy-brand-20260906",
+      "branch": "codex/kippy-brand-first-phone-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "src/pages/HomeV2.tsx",
+      "sha256": "573e03c7bcfe4900510036ac6a72a66200ed84500f4d8f58bba7dd89eaa5f856",
+      "bytes": 11315
+    },
+    {
+      "worktree": "kippy-brand-20260906",
+      "branch": "codex/kippy-brand-first-phone-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "src/pages/LandingV1.tsx",
+      "sha256": "a116540487edd395c51930c85856c652cac8e4c181e4de57c159c6b1675cfcfd",
+      "bytes": 9907
+    },
+    {
+      "worktree": "kippy-brand-20260906",
+      "branch": "codex/kippy-brand-first-phone-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "e2e/brand-experience.spec.ts",
+      "sha256": "dee2790bf2e79384f426d9e4338cd629d1a38ab23a719c9e548ec23256200213",
+      "bytes": 6432
+    },
+    {
+      "worktree": "kippy-brand-20260906",
+      "branch": "codex/kippy-brand-first-phone-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "public/brand/index.html",
+      "sha256": "d1c325549ad7dd5c97f422174679e1d28f06e88fcf6df280be70c35b8d29efab",
+      "bytes": 12060
+    },
+    {
+      "worktree": "kippy-brand-20260906",
+      "branch": "codex/kippy-brand-first-phone-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "public/brand/kippy-app-1024.png",
+      "sha256": "e8c0aa81ba2285d8c55fc95caeb6ff5d4cf4c7d45a0d15fb54d91572247fa993",
+      "bytes": 95839
+    },
+    {
+      "worktree": "kippy-brand-20260906",
+      "branch": "codex/kippy-brand-first-phone-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "public/brand/kippy-app-180.png",
+      "sha256": "c31c86addb81a567aedb8c0c191361b1b4d8505bd152d4d9ce9cf2dddce03754",
+      "bytes": 9230
+    },
+    {
+      "worktree": "kippy-brand-20260906",
+      "branch": "codex/kippy-brand-first-phone-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "public/brand/kippy-app-192.png",
+      "sha256": "f9e558d1f279e056898ac79914694f1ce0451bd98dabb3d6a28b5dfe0de02a5e",
+      "bytes": 10283
+    },
+    {
+      "worktree": "kippy-brand-20260906",
+      "branch": "codex/kippy-brand-first-phone-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "public/brand/kippy-app-48.png",
+      "sha256": "3d9c9b063712bab269a229a6927a1953218d8d59024c27125c688ee4e502aef4",
+      "bytes": 1809
+    },
+    {
+      "worktree": "kippy-brand-20260906",
+      "branch": "codex/kippy-brand-first-phone-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "public/brand/kippy-app-512.png",
+      "sha256": "0767d25a929d3dd67be2760c4e69e5a7e51652828812f89d713626419b7119e7",
+      "bytes": 36069
+    },
+    {
+      "worktree": "kippy-brand-20260906",
+      "branch": "codex/kippy-brand-first-phone-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "public/brand/kippy-app-icon.svg",
+      "sha256": "9e0c82f2bfadfbf7e0b69cc4d0bb69cbc3b1a92d9242f0fa47fe96c47e5fb7a4",
+      "bytes": 391
+    },
+    {
+      "worktree": "kippy-brand-20260906",
+      "branch": "codex/kippy-brand-first-phone-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "public/brand/kippy-mark-mono.svg",
+      "sha256": "c3d95e46ba223d313f7e4a057398e5f9db43239842e49c5110b3acb0bbb3f009",
+      "bytes": 290
+    },
+    {
+      "worktree": "kippy-brand-20260906",
+      "branch": "codex/kippy-brand-first-phone-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "public/brand/kippy-mark-white.svg",
+      "sha256": "c0b1213c20bfa5f41d16dcfc3ca81cd776f25a66502aee47038ee4408c612952",
+      "bytes": 290
+    },
+    {
+      "worktree": "kippy-brand-20260906",
+      "branch": "codex/kippy-brand-first-phone-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "public/brand/kippy-mark.svg",
+      "sha256": "70b512e89ad7c3f315ebfd9e2d48023b067b38ab3ae4801122ce12eed761fac5",
+      "bytes": 290
+    },
+    {
+      "worktree": "kippy-brand-20260906",
+      "branch": "codex/kippy-brand-first-phone-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "public/brand/kippy-together.webp",
+      "sha256": "37e4aeee97f278333a1a82cb74900c717de1b3a1923e05e27478c4eadf0df808",
+      "bytes": 155968
+    },
+    {
+      "worktree": "kippy-brand-20260906",
+      "branch": "codex/kippy-brand-first-phone-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "public/brand/kippy-wordmark-mono.svg",
+      "sha256": "c9756047fea4a8c57b38099710673ba4bb55bf90bf36405e117010faaf3a33d0",
+      "bytes": 532
+    },
+    {
+      "worktree": "kippy-brand-20260906",
+      "branch": "codex/kippy-brand-first-phone-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "public/brand/kippy-wordmark-white.svg",
+      "sha256": "ed3fd355d69d6c5faa4d53909ae95b814522db7768849f809521f3170e0a755e",
+      "bytes": 532
+    },
+    {
+      "worktree": "kippy-brand-20260906",
+      "branch": "codex/kippy-brand-first-phone-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "public/brand/kippy-wordmark.svg",
+      "sha256": "25f2c392bd9862e1f9bf04197fc945e0324a036618512cad672c3b37e1598e3c",
+      "bytes": 532
+    },
+    {
+      "worktree": "kippy-brand-20260906",
+      "branch": "codex/kippy-brand-first-phone-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "public/fonts/Fredoka-Variable.ttf",
+      "sha256": "2ba02e68b152868aef9ba28e24b3648c7d457fe6f25c761f2c2c53fb61a73fc8",
+      "bytes": 159184
+    },
+    {
+      "worktree": "kippy-brand-20260906",
+      "branch": "codex/kippy-brand-first-phone-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "src/components/brand/KippyLogo.tsx",
+      "sha256": "639768df63712a1394e42daa66255b735cf9559f9b38ea2893403a5026bf8fdd",
+      "bytes": 414
+    },
+    {
+      "worktree": "kippy-brand-20260906",
+      "branch": "codex/kippy-brand-first-phone-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "src/components/brand/ParentMoments.tsx",
+      "sha256": "98e8928e523ca7432d53b397d6ab1edc3b562695e224ad5334789512f4c8ef2e",
+      "bytes": 4343
+    },
+    {
+      "worktree": "kippy-brand-20260906",
+      "branch": "codex/kippy-brand-first-phone-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "src/styles/kippy-landing.css",
+      "sha256": "186f160ebc366208e5e130d3fa783a2521ac979e3f78d670b7a7bc00a063cee1",
+      "bytes": 16759
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "src/components/home-v2/FamilyLocationsMap.tsx",
+      "sha256": "3816baf10ff6068c6c328dbd13dbdb9c585d8c7894ad5b0740bbe55e6a4e8b2d",
+      "bytes": 9057
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "src/integrations/supabase/v2-types.ts",
+      "sha256": "a5e6d453019dc7c134982d644caee103de2f5bb79d23b54c30ceb6788662e21e",
+      "bytes": 197523
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "src/lib/v2/guardianAlertsService.ts",
+      "sha256": "62cb2d492d369a32678428308d9f70a3ba9e9cf0f5346200e9f5675b4ec27cc2",
+      "bytes": 5867
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "src/lib/v2/guardianHomeService.ts",
+      "sha256": "e573b1fa5d2d8c9d5bd1730440475ed0aab41d3a8e73bee7b1e13f4f1cec9a73",
+      "bytes": 8819
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "src/lib/v2/guardianMonitoringService.ts",
+      "sha256": "f98cf9e256d60029d3fdbff59a59d3f8fa79abffced5f50026a6707ba5e74507",
+      "bytes": 8460
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "src/pages/AlertsV2Canonical.tsx",
+      "sha256": "0f4d855b2f8716701f9967bca18abcb07165b59d97e910709cb2f00c32888088",
+      "bytes": 16424
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "src/pages/HomeV2.tsx",
+      "sha256": "db081482e15a6742ec4196e7caa05c53466a485f06de90ac38a2994ca44a4ff6",
+      "bytes": 11472
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/config.toml",
+      "sha256": "72939a7890fc69ace4d622d7ea69a8b695b9d9ffef60023d86c5d68bf421a637",
+      "bytes": 322
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "e2e/monitoring-feedback.spec.ts",
+      "sha256": "ed78621cf1453f9436fcf95ed6f9de7fa783b39cdde648709ea6068980c1f72a",
+      "bytes": 25485
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "src/components/alerts/V2GuardianFeedback.tsx",
+      "sha256": "1c9ee9640ff0d5bc87d435156859bbd626f0192d9c4d3f6053ddcd07d2a6fbd0",
+      "bytes": 6716
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "src/components/alerts/V2MissedConcern.tsx",
+      "sha256": "03fd45ef1069b2475044753376c89ac602ac87eeb2e0d363f8b6a1d93b61e281",
+      "bytes": 6760
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "src/lib/v2/guardianFeedbackService.ts",
+      "sha256": "32a1f430883e208091962d0c56c2f878d7d13d9a26ee0987dcff5727573873f4",
+      "bytes": 4076
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/RECOVERED_SHA256.json",
+      "sha256": "1c9155dceb19b60ab3b4a82549252b9d54f5746a593516e2b61b59e13d903b2b",
+      "bytes": 3168
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/_shared/auth.ts",
+      "sha256": "f0da1f19ce48241753c896fa0854ad589dae7d4c5138457d5338842841aac021",
+      "bytes": 4257
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/_shared/http.ts",
+      "sha256": "23299586f4a6ea3884363233c264ab9b4276181e152ef2fba45e028e3521e040",
+      "bytes": 1686
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/_shared/incident_claim.ts",
+      "sha256": "db474b4d6dd4ac8b60f040c123feeba6e37b512063a5d3a0eacc646c33dd832b",
+      "bytes": 3318
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/_shared/incident_contract_compatibility_test.ts",
+      "sha256": "532ce7b4a4ed6f124d837c77c48ec27d4b808cd973d25d5a773158f75d036e69",
+      "bytes": 4487
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/_shared/incident_crypto.ts",
+      "sha256": "b9ba6852e6ba806f4fe5eb990974fa9e40fd56af0a2e7590ba22e528b2daa607",
+      "bytes": 13083
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/_shared/incident_deadline.ts",
+      "sha256": "1726fda569117803f2750bab75db3ce911b6e04f85303f938c194438176d27a9",
+      "bytes": 2193
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/_shared/incident_deadline_test.ts",
+      "sha256": "9b2b8c17b04a7b8603ed59a0ec164c9875376cef35c003811e14bb8f10b1c29e",
+      "bytes": 3340
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/_shared/incident_ephemeral_deadline.ts",
+      "sha256": "ba0462f21bbf3c7bfcce16369b2bedd6d4f9af25d58523c4eff25485db05ccf7",
+      "bytes": 1020
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/_shared/incident_ephemeral_deadline_test.ts",
+      "sha256": "19db4f6832317a8328b9f327e47fb4ac13db779faaa3165341f738b0d4e26b5a",
+      "bytes": 1462
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/_shared/incident_expert.ts",
+      "sha256": "6962dedbb6ba4aab49783b5191d8de0696ffb8810dcee8c371f4432f611fa3ee",
+      "bytes": 34592
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/_shared/incident_expert_test.ts",
+      "sha256": "bc85f04ab7041b73ef37fa554f345d21f374cc29f6d21ba99fee7ea4ec30239b",
+      "bytes": 21752
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/_shared/incident_expert_v4.ts",
+      "sha256": "e7ec4532f1e0c771ff5e1b419647c10db3ed187efacaece9a521e6951b3a4c75",
+      "bytes": 31258
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/_shared/incident_expert_v4_test.ts",
+      "sha256": "c6e3d6b054bea6781ac4bdb529811d0d18aeebfeae42b7a71cca8e9a067c739f",
+      "bytes": 27803
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/_shared/incident_expert_v5_contract_test.ts",
+      "sha256": "b26025d127030dd9379549584a6bdf69aec227ae3139a022b7deb897f80ed953",
+      "bytes": 6129
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/_shared/incident_failure.ts",
+      "sha256": "094fb86338d9d91c3251673de2465b5b3c21412a7b234f22eb55696537a817dc",
+      "bytes": 2763
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/_shared/incident_failure_test.ts",
+      "sha256": "9f9e7bdf930b02c1913ae7384ce265c3171c8e00544695371c1eb02538161834",
+      "bytes": 4277
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/_shared/incident_private_key.ts",
+      "sha256": "e7084504ddbb2147abeb0457553c80dbc397525bf4794bd99fab412744936847",
+      "bytes": 5045
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/_shared/incident_private_key_test.ts",
+      "sha256": "796a62b093a23c730cafdb363041c6c30fc30e57fc1b6858c506124db677add5",
+      "bytes": 3408
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/_shared/incident_retention_policy.ts",
+      "sha256": "93021a2ce59a2c3a9dd4e8ae4817324733b3f693e8afd026b8e2421fa371383d",
+      "bytes": 243
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/_shared/incident_safety_identifier.ts",
+      "sha256": "7e1cc99f8cdf4d4201e46b18ed20348b06ee7c201a8f169faf990ae0ee4d52ad",
+      "bytes": 4625
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/_shared/incident_safety_identifier_test.ts",
+      "sha256": "c9131f7d43c60d52af50d35f173ea01d9945bb577d6285f421d626d3822bb158",
+      "bytes": 3469
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/_shared/incident_submission.ts",
+      "sha256": "21fc13b618ceb1c4faf4f00aa615994bfd8c8f627393697113a18997e53900e2",
+      "bytes": 1630
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/_shared/incident_submission_test.ts",
+      "sha256": "52f9ac0fdb0a575c809b462f0e08f1de97eb4500e14b8c15db40b4f337e4c9bd",
+      "bytes": 1999
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/_shared/provider_observation.ts",
+      "sha256": "d676d2b97fe5bd5f195dc7cc0a5e8b966a59cdf52e502b1538ea6df87468df09",
+      "bytes": 3556
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/_shared/provider_observation_test.ts",
+      "sha256": "cb542a368a9c37755b25d6826a2b52052c52a9f7b879732e458c4f2f2371e99c",
+      "bytes": 8669
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/v2-analyze-safety-incident/index.ts",
+      "sha256": "6babf8df16d6790ba275e480610eae97853d2d1982536587d0fa0346f3e3b1eb",
+      "bytes": 9604
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/v2-submit-safety-incident/index.ts",
+      "sha256": "345f797424ccc7409a4c75a7b0133eaf919603578c70b3979e4e3e854a9c2784",
+      "bytes": 15862
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/migrations/20260816090000_v2_expert_prompt_v5_provenance.sql",
+      "sha256": "13e9708daf6770333b83d943437a2ae5d693ae1755b231928d1087019d0de5d0",
+      "bytes": 12632
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/migrations/20260816103000_v2_admin_audit_lint_qualification.sql",
+      "sha256": "60d8cd4502c804491959373046230d6312006438713db30bb702d51905cffd44",
+      "bytes": 6616
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/migrations/20260816110000_v2_admin_write_audit_event_ambiguity_fix.sql",
+      "sha256": "19abffb0197a8a8ddc329272272c8b3d3e139f9687bb801a89d89c0222354afb",
+      "bytes": 4439
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/migrations/20260816120000_v2_privacy_contract_hardening.sql",
+      "sha256": "c7fc4b3ba98ac0412c0841fd8f894800a65c580f95f26a5134570c5ece64b59d",
+      "bytes": 26161
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/migrations/20260816130000_v2_cmo_publication_intent_idempotency_race_fix.sql",
+      "sha256": "4db1197bd95326e582c174c1ea624eb949e0a000b40712e007617119ef21ca18",
+      "bytes": 4661
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/migrations/20260826170000_v2_p0_private_text_activation.sql",
+      "sha256": "f905ad683395cfa08c4a792c22800f72ecb5f1de1d99e1d0354d065a8fadae88",
+      "bytes": 9564
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/migrations/20260828100000_v2_ephemeral_privacy_v3.sql",
+      "sha256": "386186f4f730c0e2119376e6c235c8d9fa6d69d23f7ba096ae149fc01cb2f1c1",
+      "bytes": 32759
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/migrations/20260831160000_v2_monitoring_push_delivery_contract.sql",
+      "sha256": "232baea0e035460cb280457a27bcd650dc82dcd5c7242322c8cb51ae6a21ccee",
+      "bytes": 48857
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/migrations/20260831161000_v2_monitoring_push_backlog_suppression.sql",
+      "sha256": "3e34f196e6f9f3a2ebb1ac02cdbeb4fceb0b4d46057ba7ffa307717554f81579",
+      "bytes": 7084
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/migrations/20260831230000_v2_monitoring_push_activation_readiness.sql",
+      "sha256": "5e8383d2776770432bf0f2c199cd2a7b668906ee198eef825de254495722b1a3",
+      "bytes": 14656
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/migrations/20260901180000_v2_monitoring_push_circuit_breaker.sql",
+      "sha256": "3543bf1ff4899f5aebf158857f76fb54bc430348eee2fa409eba29ed434a23d1",
+      "bytes": 33264
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/migrations/20260902100000_v2_mandatory_continuous_location_drift_repair.sql",
+      "sha256": "4efddeeaf6313fafdfd4b1a9a6ad5fc84e7026a46e3cb3e34fff8671a7e89b4c",
+      "bytes": 27361
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/migrations/20260902220000_v2_control_tower_surface_retirement.sql",
+      "sha256": "3b6542ad65a14a19362d250b0ed7491f60c0a4370ac3afd419eb67763aad87ae",
+      "bytes": 2749
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/migrations/20260903100000_v2_ephemeral_fifo_regression_repair.sql",
+      "sha256": "5b9916f2062eff61e9457ecdabe655c204e373c4611717d583d9194d6d703934",
+      "bytes": 15501
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/migrations/20260906120000_v2_monitoring_feedback_and_usage.sql",
+      "sha256": "a8d67ede90c03c36afbc14825a8ac8cbcdef5191c3747cfec90b0deb1b619c59",
+      "bytes": 24475
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/tests/disposable_bootstrap.sql",
+      "sha256": "8b5353fd9575075780e780866737ee4d05192d4772f1dbaba40ade001159e638",
+      "bytes": 2280
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/tests/v2_incident_privacy_compatibility_contract.sql",
+      "sha256": "a1a52eb2ac5fe784c8de16d880dd6e8634594d89936ed71475606208e570655a",
+      "bytes": 7537
+    },
+    {
+      "worktree": "kippy-monitoring-flow-20260906",
+      "branch": "codex/monitoring-flow-20260906",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/tests/v2_monitoring_feedback_contract.sql",
+      "sha256": "11ffab5cbf18d3748948a21362904d1a7b46813564091bcb6aeef7a09459fcee",
+      "bytes": 15478
+    },
+    {
+      "worktree": "kippy-monitoring-web-main-20260906",
+      "branch": "codex/monitoring-web-main-20260906",
+      "base_commit": "6e8ac8defb47ba667e838b498d5daaf73c6458f4",
+      "path": "e2e/v2-parent-routes.spec.ts",
+      "sha256": "0b0cc0fce0a8f483124abcddc2e12bf5dfc9dd6de8063ca25c2f234cc0bfc018",
+      "bytes": 32252
+    },
+    {
+      "worktree": "kippy-monitoring-web-main-20260906",
+      "branch": "codex/monitoring-web-main-20260906",
+      "base_commit": "6e8ac8defb47ba667e838b498d5daaf73c6458f4",
+      "path": "src/components/home-v2/FamilyLocationsMap.tsx",
+      "sha256": "62c2f6aae9de93eaed14ccf871f4caa15276d40de17efd1d9738c7bff88e80c5",
+      "bytes": 9114
+    },
+    {
+      "worktree": "kippy-monitoring-web-main-20260906",
+      "branch": "codex/monitoring-web-main-20260906",
+      "base_commit": "6e8ac8defb47ba667e838b498d5daaf73c6458f4",
+      "path": "src/integrations/supabase/v2-types.ts",
+      "sha256": "81965b09eeea7739d802de3221651421671b86dfcb8486d966bc320586945a2d",
+      "bytes": 209580
+    },
+    {
+      "worktree": "kippy-monitoring-web-main-20260906",
+      "branch": "codex/monitoring-web-main-20260906",
+      "base_commit": "6e8ac8defb47ba667e838b498d5daaf73c6458f4",
+      "path": "src/lib/v2/guardianAlertsService.ts",
+      "sha256": "f1c75848c27b5c1cac28cde1d06337fb48a13709efb54af4b395095864d3f503",
+      "bytes": 5895
+    },
+    {
+      "worktree": "kippy-monitoring-web-main-20260906",
+      "branch": "codex/monitoring-web-main-20260906",
+      "base_commit": "6e8ac8defb47ba667e838b498d5daaf73c6458f4",
+      "path": "src/pages/AlertsV2Canonical.tsx",
+      "sha256": "983c555b029c06870179f5e59b3d296cf4dd03e45e990962e579b05beb88532e",
+      "bytes": 16540
+    },
+    {
+      "worktree": "kippy-monitoring-web-main-20260906",
+      "branch": "codex/monitoring-web-main-20260906",
+      "base_commit": "6e8ac8defb47ba667e838b498d5daaf73c6458f4",
+      "path": "e2e/monitoring-feedback.spec.ts",
+      "sha256": "7be55a30b1de2e7a778287e96d627b6190a7fdb328e8c4b12e7de533b9510957",
+      "bytes": 26381
+    },
+    {
+      "worktree": "kippy-monitoring-web-main-20260906",
+      "branch": "codex/monitoring-web-main-20260906",
+      "base_commit": "6e8ac8defb47ba667e838b498d5daaf73c6458f4",
+      "path": "e2e/synthetic-google-maps.ts",
+      "sha256": "2abaaa244ce8189da30d1289a6511a7b89ad8f751dc4032963f5d49b2e6df42f",
+      "bytes": 1623
+    },
+    {
+      "worktree": "kippy-monitoring-web-main-20260906",
+      "branch": "codex/monitoring-web-main-20260906",
+      "base_commit": "6e8ac8defb47ba667e838b498d5daaf73c6458f4",
+      "path": "src/components/alerts/V2GuardianFeedback.tsx",
+      "sha256": "1c9ee9640ff0d5bc87d435156859bbd626f0192d9c4d3f6053ddcd07d2a6fbd0",
+      "bytes": 6716
+    },
+    {
+      "worktree": "kippy-monitoring-web-main-20260906",
+      "branch": "codex/monitoring-web-main-20260906",
+      "base_commit": "6e8ac8defb47ba667e838b498d5daaf73c6458f4",
+      "path": "src/components/alerts/V2MissedConcern.tsx",
+      "sha256": "03fd45ef1069b2475044753376c89ac602ac87eeb2e0d363f8b6a1d93b61e281",
+      "bytes": 6760
+    },
+    {
+      "worktree": "kippy-monitoring-web-main-20260906",
+      "branch": "codex/monitoring-web-main-20260906",
+      "base_commit": "6e8ac8defb47ba667e838b498d5daaf73c6458f4",
+      "path": "src/lib/v2/guardianFeedbackService.ts",
+      "sha256": "32a1f430883e208091962d0c56c2f878d7d13d9a26ee0987dcff5727573873f4",
+      "bytes": 4076
+    },
+    {
+      "worktree": "kippy-parent-alert-delivery-repair-20260912",
+      "branch": "codex/parent-alert-delivery-repair-20260912",
+      "base_commit": "1a62c936b50b081ce22da2ed77423571373c944b",
+      "path": "supabase-v2/supabase/functions/v2-moderate-message-batch/contract.ts",
+      "sha256": "5a04bf27da371ac450c93e1aa2c25471f29ca2ac432dbc403950f26df67c3302",
+      "bytes": 11004
+    },
+    {
+      "worktree": "kippy-parent-alert-delivery-repair-20260912",
+      "branch": "codex/parent-alert-delivery-repair-20260912",
+      "base_commit": "1a62c936b50b081ce22da2ed77423571373c944b",
+      "path": "supabase-v2/supabase/functions/v2-moderate-message-batch/contract_test.ts",
+      "sha256": "8623629495634df76051b60375221d25de7708e5a78cb27e75ab4a038e0cf57b",
+      "bytes": 5091
+    },
+    {
+      "worktree": "kippy-parent-alert-delivery-repair-20260912",
+      "branch": "codex/parent-alert-delivery-repair-20260912",
+      "base_commit": "1a62c936b50b081ce22da2ed77423571373c944b",
+      "path": "supabase-v2/supabase/functions/v2-moderate-message-batch/index.ts",
+      "sha256": "35faa265204fedba4340b3e692b24893f96951b82141e961111a897bf4ab53a6",
+      "bytes": 5968
+    },
+    {
+      "worktree": "kippy-parent-alert-delivery-repair-20260912",
+      "branch": "codex/parent-alert-delivery-repair-20260912",
+      "base_commit": "1a62c936b50b081ce22da2ed77423571373c944b",
+      "path": "supabase-v2/supabase/functions/v2-submit-safety-incident/_shared/auth.ts",
+      "sha256": "882924979edfbb7cffab09573a9520688a6b68007c2a5696f6ffd3a651ce373b",
+      "bytes": 4411
+    },
+    {
+      "worktree": "kippy-parent-alert-delivery-repair-20260912",
+      "branch": "codex/parent-alert-delivery-repair-20260912",
+      "base_commit": "1a62c936b50b081ce22da2ed77423571373c944b",
+      "path": "supabase-v2/supabase/functions/v2-submit-safety-incident/_shared/http.ts",
+      "sha256": "23299586f4a6ea3884363233c264ab9b4276181e152ef2fba45e028e3521e040",
+      "bytes": 1686
+    },
+    {
+      "worktree": "kippy-parent-alert-delivery-repair-20260912",
+      "branch": "codex/parent-alert-delivery-repair-20260912",
+      "base_commit": "1a62c936b50b081ce22da2ed77423571373c944b",
+      "path": "supabase-v2/supabase/functions/v2-submit-safety-incident/_shared/incident_age_context.ts",
+      "sha256": "101b1d76f0bf73bc75259c2120982cc6def8098a628dc173b8912c600f64f9fa",
+      "bytes": 3010
+    },
+    {
+      "worktree": "kippy-parent-alert-delivery-repair-20260912",
+      "branch": "codex/parent-alert-delivery-repair-20260912",
+      "base_commit": "1a62c936b50b081ce22da2ed77423571373c944b",
+      "path": "supabase-v2/supabase/functions/v2-submit-safety-incident/_shared/incident_crypto.ts",
+      "sha256": "b9ba6852e6ba806f4fe5eb990974fa9e40fd56af0a2e7590ba22e528b2daa607",
+      "bytes": 13083
+    },
+    {
+      "worktree": "kippy-parent-alert-delivery-repair-20260912",
+      "branch": "codex/parent-alert-delivery-repair-20260912",
+      "base_commit": "1a62c936b50b081ce22da2ed77423571373c944b",
+      "path": "supabase-v2/supabase/functions/v2-submit-safety-incident/_shared/incident_deadline.ts",
+      "sha256": "1726fda569117803f2750bab75db3ce911b6e04f85303f938c194438176d27a9",
+      "bytes": 2193
+    },
+    {
+      "worktree": "kippy-parent-alert-delivery-repair-20260912",
+      "branch": "codex/parent-alert-delivery-repair-20260912",
+      "base_commit": "1a62c936b50b081ce22da2ed77423571373c944b",
+      "path": "supabase-v2/supabase/functions/v2-submit-safety-incident/_shared/incident_ephemeral_deadline.ts",
+      "sha256": "ba0462f21bbf3c7bfcce16369b2bedd6d4f9af25d58523c4eff25485db05ccf7",
+      "bytes": 1020
+    },
+    {
+      "worktree": "kippy-parent-alert-delivery-repair-20260912",
+      "branch": "codex/parent-alert-delivery-repair-20260912",
+      "base_commit": "1a62c936b50b081ce22da2ed77423571373c944b",
+      "path": "supabase-v2/supabase/functions/v2-submit-safety-incident/_shared/incident_expert.ts",
+      "sha256": "6550ddba3d490582ba27c80175e56b0e3407c3c005f5324bd8bc29ba7eafc03c",
+      "bytes": 38965
+    },
+    {
+      "worktree": "kippy-parent-alert-delivery-repair-20260912",
+      "branch": "codex/parent-alert-delivery-repair-20260912",
+      "base_commit": "1a62c936b50b081ce22da2ed77423571373c944b",
+      "path": "supabase-v2/supabase/functions/v2-submit-safety-incident/_shared/incident_explanation.ts",
+      "sha256": "b6d45e5f6533a3f38222d318ec9c41f961010e3d548f49406bf6ca7a207dd09f",
+      "bytes": 3588
+    },
+    {
+      "worktree": "kippy-parent-alert-delivery-repair-20260912",
+      "branch": "codex/parent-alert-delivery-repair-20260912",
+      "base_commit": "1a62c936b50b081ce22da2ed77423571373c944b",
+      "path": "supabase-v2/supabase/functions/v2-submit-safety-incident/_shared/incident_failure.ts",
+      "sha256": "094fb86338d9d91c3251673de2465b5b3c21412a7b234f22eb55696537a817dc",
+      "bytes": 2763
+    },
+    {
+      "worktree": "kippy-parent-alert-delivery-repair-20260912",
+      "branch": "codex/parent-alert-delivery-repair-20260912",
+      "base_commit": "1a62c936b50b081ce22da2ed77423571373c944b",
+      "path": "supabase-v2/supabase/functions/v2-submit-safety-incident/_shared/incident_full_fifo.ts",
+      "sha256": "6eeda82ff7938a05c65b45e31626a64fa2ba632e9f91f78bf6f3edf53c48017c",
+      "bytes": 10753
+    },
+    {
+      "worktree": "kippy-parent-alert-delivery-repair-20260912",
+      "branch": "codex/parent-alert-delivery-repair-20260912",
+      "base_commit": "1a62c936b50b081ce22da2ed77423571373c944b",
+      "path": "supabase-v2/supabase/functions/v2-submit-safety-incident/_shared/incident_message_history.ts",
+      "sha256": "73c45ddbb7d8711645ce2536c3907adb6b5c6720654cf0ae110d24d9c7fdd2d6",
+      "bytes": 8011
+    },
+    {
+      "worktree": "kippy-parent-alert-delivery-repair-20260912",
+      "branch": "codex/parent-alert-delivery-repair-20260912",
+      "base_commit": "1a62c936b50b081ce22da2ed77423571373c944b",
+      "path": "supabase-v2/supabase/functions/v2-submit-safety-incident/_shared/incident_private_key.ts",
+      "sha256": "e7084504ddbb2147abeb0457553c80dbc397525bf4794bd99fab412744936847",
+      "bytes": 5045
+    },
+    {
+      "worktree": "kippy-parent-alert-delivery-repair-20260912",
+      "branch": "codex/parent-alert-delivery-repair-20260912",
+      "base_commit": "1a62c936b50b081ce22da2ed77423571373c944b",
+      "path": "supabase-v2/supabase/functions/v2-submit-safety-incident/_shared/incident_retention_policy.ts",
+      "sha256": "93021a2ce59a2c3a9dd4e8ae4817324733b3f693e8afd026b8e2421fa371383d",
+      "bytes": 243
+    },
+    {
+      "worktree": "kippy-parent-alert-delivery-repair-20260912",
+      "branch": "codex/parent-alert-delivery-repair-20260912",
+      "base_commit": "1a62c936b50b081ce22da2ed77423571373c944b",
+      "path": "supabase-v2/supabase/functions/v2-submit-safety-incident/_shared/incident_review.ts",
+      "sha256": "3a398e9f287d1580ef519edeb24221cc7a2ecc3988209cf00004b970e50c67dd",
+      "bytes": 4726
+    },
+    {
+      "worktree": "kippy-parent-alert-delivery-repair-20260912",
+      "branch": "codex/parent-alert-delivery-repair-20260912",
+      "base_commit": "1a62c936b50b081ce22da2ed77423571373c944b",
+      "path": "supabase-v2/supabase/functions/v2-submit-safety-incident/_shared/incident_safety_identifier.ts",
+      "sha256": "7e1cc99f8cdf4d4201e46b18ed20348b06ee7c201a8f169faf990ae0ee4d52ad",
+      "bytes": 4625
+    },
+    {
+      "worktree": "kippy-parent-alert-delivery-repair-20260912",
+      "branch": "codex/parent-alert-delivery-repair-20260912",
+      "base_commit": "1a62c936b50b081ce22da2ed77423571373c944b",
+      "path": "supabase-v2/supabase/functions/v2-submit-safety-incident/_shared/incident_submission.ts",
+      "sha256": "21fc13b618ceb1c4faf4f00aa615994bfd8c8f627393697113a18997e53900e2",
+      "bytes": 1630
+    },
+    {
+      "worktree": "kippy-parent-alert-delivery-repair-20260912",
+      "branch": "codex/parent-alert-delivery-repair-20260912",
+      "base_commit": "1a62c936b50b081ce22da2ed77423571373c944b",
+      "path": "supabase-v2/supabase/functions/v2-submit-safety-incident/_shared/incident_three_gate_service.ts",
+      "sha256": "5710b275be346bb5d7a13f2fe5b31ccbdb1387da32acb4f66f1bdf880532d83d",
+      "bytes": 4845
+    },
+    {
+      "worktree": "kippy-parent-alert-delivery-repair-20260912",
+      "branch": "codex/parent-alert-delivery-repair-20260912",
+      "base_commit": "1a62c936b50b081ce22da2ed77423571373c944b",
+      "path": "supabase-v2/supabase/functions/v2-submit-safety-incident/_shared/provider_observation.ts",
+      "sha256": "d95fe1d703786b8363f90784c4d960e5b19cfb7ad4090dcd135d2293c1dc77de",
+      "bytes": 3652
+    },
+    {
+      "worktree": "kippy-parent-alert-delivery-repair-20260912",
+      "branch": "codex/parent-alert-delivery-repair-20260912",
+      "base_commit": "1a62c936b50b081ce22da2ed77423571373c944b",
+      "path": "supabase-v2/supabase/functions/v2-submit-safety-incident/age_context_test.ts",
+      "sha256": "61985888b89c9b32986a63c84210387071d41d6ec0956977176e62a057fcd720",
+      "bytes": 13373
+    },
+    {
+      "worktree": "kippy-parent-alert-delivery-repair-20260912",
+      "branch": "codex/parent-alert-delivery-repair-20260912",
+      "base_commit": "1a62c936b50b081ce22da2ed77423571373c944b",
+      "path": "supabase-v2/supabase/functions/v2-submit-safety-incident/explanation_contract_test.ts",
+      "sha256": "bbd2b8ad16acdba2a256796ab1bb4bc0d5ec123da80c1f08425ece49417e812c",
+      "bytes": 9644
+    },
+    {
+      "worktree": "kippy-parent-alert-delivery-repair-20260912",
+      "branch": "codex/parent-alert-delivery-repair-20260912",
+      "base_commit": "1a62c936b50b081ce22da2ed77423571373c944b",
+      "path": "supabase-v2/supabase/functions/v2-submit-safety-incident/index.ts",
+      "sha256": "5886f8dfefa0341ef9e587168d77b60fc1866c1f592afc987d867504fffa7870",
+      "bytes": 22128
+    },
+    {
+      "worktree": "kippy-parent-alert-delivery-repair-20260912",
+      "branch": "codex/parent-alert-delivery-repair-20260912",
+      "base_commit": "1a62c936b50b081ce22da2ed77423571373c944b",
+      "path": "supabase-v2/supabase/functions/v2-submit-safety-incident/message_history_contract_test.ts",
+      "sha256": "60966f0f1d5b44f23ad96e2e6ead282a666c6dbc7e80d46e3b429700cbb7eecb",
+      "bytes": 7194
+    },
+    {
+      "worktree": "kippy-parent-alert-delivery-repair-20260912",
+      "branch": "codex/parent-alert-delivery-repair-20260912",
+      "base_commit": "1a62c936b50b081ce22da2ed77423571373c944b",
+      "path": "supabase-v2/supabase/functions/v2-submit-safety-incident/moderation_contract_test.ts",
+      "sha256": "19f9e9492b3a531b82f993cd49afe574211abd15550289443d1b5adfb3e7164e",
+      "bytes": 2391
+    },
+    {
+      "worktree": "kippy-parent-alert-delivery-repair-20260912",
+      "branch": "codex/parent-alert-delivery-repair-20260912",
+      "base_commit": "1a62c936b50b081ce22da2ed77423571373c944b",
+      "path": "supabase-v2/supabase/migrations/20260914120000_v2_moderation_context_pipeline.sql",
+      "sha256": "c20a53c7c2b75a3ce221015c658dbe26f353ec3bcdb304ba3ad2b1f153ea156c",
+      "bytes": 11170
+    },
+    {
+      "worktree": "kippy-parent-alert-delivery-repair-20260912",
+      "branch": "codex/parent-alert-delivery-repair-20260912",
+      "base_commit": "1a62c936b50b081ce22da2ed77423571373c944b",
+      "path": "supabase-v2/supabase/migrations/20260914121000_v2_moderation_error_observation.sql",
+      "sha256": "a8ebdd9bb23d7255677eabecbfcab1d2199dde2c21fd4fade7a158d82ffbdfdf",
+      "bytes": 1450
+    },
+    {
+      "worktree": "kippy-parent-alert-delivery-repair-20260912",
+      "branch": "codex/parent-alert-delivery-repair-20260912",
+      "base_commit": "1a62c936b50b081ce22da2ed77423571373c944b",
+      "path": "supabase-v2/supabase/migrations/20260915120000_v2_expert_explanation_review.sql",
+      "sha256": "a884563dd534b79f18bb46263bd63222898e4e5ab3ff18a6dadc024dbe838dc1",
+      "bytes": 11821
+    },
+    {
+      "worktree": "kippy-parent-alert-delivery-repair-20260912",
+      "branch": "codex/parent-alert-delivery-repair-20260912",
+      "base_commit": "1a62c936b50b081ce22da2ed77423571373c944b",
+      "path": "supabase-v2/supabase/tests/v2_expert_explanation_review_contract.sql",
+      "sha256": "34413bc0a5eb40a375c086e4910cefe597f040d8ad2417d2ade7e5dd3c8fe742",
+      "bytes": 11102
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "e2e/v2-parent-routes.spec.ts",
+      "sha256": "f591ad2dbca849aa0b9445ce00733779cb43926ae5795fe7e76a2c3f61f62774",
+      "bytes": 25035
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "src/components/ProtectedRoute.tsx",
+      "sha256": "b4f3f6c4c8fa5311a03eb950315d83165c024fc60ec1965b78e1facbec693147",
+      "bytes": 1444
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "src/components/home-v2/FamilyLocationsMap.tsx",
+      "sha256": "3816baf10ff6068c6c328dbd13dbdb9c585d8c7894ad5b0740bbe55e6a4e8b2d",
+      "bytes": 9057
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "src/integrations/supabase/v2-types.ts",
+      "sha256": "76716205dfb1820aee46b4e0f12b7db7adecad7399e42b6b7010390582cb036a",
+      "bytes": 200420
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "src/lib/v2/guardianAlertsService.ts",
+      "sha256": "951b4019d53102d0951251c855cd915f1be4f6252025941ca09a72f2ae87b506",
+      "bytes": 15788
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "src/lib/v2/guardianHomeService.ts",
+      "sha256": "e573b1fa5d2d8c9d5bd1730440475ed0aab41d3a8e73bee7b1e13f4f1cec9a73",
+      "bytes": 8819
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "src/lib/v2/guardianMonitoringService.ts",
+      "sha256": "f98cf9e256d60029d3fdbff59a59d3f8fa79abffced5f50026a6707ba5e74507",
+      "bytes": 8460
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "src/pages/AlertsV2Canonical.tsx",
+      "sha256": "126bf83860847fb34e62a0a3f1f72b2cb18a9b5c74b00d651d79bd9c7507e9e6",
+      "bytes": 12634
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "src/pages/Auth.tsx",
+      "sha256": "fa25924a761819b7afebbd563b8a3e31bbc21f2737ceb2ad234898881cb50fa5",
+      "bytes": 23050
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "src/pages/HomeV2.tsx",
+      "sha256": "db081482e15a6742ec4196e7caa05c53466a485f06de90ac38a2994ca44a4ff6",
+      "bytes": 11472
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/config.toml",
+      "sha256": "72939a7890fc69ace4d622d7ea69a8b695b9d9ffef60023d86c5d68bf421a637",
+      "bytes": 322
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "e2e/monitoring-feedback.spec.ts",
+      "sha256": "b89a7a78d9d14b46f33e4ce78354a0d248965c0dd8a5059e33ae6bc2ab052c20",
+      "bytes": 26070
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "e2e/parent-cases.spec.ts",
+      "sha256": "75fe13ed94ccdf7b64f376417391a2db0b11bfdd93845db90ca87fb3fc55b671",
+      "bytes": 46793
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "src/components/alerts/V2GuardianCaseDetails.tsx",
+      "sha256": "9b4312f75a8b488ec73809c0f6fe18409445f0d13b0d3be8c46010fb09c90563",
+      "bytes": 19385
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "src/components/alerts/V2GuardianFeedback.tsx",
+      "sha256": "1c9ee9640ff0d5bc87d435156859bbd626f0192d9c4d3f6053ddcd07d2a6fbd0",
+      "bytes": 6716
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "src/components/alerts/V2MissedConcern.tsx",
+      "sha256": "03fd45ef1069b2475044753376c89ac602ac87eeb2e0d363f8b6a1d93b61e281",
+      "bytes": 6760
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "src/components/alerts/guardianCasePresentation.ts",
+      "sha256": "a40006bdf97d5ebe7e4471f1967fb561a0fc77269eb0f9c15d318a0151a0c3d8",
+      "bytes": 2900
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "src/lib/v2/guardianAlertProjection.ts",
+      "sha256": "c6b2aee6ec551655cf3dd2c7dcf7ec5821c442f3ba66db5e1d34a691e723ed3e",
+      "bytes": 2213
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "src/lib/v2/guardianFeedbackService.ts",
+      "sha256": "32a1f430883e208091962d0c56c2f878d7d13d9a26ee0987dcff5727573873f4",
+      "bytes": 4076
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/RECOVERED_SHA256.json",
+      "sha256": "1c9155dceb19b60ab3b4a82549252b9d54f5746a593516e2b61b59e13d903b2b",
+      "bytes": 3168
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/_shared/auth.ts",
+      "sha256": "f0da1f19ce48241753c896fa0854ad589dae7d4c5138457d5338842841aac021",
+      "bytes": 4257
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/_shared/http.ts",
+      "sha256": "23299586f4a6ea3884363233c264ab9b4276181e152ef2fba45e028e3521e040",
+      "bytes": 1686
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/_shared/incident_claim.ts",
+      "sha256": "db474b4d6dd4ac8b60f040c123feeba6e37b512063a5d3a0eacc646c33dd832b",
+      "bytes": 3318
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/_shared/incident_contract_compatibility_test.ts",
+      "sha256": "532ce7b4a4ed6f124d837c77c48ec27d4b808cd973d25d5a773158f75d036e69",
+      "bytes": 4487
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/_shared/incident_crypto.ts",
+      "sha256": "b9ba6852e6ba806f4fe5eb990974fa9e40fd56af0a2e7590ba22e528b2daa607",
+      "bytes": 13083
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/_shared/incident_deadline.ts",
+      "sha256": "1726fda569117803f2750bab75db3ce911b6e04f85303f938c194438176d27a9",
+      "bytes": 2193
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/_shared/incident_deadline_test.ts",
+      "sha256": "9b2b8c17b04a7b8603ed59a0ec164c9875376cef35c003811e14bb8f10b1c29e",
+      "bytes": 3340
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/_shared/incident_ephemeral_deadline.ts",
+      "sha256": "ba0462f21bbf3c7bfcce16369b2bedd6d4f9af25d58523c4eff25485db05ccf7",
+      "bytes": 1020
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/_shared/incident_ephemeral_deadline_test.ts",
+      "sha256": "19db4f6832317a8328b9f327e47fb4ac13db779faaa3165341f738b0d4e26b5a",
+      "bytes": 1462
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/_shared/incident_expert.ts",
+      "sha256": "8d05f9731acda628f75d8d7fbb12ad363ee1599d16c4a67fdbd1e5b4e3205e99",
+      "bytes": 34951
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/_shared/incident_expert_test.ts",
+      "sha256": "bc85f04ab7041b73ef37fa554f345d21f374cc29f6d21ba99fee7ea4ec30239b",
+      "bytes": 21752
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/_shared/incident_expert_v4.ts",
+      "sha256": "e7ec4532f1e0c771ff5e1b419647c10db3ed187efacaece9a521e6951b3a4c75",
+      "bytes": 31258
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/_shared/incident_expert_v4_test.ts",
+      "sha256": "c6e3d6b054bea6781ac4bdb529811d0d18aeebfeae42b7a71cca8e9a067c739f",
+      "bytes": 27803
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/_shared/incident_expert_v5_contract_test.ts",
+      "sha256": "b26025d127030dd9379549584a6bdf69aec227ae3139a022b7deb897f80ed953",
+      "bytes": 6129
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/_shared/incident_failure.ts",
+      "sha256": "094fb86338d9d91c3251673de2465b5b3c21412a7b234f22eb55696537a817dc",
+      "bytes": 2763
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/_shared/incident_failure_test.ts",
+      "sha256": "9f9e7bdf930b02c1913ae7384ce265c3171c8e00544695371c1eb02538161834",
+      "bytes": 4277
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/_shared/incident_full_fifo.ts",
+      "sha256": "f0f5f259eea5f83f9888276461c43fca1bfdfab9021bb72a4838fcc31f11e654",
+      "bytes": 9692
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/_shared/incident_full_fifo_test.ts",
+      "sha256": "553b32018f895fe518612ff79b9df5cb2c8e5e939063337c07d021836becc326",
+      "bytes": 9800
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/_shared/incident_private_key.ts",
+      "sha256": "e7084504ddbb2147abeb0457553c80dbc397525bf4794bd99fab412744936847",
+      "bytes": 5045
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/_shared/incident_private_key_test.ts",
+      "sha256": "796a62b093a23c730cafdb363041c6c30fc30e57fc1b6858c506124db677add5",
+      "bytes": 3408
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/_shared/incident_retention_policy.ts",
+      "sha256": "93021a2ce59a2c3a9dd4e8ae4817324733b3f693e8afd026b8e2421fa371383d",
+      "bytes": 243
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/_shared/incident_safety_identifier.ts",
+      "sha256": "7e1cc99f8cdf4d4201e46b18ed20348b06ee7c201a8f169faf990ae0ee4d52ad",
+      "bytes": 4625
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/_shared/incident_safety_identifier_test.ts",
+      "sha256": "c9131f7d43c60d52af50d35f173ea01d9945bb577d6285f421d626d3822bb158",
+      "bytes": 3469
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/_shared/incident_submission.ts",
+      "sha256": "21fc13b618ceb1c4faf4f00aa615994bfd8c8f627393697113a18997e53900e2",
+      "bytes": 1630
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/_shared/incident_submission_test.ts",
+      "sha256": "52f9ac0fdb0a575c809b462f0e08f1de97eb4500e14b8c15db40b4f337e4c9bd",
+      "bytes": 1999
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/_shared/incident_three_gate_service.ts",
+      "sha256": "5710b275be346bb5d7a13f2fe5b31ccbdb1387da32acb4f66f1bdf880532d83d",
+      "bytes": 4845
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/_shared/incident_three_gate_service_test.ts",
+      "sha256": "5135ba3736a8d65cd5ee78e26e6cbeacfc89af935b53dd3d793d2270b8f4fc42",
+      "bytes": 7328
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/_shared/provider_observation.ts",
+      "sha256": "d676d2b97fe5bd5f195dc7cc0a5e8b966a59cdf52e502b1538ea6df87468df09",
+      "bytes": 3556
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/_shared/provider_observation_test.ts",
+      "sha256": "cb542a368a9c37755b25d6826a2b52052c52a9f7b879732e458c4f2f2371e99c",
+      "bytes": 8669
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/v2-analyze-safety-incident/index.ts",
+      "sha256": "6babf8df16d6790ba275e480610eae97853d2d1982536587d0fa0346f3e3b1eb",
+      "bytes": 9604
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/functions/v2-submit-safety-incident/index.ts",
+      "sha256": "9687ed1ffac055e4b19e7374104d283b9f079f875cdcac69c8bbaa7f77fe2583",
+      "bytes": 19689
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/migrations/20260816090000_v2_expert_prompt_v5_provenance.sql",
+      "sha256": "13e9708daf6770333b83d943437a2ae5d693ae1755b231928d1087019d0de5d0",
+      "bytes": 12632
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/migrations/20260816103000_v2_admin_audit_lint_qualification.sql",
+      "sha256": "60d8cd4502c804491959373046230d6312006438713db30bb702d51905cffd44",
+      "bytes": 6616
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/migrations/20260816110000_v2_admin_write_audit_event_ambiguity_fix.sql",
+      "sha256": "19abffb0197a8a8ddc329272272c8b3d3e139f9687bb801a89d89c0222354afb",
+      "bytes": 4439
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/migrations/20260816120000_v2_privacy_contract_hardening.sql",
+      "sha256": "c7fc4b3ba98ac0412c0841fd8f894800a65c580f95f26a5134570c5ece64b59d",
+      "bytes": 26161
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/migrations/20260816130000_v2_cmo_publication_intent_idempotency_race_fix.sql",
+      "sha256": "4db1197bd95326e582c174c1ea624eb949e0a000b40712e007617119ef21ca18",
+      "bytes": 4661
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/migrations/20260826170000_v2_p0_private_text_activation.sql",
+      "sha256": "f905ad683395cfa08c4a792c22800f72ecb5f1de1d99e1d0354d065a8fadae88",
+      "bytes": 9564
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/migrations/20260828100000_v2_ephemeral_privacy_v3.sql",
+      "sha256": "386186f4f730c0e2119376e6c235c8d9fa6d69d23f7ba096ae149fc01cb2f1c1",
+      "bytes": 32759
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/migrations/20260831160000_v2_monitoring_push_delivery_contract.sql",
+      "sha256": "232baea0e035460cb280457a27bcd650dc82dcd5c7242322c8cb51ae6a21ccee",
+      "bytes": 48857
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/migrations/20260831161000_v2_monitoring_push_backlog_suppression.sql",
+      "sha256": "3e34f196e6f9f3a2ebb1ac02cdbeb4fceb0b4d46057ba7ffa307717554f81579",
+      "bytes": 7084
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/migrations/20260831230000_v2_monitoring_push_activation_readiness.sql",
+      "sha256": "5e8383d2776770432bf0f2c199cd2a7b668906ee198eef825de254495722b1a3",
+      "bytes": 14656
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/migrations/20260901180000_v2_monitoring_push_circuit_breaker.sql",
+      "sha256": "3543bf1ff4899f5aebf158857f76fb54bc430348eee2fa409eba29ed434a23d1",
+      "bytes": 33264
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/migrations/20260902100000_v2_mandatory_continuous_location_drift_repair.sql",
+      "sha256": "4efddeeaf6313fafdfd4b1a9a6ad5fc84e7026a46e3cb3e34fff8671a7e89b4c",
+      "bytes": 27361
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/migrations/20260902220000_v2_control_tower_surface_retirement.sql",
+      "sha256": "3b6542ad65a14a19362d250b0ed7491f60c0a4370ac3afd419eb67763aad87ae",
+      "bytes": 2749
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/migrations/20260903100000_v2_ephemeral_fifo_regression_repair.sql",
+      "sha256": "5b9916f2062eff61e9457ecdabe655c204e373c4611717d583d9194d6d703934",
+      "bytes": 15501
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/migrations/20260906120000_v2_monitoring_feedback_and_usage.sql",
+      "sha256": "a8d67ede90c03c36afbc14825a8ac8cbcdef5191c3747cfec90b0deb1b619c59",
+      "bytes": 24475
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/migrations/20260908120000_v2_three_gate_full_fifo.sql",
+      "sha256": "18c5822f569d270e61db3e0ef191c4b71abfc00e1e8adaf47257b32b3c0e777a",
+      "bytes": 35839
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/migrations/20260908180000_v2_guardian_case_lifecycle.sql",
+      "sha256": "8cf003db21ef7223dffd36efb07ca0bb75bc6f3be7b28d8f96eeae83dcf177f6",
+      "bytes": 22338
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/tests/disposable_bootstrap.sql",
+      "sha256": "8b5353fd9575075780e780866737ee4d05192d4772f1dbaba40ade001159e638",
+      "bytes": 2280
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/tests/v2_guardian_case_lifecycle_contract.sql",
+      "sha256": "4de864c2a8d81fcf2e3012b0684f9a945d0351a1b82265ce32dba4d5047d55ac",
+      "bytes": 22870
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/tests/v2_incident_privacy_compatibility_contract.sql",
+      "sha256": "a1a52eb2ac5fe784c8de16d880dd6e8634594d89936ed71475606208e570655a",
+      "bytes": 7537
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/tests/v2_monitoring_feedback_contract.sql",
+      "sha256": "11ffab5cbf18d3748948a21362904d1a7b46813564091bcb6aeef7a09459fcee",
+      "bytes": 15478
+    },
+    {
+      "worktree": "kippy-three-gates-20260908",
+      "branch": "codex/three-gates-20260908",
+      "base_commit": "01601145e3c1f4e6e74ca033b284761a61c6525a",
+      "path": "supabase-v2/supabase/tests/v2_three_gate_full_fifo_contract.sql",
+      "sha256": "560e9c014187c6a0ac3a35900c88cff7a22d4c2d540095736a0b36fd4c411a2f",
+      "bytes": 20529
+    },
+    {
+      "worktree": "KippyControlTower-web",
+      "branch": "codex/control-tower-web-foundation",
+      "base_commit": "935b54ba196223f94aba071a98e24b8614263f9d",
+      "path": "src/App.tsx",
+      "sha256": "28a38dab14c5dc5b2d62e574997828f09d02ae9a0848fe8f8c298389dc8ea965",
+      "bytes": 7529
+    },
+    {
+      "worktree": "KippyParentalControls-PWA-RC-gate",
+      "branch": "codex/parental-controls-pwa-rc-gate",
+      "base_commit": "27cebaaa24835af79ebe221c25896821e47570ff",
+      "path": "src/components/child-dashboard/AppsSection.tsx",
+      "sha256": "a15ebae88e59a9c6a9bb6f47591e3822d71f21e9148c1211e1f2f42c5bde87fd",
+      "bytes": 6892
+    },
+    {
+      "worktree": "KippyParentalControls-PWA-RC-gate",
+      "branch": "codex/parental-controls-pwa-rc-gate",
+      "base_commit": "27cebaaa24835af79ebe221c25896821e47570ff",
+      "path": "src/components/controls/AppControlsList.tsx",
+      "sha256": "145bd1a5e29c643bc33d2510f01319db2af94d94406ebeeebf5b9fd6fe735037",
+      "bytes": 9964
+    },
+    {
+      "worktree": "KippyParentalControls-PWA-RC-gate",
+      "branch": "codex/parental-controls-pwa-rc-gate",
+      "base_commit": "27cebaaa24835af79ebe221c25896821e47570ff",
+      "path": "src/components/home-v2/HomePendingApps.tsx",
+      "sha256": "cb54387d840413448c67f249bd78631c87ac73b2861526d1e8c257738d5d77dc",
+      "bytes": 8064
+    },
+    {
+      "worktree": "KippyParentalControls-PWA-RC-gate",
+      "branch": "codex/parental-controls-pwa-rc-gate",
+      "base_commit": "27cebaaa24835af79ebe221c25896821e47570ff",
+      "path": "src/hooks/useChildControls.ts",
+      "sha256": "fc5dad72f0c4dec252639c1022a426ced135d32df2bee086bd1efd77c00810df",
+      "bytes": 24595
+    },
+    {
+      "worktree": "KippyParentalControls-PWA-RC-gate",
+      "branch": "codex/parental-controls-pwa-rc-gate",
+      "base_commit": "27cebaaa24835af79ebe221c25896821e47570ff",
+      "path": "src/hooks/useV2NavBadgeCounts.ts",
+      "sha256": "7a6151f1a69948eedb1227155e3a9b5b4ea704f6b8982dc6144cd4a8fb334127",
+      "bytes": 8446
+    },
+    {
+      "worktree": "KippyParentalControls-PWA-RC-gate",
+      "branch": "codex/parental-controls-pwa-rc-gate",
+      "base_commit": "27cebaaa24835af79ebe221c25896821e47570ff",
+      "path": "src/integrations/supabase/v2-types.ts",
+      "sha256": "2bfd1abe9a72b1494cde0c075b6685af8d6ca46bd123c97a47330636691299a7",
+      "bytes": 85998
+    },
+    {
+      "worktree": "KippyParentalControls-PWA-RC-gate",
+      "branch": "codex/parental-controls-pwa-rc-gate",
+      "base_commit": "27cebaaa24835af79ebe221c25896821e47570ff",
+      "path": "src/lib/parental-controls/settingsService.ts",
+      "sha256": "41b8bbcbcc08854585affbf7ec603e28c04c7c2bff8b77ba29102edc7c7a784d",
+      "bytes": 7931
+    }
+  ],
+  "withheld": []
+}

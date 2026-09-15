@@ -1,0 +1,287 @@
+import type { SanitizedIncidentContext } from "./incident_expert.ts";
+
+export const FULL_FIFO_CONTRACT = "THREE_GATE_FULL_FIFO_V1";
+export interface FullFifo {
+  contract_version: typeof FULL_FIFO_CONTRACT;
+  case_id: string;
+  assessment_id: string;
+  assessment_seq: number;
+  previous_assessment_id?: string | null;
+  previous_assessment_state?: "submitted" | "cancelled_before_submission";
+  origin_evidence_available: false;
+  snapshot: {
+    conversation_revision: number;
+    cutoff_at_ms: number;
+    message_count: number;
+    ordered_segment_refs: string[];
+    message_revisions: number[];
+    pending_count: number;
+    coverage_gap: boolean;
+    earliest_evidence_at_ms: number;
+    latest_evidence_at_ms: number;
+  };
+  gate_evidence: {
+    rule_version: string;
+    evaluated_gates: [1, 2, 3];
+    reason_codes: string[];
+  };
+  digest_algorithm: "HMAC_SHA256_JSON_BINARY_V1";
+  digest_key_b64: string;
+  payload_digest: string;
+}
+export class FullFifoError extends Error {
+  constructor(readonly code: string) {
+    super(code);
+  }
+}
+const uuid =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+const positive = (v: unknown): v is number =>
+  Number.isSafeInteger(v) && Number(v) > 0;
+const nonnegative = (v: unknown): v is number =>
+  Number.isSafeInteger(v) && Number(v) >= 0;
+function record(v: unknown): v is Record<string, unknown> {
+  return v !== null && typeof v === "object" && !Array.isArray(v);
+}
+function keys(
+  v: unknown,
+  required: string[],
+  optional: string[] = [],
+): v is Record<string, unknown> {
+  return record(v) && required.every((key) => Object.hasOwn(v, key)) &&
+    Object.keys(v).every((key) =>
+      required.includes(key) || optional.includes(key)
+    );
+}
+function fail(code = "invalid_full_fifo_contract"): never {
+  throw new FullFifoError(code);
+}
+
+/** Synchronous structural validation also runs at the parser boundary. */
+export function assertFullFifoShape(context: SanitizedIncidentContext): void {
+  const f: unknown = context.full_fifo;
+  if (f === undefined) return;
+  if (
+    context.privacy_contract_version !== 3 || !keys(f, [
+      "contract_version",
+      "case_id",
+      "assessment_id",
+      "assessment_seq",
+      "origin_evidence_available",
+      "snapshot",
+      "gate_evidence",
+      "digest_algorithm",
+      "digest_key_b64",
+      "payload_digest",
+    ], ["previous_assessment_id", "previous_assessment_state"])
+  ) fail();
+  if (
+    f.contract_version !== FULL_FIFO_CONTRACT ||
+    typeof f.case_id !== "string" ||
+    !uuid.test(f.case_id) || typeof f.assessment_id !== "string" ||
+    !uuid.test(f.assessment_id) ||
+    !positive(f.assessment_seq) || f.origin_evidence_available !== false ||
+    (f.assessment_seq === 1
+      ? f.previous_assessment_state !== undefined
+      : f.previous_assessment_state !== undefined &&
+        !["submitted", "cancelled_before_submission"].includes(
+          String(f.previous_assessment_state),
+        )) ||
+    (f.assessment_seq === 1
+      ? f.previous_assessment_id != null
+      : typeof f.previous_assessment_id !== "string" ||
+        !uuid.test(f.previous_assessment_id) ||
+        f.previous_assessment_id === f.assessment_id) ||
+    f.digest_algorithm !== "HMAC_SHA256_JSON_BINARY_V1" ||
+    typeof f.payload_digest !== "string" ||
+    !/^[0-9a-f]{64}$/.test(f.payload_digest) ||
+    typeof f.digest_key_b64 !== "string" ||
+    !/^[A-Za-z0-9+/]{43}=$/.test(f.digest_key_b64)
+  ) fail();
+  let key: string;
+  try {
+    key = atob(f.digest_key_b64);
+  } catch {
+    fail();
+  }
+  if (key.length !== 32 || btoa(key) !== f.digest_key_b64) fail();
+  const s = f.snapshot;
+  if (
+    !keys(s, [
+      "conversation_revision",
+      "cutoff_at_ms",
+      "message_count",
+      "ordered_segment_refs",
+      "message_revisions",
+      "pending_count",
+      "coverage_gap",
+      "earliest_evidence_at_ms",
+      "latest_evidence_at_ms",
+    ])
+  ) fail();
+  if (
+    !positive(s.conversation_revision) || !nonnegative(s.cutoff_at_ms) ||
+    !nonnegative(s.earliest_evidence_at_ms) ||
+    !nonnegative(s.latest_evidence_at_ms) ||
+    s.earliest_evidence_at_ms > s.latest_evidence_at_ms ||
+    s.latest_evidence_at_ms > s.cutoff_at_ms ||
+    s.message_count !== context.messages.length || !positive(s.message_count) ||
+    s.message_count > (context.conversation_type === "private" ? 40 : 60) ||
+    !nonnegative(s.pending_count) || typeof s.coverage_gap !== "boolean" ||
+    (s.pending_count > 0 && !s.coverage_gap) ||
+    !Array.isArray(s.ordered_segment_refs) ||
+    !Array.isArray(s.message_revisions) ||
+    s.ordered_segment_refs.length !== context.messages.length ||
+    s.message_revisions.length !== context.messages.length ||
+    !s.message_revisions.every(positive) ||
+    !s.ordered_segment_refs.every((ref, i) =>
+      ref === context.messages[i].segment_ref
+    ) ||
+    new Set(s.ordered_segment_refs).size !== context.messages.length
+  ) fail("invalid_full_fifo_snapshot");
+  const g = f.gate_evidence;
+  if (
+    !keys(g, ["rule_version", "evaluated_gates", "reason_codes"]) ||
+    typeof g.rule_version !== "string" ||
+    !/^[\x20-\x7e]{1,80}$/.test(g.rule_version) ||
+    !Array.isArray(g.evaluated_gates) || g.evaluated_gates.length !== 3 ||
+    !g.evaluated_gates.every((v, i) => v === i + 1) ||
+    !Array.isArray(g.reason_codes) || g.reason_codes.length > 32 ||
+    !g.reason_codes.every((v) =>
+      typeof v === "string" && /^[A-Z][A-Z0-9_]{0,63}$/.test(v)
+    ) ||
+    new Set(g.reason_codes).size !== g.reason_codes.length
+  ) fail("invalid_full_fifo_gate_evidence");
+}
+
+/** Canonical JSON semantic tree, not JSON.stringify: interoperable with Android. */
+export function encodeJsonBinary(value: unknown): Uint8Array {
+  const chunks: Uint8Array[] = [];
+  let length = 0;
+  const append = (bytes: Uint8Array) => {
+    chunks.push(bytes);
+    length += bytes.length;
+  };
+  const tag = (character: string) =>
+    append(new Uint8Array([character.charCodeAt(0)]));
+  const size = (n: number) => {
+    if (!Number.isInteger(n) || n < 0 || n > 0xffffffff) {
+      fail("invalid_full_fifo_digest_tree");
+    }
+    const bytes = new Uint8Array(4);
+    new DataView(bytes.buffer).setUint32(0, n, false);
+    append(bytes);
+  };
+  const string = (v: string) => {
+    // TextEncoder would silently replace unpaired UTF-16 surrogates.
+    for (let i = 0; i < v.length; i++) {
+      const c = v.charCodeAt(i);
+      if (c >= 0xd800 && c <= 0xdbff) {
+        const next = v.charCodeAt(++i);
+        if (!(next >= 0xdc00 && next <= 0xdfff)) {
+          fail("invalid_full_fifo_unicode");
+        }
+      } else if (c >= 0xdc00 && c <= 0xdfff) fail("invalid_full_fifo_unicode");
+    }
+    const bytes = new TextEncoder().encode(v);
+    tag("s");
+    size(bytes.length);
+    append(bytes);
+  };
+  const visit = (v: unknown, depth: number) => {
+    if (depth > 32) fail("invalid_full_fifo_digest_tree");
+    if (v === null) tag("n");
+    else if (typeof v === "boolean") tag(v ? "t" : "f");
+    else if (typeof v === "string") string(v);
+    else if (typeof v === "number" && Number.isFinite(v)) {
+      tag("d");
+      const bytes = new Uint8Array(8);
+      new DataView(bytes.buffer).setFloat64(0, Object.is(v, -0) ? 0 : v, false);
+      append(bytes);
+    } else if (Array.isArray(v)) {
+      tag("a");
+      size(v.length);
+      v.forEach((item) => visit(item, depth + 1));
+    } else if (record(v)) {
+      const names = Object.keys(v).sort();
+      tag("o");
+      size(names.length);
+      names.forEach((name) => {
+        string(name);
+        visit(v[name], depth + 1);
+      });
+    } else fail("invalid_full_fifo_digest_tree");
+  };
+  visit(value, 0);
+  const result = new Uint8Array(length);
+  let offset = 0;
+  for (const chunk of chunks) {
+    result.set(chunk, offset);
+    offset += chunk.length;
+  }
+  return result;
+}
+export async function fullFifoDigest(
+  messages: unknown,
+  keyBase64: string,
+): Promise<string> {
+  const keyBytes = Uint8Array.from(atob(keyBase64), (c) => c.charCodeAt(0));
+  const tree = encodeJsonBinary(messages);
+  try {
+    if (keyBytes.length !== 32) fail();
+    const key = await crypto.subtle.importKey(
+      "raw",
+      keyBytes,
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"],
+    );
+    const digest = new Uint8Array(
+      await crypto.subtle.sign("HMAC", key, tree as Uint8Array<ArrayBuffer>),
+    );
+    return [...digest].map((byte) => byte.toString(16).padStart(2, "0")).join(
+      "",
+    );
+  } finally {
+    keyBytes.fill(0);
+    tree.fill(0);
+  }
+}
+export async function validateFullFifo(
+  context: SanitizedIncidentContext,
+  assessmentId: string,
+): Promise<FullFifo | undefined> {
+  assertFullFifoShape(context);
+  const f = context.full_fifo;
+  if (f === undefined) return undefined;
+  if (f.assessment_id !== assessmentId) fail("full_fifo_assessment_mismatch");
+  const actual = await fullFifoDigest(context.messages, f.digest_key_b64);
+  let difference = 0;
+  for (let i = 0; i < 64; i++) {
+    difference |= actual.charCodeAt(i) ^ f.payload_digest.charCodeAt(i);
+  }
+  if (difference !== 0) fail("full_fifo_digest_mismatch");
+  return f;
+}
+
+export function fullFifoReceipt(
+  f: FullFifo,
+  outcome: string,
+): Record<string, unknown> {
+  return {
+    expert_outcome: outcome,
+    case_id: f.case_id,
+    assessment_id: f.assessment_id,
+    assessment_seq: f.assessment_seq,
+    message_count: f.snapshot.message_count,
+    payload_digest: f.payload_digest,
+  };
+}
+
+/** Only content-free metadata crosses the database boundary; the digest key never does. */
+export function fullFifoDatabaseMetadata(
+  f: FullFifo,
+): Omit<FullFifo, "digest_key_b64"> {
+  const { digest_key_b64: _key, ...metadata } = f;
+  return metadata;
+}

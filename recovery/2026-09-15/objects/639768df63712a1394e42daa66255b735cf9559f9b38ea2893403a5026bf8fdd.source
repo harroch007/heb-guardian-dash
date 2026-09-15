@@ -1,0 +1,5 @@
+type KippyLogoProps = { className?: string; inverted?: boolean; markOnly?: boolean };
+export function KippyLogo({ className = "", inverted = false, markOnly = false }: KippyLogoProps) {
+  const asset = markOnly ? "kippy-mark" : "kippy-wordmark";
+  return <img className={className} src={`/brand/${asset}${inverted ? "-white" : ""}.svg`} alt="Kippy" width={markOnly ? 128 : 328} height={markOnly ? 128 : 124} />;
+}

@@ -1,0 +1,297 @@
+import {
+  buildOpenAIRequest,
+  parseSanitizedIncidentContext,
+} from "./incident_expert.ts";
+import type { SanitizedIncidentContext } from "./incident_expert.ts";
+import {
+  assertFullFifoShape,
+  encodeJsonBinary,
+  fullFifoDatabaseMetadata,
+  fullFifoDigest,
+  fullFifoReceipt,
+  validateFullFifo,
+} from "./incident_full_fifo.ts";
+const KEY = btoa(
+  String.fromCharCode(...Array.from({ length: 32 }, (_, i) => i)),
+);
+const ASSESSMENT = "11111111-1111-4111-8111-111111111111";
+function equal(actual: unknown, expected: unknown) {
+  const a = encodeJsonBinary(actual);
+  const b = encodeJsonBinary(expected);
+  if (a.length !== b.length || a.some((byte, i) => byte !== b[i])) {
+    throw new Error("Canonical semantic value mismatch");
+  }
+}
+async function rejects(work: () => unknown | Promise<unknown>, code?: string) {
+  try {
+    await work();
+  } catch (error) {
+    if (code && (!(error instanceof Error) || error.message !== code)) {
+      throw error;
+    }
+    return;
+  }
+  throw new Error("Expected rejection");
+}
+export async function fullContext(
+  count = 40,
+  group = false,
+): Promise<SanitizedIncidentContext> {
+  const messages = Array.from({ length: count }, (_, sequence) => ({
+    segment_ref: `S${String(sequence).padStart(21, "0")}`,
+    participant_ref: `P${String(sequence % 3).padStart(21, "0")}`,
+    sequence,
+    relative_time_seconds: sequence,
+    sender_role: "peer" as const,
+    source_kind: "text" as const,
+    capture_sources: ["accessibility"],
+    capture_confidence: {
+      conversation: 1,
+      message: 0.95,
+      sender: 1,
+      direction: 1,
+    },
+    text: `הודעה בדיונית ${sequence} 😀`,
+    ...(sequence === 2
+      ? {
+        reply_context: {
+          quoted_sender_role: "peer" as const,
+          quoted_text: "ציטוט בדיוני",
+        },
+      }
+      : {}),
+  }));
+  return {
+    schema_version: 2,
+    privacy_contract_version: 3,
+    privacy_identity_version: 1,
+    conversation_ref: "C".repeat(22),
+    conversation_type: group ? "group" : "private",
+    trigger_segment_ref: messages.at(-1)!.segment_ref,
+    evidence_segment_refs: [messages.at(-1)!.segment_ref],
+    messages,
+    redaction_manifest: {},
+    safety_context: {
+      child_age_band: "unknown",
+      child_age_confidence: 0,
+      child_age_evidence: "child_age_unavailable",
+      relationship_type: "unknown",
+      relationship_confidence: 0,
+      relationship_evidence: "relationship_unavailable",
+      conversation_setting: group ? "unknown_group" : "private",
+      conversation_setting_confidence: 1,
+      conversation_setting_evidence: group
+        ? "capture_group_semantics_unknown"
+        : "capture_private_chat",
+      active_trend_counts: {},
+    },
+    full_fifo: {
+      contract_version: "THREE_GATE_FULL_FIFO_V1",
+      case_id: "22222222-2222-4222-8222-222222222222",
+      assessment_id: ASSESSMENT,
+      assessment_seq: 1,
+      previous_assessment_id: null,
+      origin_evidence_available: false,
+      snapshot: {
+        conversation_revision: 40,
+        cutoff_at_ms: 100_000,
+        message_count: count,
+        ordered_segment_refs: messages.map((message) => message.segment_ref),
+        message_revisions: messages.map(() => 1),
+        pending_count: 0,
+        coverage_gap: false,
+        earliest_evidence_at_ms: 10_000,
+        latest_evidence_at_ms: 90_000,
+      },
+      gate_evidence: {
+        rule_version: "three-gates-v1",
+        evaluated_gates: [1, 2, 3],
+        reason_codes: ["SYNTHETIC_PATTERN"],
+      },
+      digest_algorithm: "HMAC_SHA256_JSON_BINARY_V1",
+      digest_key_b64: KEY,
+      payload_digest: await fullFifoDigest(messages, KEY),
+    },
+  };
+}
+const parse = (context: SanitizedIncidentContext) =>
+  parseSanitizedIncidentContext(
+    new TextEncoder().encode(JSON.stringify(context)),
+    context.messages.length,
+  );
+
+Deno.test("binary HMAC fixed Python/Android Hebrew emoji float fixture", async () => {
+  const fixture = [{
+    text: "שלום 😀",
+    n: 0.95,
+    zero: -0.0,
+    whole: 1.0,
+    nil: null,
+    truth: true,
+    array: [false, 1e2, "é"],
+  }];
+  equal(
+    await fullFifoDigest(fixture, KEY),
+    "2ef6b5cb50a0ec257614bdbb49fd4702630f50bf616722e6c870637e7745da60",
+  );
+});
+Deno.test("binary encoding normalizes number spellings and UTF16 key order", async () => {
+  equal(
+    await fullFifoDigest(JSON.parse('{"b":1.0,"a":-0.0}'), KEY),
+    await fullFifoDigest(JSON.parse('{"a":0,"b":1e0}'), KEY),
+  );
+  equal([...encodeJsonBinary({ "😀": 1, "\ue000": 2 })], [
+    ...encodeJsonBinary({ "\ue000": 2, "😀": 1 }),
+  ]);
+});
+Deno.test("binary encoding rejects lossy Unicode and non-JSON values", async () => {
+  for (
+    const bad of ["\ud800", "\udc00", { "\ud800": "x" }, Infinity, undefined]
+  ) {
+    await rejects(() => encodeJsonBinary(bad));
+  }
+});
+for (const [count, group] of [[40, false], [60, true]] as const) {
+  Deno.test(`FULL FIFO ${count} exact ordered messages reaches provider projection without metadata`, async () => {
+    const context = parse(await fullContext(count, group));
+    await validateFullFifo(context, ASSESSMENT);
+    const request = buildOpenAIRequest(context, `kippy_v1_${"A".repeat(43)}`);
+    const input = request.input as { content: { text: string }[] }[];
+    const provider = JSON.parse(input[1].content[0].text);
+    equal(provider.messages, context.messages);
+    for (
+      const forbidden of [
+        "full_fifo",
+        "digest_key_b64",
+        "case_id",
+        "gate_evidence",
+        "SYNTHETIC_PATTERN",
+      ]
+    ) {
+      if (JSON.stringify(request).includes(forbidden)) {
+        throw new Error(`Leaked transport field ${forbidden}`);
+      }
+    }
+    equal(
+      Object.hasOwn(
+        fullFifoDatabaseMetadata(context.full_fifo!),
+        "digest_key_b64",
+      ),
+      false,
+    );
+  });
+}
+Deno.test("full FIFO binds outer assessment id and detects body or quote mutation", async () => {
+  const context = await fullContext();
+  await rejects(
+    () => validateFullFifo(context, "33333333-3333-4333-8333-333333333333"),
+    "full_fifo_assessment_mismatch",
+  );
+  context.messages[0].text += " אחר";
+  await rejects(
+    () => validateFullFifo(context, ASSESSMENT),
+    "full_fifo_digest_mismatch",
+  );
+  const reply = await fullContext();
+  reply.messages[2].reply_context!.quoted_text += " אחר";
+  await rejects(
+    () => validateFullFifo(reply, ASSESSMENT),
+    "full_fifo_digest_mismatch",
+  );
+});
+Deno.test("full FIFO rejects subset reordered and duplicate memberships", async () => {
+  for (
+    const mutate of [
+      (c: SanitizedIncidentContext) => {
+        c.messages.pop();
+      },
+      (c: SanitizedIncidentContext) => {
+        c.full_fifo!.snapshot.ordered_segment_refs.reverse();
+      },
+      (c: SanitizedIncidentContext) => {
+        c.full_fifo!.snapshot.ordered_segment_refs[1] =
+          c.full_fifo!.snapshot.ordered_segment_refs[0];
+      },
+      (c: SanitizedIncidentContext) => {
+        c.full_fifo!.snapshot.message_revisions.pop();
+      },
+    ]
+  ) {
+    const c = await fullContext();
+    mutate(c);
+    await rejects(() => assertFullFifoShape(c));
+  }
+});
+Deno.test("full FIFO rejects unsafe snapshot and gate metadata", async () => {
+  const mutations: ((c: SanitizedIncidentContext) => void)[] = [
+    (c) => {
+      c.full_fifo!.snapshot.pending_count = 1;
+    },
+    (c) => {
+      c.full_fifo!.snapshot.latest_evidence_at_ms = 100_001;
+    },
+    (c) => {
+      c.full_fifo!.snapshot.message_revisions[0] = 0;
+    },
+    (c) => {
+      c.full_fifo!.gate_evidence.reason_codes = ["FREE TEXT"];
+    },
+    (c) => {
+      c.full_fifo!.gate_evidence.reason_codes = ["DUP", "DUP"];
+    },
+    (c) => {
+      c.full_fifo!.assessment_seq = 2;
+    },
+    (c) => {
+      (c.full_fifo as unknown as Record<string, unknown>).secret_extra = "no";
+    },
+    (c) => {
+      c.full_fifo!.digest_key_b64 = "A".repeat(43) + "=";
+      c.full_fifo!.digest_key_b64 = c.full_fifo!.digest_key_b64.slice(0, 42) +
+        "B=";
+    },
+  ];
+  for (const mutate of mutations) {
+    const c = await fullContext();
+    mutate(c);
+    await rejects(() => parse(c));
+  }
+});
+Deno.test("full FIFO accepts declared coverage gap and first missing previous id", async () => {
+  const c = await fullContext();
+  c.full_fifo!.snapshot.pending_count = 3;
+  c.full_fifo!.snapshot.coverage_gap = true;
+  delete c.full_fifo!.previous_assessment_id;
+  await validateFullFifo(parse(c), ASSESSMENT);
+});
+Deno.test("legacy context remains supported while full FIFO never downgrades", async () => {
+  const c = await fullContext();
+  delete c.full_fifo;
+  parse(c);
+  c.privacy_contract_version = 1;
+  delete c.safety_context;
+  parse(c);
+  c.full_fifo = (await fullContext()).full_fifo;
+  await rejects(() => parse(c), "invalid_full_fifo_contract");
+});
+Deno.test("receipt explicitly acknowledges durable inconclusive without digest key", async () => {
+  const c = await fullContext();
+  const receipt = fullFifoReceipt(c.full_fifo!, "inconclusive");
+  equal(receipt.expert_outcome, "inconclusive");
+  equal(receipt.assessment_id, ASSESSMENT);
+  equal(receipt.message_count, 40);
+  equal(receipt.payload_digest, c.full_fifo!.payload_digest);
+  equal(Object.hasOwn(receipt, "digest_key_b64"), false);
+});
+
+Deno.test("cancelled reservation metadata is explicit and forbidden on first sequence", async () => {
+  const c = await fullContext();
+  c.full_fifo!.previous_assessment_state = "cancelled_before_submission";
+  await rejects(() => parse(c));
+  c.full_fifo!.assessment_seq = 3;
+  c.full_fifo!.previous_assessment_id = "33333333-3333-4333-8333-333333333333";
+  await validateFullFifo(parse(c), ASSESSMENT);
+  (c.full_fifo as unknown as Record<string, unknown>)
+    .previous_assessment_state = "http_unknown";
+  await rejects(() => parse(c));
+});

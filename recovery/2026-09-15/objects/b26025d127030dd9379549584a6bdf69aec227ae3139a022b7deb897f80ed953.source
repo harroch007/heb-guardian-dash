@@ -1,0 +1,199 @@
+import {
+  assertIncidentContextBinding,
+  buildOpenAIRequest,
+  EXPERT_PROMPT_VERSION,
+  ExpertAnalysisError,
+  parseSanitizedIncidentContext,
+} from "./incident_expert.ts";
+import type { SanitizedIncidentContext } from "./incident_expert.ts";
+
+Deno.test("recovered expert v5 preserves identity and safety-context projection", () => {
+  assertEquals(EXPERT_PROMPT_VERSION, "kippy-expert-v5");
+  const context = parseContext(v3Context());
+
+  assertIncidentContextBinding(context, 3, 7);
+  const request = buildOpenAIRequest(
+    context,
+    "kippy_v1_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+  );
+  const input = request.input as Array<Record<string, unknown>>;
+  const user = input.find((item) => item.role === "user");
+  const content = user?.content as Array<Record<string, unknown>>;
+  const projected = JSON.parse(String(content[0].text)) as Record<
+    string,
+    unknown
+  >;
+
+  assertEquals(projected.safety_context, context.safety_context);
+  assertEquals(
+    (projected.messages as Array<Record<string, unknown>>)[1].reply_context,
+    context.messages[1].reply_context,
+  );
+});
+
+Deno.test("recovered expert v5 rejects voice while voice capture is disabled", () => {
+  const context = v3Context() as unknown as {
+    messages: Array<Record<string, unknown>>;
+  };
+  context.messages[1].source_kind = "voice_transcript";
+  context.messages[1].capture_sources = ["voice_pipeline"];
+
+  assertThrowsCode(
+    () => parseContext(context),
+    "invalid_context_message",
+  );
+});
+
+Deno.test("recovered expert v5 requires monotonic relative message time", () => {
+  const context = v3Context();
+  context.messages[0].relative_time_seconds = 5;
+  context.messages[1].relative_time_seconds = 4;
+
+  assertThrowsCode(
+    () => parseContext(context),
+    "invalid_context_message",
+  );
+});
+
+Deno.test("recovered expert v5 validates linked reply provenance", () => {
+  const mismatchedParticipant = v3Context();
+  mismatchedParticipant.messages[1].reply_context!.quoted_participant_ref =
+    "RRRRRRRRRRRRRRRRRRRRRR";
+  assertThrowsCode(
+    () => parseContext(mismatchedParticipant),
+    "invalid_context_reply_reference",
+  );
+
+  const linkedReplyOnV2 = v3Context();
+  linkedReplyOnV2.privacy_contract_version = 2;
+  assertThrowsCode(
+    () => parseContext(linkedReplyOnV2),
+    "invalid_context_reply_reference",
+  );
+});
+
+Deno.test("recovered expert v5 rejects residual identifiers for v3", () => {
+  const context = v3Context();
+  context.messages[0].text = "send this to child@example.com";
+
+  assertThrowsCode(
+    () => parseContext(context),
+    "context_privacy_verification_failed",
+  );
+});
+
+Deno.test("recovered expert v5 binds plaintext identity to the request", () => {
+  const context = parseContext(v3Context());
+  assertThrowsCode(
+    () => assertIncidentContextBinding(context, 3, 8),
+    "privacy_identity_mismatch",
+  );
+  assertThrowsCode(
+    () => assertIncidentContextBinding(context, 2, 7),
+    "invalid_context_contract",
+  );
+});
+
+function v3Context(): SanitizedIncidentContext {
+  return {
+    schema_version: 2,
+    privacy_contract_version: 3,
+    privacy_identity_version: 7,
+    conversation_ref: "ZZZZZZZZZZZZZZZZZZZZZZ",
+    conversation_type: "private",
+    trigger_segment_ref: "BBBBBBBBBBBBBBBBBBBBBB",
+    evidence_segment_refs: [
+      "AAAAAAAAAAAAAAAAAAAAAA",
+      "BBBBBBBBBBBBBBBBBBBBBB",
+    ],
+    safety_context: {
+      child_age_band: "age_9_11",
+      child_age_confidence: 0.7,
+      child_age_evidence: "birth_year_calendar_estimate",
+      relationship_type: "unsaved",
+      relationship_confidence: 0.98,
+      relationship_evidence: "whatsapp_unsaved_number",
+      conversation_setting: "private",
+      conversation_setting_confidence: 0.95,
+      conversation_setting_evidence: "capture_private_chat",
+      active_trend_counts: { bullying: 2 },
+    },
+    messages: [
+      {
+        segment_ref: "AAAAAAAAAAAAAAAAAAAAAA",
+        participant_ref: "PPPPPPPPPPPPPPPPPPPPPP",
+        sequence: 0,
+        relative_time_seconds: 0,
+        sender_role: "peer",
+        source_kind: "text",
+        capture_sources: ["accessibility"],
+        capture_confidence: {
+          conversation: 0.9,
+          message: 0.9,
+          sender: 0.9,
+          direction: 0.9,
+        },
+        text: "first sanitized message",
+      },
+      {
+        segment_ref: "BBBBBBBBBBBBBBBBBBBBBB",
+        participant_ref: "QQQQQQQQQQQQQQQQQQQQQQ",
+        sequence: 1,
+        relative_time_seconds: 3,
+        sender_role: "child",
+        source_kind: "text",
+        capture_sources: ["accessibility", "notification"],
+        capture_confidence: {
+          conversation: 0.8,
+          message: 0.8,
+          sender: 0.8,
+          direction: 0.8,
+        },
+        reply_context: {
+          quoted_sender_role: "peer",
+          quoted_text: "first sanitized message",
+          quoted_segment_ref: "AAAAAAAAAAAAAAAAAAAAAA",
+          quoted_participant_ref: "PPPPPPPPPPPPPPPPPPPPPP",
+        },
+        text: "second sanitized message",
+      },
+    ],
+    redaction_manifest: {},
+  };
+}
+
+function parseContext(value: unknown): SanitizedIncidentContext {
+  const bytes = new TextEncoder().encode(JSON.stringify(value));
+  try {
+    const messages = (value as { messages: unknown[] }).messages;
+    return parseSanitizedIncidentContext(bytes, messages.length);
+  } finally {
+    bytes.fill(0);
+  }
+}
+
+function assertThrowsCode(
+  action: () => unknown,
+  expectedCode: string,
+): void {
+  try {
+    action();
+  } catch (error) {
+    if (
+      error instanceof ExpertAnalysisError &&
+      error.code === expectedCode
+    ) return;
+    throw error;
+  }
+  throw new Error(`Expected ${expectedCode}`);
+}
+
+function assertEquals(actual: unknown, expected: unknown): void {
+  if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+    throw new Error(
+      `assertEquals failed: ${JSON.stringify(actual)} !== ${
+        JSON.stringify(expected)
+      }`,
+    );
+  }
+}

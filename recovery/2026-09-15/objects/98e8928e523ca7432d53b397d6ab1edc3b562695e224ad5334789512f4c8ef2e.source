@@ -1,0 +1,36 @@
+import { useRef, useState } from 'react';
+import { ArrowLeft, MapPin, MessageCircle, Heart } from 'lucide-react';
+
+const moments = [
+  { label: 'משהו עובר עליו?', icon: Heart, title: 'לדעת מתי הוא צריך אתכם.', text: 'לפעמים קשה להבדיל בין שיחה רגילה למשהו שמדאיג. אנחנו בונים את Kippy כדי לעזור לכם לזהות רגעים שכדאי לעצור ולבדוק.', prompt: 'לא חייבים לדעת הכול.', response: 'חשוב לדעת מתי להתקרב.', detail: 'תשומת לב למצבים מדאיגים ב־WhatsApp' },
+  { label: 'איך מתחילים לדבר?', icon: MessageCircle, title: 'למצוא את המילים הנכונות.', text: 'גם כשכבר יודעים שמשהו קרה, לא תמיד יודעים מה להגיד. הכוונה לשיחה עם הילד היא חלק מרכזי מהתפקיד שאנחנו מתכננים ל־Kippy.', prompt: '״איך אתה מרגיש בקבוצה', response: 'בזמן האחרון?״', detail: 'דוגמה לפתיחת שיחה, שמתחילה בהקשבה' },
+  { label: 'הוא כבר הגיע?', icon: MapPin, title: 'קצת פחות לנחש.', text: 'לדעת איפה המכשיר נמצא והאם הילד הגיע למקום שקבעתם. יכולות המיקום שאנחנו מתכננים נועדו לתת לכם תמונה ברורה יותר ביום יום.', prompt: 'בדרך לחוג. בדרך לחבר.', response: 'אתם רוצים לדעת שהוא הגיע.', detail: 'מיקום ואזורי הגעה כחלק מבקרת ההורים' },
+];
+
+export function ParentMoments() {
+  const [active, setActive] = useState(0);
+  const tabs = useRef<(HTMLButtonElement | null)[]>([]);
+  const current = moments[active];
+  const Icon = current.icon;
+  return (
+    <section className="kippy-moments" id="benefits" aria-labelledby="moments-title">
+      <div className="kippy-wrap">
+        <div className="kippy-moments-heading"><p className="kippy-eyebrow">יש רגעים שכל הורה מכיר</p><h2 id="moments-title">מה מעסיק אתכם<br />כשהטלפון אצלם?</h2><p>בחרו רגע. תראו מה אנחנו רוצים לשנות בו.</p></div>
+        <div className="kippy-moment-tabs" role="tablist" aria-label="רגעים בחיי המשפחה">{moments.map((moment, index) => <button key={moment.label} ref={node => { tabs.current[index] = node; }} id={`moment-tab-${index}`} type="button" role="tab" aria-selected={active === index} aria-controls="moment-panel" tabIndex={active === index ? 0 : -1} onClick={() => setActive(index)} onKeyDown={event => {
+          let next = active;
+          if (event.key === 'ArrowLeft') next = (active + 1) % moments.length;
+          else if (event.key === 'ArrowRight') next = (active + moments.length - 1) % moments.length;
+          else if (event.key === 'Home') next = 0;
+          else if (event.key === 'End') next = moments.length - 1;
+          else return;
+          event.preventDefault(); setActive(next); tabs.current[next]?.focus();
+        }}><span className="kippy-tab-number" aria-hidden="true">0{index + 1}</span>{moment.label}<ArrowLeft size={18} aria-hidden="true" /></button>)}</div>
+        <div id="moment-panel" className="kippy-moment-panel" role="tabpanel" tabIndex={0} aria-labelledby={`moment-tab-${active}`}>
+          <div className="kippy-moment-note" key={active}><span className="kippy-moment-note-icon"><Icon size={28} strokeWidth={1.7} aria-hidden="true" /></span><p>{current.prompt}<br /><strong>{current.response}</strong></p><span>{current.detail}</span><svg className="kippy-pencil" aria-hidden="true" viewBox="0 0 320 38"><path d="M8 26Q139 4 308 16M55 33Q147 14 276 24" /></svg></div>
+          <div className="kippy-moment-explanation"><p className="kippy-eyebrow">הכיוון שאנחנו בונים</p><h3>{current.title}</h3><p>{current.text}</p><span className="kippy-concept-label">המחשת הרעיון. Kippy בפיתוח לקראת השקה.</span></div>
+        </div>
+        <div className="kippy-everyday"><strong>וגם ביום יום, אתם קובעים.</strong><p>זמן מסך, אפליקציות ומיקום במקום אחד, כחלק מבקרת ההורים שאנחנו בונים.</p></div>
+      </div>
+    </section>
+  );
+}

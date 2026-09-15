@@ -1,0 +1,116 @@
+import {
+  IncidentClaimError,
+  normalizeIncidentClaim,
+} from "./incident_claim.ts";
+import {
+  AnalysisDeadlineError,
+  assertAnalysisDeadline,
+} from "./incident_deadline.ts";
+
+const NOW = Date.parse("2026-07-29T12:00:00.000Z");
+
+Deno.test("fresh claim has enough budget at every stage", () => {
+  const claim = normalizeIncidentClaim(validClaim());
+  assertAnalysisDeadline(claim, "before_decrypt", NOW);
+  assertAnalysisDeadline(claim, "before_openai", NOW + 10_000);
+  assertAnalysisDeadline(claim, "before_finalize", NOW + 55_000);
+});
+
+Deno.test("paused or expired lease is rejected before cloud work", () => {
+  const claim = normalizeIncidentClaim(validClaim());
+  assertDeadlineCode(
+    () =>
+      assertAnalysisDeadline(
+        claim,
+        "before_openai",
+        NOW + 61_000,
+      ),
+    "analysis_lease_budget_insufficient",
+    true,
+    "worker_transient",
+  );
+  assertDeadlineCode(
+    () =>
+      assertAnalysisDeadline(
+        claim,
+        "before_decrypt",
+        NOW + 121_000,
+      ),
+    "analysis_lease_expired",
+    true,
+    "worker_transient",
+  );
+});
+
+Deno.test("expired retention context is terminal", () => {
+  const claim = normalizeIncidentClaim(validClaim());
+  assertDeadlineCode(
+    () =>
+      assertAnalysisDeadline(
+        claim,
+        "before_finalize",
+        Date.parse(claim.context_expires_at_canonical),
+      ),
+    "incident_context_expired",
+    false,
+    "analysis",
+  );
+});
+
+Deno.test("claim normalizer rejects malformed lease deadline", () => {
+  const claim: Record<string, unknown> = validClaim();
+  claim.lease_expires_at_canonical = "2026-07-29T12:02:00+00:00";
+  try {
+    normalizeIncidentClaim(claim);
+  } catch (error) {
+    if (error instanceof IncidentClaimError) return;
+    throw error;
+  }
+  throw new Error("malformed_deadline_was_accepted");
+});
+
+function validClaim(): Record<string, unknown> {
+  return {
+    incident_id: "11111111-1111-4111-8111-111111111111",
+    lease_token: "a".repeat(64),
+    client_incident_id: "22222222-2222-4222-8222-222222222222",
+    device_id: "33333333-3333-4333-8333-333333333333",
+    child_id: "44444444-4444-4444-8444-444444444444",
+    category: "bullying",
+    severity: "high",
+    child_role: "target",
+    confidence_canonical: "0.900000",
+    capture_quality_canonical: "0.800000",
+    occurred_at_canonical: "2026-07-29T11:59:00.000Z",
+    model_contract_version: 2,
+    privacy_contract_version: 1,
+    privacy_identity_version: 7,
+    aad_version: 3,
+    encryption_algorithm: "RSA-OAEP-3072-SHA256+AES-256-GCM",
+    key_version: 1,
+    message_count: 2,
+    lease_expires_at_canonical: "2026-07-29T12:02:00.000Z",
+    context_expires_at_canonical: "2026-07-29T12:02:30.000Z",
+    encrypted_payload_base64: "unused",
+  };
+}
+
+function assertDeadlineCode(
+  action: () => void,
+  expectedCode: string,
+  expectedRetryable: boolean,
+  expectedFailureClass: string,
+): void {
+  try {
+    action();
+  } catch (error) {
+    if (
+      error instanceof AnalysisDeadlineError &&
+      error.code === expectedCode &&
+      error.retryable === expectedRetryable &&
+      error.failureClass === expectedFailureClass
+    ) return;
+    throw error;
+  }
+  throw new Error(`Expected ${expectedCode}`);
+}

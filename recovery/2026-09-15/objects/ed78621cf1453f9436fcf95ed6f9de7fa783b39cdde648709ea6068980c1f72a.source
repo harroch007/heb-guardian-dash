@@ -1,0 +1,438 @@
+import { readFileSync } from "node:fs";
+import type { Page } from "@playwright/test";
+import { expect, test } from "../playwright-fixture";
+
+// UI contract fixtures only: all accounts, children and analysis are synthetic.
+// SQL authorization and real-device/provider behavior are separate test gates.
+const USER_ID = "81000000-0000-4000-8000-000000000001";
+const FAMILY_ID = "82000000-0000-4000-8000-000000000001";
+const CHILD_ID = "83000000-0000-4000-8000-000000000001";
+const SECOND_CHILD_ID = "83000000-0000-4000-8000-000000000002";
+const INCIDENT_ID = "85000000-0000-4000-8000-000000000001";
+const NOW = new Date().toISOString();
+const envURL = readFileSync(".env", "utf8")
+  .match(/^\s*VITE_SUPABASE_URL\s*=\s*["']?([^\s"']+)/m)?.[1];
+if (!envURL) throw new Error("VITE_SUPABASE_URL is required for isolated E2E routing");
+const supabaseOrigin = new URL(envURL).origin;
+const user = {
+  id: USER_ID, aud: "authenticated", role: "authenticated",
+  email: "feedback.synthetic@example.invalid", email_confirmed_at: NOW,
+  phone: "", confirmed_at: NOW, last_sign_in_at: NOW,
+  app_metadata: { provider: "email", providers: ["email"] },
+  user_metadata: { full_name: "הורה סינתטי" }, identities: [],
+  created_at: NOW, updated_at: NOW, is_anonymous: false,
+};
+const encode = (value: object) => Buffer.from(JSON.stringify(value)).toString("base64url");
+const session = {
+  access_token: [encode({ alg: "HS256", typ: "JWT" }), encode({
+    aud: "authenticated", exp: 4_102_444_800, iat: 1_775_000_000,
+    iss: `${supabaseOrigin}/auth/v1`, role: "authenticated", sub: USER_ID, email: user.email,
+  }), "synthetic-signature"].join("."),
+  token_type: "bearer", expires_in: 2_147_483_647, expires_at: 4_102_444_800,
+  refresh_token: "synthetic-refresh", user,
+};
+const cors = {
+  "access-control-allow-origin": "*",
+  "access-control-allow-headers": "authorization, apikey, content-type, prefer, range, x-client-info",
+  "access-control-allow-methods": "GET, POST, PATCH, DELETE, OPTIONS, HEAD",
+  "access-control-expose-headers": "content-range",
+  "content-type": "application/json",
+};
+
+type Payload = Record<string, unknown>;
+type FixtureState = {
+  feedback: Payload[];
+  feedbackReads: URL[];
+  calls: Array<{ rpc: string; body: Payload }>;
+  readError: string | null;
+  saveErrors: number;
+  saveErrorCode: string;
+  missedErrors: number;
+  incidentError: boolean;
+  expertDetails: boolean;
+  readGate: Promise<void> | null;
+  saveGate: Promise<void> | null;
+  rows: Record<string, Payload[]>;
+};
+
+async function installFixture(page: Page): Promise<FixtureState> {
+  const state: FixtureState = {
+    feedback: [], feedbackReads: [], calls: [], readError: null,
+    saveErrors: 0, saveErrorCode: "temporary_unavailable", missedErrors: 0,
+    incidentError: false, expertDetails: true, readGate: null, saveGate: null, rows: {},
+  };
+  await installSyntheticMaps(page);
+  await page.routeWebSocket("**/*", (socket) => socket.close());
+  await page.route("**/auth/v1/**", (route) => route.fulfill({
+    status: route.request().method() === "OPTIONS" ? 204 : 200,
+    headers: cors,
+    ...(route.request().method() === "OPTIONS" ? {} : {
+      json: new URL(route.request().url()).pathname.endsWith("/user") ? user : session,
+    }),
+  }));
+  await page.route("**/functions/v1/**", (route) => route.fulfill({
+    status: route.request().method() === "OPTIONS" ? 204 : 200,
+    headers: cors,
+    ...(route.request().method() === "OPTIONS" ? {} : { json: {} }),
+  }));
+  await page.route("**/rest/v1/**", async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+    const table = url.pathname.split("/").pop() ?? "";
+    if (request.method() === "OPTIONS") {
+      await route.fulfill({ status: 204, headers: cors });
+      return;
+    }
+    if (url.pathname.includes("/rpc/")) {
+      if (table === "is_email_allowed") {
+        await route.fulfill({ status: 200, headers: cors, json: true });
+        return;
+      }
+      const body = request.postDataJSON() as Payload;
+      state.calls.push({ rpc: table, body });
+      if (table === "v2_submit_guardian_incident_feedback") {
+        const row = {
+          incident_id: body.target_incident_id, guardian_user_id: USER_ID,
+          usefulness: body.target_usefulness, reason: body.target_reason,
+          created_at: NOW, updated_at: NOW,
+        };
+        if (state.saveGate) await state.saveGate;
+        // Simulate an uncertain transport result after the write was accepted.
+        // A client retry must reuse the key, regardless of this synthetic outcome.
+        if (state.saveErrorCode === "temporary_unavailable") state.feedback = [row];
+        if (state.saveErrors > 0) {
+          state.saveErrors -= 1;
+          await route.fulfill({ status: 503, headers: cors, json: { code: state.saveErrorCode, message: "Synthetic failure" } });
+        } else {
+          state.feedback = [row];
+          await route.fulfill({ status: 200, headers: cors, json: [row] });
+        }
+        return;
+      }
+      if (table === "v2_report_missed_safety_concern") {
+        if (state.missedErrors > 0) {
+          state.missedErrors -= 1;
+          await route.fulfill({ status: 503, headers: cors, json: { code: "temporary_unavailable", message: "Synthetic failure" } });
+        } else {
+          await route.fulfill({ status: 200, headers: cors, json: [{
+            id: "86000000-0000-4000-8000-000000000001", guardian_user_id: USER_ID,
+            child_id: body.target_child_id, category: body.target_category,
+            occurred_on: body.target_occurred_on, created_at: NOW,
+          }] });
+        }
+        return;
+      }
+      await route.fulfill({ status: 200, headers: cors, json: [] });
+      return;
+    }
+    if (table === "v2_guardian_incident_feedback") {
+      state.feedbackReads.push(url);
+      if (state.readGate) await state.readGate;
+      if (state.readError) {
+        await route.fulfill({ status: 503, headers: cors, json: { code: state.readError, message: "Synthetic unavailable table" } });
+        return;
+      }
+    }
+    if (table === "v2_safety_incidents" && state.incidentError) {
+      await route.fulfill({ status: 503, headers: cors, json: { code: "temporary_unavailable", message: "Synthetic incident error" } });
+      return;
+    }
+    const rows: Record<string, Payload[]> = {
+      v2_guardian_memberships: [{ guardian_user_id: USER_ID, family_id: FAMILY_ID, role: "owner", status: "active", created_at: NOW }],
+      v2_guardian_profiles: [{ user_id: USER_ID, display_name: "הורה סינתטי", phone: null }],
+      v2_children: [
+        { id: CHILD_ID, family_id: FAMILY_ID, display_name: "ילד סינתטי עם שם ארוך לצורכי בדיקה", status: "active", created_at: NOW },
+        { id: SECOND_CHILD_ID, family_id: FAMILY_ID, display_name: "ילדה סינתטית", status: "active", created_at: NOW },
+      ],
+      v2_safety_incidents: [{
+        id: INCIDENT_ID, child_id: CHILD_ID, category: "bullying", severity: "high",
+        child_role: "initiator", confidence: 0.98, source_platform: "whatsapp", status: "confirmed", occurred_at: NOW,
+      }],
+      v2_incident_analysis: [{
+        incident_id: INCIDENT_ID, outcome: "confirmed", safe_summary: "סיכום סינתטי של חשש שדורש תשומת לב.",
+        safe_reason: "הסבר סינתטי לצורך בדיקת הממשק בלבד.", recommended_action: "המלצה סינתטית לשיחה רגועה.",
+      }],
+      v2_incident_analysis_details: state.expertDetails ? [{
+        incident_id: INCIDENT_ID, expert_category: "exclusion", expert_severity: "medium", expert_child_role: "target", expert_confidence: 0.7,
+      }] : [],
+      v2_guardian_incident_feedback: state.feedback,
+    };
+    const data = state.rows[table] ?? rows[table] ?? [];
+    const headers = { ...cors, "content-range": data.length ? `0-${data.length - 1}/${data.length}` : "*/0" };
+    const wantsObject = (request.headers().accept ?? "").includes("application/vnd.pgrst.object+json");
+    await route.fulfill({ status: 200, headers, ...(request.method() === "HEAD" ? {} : { json: wantsObject ? data[0] ?? null : data }) });
+  });
+  return state;
+}
+
+async function openAlerts(page: Page) {
+  await authenticateSyntheticParent(page, "/alerts-v2");
+  await expect(page.getByRole("heading", { name: "התראות בטיחות", exact: true })).toBeVisible();
+  await expect(page.getByText("סיכום סינתטי של חשש שדורש תשומת לב.", { exact: true })).toBeVisible();
+}
+const feedbackForm = (page: Page) => page.getByRole("form", { name: "משוב על ההתראה", exact: true });
+const feedbackCalls = (state: FixtureState) => state.calls.filter((call) => call.rpc === "v2_submit_guardian_incident_feedback");
+
+async function authenticateSyntheticParent(page: Page, path: string) {
+  // Follow the existing parent-route fixture through the real auth UI so the
+  // runtime owns its session storage key and reload behavior.
+  await page.goto("/auth", { waitUntil: "domcontentloaded" });
+  await page.getByLabel("אימייל").fill(user.email);
+  await page.getByLabel("סיסמה").fill("Synthetic123!");
+  await page.getByRole("button", { name: "התחבר", exact: true }).click();
+  await expect(page).toHaveURL(/\/home-v2$/);
+  await page.waitForLoadState("networkidle");
+  if (path !== "/home-v2") {
+    await page.evaluate((nextPath) => {
+      window.history.pushState({}, "", nextPath);
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    }, path);
+  }
+}
+
+for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 900 }]) {
+  test(`feedback persists on reload in Hebrew RTL at ${viewport.width}px`, async ({ page }, testInfo) => {
+    await page.setViewportSize(viewport);
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    const state = await installFixture(page);
+    const runtimeErrors: string[] = [];
+    page.on("pageerror", (error) => runtimeErrors.push(error.message));
+    await openAlerts(page);
+    const form = feedbackForm(page);
+    await expect(page.getByTestId(`incident-${INCIDENT_ID}`).getByText("חרם והדרה", { exact: true })).toBeVisible();
+    await expect(page.getByText("חומרה בינונית", { exact: true })).toBeVisible();
+    await expect(page.getByText("הילד/ה יעד לפגיעה", { exact: true })).toBeVisible();
+    await expect(page.getByText(/ודאות גבוהה|ההקשר המלא/)).toHaveCount(0);
+    await form.getByRole("radio", { name: "עזרה לי", exact: true }).check();
+    await form.getByRole("button", { name: "שליחת משוב", exact: true }).click();
+    await expect(form.getByRole("status")).toHaveText("המשוב שלך נשמר.");
+    expect(feedbackCalls(state)).toHaveLength(1);
+    expect(feedbackCalls(state)[0].body).toEqual({
+      target_incident_id: INCIDENT_ID, target_usefulness: "helpful", target_reason: null,
+      target_request_key: expect.stringMatching(/^guardian-feedback:[0-9a-f-]{36}$/),
+    });
+    expect(state.calls.filter((call) => call.rpc === "v2_set_guardian_incident_state")).toEqual([]);
+    await expect(page.getByRole("button", { name: "סמן כטופל", exact: true })).toBeVisible();
+    await page.reload();
+    await expect(feedbackForm(page).getByRole("radio", { name: "עזרה לי", exact: true })).toBeChecked();
+    await expect(feedbackForm(page).getByRole("status")).toHaveText("המשוב שלך נשמר.");
+    expect(state.feedbackReads.every((url) => url.searchParams.get("guardian_user_id") === `eq.${USER_ID}`)).toBe(true);
+    expect(await page.locator("main").evaluate((element) => getComputedStyle(element).direction)).toBe("rtl");
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath(`feedback-${viewport.width}-rtl.png`), fullPage: true });
+    await page.evaluate(() => { document.documentElement.style.fontSize = "20px"; });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true);
+    expect(runtimeErrors).toEqual([]);
+    await testInfo.attach(`monitoring-feedback-${viewport.width}-rtl-reduced-motion`, { body: await page.screenshot({ path: testInfo.outputPath(`feedback-${viewport.width}-large-text.png`), fullPage: true }), contentType: "image/png" });
+  });
+}
+
+test("conditional reason is required; keyboard choice, pending lock and all usefulness values work", async ({ page }) => {
+  const state = await installFixture(page);
+  await openAlerts(page);
+  const form = feedbackForm(page);
+  await form.getByRole("radio", { name: "עזרה לי", exact: true }).focus();
+  await page.keyboard.press("ArrowLeft"); // Native radio order follows RTL.
+  await expect(form.getByRole("radio", { name: "לא עזרה לי", exact: true })).toBeChecked();
+  await form.getByRole("button", { name: "שליחת משוב", exact: true }).click();
+  await expect(form.getByRole("alert")).toHaveText("יש לבחור סיבה כדי לשלוח את המשוב.");
+  await expect(form.getByLabel("מה לא עזר? (חובה)")).toBeFocused();
+  expect(feedbackCalls(state)).toHaveLength(0);
+  await form.getByLabel("מה לא עזר? (חובה)").selectOption("duplicate");
+  let releaseSave = () => {};
+  state.saveGate = new Promise<void>((resolve) => { releaseSave = resolve; });
+  await form.getByRole("button", { name: "שליחת משוב", exact: true }).click();
+  await expect(form.getByRole("button", { name: "שומר את המשוב…", exact: true })).toBeDisabled();
+  await expect(form.getByRole("radio", { name: "לא עזרה לי", exact: true })).toBeDisabled();
+  releaseSave();
+  state.saveGate = null;
+  await expect(form.getByRole("status")).toHaveText("המשוב שלך נשמר.");
+  expect(feedbackCalls(state)[0].body.target_reason).toBe("duplicate");
+  await page.reload();
+  await expect(feedbackForm(page).getByLabel("מה לא עזר? (חובה)")).toHaveValue("duplicate");
+  await feedbackForm(page).getByRole("radio", { name: "לא בטוח/ה", exact: true }).check();
+  await expect(feedbackForm(page).getByLabel("מה לא עזר? (חובה)")).toHaveCount(0);
+  await feedbackForm(page).getByRole("button", { name: "עדכון המשוב", exact: true }).click();
+  await expect(feedbackForm(page).getByRole("status")).toHaveText("המשוב שלך נשמר.");
+  expect(feedbackCalls(state)[1].body.target_usefulness).toBe("unsure");
+  expect(feedbackCalls(state)[1].body.target_reason).toBeNull();
+  expect(feedbackCalls(state)[1].body.target_request_key).not.toBe(feedbackCalls(state)[0].body.target_request_key);
+});
+
+test("uncertain save retains choice and reuses the same key on retry without acknowledgment", async ({ page }) => {
+  const state = await installFixture(page);
+  state.saveErrors = 1;
+  await openAlerts(page);
+  const form = feedbackForm(page);
+  await form.getByRole("radio", { name: "לא עזרה לי", exact: true }).check();
+  await form.getByLabel("מה לא עזר? (חובה)").selectOption("incorrect_interpretation");
+  await form.getByRole("button", { name: "שליחת משוב", exact: true }).click();
+  await expect(form.getByRole("alert")).toContainText("אפשר לנסות שוב");
+  await expect(form.getByLabel("מה לא עזר? (חובה)")).toHaveValue("incorrect_interpretation");
+  await form.getByRole("button", { name: "ניסיון נוסף לשמירת המשוב", exact: true }).click();
+  await expect(form.getByRole("status")).toHaveText("המשוב שלך נשמר.");
+  expect(feedbackCalls(state)).toHaveLength(2);
+  expect(feedbackCalls(state)[0].body).toEqual(feedbackCalls(state)[1].body);
+  expect(state.calls.map((call) => call.rpc)).toEqual(["v2_submit_guardian_incident_feedback", "v2_submit_guardian_incident_feedback"]);
+});
+
+for (const code of ["temporary_unavailable", "PGRST205"]) {
+  test(`feedback load error ${code} keeps the alert visible and supports retry`, async ({ page }) => {
+    const state = await installFixture(page);
+    state.readError = code;
+    await openAlerts(page);
+    await expect(page.getByRole("button", { name: "סמן כטופל", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "ניסיון נוסף לטעינת המשוב", exact: true })).toBeVisible();
+    await expect(feedbackForm(page)).toHaveCount(0);
+    if (code === "PGRST205") await expect(page.getByText("אפשרות המשוב עדיין לא זמינה בחשבון הזה. אפשר לנסות שוב מאוחר יותר.", { exact: true })).toBeVisible();
+    state.readError = null;
+    await page.getByRole("button", { name: "ניסיון נוסף לטעינת המשוב", exact: true }).click();
+    await expect(feedbackForm(page)).toBeVisible();
+  });
+}
+
+test("missing write RPC has a visible rollout error and never claims saved", async ({ page }) => {
+  const state = await installFixture(page);
+  state.saveErrors = 1;
+  state.saveErrorCode = "PGRST202";
+  await openAlerts(page);
+  await feedbackForm(page).getByRole("radio", { name: "עזרה לי", exact: true }).check();
+  await feedbackForm(page).getByRole("button", { name: "שליחת משוב", exact: true }).click();
+  await expect(feedbackForm(page).getByRole("alert")).toContainText("עדיין לא זמינה");
+  await expect(feedbackForm(page).getByRole("status")).toBeEmpty();
+  expect(state.feedback).toEqual([]);
+});
+
+test("loading saved feedback leaves the confirmed alert readable without offering an unsynced form", async ({ page }) => {
+  const state = await installFixture(page);
+  let releaseRead = () => {};
+  state.readGate = new Promise<void>((resolve) => { releaseRead = resolve; });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await openAlerts(page);
+  await expect(page.getByText("טוען את המשוב שלך…", { exact: true })).toBeVisible();
+  await expect(feedbackForm(page)).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "סמן כטופל", exact: true })).toBeVisible();
+  releaseRead();
+  state.readGate = null;
+  await expect(feedbackForm(page)).toBeVisible();
+});
+
+test("missed concern validates dates and sends only bounded structured fields, retaining key on retry", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const state = await installFixture(page);
+  state.missedErrors = 1;
+  await openAlerts(page);
+  await page.getByText("משהו מדאיג לא הופיע כאן?", { exact: true }).click();
+  const form = page.getByRole("form", { name: "דיווח על חשש שלא הופיע", exact: true });
+  await expect(form.locator("textarea, input[type=text]")).toHaveCount(0);
+  await form.getByRole("button", { name: "שליחת דיווח לבדיקה", exact: true }).click();
+  await expect(form.getByRole("alert")).toHaveText("יש לבחור ילד/ה, סוג חשש ותאריך.");
+  await form.getByLabel("ילד/ה", { exact: true }).selectOption(SECOND_CHILD_ID);
+  await form.getByLabel("סוג החשש", { exact: true }).selectOption("exclusion");
+  await form.getByLabel("מתי זה קרה?", { exact: true }).fill("2100-01-01");
+  await form.getByRole("button", { name: "שליחת דיווח לבדיקה", exact: true }).click();
+  await expect(form.getByRole("alert")).toHaveText("יש לבחור תאריך מהיום או מ־30 הימים האחרונים.");
+  await form.getByLabel("מתי זה קרה?", { exact: true }).fill("2020-01-01");
+  await form.getByRole("button", { name: "שליחת דיווח לבדיקה", exact: true }).click();
+  expect(state.calls).toHaveLength(0);
+  const occurredOn = new Date(Date.now() - 7 * 86_400_000).toISOString().slice(0, 10);
+  await form.getByLabel("מתי זה קרה?", { exact: true }).fill(occurredOn);
+  await form.getByRole("button", { name: "שליחת דיווח לבדיקה", exact: true }).click();
+  await expect(form.getByRole("alert")).toContainText("אפשר לנסות שוב");
+  await expect(form.getByLabel("מתי זה קרה?", { exact: true })).toHaveValue(occurredOn);
+  await form.getByRole("button", { name: "ניסיון נוסף לשליחת הדיווח", exact: true }).click();
+  await expect(form.getByRole("status")).toHaveText("הדיווח נשמר לבדיקה.");
+  expect(state.calls).toHaveLength(2);
+  expect(state.calls[0].body).toEqual(state.calls[1].body);
+  expect(state.calls[1]).toEqual({ rpc: "v2_report_missed_safety_concern", body: {
+    target_child_id: SECOND_CHILD_ID, target_category: "exclusion", target_occurred_on: occurredOn,
+    target_request_key: expect.stringMatching(/^guardian-feedback:[0-9a-f-]{36}$/),
+  } });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true);
+});
+
+test("legacy candidate labels do not claim expert certainty or a known child role", async ({ page }) => {
+  const state = await installFixture(page);
+  state.expertDetails = false;
+  await openAlerts(page);
+  await expect(page.getByText("סיווג ראשוני", { exact: true })).toBeVisible();
+  await expect(page.getByText("תפקיד הילד/ה עדיין לא ודאי", { exact: true })).toBeVisible();
+  await expect(page.getByText(/ודאות גבוהה|הילד\/ה יזם\/ה|ההקשר המלא/)).toHaveCount(0);
+});
+
+test("incident load errors are not rendered as an all-clear empty state", async ({ page }) => {
+  const state = await installFixture(page);
+  state.incidentError = true;
+  await authenticateSyntheticParent(page, "/alerts-v2");
+  await expect(page.getByText("לא ניתן לטעון את ההתראות כרגע.", { exact: true })).toBeVisible();
+  await expect(page.getByText("אין התראות חדשות", { exact: true })).toHaveCount(0);
+  state.incidentError = false;
+  await page.getByRole("button", { name: "ניסיון נוסף", exact: true }).click();
+  await expect(feedbackForm(page)).toBeVisible();
+});
+
+for (const monitoringState of ["healthy", "active", "unknown", "interrupted", null]) {
+  test(`home map uses the selected device canonical state: ${monitoringState ?? "missing"}`, async ({ page }) => {
+    const state = await installFixture(page);
+    const deviceId = "84000000-0000-4000-8000-000000000001";
+    const oldDeviceId = "84000000-0000-4000-8000-000000000002";
+    state.rows = {
+      v2_protected_devices: [
+        { id: deviceId, child_id: CHILD_ID, last_seen_at: NOW, status: "active" },
+        { id: oldDeviceId, child_id: CHILD_ID, last_seen_at: "2020-01-01T00:00:00Z", status: "active" },
+      ],
+      v2_parental_device_state: [{ device_id: deviceId, latitude: 0, longitude: 0, location_address: "מיקום סינתטי", observed_at: NOW }],
+      v2_device_health_events: [{ device_id: deviceId, capture_ready: true, product_ready: true, observed_at: NOW, capabilities: {}, degraded_reasons: [] }],
+      v2_device_monitoring_state: [
+        ...(monitoringState ? [{ device_id: deviceId, monitoring_state: monitoringState }] : []),
+        { device_id: oldDeviceId, monitoring_state: "healthy" },
+      ],
+    };
+    await authenticateSyntheticParent(page, "/home-v2");
+    const marker = page.getByTestId("synthetic-map-marker");
+    const label = monitoringState === "healthy" || monitoringState === "active" ? "ניטור פעיל"
+      : monitoringState === "interrupted" ? "הניטור הופסק" : "מצב הניטור לא ידוע";
+    await expect(marker).toHaveAttribute("aria-label", `ילד סינתטי עם שם ארוך לצורכי בדיקה: ${label}`);
+    const color = monitoringState === "healthy" || monitoringState === "active" ? "hsl(142 71% 45%)"
+      : monitoringState === "interrupted" ? "hsl(0 84% 60%)" : "hsl(220 10% 55%)";
+    expect(decodeURIComponent(await marker.getAttribute("data-icon-url") ?? "")).toContain(color);
+  });
+}
+
+async function installSyntheticMaps(page: Page) {
+  // Minimal offline rendering boundary; no Google Maps or location provider request.
+  await page.addInitScript(() => {
+      class SyntheticMap {
+        constructor(public element: HTMLElement) {}
+        setCenter() {}
+        setZoom() {}
+        fitBounds() {}
+      }
+      class SyntheticMarker {
+        element: HTMLElement;
+        constructor(options: { map: SyntheticMap; title: string; icon: { url: string } }) {
+          this.element = document.createElement("span");
+          this.element.dataset.testid = "synthetic-map-marker";
+          this.element.setAttribute("aria-label", options.title);
+          this.element.dataset.iconUrl = options.icon.url;
+          this.element.textContent = options.title;
+          options.map.element.appendChild(this.element);
+        }
+        setIcon(icon: { url: string }) { this.element.dataset.iconUrl = icon.url; }
+        setTitle(title: string) { this.element.setAttribute("aria-label", title); }
+        setPosition() {}
+        setMap(map: SyntheticMap | null) { if (!map) this.element.remove(); }
+        addListener() {}
+      }
+      class SyntheticInfoWindow {
+        setContent() {}
+        open() {}
+        close() {}
+      }
+      Object.defineProperty(window, "google", { value: { maps: {
+        version: "synthetic-offline", Map: SyntheticMap, Marker: SyntheticMarker,
+        InfoWindow: SyntheticInfoWindow, Size: class {}, Point: class {},
+        LatLngBounds: class { extend() {} }, event: { clearListeners() {} },
+      } } });
+  });
+}

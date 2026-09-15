@@ -1,0 +1,9 @@
+project_id = "gscclrgcmvtbyquveoze"
+
+# These endpoints authenticate opaque device/analyzer credentials in their handlers.
+# Gateway JWT verification would reject the existing Android device token contract.
+[functions.v2-submit-safety-incident]
+verify_jwt = false
+
+[functions.v2-analyze-safety-incident]
+verify_jwt = false

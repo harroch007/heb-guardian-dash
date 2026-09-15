@@ -1,0 +1,324 @@
+@font-face {
+  font-family: 'Fredoka';
+  src: url('/fonts/Fredoka-Variable.ttf') format('truetype');
+  font-weight: 300 700;
+  font-stretch: 75% 125%;
+  font-display: swap;
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 40 60% 98%;
+    --foreground: 216 55% 21%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 216 55% 21%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 216 55% 21%;
+
+    --primary: 222 72% 34%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 24 100% 91%;
+    --secondary-foreground: 216 55% 21%;
+
+    --muted: 220 40% 96%;
+    --muted-foreground: 217 20% 40%;
+
+    --accent: 24 100% 63%;
+    --accent-foreground: 216 55% 21%;
+
+    --destructive: 0 90% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    --warning: 45 100% 50%;
+    --warning-foreground: 222 47% 6%;
+
+    --success: 160 100% 45%;
+    --success-foreground: 222 47% 6%;
+
+    --border: 220 30% 89%;
+    --input: 220 30% 89%;
+    --ring: 222 72% 34%;
+
+    --radius: 1rem;
+
+    --sidebar-background: 222 47% 5%;
+    --sidebar-foreground: 180 100% 95%;
+    --sidebar-primary: 180 100% 50%;
+    --sidebar-primary-foreground: 222 47% 6%;
+    --sidebar-accent: 222 30% 12%;
+    --sidebar-accent-foreground: 180 100% 95%;
+    --sidebar-border: 180 50% 15%;
+    --sidebar-ring: 180 100% 50%;
+
+    /* Custom cyber effects */
+    --glow-primary: none;
+    --glow-secondary: none;
+    --glow-destructive: none;
+    --glow-warning: none;
+
+    --gradient-cyber: linear-gradient(135deg, hsl(180 100% 50% / 0.1), hsl(280 100% 60% / 0.1));
+    --gradient-card: linear-gradient(180deg, hsl(222 47% 10%), hsl(222 47% 6%));
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    direction: rtl;
+  }
+
+  body {
+    @apply bg-background text-foreground font-heebo antialiased;
+  }
+}
+
+@layer utilities {
+  .glow-primary {
+    box-shadow: var(--glow-primary);
+  }
+
+  .glow-secondary {
+    box-shadow: var(--glow-secondary);
+  }
+
+  .glow-destructive {
+    box-shadow: var(--glow-destructive);
+  }
+
+  .glow-warning {
+    box-shadow: var(--glow-warning);
+  }
+
+  .cyber-border {
+    @apply border border-primary/30 relative;
+  }
+
+  .cyber-border::before {
+    content: '';
+    @apply absolute inset-0 pointer-events-none;
+    background: var(--gradient-cyber);
+  }
+
+  .text-glow {
+    text-shadow: none;
+  }
+
+  .animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% {
+      opacity: 1;
+      filter: brightness(1);
+    }
+    50% {
+      opacity: 0.8;
+      filter: brightness(1.2);
+    }
+  }
+
+  .scanline {
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      hsl(180 100% 50% / 0.03) 2px,
+      hsl(180 100% 50% / 0.03) 4px
+    );
+  }
+}
+
+/* Active guardian brand scope. Class name retained for compatibility. */
+.v2-dark {
+  --background: 40 60% 98%;
+  --foreground: 216 55% 21%;
+  --card: 0 0% 100%;
+  --card-foreground: 216 55% 21%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 216 55% 21%;
+  --primary: 222 72% 34%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 24 100% 91%;
+  --secondary-foreground: 216 55% 21%;
+  --muted: 220 40% 96%;
+  --muted-foreground: 217 20% 40%;
+  --accent: 24 100% 63%;
+  --accent-foreground: 216 55% 21%;
+  --destructive: 0 72% 43%;
+  --destructive-foreground: 0 0% 100%;
+  --warning: 27 85% 40%;
+  --warning-foreground: 0 0% 100%;
+  --success: 152 60% 30%;
+  --success-foreground: 0 0% 100%;
+  --border: 220 30% 89%;
+  --input: 220 30% 89%;
+  --ring: 222 72% 34%;
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: 'Fredoka', Arial, sans-serif;
+}
+
+.v2-dark .v2-card {
+  background-color: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 1rem;
+  transition: box-shadow .2s, border-color .2s;
+}
+
+.v2-dark .v2-card-glow {
+  box-shadow: 0 4px 20px hsl(var(--primary) / 0.06);
+  border-color: hsl(var(--primary) / 0.35);
+}
+
+.v2-dark .v2-glow-text {
+  text-shadow: none;
+}
+
+.v2-dark .v2-icon-chip {
+  background-color: hsl(var(--primary) / 0.12);
+  border: 1px solid hsl(var(--primary) / 0.30);
+  color: hsl(var(--primary));
+  border-radius: 0.75rem;
+}
+
+/* HomeV2 / ChildControlV2 Light Theme Scope (legacy — kept for /demo and other consumers) */
+.homev2-light {
+  --background: 0 0% 97%;
+  --foreground: 220 15% 15%;
+
+  --card: 0 0% 100%;
+  --card-foreground: 220 15% 15%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 220 15% 15%;
+
+  --primary: 174 62% 47%;
+  --primary-foreground: 0 0% 100%;
+
+  --secondary: 220 10% 94%;
+  --secondary-foreground: 220 15% 25%;
+
+  --muted: 220 10% 94%;
+  --muted-foreground: 220 10% 46%;
+
+  --accent: 174 62% 47%;
+  --accent-foreground: 0 0% 100%;
+
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+
+  --warning: 38 92% 50%;
+  --warning-foreground: 220 15% 15%;
+
+  --success: 152 60% 42%;
+  --success-foreground: 0 0% 100%;
+
+  --border: 220 13% 87%;
+  --input: 220 13% 87%;
+  --ring: 174 62% 47%;
+
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: 'Fredoka', Arial, sans-serif;
+}
+
+/* Chat Dark Scope — WhatsApp-like, matches kid app chat */
+.chat-dark {
+  --chat-bg: #0B141A;
+  --chat-header: #202C33;
+  --chat-input-bg: #2A3942;
+  --chat-mine: #005C4B;
+  --chat-text: #E9EDEF;
+  --chat-text-muted: #8696A0;
+  --chat-accent: #39D2FF;
+  --chat-typing: #35C76F;
+  --chat-fab: #00A884;
+  background-color: var(--chat-bg);
+  color: var(--chat-text);
+  font-family: 'Fredoka', Arial, sans-serif;
+}
+.chat-dark ::placeholder { color: var(--chat-text-muted); }
+
+/* Accessibility - Text Size Levels */
+.accessibility-text-0 {
+  font-size: 100%;
+}
+
+.accessibility-text-1 {
+  font-size: 110%;
+}
+
+.accessibility-text-2 {
+  font-size: 120%;
+}
+
+.accessibility-text-3 {
+  font-size: 130%;
+}
+
+.accessibility-text-4 {
+  font-size: 140%;
+}
+
+/* Accessibility - High Contrast Mode */
+.high-contrast {
+  --background: 0 0% 0%;
+  --foreground: 0 0% 100%;
+  --card: 0 0% 5%;
+  --card-foreground: 0 0% 100%;
+  --popover: 0 0% 5%;
+  --popover-foreground: 0 0% 100%;
+  --primary: 60 100% 50%;
+  --primary-foreground: 0 0% 0%;
+  --secondary: 180 100% 50%;
+  --secondary-foreground: 0 0% 0%;
+  --muted: 0 0% 15%;
+  --muted-foreground: 0 0% 80%;
+  --border: 0 0% 40%;
+  --input: 0 0% 10%;
+  --ring: 60 100% 50%;
+}
+
+/* Accessibility - Enhanced Focus */
+.enhanced-focus *:focus {
+  outline: 3px solid hsl(var(--primary)) !important;
+  outline-offset: 3px !important;
+  box-shadow: 0 0 0 6px hsl(var(--primary) / 0.3) !important;
+}
+
+.enhanced-focus *:focus:not(:focus-visible) {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.enhanced-focus *:focus-visible {
+  outline: 3px solid hsl(var(--primary)) !important;
+  outline-offset: 3px !important;
+  box-shadow: 0 0 0 6px hsl(var(--primary) / 0.3) !important;
+}
+
+/* Accessibility - Reduce Motion */
+.reduce-motion *,
+.reduce-motion *::before,
+.reduce-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}
+.high-contrast .v2-dark { --background:0 0% 0%; --foreground:0 0% 100%; --card:0 0% 5%; --card-foreground:0 0% 100%; --primary:60 100% 50%; --primary-foreground:0 0% 0%; --muted-foreground:0 0% 85%; --border:0 0% 50%; }

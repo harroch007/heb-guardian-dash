@@ -1,0 +1,157 @@
+import {
+  classifyFinalizeResponseShapeMismatch,
+  classifyFinalizeRpcError,
+  classifyIncidentCryptoErrorCode,
+  classifyOpenAIHttpStatus,
+  classifyUnexpectedAnalyzerError,
+} from "./incident_failure.ts";
+
+Deno.test("retryable OpenAI HTTP failures are provider transient", () => {
+  for (const status of [408, 409, 429, 500, 503]) {
+    assertEquals(classifyOpenAIHttpStatus(status), {
+      retryable: true,
+      failureClass: "provider_transient",
+    });
+  }
+});
+
+Deno.test("successful non-JSON OpenAI responses are provider transient", () => {
+  for (const status of [200, 204, 206]) {
+    assertEquals(classifyOpenAIHttpStatus(status), {
+      retryable: true,
+      failureClass: "provider_transient",
+    });
+  }
+});
+
+Deno.test("OpenAI configuration HTTP failures retry without semantic spend", () => {
+  for (
+    const [status, scenario] of [
+      [400, "request_or_model_configuration"],
+      [401, "authentication"],
+      [402, "billing_configuration"],
+      [403, "permission"],
+      [404, "model_or_deployment"],
+      [405, "endpoint_configuration"],
+      [410, "retired_deployment"],
+      [413, "request_size_configuration"],
+      [415, "request_media_configuration"],
+      [422, "request_or_deployment_validation"],
+    ] as const
+  ) {
+    assertEquals(
+      classifyOpenAIHttpStatus(status),
+      {
+        retryable: true,
+        failureClass: "configuration",
+      },
+      scenario,
+    );
+  }
+});
+
+Deno.test("redirected OpenAI endpoint is a configuration outage", () => {
+  assertEquals(classifyOpenAIHttpStatus(307), {
+    retryable: true,
+    failureClass: "configuration",
+  });
+});
+
+Deno.test("decryption configuration failures retain a precise stage", () => {
+  for (
+    const code of [
+      "invalid_private_key",
+      "incident_decryption_failed",
+      "incident_key_unwrap_failed",
+      "incident_payload_auth_failed",
+    ]
+  ) {
+    assertEquals(classifyIncidentCryptoErrorCode(code), {
+      retryable: true,
+      failureClass: "configuration",
+    });
+  }
+});
+
+Deno.test("unsupported crypto runtime buffer is worker transient", () => {
+  assertEquals(classifyIncidentCryptoErrorCode("unsupported_crypto_buffer"), {
+    retryable: true,
+    failureClass: "worker_transient",
+  });
+});
+
+Deno.test("per-incident crypto contract failures remain analysis failures", () => {
+  for (
+    const code of [
+      "invalid_claim_header",
+      "invalid_encrypted_envelope",
+      "incident_envelope_header_mismatch",
+    ]
+  ) {
+    assertEquals(classifyIncidentCryptoErrorCode(code), {
+      retryable: false,
+      failureClass: "analysis",
+    });
+  }
+});
+
+Deno.test("unexpected analyzer runtime failure is worker transient", () => {
+  assertEquals(classifyUnexpectedAnalyzerError(), {
+    retryable: true,
+    failureClass: "worker_transient",
+  });
+});
+
+Deno.test("finalize validation is not classified as outage", () => {
+  for (const code of ["22023", "23505", "23514"]) {
+    assertEquals(classifyFinalizeRpcError({ code }), {
+      code: "analysis_finalize_rejected",
+      retryable: false,
+      failureClass: "analysis",
+    });
+  }
+});
+
+Deno.test("finalize control-plane and unknown errors are worker transient", () => {
+  for (
+    const code of [
+      "08006",
+      "40001",
+      "42501",
+      "57P01",
+      "PGRST000",
+      "PGRST003",
+      "PGRST202",
+      "42P01",
+      "unexpected",
+    ]
+  ) {
+    assertEquals(classifyFinalizeRpcError({ code }), {
+      code: "analysis_finalize_transient",
+      retryable: true,
+      failureClass: "worker_transient",
+    });
+  }
+});
+
+Deno.test("finalize response shape mismatch is worker transient", () => {
+  assertEquals(classifyFinalizeResponseShapeMismatch(), {
+    code: "analysis_finalize_contract_mismatch",
+    retryable: true,
+    failureClass: "worker_transient",
+  });
+});
+
+function assertEquals(
+  actual: unknown,
+  expected: unknown,
+  label = "",
+): void {
+  if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+    throw new Error(
+      `assertEquals failed${label === "" ? "" : ` (${label})`}: ${
+        JSON.stringify(actual)
+      } !== ${JSON.stringify(expected)}`,
+    );
+  }
+}

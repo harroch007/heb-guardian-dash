@@ -1,0 +1,250 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ArchiveRestore, ArrowRight, Bookmark, CheckCircle2, Loader2, RefreshCw } from "lucide-react";
+import {
+  getV2GuardianAlertDetails, isGuardianAssessmentConflict, setV2GuardianIncidentState,
+  type V2GuardianAlert, type V2GuardianAssessment, type V2GuardianIncidentState,
+} from "@/lib/v2/guardianAlertsService";
+import { getV2GuardianFeedback, v2FeedbackErrorMessage, type V2GuardianFeedback } from "@/lib/v2/guardianFeedbackService";
+import { V2GuardianFeedback as GuardianFeedbackForm } from "./V2GuardianFeedback";
+import {
+  acknowledgementLabel, caseTitle, categoryLabels, currentCaseLabel, formatCaseTime,
+  platformLabel, roleLabels, severityClasses, severityLabels, versionedActionsUnavailable,
+} from "./guardianCasePresentation";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+
+const validIncidentId = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+const historyOutcomeLabel = (outcome: V2GuardianAssessment["outcome"]) => outcome === "confirmed"
+  ? "אושר חשש בבדיקה" : outcome === "dismissed" ? "החשש לא אושר בבדיקה" : "הבדיקה לא הכריעה";
+
+export function V2GuardianCaseDetails({ familyId, userId, incidentId, onBack, onChanged }: {
+  familyId: string;
+  userId: string;
+  incidentId: string;
+  onBack: () => void;
+  onChanged: () => Promise<void>;
+}) {
+  const [alert, setAlert] = useState<V2GuardianAlert | null>(null);
+  const [history, setHistory] = useState<V2GuardianAssessment[]>([]);
+  const [historyAvailable, setHistoryAvailable] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [updating, setUpdating] = useState(false);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<V2GuardianFeedback | undefined>();
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
+  const [feedbackError, setFeedbackError] = useState<string | null>(null);
+  const generation = useRef(0);
+  const active = useRef(false);
+  const feedbackGeneration = useRef(0);
+  const updatingRef = useRef(false);
+  const lastRefresh = useRef(0);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const initialFocus = useRef(false);
+  const loadedAssessment = useRef<string | null>(null);
+  const loadedState = useRef<V2GuardianIncidentState | null>(null);
+  const loadedStateVersion = useRef<number | null>(null);
+  const validId = validIncidentId(incidentId);
+
+  const load = useCallback(async (): Promise<boolean> => {
+    if (!active.current) return false;
+    const current = ++generation.current;
+    if (!validId) { setLoading(false); return false; }
+    lastRefresh.current = Date.now();
+    setRefreshing(true);
+    setLoadError(false);
+    try {
+      const result = await getV2GuardianAlertDetails({ familyId, incidentId });
+      if (current !== generation.current) return false;
+      const nextAssessment = result.alert ? `${result.alert.id}:${result.alert.assessmentSeq}:${result.alert.latestAssessmentAt}` : null;
+      if (loadedAssessment.current !== null && (loadedAssessment.current !== nextAssessment ||
+        loadedStateVersion.current !== result.alert?.guardianStateVersion)) setActionMessage(null);
+      loadedAssessment.current = nextAssessment;
+      loadedState.current = result.alert?.state ?? null;
+      loadedStateVersion.current = result.alert?.guardianStateVersion ?? null;
+      setAlert(result.alert);
+      setHistory(result.history);
+      setHistoryAvailable(result.historyAvailable);
+      return true;
+    } catch {
+      if (current === generation.current) setLoadError(true);
+      return false;
+    } finally {
+      if (current === generation.current) { setLoading(false); setRefreshing(false); }
+    }
+  }, [familyId, incidentId, validId]);
+
+  useEffect(() => {
+    active.current = true;
+    void load();
+    return () => { active.current = false; generation.current += 1; };
+  }, [load]);
+
+  useEffect(() => {
+    if (!loading && !initialFocus.current) {
+      headingRef.current?.focus({ preventScroll: true });
+      initialFocus.current = true;
+    }
+  }, [loading]);
+
+  useEffect(() => {
+    const refreshVisible = () => {
+      if (document.visibilityState === "visible" && !updatingRef.current && Date.now() - lastRefresh.current > 1_000) void load();
+    };
+    window.addEventListener("focus", refreshVisible);
+    document.addEventListener("visibilitychange", refreshVisible);
+    return () => {
+      window.removeEventListener("focus", refreshVisible);
+      document.removeEventListener("visibilitychange", refreshVisible);
+    };
+  }, [load]);
+
+  const authorizedIncidentId = alert?.id;
+  const loadFeedback = useCallback(async () => {
+    if (!active.current) return;
+    const current = ++feedbackGeneration.current;
+    if (!authorizedIncidentId) return;
+    setFeedbackLoading(true);
+    setFeedbackError(null);
+    try {
+      const rows = await getV2GuardianFeedback([authorizedIncidentId], userId);
+      if (current === feedbackGeneration.current) setFeedback(rows.find((row) => row.incident_id === authorizedIncidentId));
+    } catch (error) {
+      if (current === feedbackGeneration.current) setFeedbackError(v2FeedbackErrorMessage(error, "load"));
+    } finally {
+      if (current === feedbackGeneration.current) setFeedbackLoading(false);
+    }
+  }, [authorizedIncidentId, userId]);
+  useEffect(() => {
+    setFeedback(undefined);
+    void loadFeedback();
+    return () => { feedbackGeneration.current += 1; };
+  }, [loadFeedback]);
+
+  const chronologicalHistory = useMemo(() => [...history].sort((a, b) =>
+    Date.parse(a.completedAt) - Date.parse(b.completedAt) || a.assessmentSeq - b.assessmentSeq), [history]);
+  const unavailable = alert ? versionedActionsUnavailable(alert) : true;
+
+  const updateState = async (state: V2GuardianIncidentState) => {
+    if (!alert || updatingRef.current || unavailable || loadError || refreshing) return;
+    updatingRef.current = true;
+    setUpdating(true);
+    setActionMessage(null);
+    setActionError(null);
+    const actedAssessment = loadedAssessment.current;
+    try {
+      await setV2GuardianIncidentState(alert.id, state, alert.assessmentSeq, alert.guardianStateVersion);
+      await onChanged();
+      if (!active.current) return;
+      const refreshed = await load();
+      if (refreshed && loadedAssessment.current === actedAssessment && loadedState.current === state) setActionMessage(state === "acknowledged" ? "העדכון שצפית בו סומן כטופל."
+        : state === "saved" ? "האירוע נשמר." : "האירוע הוחזר לתשומת לבך.");
+      else if (!refreshed) setActionError("הפעולה נשמרה, אך לא ניתן לטעון את המצב העדכני כרגע. יש לרענן לפני פעולה נוספת.");
+    } catch (error) {
+      if (!active.current) return;
+      if (isGuardianAssessmentConflict(error)) {
+        setActionError("הגיע עדכון חדש או שמצב האירוע השתנה בזמן הצפייה. הסימון לא נשמר. יש לקרוא את המצב העדכני לפני סימון נוסף.");
+        await load();
+        await onChanged();
+      } else setActionError("לא ניתן לשמור את הפעולה כרגע. המצב לא עודכן כאן; אפשר לנסות שוב.");
+    } finally {
+      updatingRef.current = false;
+      if (active.current) setUpdating(false);
+    }
+  };
+
+  const acknowledgement = alert ? acknowledgementLabel(alert) : null;
+  const nonConfirmed = alert?.expertOutcome === "dismissed" || alert?.expertOutcome === "inconclusive";
+  const newAttention = alert?.state === "new" && (alert.attentionAssessmentSeq ?? 0) > (alert.acknowledgedAssessmentSeq ?? 0);
+
+  return (
+    <section data-testid="guardian-case-details" aria-label="פרטי האירוע" className="min-w-0 space-y-5">
+      <div className="flex items-center justify-between gap-3">
+        <Button variant="ghost" className="min-h-11 whitespace-normal px-2 text-primary" onClick={onBack}>
+          <ArrowRight aria-hidden="true" className="h-4 w-4 shrink-0" /> חזרה להתראות
+        </Button>
+        {validId && <Button variant="outline" size="icon" className="h-11 w-11 shrink-0" aria-label="רענון האירוע" disabled={refreshing || updating} onClick={() => void load()}>
+          <RefreshCw aria-hidden="true" className={`h-4 w-4 ${refreshing ? "motion-safe:animate-spin" : ""}`} />
+        </Button>}
+      </div>
+      <h1 ref={headingRef} tabIndex={-1} data-testid="case-detail-heading" className="break-words text-2xl font-bold text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
+        {alert ? caseTitle(alert) : "פרטי האירוע"}
+      </h1>
+      {!validId ? <div data-testid="case-invalid-link" role="alert" className="rounded-xl border border-border bg-card p-5 text-sm">הקישור לאירוע אינו תקין. אפשר לחזור לרשימת ההתראות ולפתוח אותו מחדש.</div>
+        : loading ? <div role="status" className="flex items-center justify-center gap-3 py-12"><Loader2 aria-hidden="true" className="h-6 w-6 motion-safe:animate-spin text-primary" /><span>טוען את האירוע…</span></div>
+        : <>
+          {loadError && <div data-testid="case-load-error" role="alert" className="space-y-3 rounded-xl border border-border bg-card p-5">
+            <p className="text-sm leading-relaxed">לא ניתן לטעון את האירוע כרגע.{alert ? " המידע המוצג עשוי להיות לא מעודכן; הפעולות מושבתות עד לרענון." : ""}</p>
+            <Button variant="outline" className="min-h-11" disabled={refreshing} onClick={() => void load()}>ניסיון נוסף לטעינת האירוע</Button>
+          </div>}
+          {!alert && !loadError && <div data-testid="case-not-found" role="status" className="rounded-xl border border-border bg-card p-5 text-sm leading-relaxed">האירוע לא נמצא או שאינו זמין בחשבון הזה.</div>}
+          {alert && <>
+            <div className="space-y-2 break-words text-sm text-muted-foreground">
+              <p>{alert.childName} · <bdi>{platformLabel(alert.sourcePlatform)}</bdi>{alert.conversationType ? ` · ${alert.conversationType === "group" ? "שיחה קבוצתית" : "שיחה פרטית"}` : ""}</p>
+              <p>{alert.conversationLabel || "שם השיחה אינו זמין"}</p>
+              <p>בדיקה אחרונה: <time data-testid="case-latest-assessment-at" dateTime={alert.latestAssessmentAt ?? undefined}>{formatCaseTime(alert.latestAssessmentAt)}</time></p>
+              <p>מועד האירוע המקורי: <time dateTime={alert.occurredAt}>{formatCaseTime(alert.occurredAt)}</time></p>
+            </div>
+            <Card className="min-w-0 border-border bg-card">
+              <CardContent data-testid="case-current-assessment" className="space-y-4 p-5">
+                <h2 className="text-lg font-semibold">ההערכה העדכנית</h2>
+                {newAttention && <p className="text-sm font-medium text-primary">עדכון חדש שמצריך תשומת לב</p>}
+                <Badge data-testid="case-current-outcome" variant="outline" className={`max-w-full whitespace-normal text-start leading-relaxed ${alert.assessmentSource === "expert" && alert.severity ? severityClasses[alert.severity] ?? "border-border text-muted-foreground" : "border-border text-muted-foreground"}`}>
+                  {currentCaseLabel(alert)}
+                </Badge>
+                <p className="break-words text-sm font-medium leading-relaxed">{alert.summary}</p>
+                <p className="break-words text-sm leading-relaxed text-muted-foreground">{alert.reason}</p>
+                {alert.childRole && <p className="text-xs text-muted-foreground">{roleLabels[alert.childRole] ?? roleLabels.unknown}</p>}
+                <p className="text-xs leading-relaxed text-muted-foreground">{nonConfirmed ? "התוצאה מתייחסת למידע שנבדק כעת ואינה קובעת שהאירוע הסתיים או שהשיחה בטוחה." : "ההערכה מבוססת על ניתוח אוטומטי של המידע הזמין, ועשויה להיות שגויה."}</p>
+              </CardContent>
+            </Card>
+            <section data-testid="case-recommendation" aria-labelledby="case-recommendation-heading" className="space-y-2 rounded-xl border border-primary/20 bg-primary/5 p-5">
+              <h2 id="case-recommendation-heading" className="text-lg font-semibold">{nonConfirmed ? "ההמלצה מההערכה הקודמת" : "מה מומלץ לעשות עכשיו"}</h2>
+              {nonConfirmed && <p className="text-xs leading-relaxed text-muted-foreground">זו המלצה שניתנה בעבר, ולא המלצה חדשה מהבדיקה האחרונה.</p>}
+              <p className="break-words text-sm leading-relaxed">{alert.recommendedAction}</p>
+            </section>
+            <section className="space-y-3" aria-label="הפעולות שלך באירוע">
+              {acknowledgement && <p className="text-sm leading-relaxed text-muted-foreground">{acknowledgement}</p>}
+              {unavailable && <p data-testid="case-actions-unavailable" role="status" className="rounded-xl border border-border p-4 text-sm leading-relaxed">עדכון מצב האירוע עדיין אינו זמין בחשבון הזה. אפשר לקרוא את האירוע ולנסות לרענן מאוחר יותר.</p>}
+              <div className="flex flex-wrap gap-2" aria-busy={updating}>
+                {alert.state !== "saved" && <Button variant="outline" className="min-h-11 flex-1 whitespace-normal" disabled={unavailable || updating || refreshing || loadError} onClick={() => void updateState("saved")}><Bookmark aria-hidden="true" className="h-4 w-4 shrink-0" />שמירת האירוע</Button>}
+                {alert.state !== "acknowledged" ? <Button className="min-h-11 flex-1 whitespace-normal" disabled={unavailable || updating || refreshing || loadError} onClick={() => void updateState("acknowledged")}>
+                  {updating ? <Loader2 aria-hidden="true" className="h-4 w-4 shrink-0 motion-safe:animate-spin" /> : <CheckCircle2 aria-hidden="true" className="h-4 w-4 shrink-0" />}סמן כטופל
+                </Button> : <Button variant="outline" className="min-h-11 flex-1 whitespace-normal" disabled={unavailable || updating || refreshing || loadError} onClick={() => void updateState("new")}><ArchiveRestore aria-hidden="true" className="h-4 w-4 shrink-0" />החזרה לתשומת לבי</Button>}
+              </div>
+              <p className="text-xs leading-relaxed text-muted-foreground">הסימון מתייחס לעדכון שמוצג כאן. עדכון נוסף שמצריך תשומת לב יוצג מחדש.</p>
+              {actionError && <p data-testid="case-action-error" role="alert" className="text-sm leading-relaxed text-red-300">{actionError}</p>}
+              {actionMessage && <p role="status" className="text-sm leading-relaxed text-primary">{actionMessage}</p>}
+            </section>
+            <section data-testid="case-history" aria-labelledby="case-history-heading" className="space-y-3 border-t border-border pt-5">
+              <h2 id="case-history-heading" className="text-lg font-semibold">היסטוריית הבדיקות</h2>
+              {!historyAvailable ? <p data-testid="case-history-error" className="text-sm leading-relaxed text-muted-foreground">היסטוריית הבדיקות אינה זמינה כרגע. אין בכך מידע על שינוי בחשש.</p>
+                : chronologicalHistory.length === 0 ? <p className="text-sm text-muted-foreground">אין בדיקות קודמות זמינות להצגה.</p>
+                : <ol className="space-y-5 border-s-2 border-border ps-4">
+                  {chronologicalHistory.map((assessment) => <li key={assessment.assessmentSeq} data-testid={`case-assessment-${assessment.assessmentSeq}`} className="min-w-0 space-y-2">
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground"><time dateTime={assessment.completedAt}>{formatCaseTime(assessment.completedAt)}</time>{assessment.assessmentSeq === alert.assessmentSeq && <span>ההערכה העדכנית</span>}</div>
+                    <h3 className="text-sm font-semibold">{historyOutcomeLabel(assessment.outcome)}</h3>
+                    {assessment.outcome === "confirmed" && <p className="text-xs leading-relaxed text-muted-foreground">{assessment.category ? categoryLabels[assessment.category] ?? "חשש לבטיחות" : ""}{assessment.category && assessment.severity ? " · " : ""}{assessment.severity ? severityLabels[assessment.severity] ?? "סיווג קודם" : ""}</p>}
+                    {assessment.isAttentionUpdate && <p className="text-xs text-primary">עדכון שדרש תשומת לב</p>}
+                    <p className="break-words text-sm leading-relaxed">{assessment.summary}</p>
+                    <details className="rounded-lg border border-border bg-card px-3">
+                      <summary className="min-h-11 cursor-pointer py-3 text-sm text-muted-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">הסבר והמלצה שנשמרו עם הבדיקה</summary>
+                      <div className="space-y-2 pb-3 text-sm leading-relaxed"><p className="break-words">{assessment.reason}</p><p className="font-medium">{assessment.recommendationIsHistorical ? "המלצה היסטורית שנשמרה" : "ההמלצה בעת הבדיקה"}</p><p className="break-words">{assessment.recommendedAction}</p></div>
+                    </details>
+                  </li>)}
+                </ol>}
+              {nonConfirmed && alert.historicalFirstConfirmation && <p data-testid="case-historical-first-confirmation" className="text-xs leading-relaxed text-muted-foreground">בהערכה המאומתת הראשונה: {categoryLabels[alert.historicalFirstConfirmation.category] ?? "חשש לבטיחות"}, {severityLabels[alert.historicalFirstConfirmation.severity] ?? "סיווג קודם"}. זהו תיעוד היסטורי.</p>}
+            </section>
+            <section aria-label="המשוב שלך" className="space-y-3">
+              {feedbackLoading ? <p role="status" className="text-sm text-muted-foreground">טוען את המשוב שלך…</p>
+                : feedbackError ? <div role="alert" className="space-y-2 rounded-xl border border-border bg-card p-4"><p className="text-sm leading-relaxed">{feedbackError}</p><Button variant="outline" className="min-h-11 whitespace-normal" onClick={() => void loadFeedback()}>ניסיון נוסף לטעינת המשוב</Button></div>
+                : <GuardianFeedbackForm incidentId={alert.id} feedback={feedback} onSaved={setFeedback} />}
+            </section>
+          </>}
+        </>}
+    </section>
+  );
+}
