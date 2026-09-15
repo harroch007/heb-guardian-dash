@@ -2630,6 +2630,35 @@ export type Database = {
           },
         ]
       }
+      v2_expert_explanations: {
+        Row: {
+          created_at: string
+          explanation: Json | null
+          explanation_status: string
+          incident_id: string
+        }
+        Insert: {
+          created_at?: string
+          explanation?: Json | null
+          explanation_status: string
+          incident_id: string
+        }
+        Update: {
+          created_at?: string
+          explanation?: Json | null
+          explanation_status?: string
+          incident_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_expert_explanations_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: true
+            referencedRelation: "v2_three_gate_assessments"
+            referencedColumns: ["incident_id"]
+          },
+        ]
+      }
       v2_expert_provider_attempts: {
         Row: {
           attempt_id: string
@@ -3504,6 +3533,62 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      v2_moderation_batch_receipts: {
+        Row: {
+          conversation_ref: string
+          created_at: string
+          device_id: string
+          expires_at: string
+          last_error_at: string | null
+          last_error_code: string | null
+          lease_expires_at: string | null
+          lease_token_hash: string | null
+          request_hash: string
+          request_id: string
+          response: Json | null
+          source_revision: string
+          state: string
+        }
+        Insert: {
+          conversation_ref: string
+          created_at?: string
+          device_id: string
+          expires_at?: string
+          last_error_at?: string | null
+          last_error_code?: string | null
+          lease_expires_at?: string | null
+          lease_token_hash?: string | null
+          request_hash: string
+          request_id: string
+          response?: Json | null
+          source_revision: string
+          state: string
+        }
+        Update: {
+          conversation_ref?: string
+          created_at?: string
+          device_id?: string
+          expires_at?: string
+          last_error_at?: string | null
+          last_error_code?: string | null
+          lease_expires_at?: string | null
+          lease_token_hash?: string | null
+          request_hash?: string
+          request_id?: string
+          response?: Json | null
+          source_revision?: string
+          state?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_moderation_batch_receipts_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "v2_protected_devices"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       v2_monitoring_alert_deliveries: {
         Row: {
@@ -6040,6 +6125,20 @@ export type Database = {
           lease_token: string
         }[]
       }
+      v2_begin_moderation_batch_service: {
+        Args: {
+          target_conversation_ref: string
+          target_device_id: string
+          target_request_hash: string
+          target_request_id: string
+          target_source_revision: string
+        }
+        Returns: {
+          lease_token: string
+          receipt_state: string
+          response: Json
+        }[]
+      }
       v2_begin_three_gate_assessment_service: {
         Args: {
           target_conversation_ref: string
@@ -6193,6 +6292,7 @@ export type Database = {
           targets: Json
         }[]
       }
+      v2_cleanup_moderation_receipts_internal: { Args: never; Returns: number }
       v2_cmo_can_transition: {
         Args: {
           from_status: Database["public"]["Enums"]["v2_cmo_workflow_status"]
@@ -6314,6 +6414,15 @@ export type Database = {
           credential_key_version: number
           device_id: string
         }[]
+      }
+      v2_complete_moderation_batch_service: {
+        Args: {
+          target_device_id: string
+          target_lease_token: string
+          target_request_id: string
+          target_response: Json
+        }
+        Returns: boolean
       }
       v2_complete_monitoring_delivery_service: {
         Args: {
@@ -6501,6 +6610,10 @@ export type Database = {
         }
         Returns: number
       }
+      v2_expert_review_indexes: {
+        Args: { ordered_refs: Json; refs: Json }
+        Returns: Json
+      }
       v2_finalize_ephemeral_incident_analysis_service:
         | {
             Args: {
@@ -6596,6 +6709,23 @@ export type Database = {
           incident_status: string
         }[]
       }
+      v2_finalize_three_gate_assessment_review_service: {
+        Args: {
+          target_analysis: Json
+          target_explanation: Json
+          target_explanation_status: string
+          target_incident_id: string
+          target_lease_token: string
+          target_model_version: string
+          target_prompt_version: string
+        }
+        Returns: {
+          analysis_outcome: string
+          delivery_count: number
+          incident_status: string
+          parent_incident_id: string
+        }[]
+      }
       v2_finalize_three_gate_assessment_service: {
         Args: {
           target_analysis: Json
@@ -6636,6 +6766,15 @@ export type Database = {
           expires_at: string
           status: string
         }[]
+      }
+      v2_get_expert_review_service: {
+        Args: {
+          target_assessment_id: string
+          target_assessment_seq: number
+          target_case_id: string
+          target_device_id: string
+        }
+        Returns: Json
       }
       v2_get_guardian_case_history: {
         Args: {
@@ -6895,6 +7034,23 @@ export type Database = {
         }
         Returns: undefined
       }
+      v2_record_expert_provider_attempt_v2_service: {
+        Args: {
+          target_attempt_id: string
+          target_cached_input_tokens: number
+          target_endpoint: string
+          target_http_status: number
+          target_incident_id: string
+          target_input_tokens: number
+          target_latency_ms: number
+          target_lease_token: string
+          target_output_tokens: number
+          target_prompt_version: string
+          target_reasoning_tokens: number
+          target_status: string
+        }
+        Returns: undefined
+      }
       v2_record_incident_analysis_failure_service: {
         Args: {
           target_capability_token: string
@@ -6961,6 +7117,24 @@ export type Database = {
         Args: { target_incident_id: string; target_lease_token: string }
         Returns: boolean
       }
+      v2_release_moderation_batch_service:
+        | {
+            Args: {
+              target_device_id: string
+              target_lease_token: string
+              target_request_id: string
+            }
+            Returns: boolean
+          }
+        | {
+            Args: {
+              target_device_id: string
+              target_error_code: string
+              target_lease_token: string
+              target_request_id: string
+            }
+            Returns: boolean
+          }
       v2_report_device_health_service: {
         Args: {
           target_accessibility_enabled: boolean
@@ -7364,6 +7538,10 @@ export type Database = {
       v2_v3_reason_for_inference: {
         Args: { target_outcome: string; target_primary_category: string }
         Returns: string
+      }
+      v2_valid_expert_explanation_v1: {
+        Args: { allowed_refs?: string[]; value: Json }
+        Returns: boolean
       }
       v2_valid_expert_secondary_categories: {
         Args: {
