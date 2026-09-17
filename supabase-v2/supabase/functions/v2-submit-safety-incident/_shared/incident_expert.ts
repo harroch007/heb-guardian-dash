@@ -112,6 +112,21 @@ export interface SanitizedIncidentContext {
   full_fifo?: FullFifo;
   messages: SanitizedIncidentMessage[];
   redaction_manifest: Record<string, number>;
+  /**
+   * Absent or "flagged_message" is the default path: trigger_segment_ref is
+   * a real message a local heuristic flagged as risky. "group_membership_ended"
+   * means the child left or was removed from a group; trigger_segment_ref is
+   * a structural placeholder (the most recent buffered message), not itself
+   * evidence, and conversation_display_name must be present.
+   */
+  trigger_kind?: "flagged_message" | "group_membership_ended";
+  /**
+   * Plain-text group display name. Only ever populated (and only allowed)
+   * when trigger_kind is "group_membership_ended" — a deliberate, narrow
+   * exception to this pipeline's usual opaque-ref-only discipline, needed so
+   * the expert can judge the social context of the group the child left.
+   */
+  conversation_display_name?: string;
 }
 
 export interface SanitizedSafetyDecisionContext {
@@ -172,6 +187,7 @@ interface OpenAIIncidentContext {
   trigger_segment_ref: string;
   evidence_segment_refs: string[];
   messages: SanitizedIncidentMessage[];
+  conversation_display_name?: string;
 }
 
 export interface ExpertAnalysis {
@@ -328,7 +344,7 @@ export function parseSanitizedIncidentContext(
       "evidence_segment_refs",
       "messages",
       "redaction_manifest",
-    ], ["safety_context", "full_fifo"])
+    ], ["safety_context", "full_fifo", "trigger_kind", "conversation_display_name"])
   ) {
     throw new ExpertAnalysisError("invalid_context_contract", false);
   }
@@ -354,6 +370,25 @@ export function parseSanitizedIncidentContext(
     !isRecord(context.redaction_manifest)
   ) {
     throw new ExpertAnalysisError("invalid_context_contract", false);
+  }
+  if (
+    context.trigger_kind !== undefined &&
+    context.trigger_kind !== "flagged_message" &&
+    context.trigger_kind !== "group_membership_ended"
+  ) {
+    throw new ExpertAnalysisError("invalid_trigger_kind", false);
+  }
+  if (context.trigger_kind === "group_membership_ended") {
+    if (
+      typeof context.conversation_display_name !== "string" ||
+      context.conversation_display_name.length < 1 ||
+      context.conversation_display_name.length > 100 ||
+      containsLikelyDirectIdentifier(context.conversation_display_name)
+    ) {
+      throw new ExpertAnalysisError("invalid_conversation_display_name", false);
+    }
+  } else if (context.conversation_display_name !== undefined) {
+    throw new ExpertAnalysisError("invalid_conversation_display_name", false);
   }
   if (
     ([2, 3].includes(context.privacy_contract_version) &&
@@ -620,7 +655,9 @@ export function buildOpenAIRequest(
         role: "system",
         content: [{
           type: "input_text",
-          text: SYSTEM_INSTRUCTIONS,
+          text: context.trigger_kind === "group_membership_ended"
+            ? `${SYSTEM_INSTRUCTIONS}\n\n${GROUP_MEMBERSHIP_ENDED_ADDENDUM}`
+            : SYSTEM_INSTRUCTIONS,
         }],
       },
       {
@@ -652,6 +689,9 @@ function projectOpenAIIncidentContext(
       : { safety_context: structuredClone(context.safety_context) }),
     trigger_segment_ref: context.trigger_segment_ref,
     evidence_segment_refs: [...context.evidence_segment_refs],
+    ...(context.conversation_display_name === undefined ? {} : {
+      conversation_display_name: context.conversation_display_name,
+    }),
     messages: context.messages.map((message) => ({
       segment_ref: message.segment_ref,
       participant_ref: message.participant_ref,
@@ -1156,6 +1196,27 @@ supported by the cited evidence. Do not infer a context gap from unknown facts.
 Never add prose, quotations, identifiers or recommendations to the explanation.
 If no permitted evidence-linked statement is supported, return explanation null.
 The explanation supplements the nine decision fields and never determines actions.
+`.trim();
+
+const GROUP_MEMBERSHIP_ENDED_ADDENDUM = `
+For this submission, trigger_kind is group_membership_ended: the child left
+or was removed from the WhatsApp group named in conversation_display_name.
+trigger_segment_ref is the most recently retained message in that group's
+buffer at the time of the exit; it is a structural placeholder only, not
+itself evidence, and must never be treated as inherently risky on its own.
+
+Your task is to determine, from the full supplied conversation, whether
+bullying, exclusion or other social harm plausibly explains why the child's
+membership in this group ended. Use the existing "exclusion" and "bullying"
+categories when the evidence supports them; use another existing category
+when the evidence instead points elsewhere. If the conversation shows no
+sign that the departure was harm-related (an inactive, unrelated or
+naturally-ended group membership), return "dismissed" as usual.
+
+conversation_display_name is the group's display name, supplied only for
+social context (e.g. distinguishing a family group from an unfamiliar one).
+Never repeat it, infer anyone's identity from it, or treat it as message
+evidence; it is not a segment_ref and must not be cited as one.
 `.trim();
 
 const EXPERT_OUTPUT_SCHEMA = {
